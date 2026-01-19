@@ -207,6 +207,7 @@ class DecoderConfig:
     LAYERS: List[int] = field(default_factory=list)  # linear decoder by default
     USE_BIAS: bool = False
     ACTIVATION: str = "relu"
+    AFFINE_BIAS: bool = False  # Add learnable bias to decoder output (useful for LISTA)
 
 
 @dataclass
@@ -221,6 +222,10 @@ class ModelConfig:
     RECONST_COEFF: float = 0.02  # reconstruction loss weight
     PRED_COEFF: float = 0.0  # prediction loss weight
     SPARSITY_COEFF: float = 1e-3  # sparsity loss weight (L1 regularization)
+    HOMOGENEOUS_COEFF: float = 1.0  # homogeneous coordinate consistency loss weight
+    
+    # Homogeneous coordinates: append 1 to input, enables implicit bias learning
+    USE_HOMOGENEOUS: bool = False
     
     # Sub-configs
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
@@ -366,6 +371,9 @@ def get_train_lista_config() -> Config:
     cfg.MODEL.NORM_FN = "id"
     cfg.MODEL.ENCODER.LISTA.L = 0.1
     cfg.MODEL.ENCODER.LISTA.ALPHA = 5e-3
+    cfg.MODEL.ENCODER.USE_BIAS = False
+    cfg.MODEL.USE_HOMOGENEOUS = True  # Enable homogeneous coordinates for implicit bias
+    cfg.MODEL.HOMOGENEOUS_COEFF = 1.0
     return cfg
 
 
@@ -385,7 +393,10 @@ def get_train_lista_nonlinear_config() -> Config:
     cfg.MODEL.ENCODER.LISTA.L = 1e4
     cfg.MODEL.ENCODER.LISTA.ALPHA = 1.0
     cfg.MODEL.ENCODER.LAST_RELU = True
-    cfg.MODEL.ENCODER.USE_BIAS = True
+    cfg.MODEL.ENCODER.USE_BIAS = False
+    cfg.MODEL.DECODER.AFFINE_BIAS = False
+    cfg.MODEL.USE_HOMOGENEOUS = True  # Enable homogeneous coordinates for implicit bias
+    cfg.MODEL.HOMOGENEOUS_COEFF = 1.0
     return cfg
 
 

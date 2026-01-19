@@ -9,6 +9,7 @@ This module provides:
 - LISTAKM: Koopman machine with LISTA sparse encoder
 """
 
+import math
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Tuple, List
 import torch
@@ -170,10 +171,13 @@ class LISTA(nn.Module):
             f"Wd_init shape {Wd_init.shape} doesn't match expected ({xdim}, {self.zdim})"
         
         if self.use_linear_encode:
-            self.We = nn.Linear(xdim, self.zdim, bias=False)
+            use_bias = cfg.MODEL.ENCODER.USE_BIAS
+            self.We = nn.Linear(xdim, self.zdim, bias=use_bias)
             # Initialize as (1/L) * Wd^T
             with torch.no_grad():
                 self.We.weight.copy_((1.0 / self.L) * Wd_init.T)  # [zdim, xdim]
+                if use_bias:
+                    self.We.bias.zero_()
         else:
             self.We = MLPCoder(
                 input_size=xdim,
@@ -748,24 +752,42 @@ class LISTAKM(KoopmanMachine):
     Uses the Learned Iterative Soft-Thresholding Algorithm (LISTA) for sparse
     encoding. The decoder uses a normalized dictionary.
     
+    Supports homogeneous coordinates: when enabled, input x is augmented to [x, 1],
+    allowing the dictionary to learn an implicit bias through an extra dimension.
+    The decoder outputs [x̂, ĉ] internally, with ĉ penalized to stay close to 1.
+    
     Args:
         cfg: Configuration object
-        observation_size: Dimension of the observation space
+        observation_size: Dimension of the observation space (physical, without homogeneous)
     """
     
     def __init__(self, cfg: Config, observation_size: int):
         super().__init__(cfg, observation_size)
         
+        # Homogeneous coordinates: augment input with constant 1
+        self.use_homogeneous = cfg.MODEL.USE_HOMOGENEOUS
+        self._internal_obs_size = observation_size + 1 if self.use_homogeneous else observation_size
+        
         # Initialize dictionary with unit-norm columns
-        # Shape [xdim, zdim]
-        Wd_init = torch.randn(observation_size, cfg.MODEL.TARGET_SIZE)
+        # Shape [internal_obs_size, zdim]
+        Wd_init = torch.randn(self._internal_obs_size, cfg.MODEL.TARGET_SIZE)
         Wd_init = Wd_init / torch.norm(Wd_init, dim=0, keepdim=True)
         
         # Register as buffer so it's saved/loaded but not updated by optimizer
         self.register_buffer('dict_init', Wd_init.clone())
         
-        # Decoder dictionary parameter [zdim, xdim]
+        # Decoder dictionary parameter [zdim, internal_obs_size]
         self.dict = nn.Parameter(Wd_init.T)
+        
+        # Optional decoder bias [observation_size] - helps capture system mean/center
+        # Note: If using homogeneous coordinates, bias is learned implicitly via the extra dimension
+        self.use_decoder_bias = cfg.MODEL.DECODER.AFFINE_BIAS and not self.use_homogeneous
+        if self.use_decoder_bias:
+            bound = 1.0 / math.sqrt(cfg.MODEL.TARGET_SIZE)
+            bias_init = torch.empty(observation_size).uniform_(-bound, bound)
+            self.decoder_bias = nn.Parameter(bias_init)
+        else:
+            self.register_buffer('decoder_bias', torch.zeros(observation_size))
         
         # Compute Lipschitz constant L for this dictionary
         # L >= max eigenvalue of (Wd^T @ Wd)
@@ -782,14 +804,19 @@ class LISTAKM(KoopmanMachine):
             L = L_computed.item() * 1.05
             
         print(f"Initialized LISTA with computed Lipschitz constant L={L:.4f}")
+        if self.use_homogeneous:
+            print(f"  Using homogeneous coordinates: input {observation_size} -> internal {self._internal_obs_size}")
         
-        # LISTA encoder
-        # We temporarily override cfg.MODEL.ENCODER.LISTA.L to use the computed one for initialization
-        # The cfg object itself isn't modified globally, just locally used
-        self.lista = LISTA(cfg, observation_size, Wd_init, L_override=L)
+        # LISTA encoder (uses internal_obs_size)
+        self.lista = LISTA(cfg, self._internal_obs_size, Wd_init, L_override=L)
         
         # Koopman matrix (learnable)
         self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
+    
+    def _augment_homogeneous(self, x: torch.Tensor) -> torch.Tensor:
+        """Augment input with homogeneous coordinate [x, 1]."""
+        ones = torch.ones(*x.shape[:-1], 1, device=x.device, dtype=x.dtype)
+        return torch.cat([x, ones], dim=-1)
     
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Encode observations using LISTA.
@@ -800,7 +827,21 @@ class LISTAKM(KoopmanMachine):
         Returns:
             Sparse latent codes of shape [..., target_size]
         """
+        if self.use_homogeneous:
+            x = self._augment_homogeneous(x)
         return self.lista(x)
+    
+    def _decode_full(self, y: torch.Tensor) -> torch.Tensor:
+        """Decode to full internal representation (includes homogeneous coord if enabled).
+        
+        Args:
+            y: Latent codes of shape [..., target_size]
+            
+        Returns:
+            Full decoded output of shape [..., internal_obs_size]
+        """
+        wd = self.dict / torch.norm(self.dict, dim=1, keepdim=True).clamp(min=1e-4)
+        return y @ wd
     
     def decode(self, y: torch.Tensor) -> torch.Tensor:
         """Decode using normalized dictionary.
@@ -811,9 +852,32 @@ class LISTAKM(KoopmanMachine):
         Returns:
             Reconstructed observations of shape [..., observation_size]
         """
-        # Normalize dictionary atoms
-        wd = self.dict / torch.norm(self.dict, dim=1, keepdim=True).clamp(min=1e-4)
-        return y @ wd
+        full_output = self._decode_full(y)
+        
+        if self.use_homogeneous:
+            # Strip the homogeneous coordinate, return only physical dimensions
+            physical_output = full_output[..., :-1]
+        else:
+            physical_output = full_output
+        
+        if self.use_decoder_bias:
+            return physical_output + self.decoder_bias
+        else:
+            return physical_output
+    
+    def get_homogeneous_coord(self, y: torch.Tensor) -> torch.Tensor:
+        """Get the reconstructed homogeneous coordinate ĉ (should be close to 1).
+        
+        Args:
+            y: Latent codes of shape [..., target_size]
+            
+        Returns:
+            Homogeneous coordinate of shape [...] (scalar per sample)
+        """
+        if not self.use_homogeneous:
+            raise ValueError("Model not using homogeneous coordinates")
+        full_output = self._decode_full(y)
+        return full_output[..., -1]
     
     def kmatrix(self) -> torch.Tensor:
         """Get the Koopman matrix.
@@ -834,6 +898,49 @@ class LISTAKM(KoopmanMachine):
         """
         z = self.encode(x)
         return self.cfg.MODEL.ENCODER.LISTA.ALPHA * torch.norm(z, p=1, dim=-1).mean()
+    
+    def homogeneous_loss(self, x: torch.Tensor) -> torch.Tensor:
+        """Compute homogeneous coordinate consistency loss: penalize ĉ ≠ 1.
+        
+        Args:
+            x: Observations of shape [..., observation_size]
+            
+        Returns:
+            Scalar loss (mean squared deviation of ĉ from 1)
+        """
+        if not self.use_homogeneous:
+            return torch.tensor(0.0, device=x.device)
+        z = self.encode(x)
+        c_hat = self.get_homogeneous_coord(z)
+        return torch.mean((c_hat - 1.0) ** 2)
+    
+    def loss(
+        self,
+        x: torch.Tensor,
+        nx: torch.Tensor
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Compute total loss and metrics, including homogeneous consistency.
+        
+        Args:
+            x: Current states of shape [batch_size, observation_size]
+            nx: Next states of shape [batch_size, observation_size]
+            
+        Returns:
+            Tuple of (total_loss, metrics_dict)
+        """
+        # Get base loss and metrics from parent class
+        total_loss, metrics = super().loss(x, nx)
+        
+        # Add homogeneous consistency loss if enabled
+        if self.use_homogeneous:
+            homog_loss = self.homogeneous_loss(x) + self.homogeneous_loss(nx)
+            homog_loss *= 0.5  # Average over x and nx
+            
+            total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
+            metrics['homogeneous_loss'] = homog_loss.item()
+            metrics['loss'] = total_loss.item()
+        
+        return total_loss, metrics
 
 
 # ---------------------------------------------------------------------------
