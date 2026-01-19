@@ -251,7 +251,10 @@ def train(
     
     # Setup logging directory and save config
     if log_dir is None:
-        log_dir = './runs/kae'
+        if cfg.MODEL.MODEL_NAME == 'LISTAKM':
+            log_dir = './runs/lista'
+        else:
+            log_dir = './runs/kae'
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_dir = Path(log_dir) / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -358,11 +361,15 @@ def train(
                       f"Pred: {metrics['prediction_loss']:.4f} | "
                       f"Sparsity: {metrics['sparsity_ratio']:.3f}")
             else:
-                print(f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
-                      f"Loss: {metrics['loss']:.4f} | "
-                      f"Res: {metrics['residual_loss']:.4f} | "
-                      f"Recon: {metrics['reconst_loss']:.4f} | "
-                      f"Sparsity: {metrics['sparsity_ratio']:.3f}")
+                log_str = (f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
+                           f"Loss: {metrics['loss']:.4f} | "
+                           f"Res: {metrics['residual_loss']:.4f} | "
+                           f"Recon: {metrics['reconst_loss']:.4f} | "
+                           f"Pred: {metrics['prediction_loss']:.4f} | "
+                           f"Sparsity: {metrics['sparsity_ratio']:.3f}")
+                if 'homogeneous_loss' in metrics:
+                    log_str += f" | Homog: {metrics['homogeneous_loss']:.4f}"
+                print(log_str)
         
         # Periodic evaluation and checkpoint saving
         if step % 500 == 0 or step == cfg.TRAIN.NUM_STEPS - 1:
@@ -600,8 +607,8 @@ def main():
                         help='Sequence length for sequence training (overrides config default)')
     
     # Logging
-    parser.add_argument('--log_dir', type=str, default='./runs/kae',
-                        help='Directory for logs and checkpoints')
+    parser.add_argument('--log_dir', type=str, default=None,
+                        help='Directory for logs and checkpoints (defaults to ./runs/kae, or ./runs/lista for LISTA configs)')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='Path to checkpoint to resume from')
     
