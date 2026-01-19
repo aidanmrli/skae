@@ -156,14 +156,14 @@ class LISTA(nn.Module):
         Wd_init: Initial dictionary matrix with shape [xdim, zdim].
     """
     
-    def __init__(self, cfg: Config, xdim: int, Wd_init: torch.Tensor):
+    def __init__(self, cfg: Config, xdim: int, Wd_init: torch.Tensor, L_override: Optional[float] = None):
         super().__init__()
         self.cfg = cfg
         self.xdim = xdim
         self.zdim = cfg.MODEL.TARGET_SIZE
         self.num_loops = cfg.MODEL.ENCODER.LISTA.NUM_LOOPS
         self.alpha = cfg.MODEL.ENCODER.LISTA.ALPHA
-        self.L = cfg.MODEL.ENCODER.LISTA.L
+        self.L = L_override if L_override is not None else cfg.MODEL.ENCODER.LISTA.L
         self.use_linear_encode = cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER
         
         assert Wd_init.shape == (xdim, self.zdim), \
@@ -756,15 +756,37 @@ class LISTAKM(KoopmanMachine):
     def __init__(self, cfg: Config, observation_size: int):
         super().__init__(cfg, observation_size)
         
-        # Initialize dictionary
-        # For LISTA, W_d is expected with shape [xdim, zdim].
-        # The decoder dictionary parameter is stored as [zdim, xdim] for y @ W_d.
-        Wd_init = torch.randn(observation_size, cfg.MODEL.TARGET_SIZE) * 0.01  # [xdim, zdim]
+        # Initialize dictionary with unit-norm columns
+        # Shape [xdim, zdim]
+        Wd_init = torch.randn(observation_size, cfg.MODEL.TARGET_SIZE)
+        Wd_init = Wd_init / torch.norm(Wd_init, dim=0, keepdim=True)
+        
+        # Register as buffer so it's saved/loaded but not updated by optimizer
         self.register_buffer('dict_init', Wd_init.clone())
-        self.dict = nn.Parameter(Wd_init.T)  # [zdim, xdim]
+        
+        # Decoder dictionary parameter [zdim, xdim]
+        self.dict = nn.Parameter(Wd_init.T)
+        
+        # Compute Lipschitz constant L for this dictionary
+        # L >= max eigenvalue of (Wd^T @ Wd)
+        with torch.no_grad():
+            gram = Wd_init.T @ Wd_init
+            # Power iteration to estimate spectral norm (largest eigenvalue)
+            v = torch.randn(cfg.MODEL.TARGET_SIZE, 1)
+            v = v / torch.norm(v)
+            for _ in range(10):
+                v = gram @ v
+                v = v / torch.norm(v)
+            L_computed = torch.norm(gram @ v) / torch.norm(v)
+            # Add a small safety margin
+            L = L_computed.item() * 1.05
+            
+        print(f"Initialized LISTA with computed Lipschitz constant L={L:.4f}")
         
         # LISTA encoder
-        self.lista = LISTA(cfg, observation_size, Wd_init)
+        # We temporarily override cfg.MODEL.ENCODER.LISTA.L to use the computed one for initialization
+        # The cfg object itself isn't modified globally, just locally used
+        self.lista = LISTA(cfg, observation_size, Wd_init, L_override=L)
         
         # Koopman matrix (learnable)
         self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
