@@ -66,13 +66,15 @@ uv run python train.py \
   --device cuda
 
 uv run python train.py \
-  --config lista \
+  --config lista_nonlinear \
   --env lyapunov \
-  --num_steps 20000 \
+  --num_steps 5000 \
   --batch_size 256 \
   --target_size 64 \
-  --reconst_coeff 0.02 \
+  --reconst_coeff 0.03 \
   --pred_coeff 1.0 \
+  --sparsity_coeff 0.1 \
+  --lista_alpha 0.25 \
   --pairwise \
   --seed 0 \
   --device cuda
