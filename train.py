@@ -206,14 +206,26 @@ def evaluate(
         pred_traj = rollout_every_step_reencode(model, x.to(device), num_steps)
 
         pred_traj_cpu = pred_traj.cpu()
-        step_error = torch.norm(pred_traj_cpu - true_traj, dim=-1).mean(dim=1)
+        diff = pred_traj_cpu - true_traj
+        nonfinite = ~torch.isfinite(pred_traj_cpu)
+        if nonfinite.any():
+            nonfinite_ratio = nonfinite.float().mean().item()
+            print(
+                "  Eval warning: non-finite predictions detected "
+                f"({nonfinite_ratio:.2%} of entries). "
+                "Using NaN-safe aggregation for errors."
+            )
+
+        # Per-step error: [time, batch] -> average over batch with NaN-safe mean.
+        step_error = torch.norm(diff, dim=-1)
+        step_error = torch.nanmean(step_error, dim=1)
 
         return {
             "true_trajectory": true_traj,
             "pred_trajectory": pred_traj_cpu,
             "pred_error": step_error,
-            "mean_error": step_error.mean().item(),
-            "final_error": step_error[-1].item(),
+            "mean_error": torch.nanmean(step_error).item(),
+            "final_error": torch.nanmean(step_error[-1]).item(),
         }
 
 
@@ -295,6 +307,15 @@ def train(
     # Batch i uses seeds: cfg.SEED + i * BATCH_SIZE to cfg.SEED + (i+1) * BATCH_SIZE - 1
     num_batches = cfg.TRAIN.DATA_SIZE // cfg.TRAIN.BATCH_SIZE
     rngs = [torch.Generator().manual_seed(cfg.SEED + i * cfg.TRAIN.BATCH_SIZE) for i in range(num_batches)]
+
+    # Generate fixed validation set for consistent evaluation
+    print("Generating fixed validation set...")
+    val_rng = torch.Generator().manual_seed(cfg.SEED + 999999) # Separate seed
+    if cfg.TRAIN.USE_SEQUENCE_LOSS:
+        val_seq = env.generate_sequence_batch(val_rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
+        val_x = val_seq[:16, 0, :].to(device) # Use 16 samples for better stability
+    else:
+        val_x = env.reset(val_rng)[:16].to(device)
     
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
     print(f"Device: {device}")
@@ -345,13 +366,8 @@ def train(
         
         # Periodic evaluation and checkpoint saving
         if step % 500 == 0 or step == cfg.TRAIN.NUM_STEPS - 1:
-            # Get initial states for evaluation
-            if cfg.TRAIN.USE_SEQUENCE_LOSS:
-                eval_x = x_seq[:4, 0, :]  # First timestep of first 4 sequences
-            else:
-                eval_x = x[:4]
-            
-            eval_results = evaluate(model, eval_x, lambda s: env.step(s), num_steps=200)
+            # Use fixed validation set
+            eval_results = evaluate(model, val_x, lambda s: env.step(s), num_steps=200)
             logger.log_scalar('eval/mean_error', eval_results['mean_error'], step)
             logger.log_scalar('eval/final_error', eval_results['final_error'], step)
             
