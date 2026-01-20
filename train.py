@@ -274,7 +274,12 @@ def train(
     
     # Get dt from environment config for ODE integration
     env_name = cfg.ENV.ENV_NAME.lower()
-    if env_name == 'duffing':
+    
+    # Check if it's a dysts environment
+    if env_name.startswith('dysts:') or hasattr(env.unwrapped, 'dt'):
+        # For dysts environments, get dt from the unwrapped environment
+        dt = getattr(env.unwrapped, 'dt', 0.01)
+    elif env_name == 'duffing':
         dt = cfg.ENV.DUFFING.DT
     elif env_name == 'pendulum':
         dt = cfg.ENV.PENDULUM.DT
@@ -287,7 +292,8 @@ def train(
     elif env_name == 'lyapunov':
         dt = cfg.ENV.LYAPUNOV.DT
     else:
-        dt = 0.01  # default fallback
+        # Try to get dt from the unwrapped environment
+        dt = getattr(env.unwrapped, 'dt', 0.01)
     
     print("Creating model...")
     model = make_model(cfg, env.observation_size)
@@ -566,7 +572,22 @@ def get_device(device_arg: str) -> str:
 def main():
     """Command-line interface for training."""
     print("Starting train.py...")
-    parser = argparse.ArgumentParser(description='Train Koopman Autoencoder')
+    parser = argparse.ArgumentParser(
+        description='Train Koopman Autoencoder',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Train on built-in environment
+  python train.py --config generic_sparse --env duffing --num_steps 10000
+
+  # Train on dysts chaotic system
+  python train.py --config lista --env dysts:Lorenz --num_steps 10000
+  python train.py --config lista --env dysts:Chua --target_size 1024
+
+  # List available dysts systems
+  python train.py --list-dysts
+        """
+    )
     
     # Configuration
     parser.add_argument('--config', type=str, default='generic',
@@ -574,9 +595,13 @@ def main():
                                 'generic_prediction', 'lista', 'lista_nonlinear'],
                         help='Training configuration preset')
     parser.add_argument('--env', type=str, default='duffing',
-                        choices=['duffing', 'pendulum', 'lotka_volterra', 
-                                'lorenz63', 'parabolic', 'lyapunov'],
-                        help='Dynamical system environment')
+                        help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '
+                             'lorenz63, parabolic, lyapunov. '
+                             'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
+    
+    # Dysts utilities
+    parser.add_argument('--list-dysts', action='store_true',
+                        help='List all available dysts systems and exit')
     
     # Training
     parser.add_argument('--num_steps', type=int, default=20000,
@@ -618,6 +643,36 @@ def main():
                         help='Device to train on (auto: auto-detect best available)')
     
     args = parser.parse_args()
+    
+    # Handle --list-dysts
+    if args.list_dysts:
+        print("\n" + "=" * 60)
+        print("AVAILABLE DYSTS SYSTEMS")
+        print("=" * 60)
+        try:
+            from data import get_available_environments
+            envs = get_available_environments()
+            
+            print(f"\nBuilt-in environments ({len(envs['builtin'])}):")
+            for env in envs['builtin']:
+                print(f"  {env}")
+            
+            print(f"\nDysts systems ({len(envs['dysts'])}):")
+            if envs['dysts']:
+                # Print in columns
+                systems = envs['dysts']
+                for i in range(0, len(systems), 4):
+                    row = systems[i:i+4]
+                    print("  " + "  ".join(f"{s:<20}" for s in row))
+                print(f"\nUsage: --env dysts:SystemName (e.g., --env dysts:Lorenz)")
+            else:
+                print("  (dysts library not available)")
+                print("  Install with: pip install dysts")
+        except Exception as e:
+            print(f"Error listing environments: {e}")
+        
+        print("=" * 60 + "\n")
+        return
     
     # Create config
     cfg = get_config(args.config)

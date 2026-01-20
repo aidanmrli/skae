@@ -171,15 +171,40 @@ class LyapunovConfig:
 
 
 @dataclass
+class DystsConfig:
+    """Configuration for dysts-based environments.
+    
+    The dysts library provides 135+ chaotic systems. Use ENV_NAME="dysts:SystemName"
+    (e.g., "dysts:Lorenz", "dysts:Chua") to select a dysts system.
+    
+    See benchmarks/system_catalog.py for curated system lists.
+    """
+    SYSTEM_NAME: str = "Lorenz"  # Name matching dysts.flows class
+    DT_OVERRIDE: float = 0.0  # If > 0, override dysts default dt
+    IC_NOISE_SCALE: float = 0.2  # Scale for perturbation noise around default IC
+    STANDARDIZE: bool = False  # Whether to standardize trajectories
+    RESAMPLE: bool = True  # Use dysts's period-based resampling for native trajectories
+    PTS_PER_PERIOD: int = 100  # Points per period if resampling
+
+
+@dataclass
 class EnvConfig:
-    """Environment configuration."""
-    ENV_NAME: str = "duffing"  # from ["duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63"]
+    """Environment configuration.
+    
+    For built-in environments, set ENV_NAME to one of:
+        ["duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63", "lyapunov"]
+    
+    For dysts systems, set ENV_NAME to "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
+    The DYSTS config section can be used to customize dysts system behavior.
+    """
+    ENV_NAME: str = "duffing"
     PARABOLIC: ParabolicConfig = field(default_factory=ParabolicConfig)
     DUFFING: DuffingConfig = field(default_factory=DuffingConfig)
     PENDULUM: PendulumConfig = field(default_factory=PendulumConfig)
     LOTKA_VOLTERRA: LotkaVolterraConfig = field(default_factory=LotkaVolterraConfig)
     LORENZ63: Lorenz63Config = field(default_factory=Lorenz63Config)
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
+    DYSTS: DystsConfig = field(default_factory=DystsConfig)
 
 
 @dataclass
@@ -276,6 +301,7 @@ class Config:
             LOTKA_VOLTERRA=LotkaVolterraConfig(**env_dict.get("LOTKA_VOLTERRA", {})),
             LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
             LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
+            DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
         )
         
         model_dict = config_dict.get("MODEL", {})

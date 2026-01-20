@@ -576,6 +576,16 @@ _ENV_REGISTRY = {
 def make_env(cfg: Config) -> Env:
     """Factory function to create environment from configuration.
     
+    Supports both built-in environments and dysts systems.
+    
+    For built-in environments:
+        cfg.ENV.ENV_NAME should be one of: "duffing", "pendulum", "lotka_volterra",
+        "lorenz63", "parabolic", "lyapunov"
+    
+    For dysts systems:
+        cfg.ENV.ENV_NAME should be "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")
+        or just the system name directly (e.g., "Lorenz") if not in the built-in registry.
+    
     Args:
         cfg: Configuration object with ENV.ENV_NAME specifying the system
         
@@ -583,12 +593,84 @@ def make_env(cfg: Config) -> Env:
         Environment instance
         
     Raises:
-        ValueError: If ENV_NAME is not in registry
+        ValueError: If ENV_NAME is not found in registry or dysts
     """
     env_name = cfg.ENV.ENV_NAME
-    if env_name not in _ENV_REGISTRY:
-        raise ValueError(
-            f"Unknown environment '{env_name}'. "
-            f"Available: {list(_ENV_REGISTRY.keys())}"
+    
+    # Check for explicit dysts prefix
+    if env_name.startswith("dysts:"):
+        system_name = env_name.split(":", 1)[1]
+        return _make_dysts_env(system_name, cfg)
+    
+    # Check built-in registry first
+    if env_name in _ENV_REGISTRY:
+        return _ENV_REGISTRY[env_name](cfg)
+    
+    # Try as a dysts system name (without prefix)
+    # This allows using system names directly like "Lorenz" instead of "dysts:Lorenz"
+    try:
+        return _make_dysts_env(env_name, cfg)
+    except (ImportError, ValueError):
+        pass
+    
+    # Not found anywhere
+    raise ValueError(
+        f"Unknown environment '{env_name}'. "
+        f"Built-in environments: {list(_ENV_REGISTRY.keys())}. "
+        f"For dysts systems, use 'dysts:SystemName' (e.g., 'dysts:Lorenz')."
+    )
+
+
+def _make_dysts_env(system_name: str, cfg: Config):
+    """Create a dysts environment with config settings.
+    
+    Args:
+        system_name: Name of the dysts system (e.g., "Lorenz", "Chua")
+        cfg: Configuration object
+        
+    Returns:
+        DystsEnv instance
+    """
+    try:
+        from benchmarks.dysts_adapter import DystsEnv, is_dysts_available
+    except ImportError:
+        raise ImportError(
+            "benchmarks module not found. Make sure the benchmarks/ directory exists."
         )
-    return _ENV_REGISTRY[env_name](cfg)
+    
+    if not is_dysts_available():
+        raise ImportError(
+            "dysts library is not available. Install with: pip install dysts "
+            "or ensure the dysts submodule is present at ./dysts/"
+        )
+    
+    # Get dysts-specific config
+    dt_override = cfg.ENV.DYSTS.DT_OVERRIDE if cfg.ENV.DYSTS.DT_OVERRIDE > 0 else None
+    ic_noise_scale = cfg.ENV.DYSTS.IC_NOISE_SCALE
+    
+    return DystsEnv(
+        system_name=system_name,
+        dt_override=dt_override,
+        ic_noise_scale=ic_noise_scale,
+    )
+
+
+def get_available_environments() -> dict:
+    """Get information about all available environments.
+    
+    Returns:
+        Dictionary with 'builtin' and 'dysts' keys listing available systems.
+    """
+    result = {
+        "builtin": list(_ENV_REGISTRY.keys()),
+        "dysts": [],
+    }
+    
+    try:
+        from benchmarks.dysts_adapter import get_dysts_systems, is_dysts_available
+        if is_dysts_available():
+            result["dysts"] = get_dysts_systems()
+    except ImportError:
+        pass
+    
+    return result
