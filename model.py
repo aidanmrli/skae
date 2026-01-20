@@ -505,7 +505,9 @@ class KoopmanMachine(ABC, nn.Module):
         # Nonzero codes
         with torch.no_grad():
             z = self.encode(x)
-            num_nonzero_codes = (z != 0).float().sum(dim=-1).mean()
+            # Use epsilon threshold to count near-zero values as zero
+            # (important for LISTA which can produce tiny non-zero values)
+            num_nonzero_codes = (z.abs() > 1e-6).float().sum(dim=-1).mean()
             sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
         
         # Total weighted loss
@@ -617,7 +619,9 @@ class KoopmanMachine(ABC, nn.Module):
                 eigvals = torch.linalg.eigvals(kmat)
             max_eigenvalue = torch.max(eigvals.real)
             
-            num_nonzero_codes = (z_seq != 0).float().sum(dim=-1).mean()
+            # Use epsilon threshold to count near-zero values as zero
+            # (important for LISTA which can produce tiny non-zero values)
+            num_nonzero_codes = (z_seq.abs() > 1e-4).float().sum(dim=-1).mean()
             sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
         
         # Total weighted loss
@@ -768,9 +772,47 @@ class LISTAKM(KoopmanMachine):
         self.use_homogeneous = cfg.MODEL.USE_HOMOGENEOUS
         self._internal_obs_size = observation_size + 1 if self.use_homogeneous else observation_size
         
-        # Initialize dictionary with unit-norm columns
+        # Initialize dictionary with unit-norm columns, using orthogonal initialization
         # Shape [internal_obs_size, zdim]
-        Wd_init = torch.randn(self._internal_obs_size, cfg.MODEL.TARGET_SIZE)
+        # Since zdim > internal_obs_size (overcomplete), we create a union of orthogonal bases
+        Wd_init = torch.empty(self._internal_obs_size, cfg.MODEL.TARGET_SIZE)
+        
+        # Fill Wd_init with chunks of orthogonal matrices
+        # We perform QR decomposition on random matrices to get orthogonal bases
+        curr_idx = 0
+        while curr_idx < cfg.MODEL.TARGET_SIZE:
+            remaining = cfg.MODEL.TARGET_SIZE - curr_idx
+            # Generate a square matrix of size max(dim, dim) to get a full basis
+            dim = max(self._internal_obs_size, remaining)
+            # Create random matrix
+            mat = torch.randn(dim, dim)
+            # QR decomposition gives orthogonal Q
+            q, r = torch.linalg.qr(mat)
+            # Take the first 'remaining' columns, or as many as we can fit
+            chunk_size = min(remaining, self._internal_obs_size)
+            
+            # If internal_obs_size < remaining, we take the top internal_obs_size rows of Q
+            # which are still orthogonal-ish but we need to select carefully.
+            # Actually, standard practice for overcomplete dictionary:
+            # Just fill with independent random vectors and normalize is 'ok',
+            # BUT to be 'orthogonal', we want blocks of orthogonal bases.
+            
+            # Let's generate a random orthogonal matrix of size [internal_obs_size, internal_obs_size]
+            # and append it. Repeat until full.
+            if self._internal_obs_size <= remaining:
+                # We can fit a full orthogonal basis
+                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
+                q, _ = torch.linalg.qr(mat)
+                Wd_init[:, curr_idx:curr_idx+self._internal_obs_size] = q
+                curr_idx += self._internal_obs_size
+            else:
+                # Fill the rest with part of an orthogonal basis
+                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
+                q, _ = torch.linalg.qr(mat)
+                Wd_init[:, curr_idx:] = q[:, :remaining]
+                curr_idx += remaining
+
+        # Ensure unit norm (QR produces unit norm columns, but let's be safe)
         Wd_init = Wd_init / torch.norm(Wd_init, dim=0, keepdim=True)
         
         # Register as buffer so it's saved/loaded but not updated by optimizer
