@@ -132,10 +132,19 @@ class VectorWrapper(Wrapper):
         Returns:
             Batch of next states with shape [batch_size, state_dim]
         """
-        if action is None:
-            return torch.vmap(lambda s: self.env.step(s, None))(state)
-        else:
-            return torch.vmap(lambda s, a: self.env.step(s, a))(state, action)
+        # Try vmap for environments that support it (pure PyTorch)
+        # Fall back to direct call for environments with numpy ops (e.g., DystsEnv)
+        try:
+            if action is None:
+                return torch.vmap(lambda s: self.env.step(s, None))(state)
+            else:
+                return torch.vmap(lambda s, a: self.env.step(s, a))(state, action)
+        except RuntimeError as e:
+            if "storage" in str(e).lower() or "vmap" in str(e).lower():
+                # Environment doesn't support vmap (uses numpy internally)
+                # Fall back to letting the environment handle batching
+                return self.env.step(state, action)
+            raise
     
     def generate_sequence_batch(
         self, 

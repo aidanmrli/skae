@@ -25,7 +25,7 @@ from typing import List, Dict, Any, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import get_config, Config
-from train import train
+from train import train, get_device
 
 
 def get_system_list(systems_arg: str, custom_systems: Optional[List[str]] = None) -> List[str]:
@@ -75,6 +75,10 @@ def train_on_system(
     num_steps: int,
     target_size: Optional[int] = None,
     sparsity_coeff: Optional[float] = None,
+    reconst_coeff: Optional[float] = None,
+    pred_coeff: Optional[float] = None,
+    lista_alpha: Optional[float] = None,
+    pairwise: bool = False,
     device: str = 'auto',
     seed: int = 0,
 ) -> Dict[str, Any]:
@@ -87,6 +91,10 @@ def train_on_system(
         num_steps: Number of training steps
         target_size: Latent dimension (optional override)
         sparsity_coeff: Sparsity coefficient (optional override)
+        reconst_coeff: Reconstruction loss coefficient (optional override)
+        pred_coeff: Prediction loss coefficient (optional override)
+        lista_alpha: LISTA soft-threshold alpha (optional override)
+        pairwise: Use pairwise (single-step) training
         device: Device to train on
         seed: Random seed
         
@@ -103,6 +111,14 @@ def train_on_system(
         cfg.MODEL.TARGET_SIZE = target_size
     if sparsity_coeff is not None:
         cfg.MODEL.SPARSITY_COEFF = sparsity_coeff
+    if reconst_coeff is not None:
+        cfg.MODEL.RECONST_COEFF = reconst_coeff
+    if pred_coeff is not None:
+        cfg.MODEL.PRED_COEFF = pred_coeff
+    if lista_alpha is not None:
+        cfg.MODEL.ENCODER.LISTA.ALPHA = lista_alpha
+    if pairwise:
+        cfg.TRAIN.USE_SEQUENCE_LOSS = False
     
     log_dir = output_dir / system_name
     
@@ -120,7 +136,9 @@ def train_on_system(
         print(f"Config: {config_name}, Steps: {num_steps}, Seed: {seed}")
         print('='*60)
         
-        model = train(cfg, log_dir=str(log_dir), device=device)
+        # Convert 'auto' to actual device
+        actual_device = get_device(device)
+        model = train(cfg, log_dir=str(log_dir), device=actual_device)
         
         result["status"] = "success"
         result["log_dir"] = str(log_dir)
@@ -149,6 +167,10 @@ def run_sweep(
     num_steps: int,
     target_size: Optional[int] = None,
     sparsity_coeff: Optional[float] = None,
+    reconst_coeff: Optional[float] = None,
+    pred_coeff: Optional[float] = None,
+    lista_alpha: Optional[float] = None,
+    pairwise: bool = False,
     device: str = 'auto',
     seeds: List[int] = [0],
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -161,6 +183,10 @@ def run_sweep(
         num_steps: Number of training steps per system
         target_size: Latent dimension (optional override)
         sparsity_coeff: Sparsity coefficient (optional override)
+        reconst_coeff: Reconstruction loss coefficient (optional override)
+        pred_coeff: Prediction loss coefficient (optional override)
+        lista_alpha: LISTA soft-threshold alpha (optional override)
+        pairwise: Use pairwise (single-step) training
         device: Device to train on
         seeds: List of random seeds for multiple runs
         
@@ -186,6 +212,10 @@ def run_sweep(
                 num_steps=num_steps,
                 target_size=target_size,
                 sparsity_coeff=sparsity_coeff,
+                reconst_coeff=reconst_coeff,
+                pred_coeff=pred_coeff,
+                lista_alpha=lista_alpha,
+                pairwise=pairwise,
                 device=device,
                 seed=seed,
             )
@@ -230,6 +260,14 @@ Examples:
                         help='Latent dimension (optional override)')
     parser.add_argument('--sparsity_coeff', type=float, default=None,
                         help='Sparsity coefficient (optional override)')
+    parser.add_argument('--reconst_coeff', type=float, default=None,
+                        help='Reconstruction loss coefficient (optional override)')
+    parser.add_argument('--pred_coeff', type=float, default=None,
+                        help='Prediction loss coefficient (optional override)')
+    parser.add_argument('--lista_alpha', type=float, default=None,
+                        help='LISTA soft-threshold alpha (optional override)')
+    parser.add_argument('--pairwise', action='store_true',
+                        help='Use pairwise (single-step) training instead of sequence training')
     
     # Reproducibility
     parser.add_argument('--seeds', type=int, nargs='+', default=[0],
@@ -284,6 +322,10 @@ Examples:
         "num_steps": args.num_steps,
         "target_size": args.target_size,
         "sparsity_coeff": args.sparsity_coeff,
+        "reconst_coeff": args.reconst_coeff,
+        "pred_coeff": args.pred_coeff,
+        "lista_alpha": args.lista_alpha,
+        "pairwise": args.pairwise,
         "seeds": args.seeds,
         "device": args.device,
         "timestamp": timestamp,
@@ -299,6 +341,10 @@ Examples:
         num_steps=args.num_steps,
         target_size=args.target_size,
         sparsity_coeff=args.sparsity_coeff,
+        reconst_coeff=args.reconst_coeff,
+        pred_coeff=args.pred_coeff,
+        lista_alpha=args.lista_alpha,
+        pairwise=args.pairwise,
         device=args.device,
         seeds=args.seeds,
     )

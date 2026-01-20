@@ -9,25 +9,47 @@ on chaotic systems from the dysts library.
 Sweep training across multiple dysts systems.
 
 ```bash
-# Quick test on 4 canonical systems
-uv run python experiments/run_dysts_sweep.py --systems quick --config lista --num_steps 5000
+# Quick test on 4 canonical systems (default hyperparameters)
+uv run python dysts_experiments/run_dysts_sweep.py --systems quick --config lista --num_steps 5000
+
+# Quick test with tuned hyperparameters (recommended)
+uv run python dysts_experiments/run_dysts_sweep.py \
+  --systems quick \
+  --config lista \
+  --num_steps 10000 \
+  --target_size 512 \
+  --pred_coeff 10.0 \
+  --sparsity_coeff 1.5 \
+  --lista_alpha 0.3 \
+  --pairwise
 
 # Standard benchmark on 12 systems
-uv run python experiments/run_dysts_sweep.py --systems standard --config lista --num_steps 10000
+uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --num_steps 10000
 
 # Full benchmark with multiple seeds
-uv run python experiments/run_dysts_sweep.py --systems standard --config lista --seeds 0 1 2
+uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --seeds 0 1 2
 
 # Custom system selection
-uv run python experiments/run_dysts_sweep.py \
+uv run python dysts_experiments/run_dysts_sweep.py \
   --systems custom \
   --custom_systems Lorenz Rossler Chua Chen Thomas \
   --config lista \
   --num_steps 10000
 
 # Dry run to see what would be trained
-uv run python experiments/run_dysts_sweep.py --systems standard --dry_run
+uv run python dysts_experiments/run_dysts_sweep.py --systems standard --dry_run
 ```
+
+### Hyperparameter Options
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--target_size` | 2048 (from lista config) | Latent dimension |
+| `--sparsity_coeff` | 1.0 | Sparsity loss weight |
+| `--reconst_coeff` | 1.0 | Reconstruction loss weight |
+| `--pred_coeff` | 0.0 | Prediction loss weight |
+| `--lista_alpha` | 0.005 | LISTA soft-threshold alpha |
+| `--pairwise` | False | Use single-step training instead of sequence |
 
 ## System Sets
 

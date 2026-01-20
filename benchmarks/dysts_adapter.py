@@ -249,17 +249,22 @@ class DystsEnv:
         
         def rhs(x: torch.Tensor) -> torch.Tensor:
             """Compute derivative using dysts's rhs method."""
-            x_np = x.detach().numpy()
+            # Ensure tensor is on CPU, contiguous, and has storage for numpy conversion
+            x_cpu = x.detach().cpu().contiguous()
+            x_np = x_cpu.numpy()
             dx_np = self.system.rhs(x_np, t=0)
             return torch.from_numpy(np.array(dx_np)).float()
         
-        # RK4 integration
-        k1 = rhs(state)
-        k2 = rhs(state + 0.5 * dt * k1)
-        k3 = rhs(state + 0.5 * dt * k2)
-        k4 = rhs(state + dt * k3)
+        # Ensure state is on CPU for numpy-based integration
+        state_cpu = state.detach().cpu().contiguous()
         
-        return state + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        # RK4 integration
+        k1 = rhs(state_cpu)
+        k2 = rhs(state_cpu + 0.5 * dt * k1)
+        k3 = rhs(state_cpu + 0.5 * dt * k2)
+        k4 = rhs(state_cpu + dt * k3)
+        
+        return state_cpu + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
     
     def make_trajectory(self, n: int, init_cond: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Generate a trajectory of n steps.
