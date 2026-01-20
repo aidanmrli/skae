@@ -392,7 +392,7 @@ def get_train_lista_nonlinear_config() -> Config:
     cfg.MODEL.NORM_FN = "id"
     cfg.MODEL.ENCODER.LISTA.L = 1e4
     cfg.MODEL.ENCODER.LISTA.ALPHA = 1.0
-    cfg.MODEL.ENCODER.LAST_RELU = True
+    cfg.MODEL.ENCODER.LAST_RELU = False
     cfg.MODEL.ENCODER.USE_BIAS = False
     cfg.MODEL.DECODER.AFFINE_BIAS = False
     cfg.MODEL.USE_HOMOGENEOUS = True  # Enable homogeneous coordinates for implicit bias
