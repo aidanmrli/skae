@@ -487,6 +487,11 @@ def _estimate_learned_attractors(
                 state = model.step_env(state.unsqueeze(0)).squeeze(0)
         final_state = state.cpu().numpy()
 
+        # Skip if final state is not finite or has extreme values
+        if not np.isfinite(final_state).all() or np.abs(final_state).max() > 1e6:
+            print(f"[forecasting explosion] Skipping non-finite final state: {final_state}", flush=True)
+            continue
+
         # NOTE: check this? we are just making the first final 
         # state an attractor
         if not attractors:
@@ -577,31 +582,40 @@ def _save_lyapunov_phase_portrait_comparison(
 
         # Optional Voronoi regions for both systems (true + learned estimate)
         if HAS_SCIPY and len(display_points) >= 3:
-            vor = Voronoi(display_points)
-            for i, point_idx in enumerate(vor.point_region):
-                region = vor.regions[point_idx]
-                if not region or -1 in region:
-                    continue
-                verts = np.array([vor.vertices[j] for j in region])
-                if len(verts) > 0:
-                    ax.fill(
-                        verts[:, 0],
-                        verts[:, 1],
-                        color=colors[i % len(colors)],
-                        alpha=0.2 if use_learned else 0.25,
-                        zorder=1,
-                    )
-            for simplex in vor.ridge_vertices:
-                simplex = np.asarray(simplex)
-                if np.all(simplex >= 0):
-                    ax.plot(
-                        vor.vertices[simplex, 0],
-                        vor.vertices[simplex, 1],
-                        'k-',
-                        linewidth=1.0,
-                        alpha=0.7 if use_learned else 0.8,
-                        zorder=2,
-                    )
+            # Filter display_points to only include finite, reasonable values
+            valid_mask = np.isfinite(display_points).all(axis=1) & (np.abs(display_points).max(axis=1) < 1e6)
+            valid_points = display_points[valid_mask]
+            
+            if len(valid_points) >= 3:
+                try:
+                    # Use 'QJ' option to joggle input for numerical stability
+                    vor = Voronoi(valid_points, qhull_options='QJ')
+                    for i, point_idx in enumerate(vor.point_region):
+                        region = vor.regions[point_idx]
+                        if not region or -1 in region:
+                            continue
+                        verts = np.array([vor.vertices[j] for j in region])
+                        if len(verts) > 0:
+                            ax.fill(
+                                verts[:, 0],
+                                verts[:, 1],
+                                color=colors[i % len(colors)],
+                                alpha=0.2 if use_learned else 0.25,
+                                zorder=1,
+                            )
+                    for simplex in vor.ridge_vertices:
+                        simplex = np.asarray(simplex)
+                        if np.all(simplex >= 0):
+                            ax.plot(
+                                vor.vertices[simplex, 0],
+                                vor.vertices[simplex, 1],
+                                'k-',
+                                linewidth=1.0,
+                                alpha=0.7 if use_learned else 0.8,
+                                zorder=2,
+                            )
+                except Exception as e:
+                    print(f"[lyapunov] Voronoi failed for {title}, skipping regions: {e}", flush=True)
 
         # Grid and vector field (approximate using one-step delta / dt)
         xs = np.linspace(-grid_lim, grid_lim, grid_n)
