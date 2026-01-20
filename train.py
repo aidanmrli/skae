@@ -592,7 +592,7 @@ Examples:
     # Configuration
     parser.add_argument('--config', type=str, default='generic',
                         choices=['default', 'generic', 'generic_sparse', 
-                                'generic_prediction', 'lista', 'lista_nonlinear'],
+                                'generic_prediction', 'lista', 'lista_nonlinear', 'hyperlista'],
                         help='Training configuration preset')
     parser.add_argument('--env', type=str, default='duffing',
                         help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '

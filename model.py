@@ -213,6 +213,236 @@ class LISTA(nn.Module):
         return z
 
 
+class HyperLISTA(nn.Module):
+    """HyperLISTA encoder with analytically-derived, instance-adaptive parameters.
+    
+    Unlike standard LISTA which learns W_e and S matrices, HyperLISTA:
+    1. Derives W_e = (1/L) * D.T from the decoder dictionary
+    2. Computes S = I - (1/L) * D.T @ D on the fly
+    3. Uses instance-adaptive threshold, momentum, and support selection
+    4. Has only 3 learnable scalar hyperparameters (c_theta, c_beta, c_ss)
+    
+    This enables gradient flow from the Koopman loss back to D.
+    
+    Reference: "Hyperparameter Tuning is All You Need for LISTA" (Chen et al., NeurIPS 2021)
+    
+    Args:
+        cfg: Configuration object with HYPERLISTA settings
+        xdim: Input dimension (internal, includes homogeneous coord if used)
+        dict_param: Reference to decoder dictionary parameter [zdim, xdim]
+    """
+    
+    def __init__(self, cfg: Config, xdim: int, dict_param: nn.Parameter):
+        super().__init__()
+        self.cfg = cfg
+        self.xdim = xdim
+        self.zdim = cfg.MODEL.TARGET_SIZE
+        self.num_loops = cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS
+        
+        # Reference to decoder dictionary (shared, not copied)
+        # dict_param has shape [zdim, xdim] (transposed from decoder perspective)
+        self.dict_param = dict_param
+        
+        # Learnable hyperparameters (or fixed if LEARN_HYPERPARAMS=False)
+        hypercfg = cfg.MODEL.ENCODER.HYPERLISTA
+        if hypercfg.LEARN_HYPERPARAMS:
+            self.c_theta = nn.Parameter(torch.tensor([hypercfg.C_THETA]))
+            self.c_beta = nn.Parameter(torch.tensor([hypercfg.C_BETA]))
+            self.c_ss = nn.Parameter(torch.tensor([hypercfg.C_SS]))
+        else:
+            self.register_buffer('c_theta', torch.tensor([hypercfg.C_THETA]))
+            self.register_buffer('c_beta', torch.tensor([hypercfg.C_BETA]))
+            self.register_buffer('c_ss', torch.tensor([hypercfg.C_SS]))
+        
+        self.use_ss = hypercfg.USE_SUPPORT_SELECTION
+        self.use_momentum = hypercfg.USE_MOMENTUM
+        self.mag_ratio = hypercfg.MAG_RATIO
+        
+        # Precompute pseudo-inverse for error approximation (updated when dict changes)
+        # TODO: Consider more robust cache invalidation - data_ptr may give false positives
+        # after optimizer steps if memory is reused. For now this is acceptable since we
+        # detach the pinv anyway and it's only used for error estimation.
+        self._cached_D_pinv = None
+        self._cached_D_hash = None
+    
+    def _get_D_pinv(self, D: torch.Tensor) -> torch.Tensor:
+        """Get pseudo-inverse of D, with caching for efficiency.
+        
+        The pseudo-inverse is detached to prevent gradients flowing through it,
+        as it's only used for error estimation (not as part of the main computation).
+        
+        Args:
+            D: Dictionary matrix [xdim, zdim]
+            
+        Returns:
+            Pseudo-inverse of D [zdim, xdim]
+        """
+        D_hash = D.data_ptr()
+        if self._cached_D_pinv is None or self._cached_D_hash != D_hash:
+            self._cached_D_pinv = torch.linalg.pinv(D).detach()
+            self._cached_D_hash = D_hash
+        return self._cached_D_pinv
+    
+    def _compute_L(self, D: torch.Tensor) -> torch.Tensor:
+        """Compute Lipschitz constant L = spectral_norm(D.T @ D).
+        
+        Uses power iteration for efficiency (5 iterations typically sufficient).
+        
+        Args:
+            D: Dictionary matrix [xdim, zdim]
+            
+        Returns:
+            Lipschitz constant with small safety margin
+        """
+        # Use power iteration for efficiency
+        gram = D.T @ D  # [zdim, zdim]
+        v = torch.randn(self.zdim, 1, device=D.device, dtype=D.dtype)
+        v = v / torch.norm(v)
+        for _ in range(5):  # 5 iterations is usually sufficient
+            v = gram @ v
+            v = v / torch.norm(v)
+        L = torch.norm(gram @ v) / torch.norm(v)
+        return L * 1.05  # Safety margin
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass with instance-adaptive parameters.
+        
+        The HyperLISTA iteration:
+        1. Compute residual: r = D @ z - x
+        2. Gradient step: z_tilde = z - γ * D.T @ r + momentum
+        3. Adaptive threshold based on current error estimate
+        4. Soft-threshold with support selection: z_next = η_θ^SS(z_tilde)
+        
+        Args:
+            x: Input tensor [..., xdim]
+            
+        Returns:
+            Sparse codes [..., zdim]
+        """
+        # Get normalized dictionary (decoder shares this)
+        D = self.dict_param.T  # [xdim, zdim]
+        D = D / torch.norm(D, dim=0, keepdim=True).clamp(min=1e-6)
+        
+        # Compute derived quantities
+        L = self._compute_L(D)
+        gamma = 1.0 / L
+        W_e = gamma * D.T  # [zdim, xdim]
+        
+        # Initial encoding
+        c = x @ W_e.T  # [..., zdim]
+        z = self._shrink(c, self.c_theta * gamma)  # Initial thresholding
+        z_prev = torch.zeros_like(z)
+        
+        # Get pseudo-inverse for error approximation
+        D_pinv = self._get_D_pinv(D)
+        
+        # Initial error estimate for support selection
+        if self.use_ss:
+            initial_error = torch.norm(x @ D_pinv.T, p=1, dim=-1, keepdim=True) + 1e-8
+        
+        # Unrolled iterations
+        for k in range(self.num_loops):
+            # Compute residual and gradient step
+            residual = z @ D.T - x  # [..., xdim]
+            grad = residual @ W_e.T  # [..., zdim]
+            
+            # Momentum term
+            if self.use_momentum:
+                # Estimate support size from current estimate
+                z_abs = z.abs()
+                max_mag = z_abs.max(dim=-1, keepdim=True)[0].clamp(min=1e-8)
+                support = (z_abs > self.mag_ratio * max_mag).float().sum(dim=-1, keepdim=True)
+                beta = self.c_beta * support
+                momentum = beta * (z - z_prev)
+            else:
+                momentum = 0.0
+            
+            # Pre-threshold state
+            z_tilde = z - gamma * grad + momentum
+            
+            # Adaptive threshold based on error approximation
+            approx_error = torch.norm(residual @ D_pinv.T, p=1, dim=-1, keepdim=True) + 1e-8
+            theta = self.c_theta * gamma * approx_error
+            
+            # Support selection
+            if self.use_ss:
+                log_ratio = torch.log(initial_error / approx_error)
+                p = (self.c_ss * log_ratio).clamp(0.0, 1.0)
+                z_next = self._shrink_ss(z_tilde, theta, p)
+            else:
+                z_next = self._shrink(z_tilde, theta)
+            
+            z_prev = z
+            z = z_next
+        
+        return z
+    
+    def _shrink(self, x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
+        """Soft thresholding operator.
+        
+        η_θ(x)_i = sign(x_i) * max(|x_i| - θ, 0)
+        
+        Args:
+            x: Input tensor
+            theta: Threshold (scalar or broadcastable)
+            
+        Returns:
+            Thresholded tensor
+        """
+        return torch.sign(x) * torch.relu(x.abs() - theta)
+    
+    def _shrink_ss(self, x: torch.Tensor, theta: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+        """Soft thresholding with support selection.
+        
+        Support selection bypasses thresholding for the top-p% largest magnitude entries,
+        helping to preserve the support structure during convergence.
+        
+        TODO: Optimize this implementation. The current per-sample loop for handling
+        variable p values is correct but slow. Consider using torch.gather or 
+        vectorized quantile computation for better performance.
+        
+        Args:
+            x: Input tensor [..., zdim]
+            theta: Threshold [..., 1]
+            p: Percentage to bypass (0 to 1) [..., 1]
+            
+        Returns:
+            Thresholded tensor with support selection
+        """
+        x_abs = x.abs()
+        
+        # Find quantile threshold for top-p entries
+        batch_shape = x.shape[:-1]
+        
+        if len(batch_shape) == 0:
+            # Single sample case
+            threshold = torch.quantile(x_abs, 1 - p.item())
+        else:
+            # Batch case: need per-sample quantiles
+            # p has shape [..., 1], squeeze for quantile computation
+            p_squeezed = p.squeeze(-1)  # [...]
+            
+            # Compute quantiles - need to handle per-sample p values
+            # torch.quantile with per-sample q values requires iteration
+            thresholds = []
+            flat_x_abs = x_abs.view(-1, x_abs.shape[-1])  # [batch, zdim]
+            flat_p = p_squeezed.view(-1)  # [batch]
+            
+            for i in range(flat_x_abs.shape[0]):
+                q_val = (1.0 - flat_p[i].item())
+                q_val = max(0.0, min(1.0, q_val))  # Clamp to valid range
+                t = torch.quantile(flat_x_abs[i], q_val)
+                thresholds.append(t)
+            
+            threshold = torch.stack(thresholds).view(*batch_shape, 1)
+        
+        # Bypass if: (1) above quantile threshold AND (2) above soft-threshold theta
+        bypass = ((x_abs >= threshold) & (x_abs >= theta)).detach()
+        
+        # Apply shrinkage only to non-bypassed entries
+        return torch.where(bypass, x, self._shrink(x, theta))
+
+
 # ---------------------------------------------------------------------------
 # Koopman Machine Base Class
 # ---------------------------------------------------------------------------
@@ -985,6 +1215,202 @@ class LISTAKM(KoopmanMachine):
         return total_loss, metrics
 
 
+class HyperLISTAKM(KoopmanMachine):
+    """Koopman Machine with HyperLISTA sparse encoder.
+    
+    Key differences from LISTAKM:
+    1. Encoder weights are analytically derived from decoder dictionary
+    2. Only 3 learnable hyperparameters (c_theta, c_beta, c_ss)
+    3. Instance-adaptive threshold, momentum, and support selection
+    4. Gradients flow from Koopman loss through encoder to dictionary
+    
+    This enables learning a dictionary that is jointly optimized for both
+    sparse coding quality and Koopman dynamics prediction.
+    
+    Args:
+        cfg: Configuration object
+        observation_size: Dimension of the observation space (physical, without homogeneous)
+    """
+    
+    def __init__(self, cfg: Config, observation_size: int):
+        super().__init__(cfg, observation_size)
+        
+        # Homogeneous coordinates support
+        self.use_homogeneous = cfg.MODEL.USE_HOMOGENEOUS
+        self._internal_obs_size = observation_size + 1 if self.use_homogeneous else observation_size
+        
+        # Initialize dictionary with orthogonal columns
+        Wd_init = self._init_dictionary(cfg.MODEL.TARGET_SIZE)
+        
+        # Dictionary parameter [zdim, internal_obs_size] - shared with encoder
+        self.dict = nn.Parameter(Wd_init.T)
+        
+        # HyperLISTA encoder (references self.dict)
+        self.hyperlista = HyperLISTA(cfg, self._internal_obs_size, self.dict)
+        
+        # Koopman matrix
+        self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
+        
+        print(f"Initialized HyperLISTAKM with {cfg.MODEL.TARGET_SIZE} latent dims")
+        print(f"  HyperLISTA hyperparameters: c_theta={cfg.MODEL.ENCODER.HYPERLISTA.C_THETA:.4f}, "
+              f"c_beta={cfg.MODEL.ENCODER.HYPERLISTA.C_BETA:.4f}, c_ss={cfg.MODEL.ENCODER.HYPERLISTA.C_SS:.4f}")
+        print(f"  Learnable hyperparams: {cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS}")
+        if self.use_homogeneous:
+            print(f"  Using homogeneous coordinates: input {observation_size} -> internal {self._internal_obs_size}")
+    
+    def _init_dictionary(self, zdim: int) -> torch.Tensor:
+        """Initialize dictionary with union of orthogonal bases.
+        
+        Since zdim > internal_obs_size (overcomplete), we create a dictionary
+        by concatenating multiple orthogonal bases.
+        
+        Args:
+            zdim: Target latent dimension
+            
+        Returns:
+            Initialized dictionary [internal_obs_size, zdim] with unit-norm columns
+        """
+        Wd = torch.empty(self._internal_obs_size, zdim)
+        curr = 0
+        while curr < zdim:
+            remaining = zdim - curr
+            if self._internal_obs_size <= remaining:
+                # We can fit a full orthogonal basis
+                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
+                q, _ = torch.linalg.qr(mat)
+                Wd[:, curr:curr+self._internal_obs_size] = q
+                curr += self._internal_obs_size
+            else:
+                # Fill the rest with part of an orthogonal basis
+                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
+                q, _ = torch.linalg.qr(mat)
+                Wd[:, curr:] = q[:, :remaining]
+                curr += remaining
+        return Wd / torch.norm(Wd, dim=0, keepdim=True)
+    
+    def _augment_homogeneous(self, x: torch.Tensor) -> torch.Tensor:
+        """Augment input with homogeneous coordinate [x, 1]."""
+        ones = torch.ones(*x.shape[:-1], 1, device=x.device, dtype=x.dtype)
+        return torch.cat([x, ones], dim=-1)
+    
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Encode observations using HyperLISTA.
+        
+        Args:
+            x: Observations of shape [..., observation_size]
+            
+        Returns:
+            Sparse latent codes of shape [..., target_size]
+        """
+        if self.use_homogeneous:
+            x = self._augment_homogeneous(x)
+        return self.hyperlista(x)
+    
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
+        """Decode using normalized dictionary.
+        
+        Args:
+            z: Latent codes of shape [..., target_size]
+            
+        Returns:
+            Reconstructed observations of shape [..., observation_size]
+        """
+        D = self.dict / torch.norm(self.dict, dim=1, keepdim=True).clamp(min=1e-6)
+        full_output = z @ D
+        if self.use_homogeneous:
+            return full_output[..., :-1]
+        return full_output
+    
+    def _decode_full(self, z: torch.Tensor) -> torch.Tensor:
+        """Decode to full internal representation (includes homogeneous coord if enabled).
+        
+        Args:
+            z: Latent codes of shape [..., target_size]
+            
+        Returns:
+            Full decoded output of shape [..., internal_obs_size]
+        """
+        D = self.dict / torch.norm(self.dict, dim=1, keepdim=True).clamp(min=1e-6)
+        return z @ D
+    
+    def get_homogeneous_coord(self, z: torch.Tensor) -> torch.Tensor:
+        """Get the reconstructed homogeneous coordinate ĉ (should be close to 1).
+        
+        Args:
+            z: Latent codes of shape [..., target_size]
+            
+        Returns:
+            Homogeneous coordinate of shape [...] (scalar per sample)
+        """
+        if not self.use_homogeneous:
+            raise ValueError("Model not using homogeneous coordinates")
+        full_output = self._decode_full(z)
+        return full_output[..., -1]
+    
+    def kmatrix(self) -> torch.Tensor:
+        """Get the Koopman matrix.
+        
+        Returns:
+            Koopman matrix of shape [target_size, target_size]
+        """
+        return self.kmat
+    
+    def sparsity_loss(self, x: torch.Tensor) -> torch.Tensor:
+        """Compute L1 sparsity loss on latent codes.
+        
+        Args:
+            x: Observations of shape [..., observation_size]
+            
+        Returns:
+            Scalar sparsity loss
+        """
+        z = self.encode(x)
+        return torch.norm(z, p=1, dim=-1).mean()
+    
+    def homogeneous_loss(self, x: torch.Tensor) -> torch.Tensor:
+        """Compute homogeneous coordinate consistency loss: penalize ĉ ≠ 1.
+        
+        Args:
+            x: Observations of shape [..., observation_size]
+            
+        Returns:
+            Scalar loss (mean squared deviation of ĉ from 1)
+        """
+        if not self.use_homogeneous:
+            return torch.tensor(0.0, device=x.device)
+        z = self.encode(x)
+        c_hat = self.get_homogeneous_coord(z)
+        return torch.mean((c_hat - 1.0) ** 2)
+    
+    def loss(
+        self,
+        x: torch.Tensor,
+        nx: torch.Tensor
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Compute total loss and metrics, including homogeneous consistency.
+        
+        Args:
+            x: Current states of shape [batch_size, observation_size]
+            nx: Next states of shape [batch_size, observation_size]
+            
+        Returns:
+            Tuple of (total_loss, metrics_dict)
+        """
+        # Get base loss and metrics from parent class
+        total_loss, metrics = super().loss(x, nx)
+        
+        # Add homogeneous consistency loss if enabled
+        if self.use_homogeneous:
+            homog_loss = self.homogeneous_loss(x) + self.homogeneous_loss(nx)
+            homog_loss *= 0.5  # Average over x and nx
+            
+            total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
+            metrics['homogeneous_loss'] = homog_loss.item()
+            metrics['loss'] = total_loss.item()
+        
+        return total_loss, metrics
+
+
 # ---------------------------------------------------------------------------
 # Model Factory
 # ---------------------------------------------------------------------------
@@ -994,6 +1420,7 @@ _MODEL_REGISTRY = {
     "GenericKM": GenericKM,
     "SparseKM": GenericKM,  # Same as GenericKM, configured via sparsity coeff
     "LISTAKM": LISTAKM,
+    "HyperLISTAKM": HyperLISTAKM,
 }
 
 

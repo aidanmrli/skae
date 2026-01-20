@@ -217,6 +217,25 @@ class ListaConfig:
 
 
 @dataclass
+class HyperListaConfig:
+    """HyperLISTA encoder-specific configuration.
+    
+    HyperLISTA uses analytically-derived weights from the decoder dictionary D,
+    reducing learnable parameters from O(n² × L) to just 3 scalar hyperparameters.
+    
+    See: "Hyperparameter Tuning is All You Need for LISTA" (Chen et al., NeurIPS 2021)
+    """
+    NUM_LOOPS: int = 16              # Number of unrolled iterations
+    C_THETA: float = 5e-3            # Threshold scaling hyperparameter (c₁)
+    C_BETA: float = 5e-3             # Momentum hyperparameter (c₂)
+    C_SS: float = 0.5                # Support selection hyperparameter (c₃)
+    USE_SUPPORT_SELECTION: bool = True  # Enable adaptive support selection
+    USE_MOMENTUM: bool = True        # Enable momentum acceleration
+    MAG_RATIO: float = 0.1           # Threshold for support size approximation
+    LEARN_HYPERPARAMS: bool = True   # Whether c_theta, c_beta, c_ss are learnable
+
+
+@dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
     LAYERS: List[int] = field(default_factory=lambda: [16, 16])  # hidden layer sizes
@@ -224,6 +243,7 @@ class EncoderConfig:
     USE_BIAS: bool = False
     ACTIVATION: str = "relu"  # from ["relu", "tanh", "gelu"]
     LISTA: ListaConfig = field(default_factory=ListaConfig)
+    HYPERLISTA: HyperListaConfig = field(default_factory=HyperListaConfig)
 
 
 @dataclass
@@ -307,8 +327,10 @@ class Config:
         model_dict = config_dict.get("MODEL", {})
         encoder_dict = model_dict.get("ENCODER", {})
         lista = ListaConfig(**encoder_dict.get("LISTA", {}))
-        encoder = EncoderConfig(**{k: v for k, v in encoder_dict.items() if k != "LISTA"})
+        hyperlista = HyperListaConfig(**encoder_dict.get("HYPERLISTA", {}))
+        encoder = EncoderConfig(**{k: v for k, v in encoder_dict.items() if k not in ["LISTA", "HYPERLISTA"]})
         encoder.LISTA = lista
+        encoder.HYPERLISTA = hyperlista
         decoder = DecoderConfig(**model_dict.get("DECODER", {}))
         
         model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER"]})
@@ -426,12 +448,39 @@ def get_train_lista_nonlinear_config() -> Config:
     return cfg
 
 
+def get_train_hyperlista_config() -> Config:
+    """Configuration for HyperLISTA-based Sparse KM.
+    
+    HyperLISTA uses analytically-derived encoder weights from the decoder dictionary,
+    with only 3 learnable scalar hyperparameters (c_theta, c_beta, c_ss).
+    This enables gradient flow from the Koopman loss back through the encoder to the dictionary.
+    """
+    cfg = Config()
+    cfg.MODEL.MODEL_NAME = "HyperLISTAKM"
+    cfg.MODEL.TARGET_SIZE = 1024 * 2
+    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 16
+    cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 5e-3
+    cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = 5e-3
+    cfg.MODEL.ENCODER.HYPERLISTA.C_SS = 0.5
+    cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = True
+    cfg.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = True
+    cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS = True
+    cfg.MODEL.RES_COEFF = 1.0
+    cfg.MODEL.RECONST_COEFF = 1.0
+    cfg.MODEL.PRED_COEFF = 0.0
+    cfg.MODEL.SPARSITY_COEFF = 0.1
+    cfg.MODEL.USE_HOMOGENEOUS = True
+    cfg.MODEL.HOMOGENEOUS_COEFF = 1.0
+    return cfg
+
+
 _TRAIN_CONFIG_REGISTRY = {
     "generic": get_train_generic_km_config,
     "generic_sparse": get_train_generic_sparse_config,
     "generic_prediction": get_train_generic_prediction_config,
     "lista": get_train_lista_config,
     "lista_nonlinear": get_train_lista_nonlinear_config,
+    "hyperlista": get_train_hyperlista_config,
 }
 
 
