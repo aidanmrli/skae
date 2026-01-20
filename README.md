@@ -55,7 +55,7 @@ uv run python train.py --config generic_sparse --env pendulum --sparsity_coeff 0
 uv run python train.py \
   --config generic_sparse \
   --env lyapunov \
-  --num_steps 20000 \
+  --num_steps 5000 \
   --batch_size 256 \
   --target_size 64 \
   --reconst_coeff 0.02 \
@@ -73,13 +73,31 @@ uv run python train.py \
   --target_size 64 \
   --reconst_coeff 0.03 \
   --pred_coeff 1.0 \
-  --sparsity_coeff 0.1 \
-  --lista_alpha 0.25 \
+  --sparsity_coeff 10.0 \
+  --lista_alpha 0.005 \
   --pairwise \
   --seed 0 \
   --device cuda
 
+uv run python train.py \
+  --config lista_nonlinear \
+  --env lyapunov \
+  --num_steps 20000 \
+  --batch_size 256 \
+  --target_size 512 \
+  --reconst_coeff 1.0 \
+  --pred_coeff 10.0 \
+  --sparsity_coeff 1.5 \
+  --lista_alpha 0.3 \
+  --pairwise \
+  --seed 42 \
+  --device cuda
 
+uv run python evaluate_checkpoints.py \
+  --run_dir runs/lista/20260119-185342 \
+  --system lyapunov \
+  --device cuda
+  
 # Evaluation from checkpoints
 # Required: specify system
 python evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system duffing
