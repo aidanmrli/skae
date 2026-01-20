@@ -10,10 +10,15 @@ from benchmarks.dysts_adapter import DystsEnv, get_dysts_systems, is_dysts_avail
 from benchmarks.system_catalog import (
     QUICK_TEST,
     STANDARD_BENCHMARK,
+    MULTI_ATTRACTOR_SYSTEMS,
     MULTI_BASIN_SYSTEMS,
+    MULTI_SCROLL_SYSTEMS,
     WELL_STUDIED_CHAOTIC,
     HIGH_DIMENSIONAL,
     get_all_systems,
+    get_multi_attractor_systems,
+    get_multi_basin_systems,
+    get_multiscroll_systems,
     get_system_info,
 )
 
@@ -23,9 +28,14 @@ __all__ = [
     "is_dysts_available",
     "QUICK_TEST",
     "STANDARD_BENCHMARK", 
+    "MULTI_ATTRACTOR_SYSTEMS",
     "MULTI_BASIN_SYSTEMS",
+    "MULTI_SCROLL_SYSTEMS",
     "WELL_STUDIED_CHAOTIC",
     "HIGH_DIMENSIONAL",
     "get_all_systems",
+    "get_multi_attractor_systems",
+    "get_multi_basin_systems",
+    "get_multiscroll_systems",
     "get_system_info",
 ]

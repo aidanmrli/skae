@@ -656,11 +656,13 @@ def _make_dysts_env(system_name: str, cfg: Config):
     # Get dysts-specific config
     dt_override = cfg.ENV.DYSTS.DT_OVERRIDE if cfg.ENV.DYSTS.DT_OVERRIDE > 0 else None
     ic_noise_scale = cfg.ENV.DYSTS.IC_NOISE_SCALE
+    standardize = cfg.ENV.DYSTS.STANDARDIZE
     
     return DystsEnv(
         system_name=system_name,
         dt_override=dt_override,
         ic_noise_scale=ic_noise_scale,
+        standardize=standardize,
     )
 
 

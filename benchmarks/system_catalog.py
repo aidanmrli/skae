@@ -4,8 +4,10 @@ This module organizes the 135+ dysts systems into meaningful categories
 for structured experimentation and benchmarking.
 
 Categories:
-- MULTI_BASIN_SYSTEMS: Systems with multiple attractors/fixed points
-- WELL_STUDIED_CHAOTIC: Canonical chaotic systems for benchmarking  
+- MULTI_ATTRACTOR_SYSTEMS: Multiple attractors/basins (multistability)
+- MULTI_SCROLL_SYSTEMS: Multi-scroll/double-wing attractors (lobe switching)
+- MULTI_BASIN_SYSTEMS: Combined multi-basin candidates (manual baseline)
+- WELL_STUDIED_CHAOTIC: Canonical chaotic systems for benchmarking
 - HIGH_DIMENSIONAL: Systems with dimension > 3
 - QUASI_PERIODIC: Systems with quasi-periodic behavior
 - HAMILTONIAN_LIKE: Conservative or nearly-conservative systems
@@ -15,7 +17,7 @@ Curated test sets:
 - STANDARD_BENCHMARK: 10-15 systems for paper benchmarks
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 
 def get_all_systems(include_delay: bool = False) -> List[str]:
@@ -50,20 +52,82 @@ def get_system_info(system_name: str) -> Dict[str, Any]:
         return {}
 
 
+def get_all_system_metadata(include_delay: bool = False) -> Dict[str, Any]:
+    """Get metadata for all available systems.
+    
+    Args:
+        include_delay: Whether to include delay differential equation systems.
+        
+    Returns:
+        Dictionary mapping system name to metadata.
+    """
+    try:
+        from benchmarks.dysts_adapter import get_dysts_system_data
+        return get_dysts_system_data(include_delay=include_delay)
+    except ImportError:
+        return {}
+
+
 # =============================================================================
 # System Categorization
 # =============================================================================
 
-# Systems with multiple fixed points / attractors
+# Systems with multiple basins/attractors (multistability)
 # These are key for testing block sparsity hypothesis
-MULTI_BASIN_SYSTEMS = [
+MULTI_ATTRACTOR_SYSTEMS = [
+    "Dadras",            # Multiple attractors under bifurcations
+    "Duffing",           # Double-well forcing yields distinct basins
+    "QiChen",            # Double-wing from bistable attractors
+    "Sakarya",           # Merging of two disjoint bistable attractors
+    "SprottTorus",       # Multiattractor (torus vs complex attractor)
+]
+
+# Systems with multiple scrolls/lobes (switching within a single attractor)
+MULTI_SCROLL_SYSTEMS = [
     "Chua",              # Double scroll attractor with multiple lobes
     "MultiChua",         # Multiple scroll attractors
-    "DoubleScroll",      # Two scroll attractors (alias for some Chua variants)
+    "DequanLi",          # Three-scroll unified attractor
+    "LuChenCheng",       # Four-scroll attractor
+    "SanUmSrisuchinwong",  # Two-scroll attractor
+    "WangSun",           # Four-scroll attractor
+    "ShimizuMorioka",    # Two-lobe structure similar to Lorenz
+]
+
+# Coupled or switching systems with multiple equilibria
+MULTI_BASIN_MANUAL = [
     "LorenzCoupled",     # Two coupled Lorenz systems
-    "ShimizuMorioka",    # Two-lobe attractor
+    "RikitakeDynamo",    # Coupled disk dynamos with reversals
     "Hadley",            # Multiple equilibria
-    "RAFGMGeneric",      # Gene regulatory with multiple steady states
+]
+
+# Combined list of multi-basin candidates (manual baseline)
+MULTI_BASIN_SYSTEMS = (
+    MULTI_ATTRACTOR_SYSTEMS
+    + MULTI_SCROLL_SYSTEMS
+    + MULTI_BASIN_MANUAL
+)
+
+# Description keywords for automatic multi-basin discovery
+MULTI_ATTRACTOR_KEYWORDS = [
+    "bistable",
+    "bistability",
+    "multiattractor",
+    "multiple attractor",
+    "multiple attractors",
+    "coexisting",
+    "disjoint",
+    "multistable",
+]
+MULTI_SCROLL_KEYWORDS = [
+    "scroll",
+    "double-wing",
+    "double wing",
+    "two-scroll",
+    "two scroll",
+    "three scroll",
+    "four scroll",
+    "multiscroll",
+    "multi-scroll",
 ]
 
 # Canonical chaotic systems well-studied in literature
@@ -207,17 +271,135 @@ DIMENSION_SCALING_EXPERIMENT = {
 # Utility Functions
 # =============================================================================
 
-def filter_available_systems(system_list: List[str]) -> List[str]:
+def filter_available_systems(system_list: List[str], include_delay: bool = False) -> List[str]:
     """Filter a list to only include systems that are actually available.
     
     Args:
         system_list: List of desired system names.
+        include_delay: Whether to include delay differential equation systems.
         
     Returns:
         Filtered list containing only available systems.
     """
-    available = set(get_all_systems())
+    available = set(get_all_systems(include_delay=include_delay))
     return [s for s in system_list if s in available]
+
+
+def get_systems_by_description_keywords(
+    keywords: List[str],
+    include_delay: bool = False,
+) -> List[str]:
+    """Find systems whose descriptions match any keyword.
+    
+    Args:
+        keywords: Case-insensitive keyword list for matching descriptions.
+        include_delay: Whether to include delay differential equation systems.
+        
+    Returns:
+        Sorted list of matching system names.
+    """
+    metadata = get_all_system_metadata(include_delay=include_delay)
+    if not metadata:
+        return []
+    
+    matches = []
+    for name, meta in metadata.items():
+        desc = (meta.get("description") or "").lower()
+        if any(keyword in desc for keyword in keywords):
+            matches.append(name)
+    
+    return sorted(matches)
+
+
+def get_multi_attractor_systems(
+    include_auto: bool = True,
+    include_manual: bool = True,
+    include_delay: bool = False,
+) -> List[str]:
+    """Get multistable/multi-attractor systems.
+    
+    Args:
+        include_auto: Include metadata keyword matches.
+        include_manual: Include manual curation list.
+        include_delay: Whether to include delay differential equation systems.
+        
+    Returns:
+        Filtered list of system names.
+    """
+    systems = set()
+    if include_manual:
+        systems.update(MULTI_ATTRACTOR_SYSTEMS)
+    if include_auto:
+        systems.update(
+            get_systems_by_description_keywords(
+                MULTI_ATTRACTOR_KEYWORDS,
+                include_delay=include_delay,
+            )
+        )
+    return filter_available_systems(sorted(systems), include_delay=include_delay)
+
+
+def get_multiscroll_systems(
+    include_auto: bool = True,
+    include_manual: bool = True,
+    include_delay: bool = False,
+) -> List[str]:
+    """Get multi-scroll/double-wing systems with lobe switching.
+    
+    Args:
+        include_auto: Include metadata keyword matches.
+        include_manual: Include manual curation list.
+        include_delay: Whether to include delay differential equation systems.
+        
+    Returns:
+        Filtered list of system names.
+    """
+    systems = set()
+    if include_manual:
+        systems.update(MULTI_SCROLL_SYSTEMS)
+    if include_auto:
+        systems.update(
+            get_systems_by_description_keywords(
+                MULTI_SCROLL_KEYWORDS,
+                include_delay=include_delay,
+            )
+        )
+    return filter_available_systems(sorted(systems), include_delay=include_delay)
+
+
+def get_multi_basin_systems(
+    include_auto: bool = True,
+    include_manual: bool = True,
+    include_delay: bool = False,
+) -> List[str]:
+    """Get combined multi-basin candidates (multistable + multiscroll).
+    
+    Args:
+        include_auto: Include metadata keyword matches.
+        include_manual: Include manual curation lists.
+        include_delay: Whether to include delay differential equation systems.
+        
+    Returns:
+        Filtered list of system names.
+    """
+    systems = set()
+    systems.update(
+        get_multi_attractor_systems(
+            include_auto=include_auto,
+            include_manual=include_manual,
+            include_delay=include_delay,
+        )
+    )
+    systems.update(
+        get_multiscroll_systems(
+            include_auto=include_auto,
+            include_manual=include_manual,
+            include_delay=include_delay,
+        )
+    )
+    if include_manual:
+        systems.update(MULTI_BASIN_MANUAL)
+    return filter_available_systems(sorted(systems), include_delay=include_delay)
 
 
 def get_systems_by_dimension(min_dim: int = 1, max_dim: int = 10) -> List[str]:
@@ -245,14 +427,19 @@ def get_systems_by_dimension(min_dim: int = 1, max_dim: int = 10) -> List[str]:
 def print_catalog_summary():
     """Print a summary of the system catalog."""
     all_systems = get_all_systems()
+    multi_attractor = get_multi_attractor_systems()
+    multi_scroll = get_multiscroll_systems()
+    multi_basin = get_multi_basin_systems()
     
     print("=" * 60)
     print("DYSTS SYSTEM CATALOG SUMMARY")
     print("=" * 60)
     print(f"\nTotal available systems: {len(all_systems)}")
     
-    print(f"\nMulti-basin systems: {len(filter_available_systems(MULTI_BASIN_SYSTEMS))}")
-    for s in filter_available_systems(MULTI_BASIN_SYSTEMS):
+    print(f"\nMulti-basin candidates: {len(multi_basin)}")
+    print(f"  Multi-attractor: {len(multi_attractor)}")
+    print(f"  Multi-scroll: {len(multi_scroll)}")
+    for s in multi_basin:
         print(f"  - {s}")
     
     print(f"\nWell-studied chaotic: {len(filter_available_systems(WELL_STUDIED_CHAOTIC))}")

@@ -602,6 +602,8 @@ Examples:
     # Dysts utilities
     parser.add_argument('--list-dysts', action='store_true',
                         help='List all available dysts systems and exit')
+    parser.add_argument('--standardize', action='store_true',
+                        help='Standardize dysts data (zero mean, unit variance). Recommended for dysts systems.')
     
     # Training
     parser.add_argument('--num_steps', type=int, default=20000,
@@ -694,6 +696,11 @@ Examples:
         cfg.MODEL.PRED_COEFF = args.pred_coeff
     if args.lista_alpha is not None:
         cfg.MODEL.ENCODER.LISTA.ALPHA = args.lista_alpha
+    
+    # Dysts standardization
+    if args.standardize:
+        cfg.ENV.DYSTS.STANDARDIZE = True
+        print("Using standardized dysts data (zero mean, unit variance)")
     
     # Training mode
     if args.pairwise:

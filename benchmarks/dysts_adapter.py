@@ -81,6 +81,22 @@ def get_dysts_systems(include_delay: bool = False) -> List[str]:
         return get_attractor_list("continuous_no_delay")
 
 
+def get_dysts_system_data(include_delay: bool = False) -> Dict[str, Any]:
+    """Get metadata for all available dysts systems.
+    
+    Args:
+        include_delay: Whether to include delay differential equation systems.
+        
+    Returns:
+        Dictionary mapping system name to metadata.
+    """
+    if not HAS_DYSTS:
+        return {}
+    
+    data_key = "continuous" if include_delay else "continuous_no_delay"
+    return get_system_data(data_key)
+
+
 def get_dysts_system_metadata(system_name: str) -> Dict[str, Any]:
     """Get metadata for a dysts system.
     
@@ -142,6 +158,7 @@ class DystsEnv:
         system_name: str, 
         dt_override: Optional[float] = None,
         ic_noise_scale: float = 0.2,
+        standardize: bool = False,
     ):
         if not HAS_DYSTS:
             raise RuntimeError(
@@ -162,6 +179,7 @@ class DystsEnv:
         self.system: DynSys = system_class()
         self.system_name = system_name
         self.ic_noise_scale = ic_noise_scale
+        self.standardize = standardize
         
         # Check if this is a delay system (not fully supported yet)
         if isinstance(self.system, DynSysDelay):
@@ -209,6 +227,14 @@ class DystsEnv:
         """Return the unwrapped environment."""
         return self
     
+    def _to_standardized(self, x: torch.Tensor) -> torch.Tensor:
+        """Convert raw state to standardized (zero mean, unit variance)."""
+        return (x - self._mean) / (self._std + 1e-8)
+    
+    def _from_standardized(self, x: torch.Tensor) -> torch.Tensor:
+        """Convert standardized state back to raw coordinates."""
+        return x * self._std + self._mean
+    
     def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
         """Reset to a random initial condition near the default IC.
         
@@ -217,6 +243,7 @@ class DystsEnv:
             
         Returns:
             Initial state tensor of shape [observation_size].
+            If standardize=True, returns standardized coordinates.
         """
         if rng is None:
             rng = torch.Generator()
@@ -224,24 +251,40 @@ class DystsEnv:
         # Sample perturbation around default IC
         # Scale by std for appropriate spread relative to attractor size
         noise = torch.randn(self._dim, generator=rng) * self._std * self.ic_noise_scale
-        return self._ic + noise
+        state = self._ic + noise
+        
+        if self.standardize:
+            return self._to_standardized(state)
+        return state
     
     def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Advance state by one timestep using RK4 integration.
         
         Args:
             state: Current state tensor of shape [observation_size] or [batch, observation_size]
+                   If standardize=True, expects standardized coordinates.
             action: Ignored (for API compatibility)
             
         Returns:
             Next state tensor with same shape as input.
+            If standardize=True, returns standardized coordinates.
         """
+        # Convert from standardized to raw if needed
+        if self.standardize:
+            state = self._from_standardized(state)
+        
         # Handle batched input
         if state.dim() == 1:
-            return self._step_single(state)
+            result = self._step_single(state)
         else:
             # Vectorized step for batched states
-            return torch.stack([self._step_single(s) for s in state])
+            result = torch.stack([self._step_single(s) for s in state])
+        
+        # Convert back to standardized if needed
+        if self.standardize:
+            result = self._to_standardized(result)
+        
+        return result
     
     def _step_single(self, state: torch.Tensor) -> torch.Tensor:
         """Single-state RK4 integration step."""

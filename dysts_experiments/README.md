@@ -26,6 +26,9 @@ uv run python dysts_experiments/run_dysts_sweep.py \
 # Standard benchmark on 12 systems
 uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --num_steps 10000
 
+# Multi-basin candidates (manual + metadata keywords)
+uv run python dysts_experiments/run_dysts_sweep.py --systems multi_basin --config lista --num_steps 10000
+
 # Full benchmark with multiple seeds
 uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --seeds 0 1 2
 
@@ -56,6 +59,9 @@ uv run python dysts_experiments/run_dysts_sweep.py --systems standard --dry_run
 - **quick**: 4 systems (Lorenz, Rossler, Chua, Chen) for rapid validation
 - **standard**: 12 systems for paper benchmarks
 - **extended**: 20+ systems for comprehensive evaluation
+- **multi_basin**: union of multistable + multi-scroll candidates
+- **multi_attractor**: multistable/multi-attractor systems
+- **multi_scroll**: multi-scroll/double-wing systems (lobe switching)
 - **full**: All 135+ dysts systems
 - **custom**: User-specified list via `--custom_systems`
 

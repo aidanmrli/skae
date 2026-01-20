@@ -5,13 +5,16 @@ multiple chaotic systems from the dysts library.
 
 Usage:
     # Quick test on 4 systems
-    python experiments/run_dysts_sweep.py --systems quick --config lista --num_steps 5000
+    uv run python dysts_experiments/run_dysts_sweep.py --systems quick --config lista --num_steps 5000
     
     # Standard benchmark on 12 systems
-    python experiments/run_dysts_sweep.py --systems standard --config lista --num_steps 10000
+    uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --num_steps 10000
+    
+    # Multi-basin candidates (manual + metadata keywords)
+    uv run python dysts_experiments/run_dysts_sweep.py --systems multi_basin --config lista --num_steps 10000
     
     # Custom system list
-    python experiments/run_dysts_sweep.py --systems custom --custom_systems Lorenz Rossler Chua --num_steps 10000
+    uv run python dysts_experiments/run_dysts_sweep.py --systems custom --custom_systems Lorenz Rossler Chua --num_steps 10000
 """
 
 import argparse
@@ -48,6 +51,9 @@ def get_system_list(systems_arg: str, custom_systems: Optional[List[str]] = None
             QUICK_TEST,
             STANDARD_BENCHMARK,
             EXTENDED_BENCHMARK,
+            get_multi_attractor_systems,
+            get_multi_basin_systems,
+            get_multiscroll_systems,
             filter_available_systems,
             get_all_systems,
         )
@@ -58,6 +64,12 @@ def get_system_list(systems_arg: str, custom_systems: Optional[List[str]] = None
             return filter_available_systems(STANDARD_BENCHMARK)
         elif systems_arg == 'extended':
             return filter_available_systems(EXTENDED_BENCHMARK)
+        elif systems_arg == 'multi_basin':
+            return get_multi_basin_systems()
+        elif systems_arg == 'multi_attractor':
+            return get_multi_attractor_systems()
+        elif systems_arg == 'multi_scroll':
+            return get_multiscroll_systems()
         elif systems_arg == 'full':
             return get_all_systems()
         else:
@@ -79,6 +91,7 @@ def train_on_system(
     pred_coeff: Optional[float] = None,
     lista_alpha: Optional[float] = None,
     pairwise: bool = False,
+    standardize: bool = False,
     device: str = 'auto',
     seed: int = 0,
 ) -> Dict[str, Any]:
@@ -95,6 +108,7 @@ def train_on_system(
         pred_coeff: Prediction loss coefficient (optional override)
         lista_alpha: LISTA soft-threshold alpha (optional override)
         pairwise: Use pairwise (single-step) training
+        standardize: Standardize dysts data (zero mean, unit variance)
         device: Device to train on
         seed: Random seed
         
@@ -119,6 +133,8 @@ def train_on_system(
         cfg.MODEL.ENCODER.LISTA.ALPHA = lista_alpha
     if pairwise:
         cfg.TRAIN.USE_SEQUENCE_LOSS = False
+    if standardize:
+        cfg.ENV.DYSTS.STANDARDIZE = True
     
     log_dir = output_dir / system_name
     
@@ -171,6 +187,7 @@ def run_sweep(
     pred_coeff: Optional[float] = None,
     lista_alpha: Optional[float] = None,
     pairwise: bool = False,
+    standardize: bool = False,
     device: str = 'auto',
     seeds: List[int] = [0],
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -187,6 +204,7 @@ def run_sweep(
         pred_coeff: Prediction loss coefficient (optional override)
         lista_alpha: LISTA soft-threshold alpha (optional override)
         pairwise: Use pairwise (single-step) training
+        standardize: Standardize dysts data
         device: Device to train on
         seeds: List of random seeds for multiple runs
         
@@ -216,6 +234,7 @@ def run_sweep(
                 pred_coeff=pred_coeff,
                 lista_alpha=lista_alpha,
                 pairwise=pairwise,
+                standardize=standardize,
                 device=device,
                 seed=seed,
             )
@@ -233,19 +252,31 @@ def main():
         epilog="""
 Examples:
   # Quick test
-  python experiments/run_dysts_sweep.py --systems quick --config lista --num_steps 5000
+  uv run python dysts_experiments/run_dysts_sweep.py --systems quick --config lista --num_steps 5000
   
   # Standard benchmark with multiple seeds
-  python experiments/run_dysts_sweep.py --systems standard --config lista --seeds 0 1 2
+  uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --seeds 0 1 2
+  
+  # Multi-basin candidates
+  uv run python dysts_experiments/run_dysts_sweep.py --systems multi_basin --config lista
   
   # Custom systems
-  python experiments/run_dysts_sweep.py --systems custom --custom_systems Lorenz Chua Chen
+  uv run python dysts_experiments/run_dysts_sweep.py --systems custom --custom_systems Lorenz Chua Chen
         """
     )
     
     # System selection
     parser.add_argument('--systems', type=str, default='quick',
-                        choices=['quick', 'standard', 'extended', 'full', 'custom'],
+                        choices=[
+                            'quick',
+                            'standard',
+                            'extended',
+                            'multi_basin',
+                            'multi_attractor',
+                            'multi_scroll',
+                            'full',
+                            'custom',
+                        ],
                         help='System set to use')
     parser.add_argument('--custom_systems', type=str, nargs='+', default=None,
                         help='Custom list of system names (requires --systems custom)')
@@ -268,6 +299,8 @@ Examples:
                         help='LISTA soft-threshold alpha (optional override)')
     parser.add_argument('--pairwise', action='store_true',
                         help='Use pairwise (single-step) training instead of sequence training')
+    parser.add_argument('--standardize', action='store_true',
+                        help='Standardize dysts data (zero mean, unit variance). Recommended.')
     
     # Reproducibility
     parser.add_argument('--seeds', type=int, nargs='+', default=[0],
@@ -326,6 +359,7 @@ Examples:
         "pred_coeff": args.pred_coeff,
         "lista_alpha": args.lista_alpha,
         "pairwise": args.pairwise,
+        "standardize": args.standardize,
         "seeds": args.seeds,
         "device": args.device,
         "timestamp": timestamp,
@@ -345,6 +379,7 @@ Examples:
         pred_coeff=args.pred_coeff,
         lista_alpha=args.lista_alpha,
         pairwise=args.pairwise,
+        standardize=args.standardize,
         device=args.device,
         seeds=args.seeds,
     )
