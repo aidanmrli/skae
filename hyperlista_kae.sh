@@ -34,15 +34,24 @@ echo "============================================="
 uv run python train.py \
   --config hyperlista \
   --env lyapunov \
-  --num_steps 20000 \
+  --num_steps 3000 \
   --batch_size 256 \
-  --target_size 512 \
+  --target_size 256 \
   --reconst_coeff 1.0 \
-  --pred_coeff 10.0 \
-  --sparsity_coeff 0.1 \
+  --pred_coeff 1.0 \
+  --sparsity_coeff 1.0 \
+  --hyperlista_c_theta 1e-2 \
+  --hyperlista_c_beta 1e-4 \
+  --hyperlista_c_ss 0.5 \
   --pairwise \
+  --lr 5e-5 \
   --seed 42 \
   --device cuda
+
+# HyperLISTA scalars:
+# - hyperlista_c_theta: threshold scaling (C_THETA)
+# - hyperlista_c_beta: momentum scaling (C_BETA)
+# - hyperlista_c_ss: support-selection scaling (C_SS)
 
 echo "============================================="
 echo "End Time: $(date)"

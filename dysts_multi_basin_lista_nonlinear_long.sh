@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+#SBATCH --job-name=dysts_multi_basin
+#SBATCH --ntasks=1
+#SBATCH --partition=long
+#SBATCH --cpus-per-task=4
+#SBATCH --gres=gpu:1
+#SBATCH --mem=10G
+#SBATCH --time=24:00:00
+#SBATCH -o /network/scratch/l/lia/skae/dysts-multibasin-%A_%a.out
+#SBATCH --requeue
+#SBATCH --array=0-14
+
+# Load modules
+module load cuda/12.6.0
+
+# Activate environment
+source .venv/bin/activate
+
+# Create output directory
+BASE_OUT="/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear"
+mkdir -p "$BASE_OUT"
+
+# Multi-basin systems (from benchmarks/system_catalog.py)
+SYSTEMS=(
+  Dadras
+  Duffing
+  QiChen
+  Sakarya
+  SprottTorus
+  Chua
+  MultiChua
+  DequanLi
+  LuChenCheng
+  SanUmSrisuchinwong
+  WangSun
+  ShimizuMorioka
+  LorenzCoupled
+  RikitakeDynamo
+  Hadley
+)
+
+SYSTEM=${SYSTEMS[$SLURM_ARRAY_TASK_ID]}
+if [ -z "$SYSTEM" ]; then
+  echo "Invalid SLURM_ARRAY_TASK_ID: $SLURM_ARRAY_TASK_ID"
+  exit 1
+fi
+
+# Log job info
+echo "============================================="
+echo "Job ID: $SLURM_JOB_ID"
+echo "Array Task: $SLURM_ARRAY_TASK_ID"
+echo "System: $SYSTEM"
+echo "Node: $SLURM_NODELIST"
+echo "Start Time: $(date)"
+echo "============================================="
+
+# Run training
+uv run python train.py \
+  --config lista_nonlinear \
+  --env "dysts:${SYSTEM}" \
+  --num_steps 20000 \
+  --batch_size 256 \
+  --target_size 512 \
+  --reconst_coeff 1.0 \
+  --pred_coeff 10.0 \
+  --sparsity_coeff 1.5 \
+  --lista_alpha 0.35 \
+  --pairwise \
+  --standardize \
+  --dysts_ic_noise_scale 0.2 \
+  --dysts_native_cache \
+  --dysts_cache_warmup 2000 \
+  --seed 42 \
+  --device cuda \
+  --log_dir "${BASE_OUT}/${SYSTEM}"
+
+echo "============================================="
+echo "End Time: $(date)"
+echo "Exit Code: $?"
+echo "============================================="
