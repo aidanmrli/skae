@@ -941,6 +941,9 @@ class EvaluationSettings:
     phase_portrait_batch_size: int = 256
     phase_portrait_dims: Sequence[int] = (2,)
     seed_offset: int = 12345
+    # Dysts-specific extended reencode periods
+    dysts_periodic_reencode_periods: Sequence[int] = (10, 25, 50, 100, 200, 500, 1000)
+    dysts_phase_portrait_reencode_periods: Sequence[int] = (0, 1, 10, 25, 50, 100, 200, 500, 1000)
 
 
 def evaluate_model(
@@ -1017,7 +1020,13 @@ def evaluate_model(
         predictions["no_reencode"] = rollout_no_reencode(model, init_states_device, max_horizon)
         predictions["every_step"] = rollout_every_step_reencode(model, init_states_device, max_horizon)
 
-        for period in settings.periodic_reencode_periods:
+        # Use extended reencode periods for dysts systems
+        is_dysts = system.lower().startswith("dysts:")
+        periodic_periods = (
+            settings.dysts_periodic_reencode_periods if is_dysts
+            else settings.periodic_reencode_periods
+        )
+        for period in periodic_periods:
             mode_name = f"periodic_{period}"
             predictions[mode_name] = rollout_periodic_reencode(
                 model,
@@ -1103,11 +1112,14 @@ def evaluate_model(
             old_portrait_length = settings.phase_portrait_length
             old_portrait_dims = settings.phase_portrait_dims
             old_portrait_bs = settings.phase_portrait_batch_size
+            old_portrait_reencode = settings.phase_portrait_reencode_periods
             if is_dysts:
                 settings.phase_portrait_length = 30000
                 settings.phase_portrait_dims = (2, 3)
                 if settings.phase_portrait_batch_size > 64:
                     settings.phase_portrait_batch_size = 32
+                # Use extended reencode periods for dysts phase portraits
+                settings.phase_portrait_reencode_periods = settings.dysts_phase_portrait_reencode_periods
 
             # JAX-style phase portrait grid (matches notebooks/koopman_copy.py)
             for plot_dim in settings.phase_portrait_dims:
@@ -1128,6 +1140,7 @@ def evaluate_model(
                 settings.phase_portrait_length = old_portrait_length
                 settings.phase_portrait_dims = old_portrait_dims
                 settings.phase_portrait_batch_size = old_portrait_bs
+                settings.phase_portrait_reencode_periods = old_portrait_reencode
 
             curves = {
                 mode: data["mse_curve"]

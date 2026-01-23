@@ -542,6 +542,7 @@ def train(
         primary_metrics = eval_results.get(primary_system)
         if primary_metrics is not None:
             print(f"  {checkpoint_name.upper()} - Primary system ({primary_system}) MSE summary:")
+            is_dysts = primary_system.lower().startswith("dysts:")
             for horizon in eval_settings.horizons:
                 if primary_system == "parabolic" and horizon > 100:
                     continue
@@ -558,6 +559,23 @@ def train(
                     f"every-step={every['mean']:.4e}, "
                     f"{best_str}"
                 )
+            
+            # For dysts systems, also print reencode @ 100, 200, 500, 1000 summary
+            if is_dysts:
+                print(f"  {checkpoint_name.upper()} - Periodic reencode summary (reencode @ 100, 200, 500, 1000):")
+                for period in [100, 200, 500, 1000]:
+                    mode_key = f"periodic_{period}"
+                    mode_data = primary_metrics["modes"].get(mode_key)
+                    if mode_data is None:
+                        print(f"    reencode @ {period}: N/A")
+                        continue
+                    # Print horizon 100, 500, and 1000 MSE for each periodic mode
+                    print(f"    reencode @ {period}:")
+                    for horizon in [100, 500, 1000]:
+                        horizon_key = str(horizon)
+                        horizon_mse = mode_data["horizons"].get(horizon_key)
+                        if horizon_mse is not None:
+                            print(f"      H={horizon}: mean={horizon_mse['mean']:.4e}, std={horizon_mse['std']:.4e}")
         
         print(f"  Evaluation artifacts saved to {eval_dir}")
         return eval_results
