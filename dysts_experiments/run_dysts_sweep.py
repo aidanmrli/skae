@@ -19,10 +19,15 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+import torch
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -83,15 +88,20 @@ def get_system_list(systems_arg: str, custom_systems: Optional[List[str]] = None
 def train_on_system(
     system_name: str,
     config_name: str,
-    output_dir: Path,
+    run_dir: Path,
     num_steps: int,
     target_size: Optional[int] = None,
+    batch_size: Optional[int] = None,
     sparsity_coeff: Optional[float] = None,
     reconst_coeff: Optional[float] = None,
     pred_coeff: Optional[float] = None,
     lista_alpha: Optional[float] = None,
     pairwise: bool = False,
     standardize: bool = False,
+    use_native_cache: bool = False,
+    cache_steps: Optional[int] = None,
+    cache_trajectories: Optional[int] = None,
+    cache_warmup: Optional[int] = None,
     device: str = 'auto',
     seed: int = 0,
 ) -> Dict[str, Any]:
@@ -100,15 +110,20 @@ def train_on_system(
     Args:
         system_name: Name of the dysts system (e.g., "Lorenz")
         config_name: Configuration preset name
-        output_dir: Directory for logs and checkpoints
+        run_dir: Directory for logs and checkpoints
         num_steps: Number of training steps
         target_size: Latent dimension (optional override)
+        batch_size: Training batch size (optional override)
         sparsity_coeff: Sparsity coefficient (optional override)
         reconst_coeff: Reconstruction loss coefficient (optional override)
         pred_coeff: Prediction loss coefficient (optional override)
         lista_alpha: LISTA soft-threshold alpha (optional override)
         pairwise: Use pairwise (single-step) training
         standardize: Standardize dysts data (zero mean, unit variance)
+        use_native_cache: Enable native dysts trajectory cache
+        cache_steps: Cached trajectory length (optional override)
+        cache_trajectories: Number of cached trajectories (optional override)
+        cache_warmup: Warmup steps to discard (optional override)
         device: Device to train on
         seed: Random seed
         
@@ -123,6 +138,8 @@ def train_on_system(
     # Apply overrides
     if target_size is not None:
         cfg.MODEL.TARGET_SIZE = target_size
+    if batch_size is not None:
+        cfg.TRAIN.BATCH_SIZE = batch_size
     if sparsity_coeff is not None:
         cfg.MODEL.SPARSITY_COEFF = sparsity_coeff
     if reconst_coeff is not None:
@@ -135,8 +152,16 @@ def train_on_system(
         cfg.TRAIN.USE_SEQUENCE_LOSS = False
     if standardize:
         cfg.ENV.DYSTS.STANDARDIZE = True
+    if use_native_cache:
+        cfg.ENV.DYSTS.USE_NATIVE_CACHE = True
+    if cache_steps is not None:
+        cfg.ENV.DYSTS.CACHE_STEPS = cache_steps
+    if cache_trajectories is not None:
+        cfg.ENV.DYSTS.CACHE_TRAJECTORIES = cache_trajectories
+    if cache_warmup is not None:
+        cfg.ENV.DYSTS.CACHE_WARMUP = cache_warmup
     
-    log_dir = output_dir / system_name
+    log_dir = run_dir
     
     result = {
         "system": system_name,
@@ -176,20 +201,73 @@ def train_on_system(
     return result
 
 
+def _train_worker(
+    system_name: str,
+    seed: int,
+    config_name: str,
+    run_dir: Path,
+    num_steps: int,
+    target_size: Optional[int],
+    batch_size: Optional[int],
+    sparsity_coeff: Optional[float],
+    reconst_coeff: Optional[float],
+    pred_coeff: Optional[float],
+    lista_alpha: Optional[float],
+    pairwise: bool,
+    standardize: bool,
+    use_native_cache: bool,
+    cache_steps: Optional[int],
+    cache_trajectories: Optional[int],
+    cache_warmup: Optional[int],
+    device: str,
+    gpu_id: Optional[int],
+) -> Dict[str, Any]:
+    """Worker for parallel training."""
+    if device == "cuda" and gpu_id is not None:
+        if torch.cuda.is_available():
+            torch.cuda.set_device(gpu_id)
+    return train_on_system(
+        system_name=system_name,
+        config_name=config_name,
+        run_dir=run_dir,
+        num_steps=num_steps,
+        target_size=target_size,
+        batch_size=batch_size,
+        sparsity_coeff=sparsity_coeff,
+        reconst_coeff=reconst_coeff,
+        pred_coeff=pred_coeff,
+        lista_alpha=lista_alpha,
+        pairwise=pairwise,
+        standardize=standardize,
+        use_native_cache=use_native_cache,
+        cache_steps=cache_steps,
+        cache_trajectories=cache_trajectories,
+        cache_warmup=cache_warmup,
+        device=device,
+        seed=seed,
+    )
+
+
 def run_sweep(
     systems: List[str],
     config_name: str,
     output_dir: Path,
     num_steps: int,
     target_size: Optional[int] = None,
+    batch_size: Optional[int] = None,
     sparsity_coeff: Optional[float] = None,
     reconst_coeff: Optional[float] = None,
     pred_coeff: Optional[float] = None,
     lista_alpha: Optional[float] = None,
     pairwise: bool = False,
     standardize: bool = False,
+    use_native_cache: bool = False,
+    cache_steps: Optional[int] = None,
+    cache_trajectories: Optional[int] = None,
+    cache_warmup: Optional[int] = None,
     device: str = 'auto',
     seeds: List[int] = [0],
+    max_parallel: int = 1,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Run training sweep across multiple systems.
     
@@ -199,48 +277,129 @@ def run_sweep(
         output_dir: Base directory for outputs
         num_steps: Number of training steps per system
         target_size: Latent dimension (optional override)
+        batch_size: Training batch size (optional override)
         sparsity_coeff: Sparsity coefficient (optional override)
         reconst_coeff: Reconstruction loss coefficient (optional override)
         pred_coeff: Prediction loss coefficient (optional override)
         lista_alpha: LISTA soft-threshold alpha (optional override)
         pairwise: Use pairwise (single-step) training
         standardize: Standardize dysts data
+        use_native_cache: Enable native dysts trajectory cache
+        cache_steps: Cached trajectory length (optional override)
+        cache_trajectories: Number of cached trajectories (optional override)
+        cache_warmup: Warmup steps to discard (optional override)
         device: Device to train on
         seeds: List of random seeds for multiple runs
+        max_parallel: Maximum number of parallel workers
         
     Returns:
         Dictionary mapping system names to list of results (one per seed).
     """
-    all_results = {}
+    all_results = {system_name: [] for system_name in systems}
     
     total_runs = len(systems) * len(seeds)
     current_run = 0
     
-    for system_name in systems:
-        system_results = []
-        
+    actual_device = get_device(device)
+    gpu_count = torch.cuda.device_count() if actual_device == "cuda" else 0
+    if max_parallel < 1:
+        max_parallel = 1
+    if max_parallel > 1:
+        print(f"Running sweep with up to {max_parallel} parallel workers.")
+        if actual_device == "cuda" and gpu_count > 0 and max_parallel > gpu_count:
+            print(
+                f"Warning: {max_parallel} workers > {gpu_count} GPUs. "
+                "Multiple processes will share GPUs."
+            )
+    
+    jobs = []
+    for idx, system_name in enumerate(systems):
         for seed in seeds:
+            run_dir = output_dir / system_name / f"seed_{seed}"
+            jobs.append((len(jobs), system_name, seed, run_dir))
+    
+    if max_parallel == 1:
+        for _, system_name, seed, run_dir in jobs:
             current_run += 1
             print(f"\n[{current_run}/{total_runs}] Starting: {system_name} (seed={seed})")
             
             result = train_on_system(
                 system_name=system_name,
                 config_name=config_name,
-                output_dir=output_dir / f"seed_{seed}",
+                run_dir=run_dir,
                 num_steps=num_steps,
                 target_size=target_size,
+                batch_size=batch_size,
                 sparsity_coeff=sparsity_coeff,
                 reconst_coeff=reconst_coeff,
                 pred_coeff=pred_coeff,
                 lista_alpha=lista_alpha,
                 pairwise=pairwise,
                 standardize=standardize,
-                device=device,
+                use_native_cache=use_native_cache,
+                cache_steps=cache_steps,
+                cache_trajectories=cache_trajectories,
+                cache_warmup=cache_warmup,
+                device=actual_device,
                 seed=seed,
             )
-            system_results.append(result)
-        
-        all_results[system_name] = system_results
+            all_results[system_name].append(result)
+    else:
+        ctx = mp.get_context("spawn")
+        with ProcessPoolExecutor(max_workers=max_parallel, mp_context=ctx) as executor:
+            future_map = {}
+            for job_idx, system_name, seed, run_dir in jobs:
+                gpu_id = None
+                if actual_device == "cuda" and gpu_count > 0:
+                    gpu_id = job_idx % gpu_count
+                future = executor.submit(
+                    _train_worker,
+                    system_name,
+                    seed,
+                    config_name,
+                    run_dir,
+                    num_steps,
+                    target_size,
+                    batch_size,
+                    sparsity_coeff,
+                    reconst_coeff,
+                    pred_coeff,
+                    lista_alpha,
+                    pairwise,
+                    standardize,
+                    use_native_cache,
+                    cache_steps,
+                    cache_trajectories,
+                    cache_warmup,
+                    actual_device,
+                    gpu_id,
+                )
+                future_map[future] = (system_name, seed)
+            
+            for future in as_completed(future_map):
+                system_name, seed = future_map[future]
+                current_run += 1
+                try:
+                    result = future.result()
+                except Exception as e:
+                    result = {
+                        "system": system_name,
+                        "seed": seed,
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                all_results[system_name].append(result)
+                status = result.get("status", "unknown")
+                print(
+                    f"\n[{current_run}/{total_runs}] Finished: {system_name} "
+                    f"(seed={seed}) status={status}"
+                )
+    
+    for system_name in all_results:
+        all_results[system_name] = sorted(
+            all_results[system_name],
+            key=lambda item: item.get("seed", 0),
+        )
     
     return all_results
 
@@ -287,6 +446,8 @@ Examples:
                         help='Training configuration preset')
     parser.add_argument('--num_steps', type=int, default=10000,
                         help='Number of training steps per system')
+    parser.add_argument('--batch_size', type=int, default=None,
+                        help='Training batch size (optional override)')
     parser.add_argument('--target_size', type=int, default=None,
                         help='Latent dimension (optional override)')
     parser.add_argument('--sparsity_coeff', type=float, default=None,
@@ -301,6 +462,14 @@ Examples:
                         help='Use pairwise (single-step) training instead of sequence training')
     parser.add_argument('--standardize', action='store_true',
                         help='Standardize dysts data (zero mean, unit variance). Recommended.')
+    parser.add_argument('--dysts_native_cache', action='store_true',
+                        help='Use native dysts trajectory cache for training data')
+    parser.add_argument('--dysts_cache_steps', type=int, default=None,
+                        help='Length of each cached dysts trajectory')
+    parser.add_argument('--dysts_cache_trajectories', type=int, default=None,
+                        help='Number of cached dysts trajectories')
+    parser.add_argument('--dysts_cache_warmup', type=int, default=None,
+                        help='Warmup steps to discard from cached trajectories')
     
     # Reproducibility
     parser.add_argument('--seeds', type=int, nargs='+', default=[0],
@@ -318,6 +487,8 @@ Examples:
     # Utilities
     parser.add_argument('--dry_run', action='store_true',
                         help='Print systems and exit without training')
+    parser.add_argument('--max_parallel', type=int, default=1,
+                        help='Maximum number of parallel workers (default: 1)')
     
     args = parser.parse_args()
     
@@ -334,9 +505,13 @@ Examples:
     print(f"Systems ({len(systems)}): {systems}")
     print(f"Config: {args.config}")
     print(f"Steps per system: {args.num_steps}")
+    if args.batch_size is not None:
+        print(f"Batch size: {args.batch_size}")
+    print(f"Dysts native cache: {args.dysts_native_cache}")
     print(f"Seeds: {args.seeds}")
     print(f"Total runs: {len(systems) * len(args.seeds)}")
     print(f"Output directory: {args.output_dir}")
+    print(f"Max parallel workers: {args.max_parallel}")
     print('='*60)
     
     if args.dry_run:
@@ -353,6 +528,7 @@ Examples:
         "systems": systems,
         "config": args.config,
         "num_steps": args.num_steps,
+        "batch_size": args.batch_size,
         "target_size": args.target_size,
         "sparsity_coeff": args.sparsity_coeff,
         "reconst_coeff": args.reconst_coeff,
@@ -360,8 +536,13 @@ Examples:
         "lista_alpha": args.lista_alpha,
         "pairwise": args.pairwise,
         "standardize": args.standardize,
+        "dysts_native_cache": args.dysts_native_cache,
+        "dysts_cache_steps": args.dysts_cache_steps,
+        "dysts_cache_trajectories": args.dysts_cache_trajectories,
+        "dysts_cache_warmup": args.dysts_cache_warmup,
         "seeds": args.seeds,
         "device": args.device,
+        "max_parallel": args.max_parallel,
         "timestamp": timestamp,
     }
     with open(sweep_dir / "sweep_config.json", "w") as f:
@@ -374,14 +555,20 @@ Examples:
         output_dir=sweep_dir,
         num_steps=args.num_steps,
         target_size=args.target_size,
+        batch_size=args.batch_size,
         sparsity_coeff=args.sparsity_coeff,
         reconst_coeff=args.reconst_coeff,
         pred_coeff=args.pred_coeff,
         lista_alpha=args.lista_alpha,
         pairwise=args.pairwise,
         standardize=args.standardize,
+        use_native_cache=args.dysts_native_cache,
+        cache_steps=args.dysts_cache_steps,
+        cache_trajectories=args.dysts_cache_trajectories,
+        cache_warmup=args.dysts_cache_warmup,
         device=args.device,
         seeds=args.seeds,
+        max_parallel=args.max_parallel,
     )
     
     # Save results

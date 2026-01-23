@@ -30,7 +30,7 @@ from config import Config, get_config
 print("Config loaded.")
 
 print("Loading data...")
-from data import make_env, VectorWrapper, generate_trajectory
+from data import make_env, VectorWrapper, generate_trajectory, DystsTrajectoryCache
 print("Data loaded.")
 
 print("Loading model...")
@@ -253,6 +253,8 @@ def train(
     if log_dir is None:
         if cfg.MODEL.MODEL_NAME == 'LISTAKM':
             log_dir = './runs/lista'
+        elif cfg.MODEL.MODEL_NAME == 'HyperLISTAKM':
+            log_dir = './runs/hyperlista'
         else:
             log_dir = './runs/kae'
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -269,8 +271,26 @@ def train(
     # MPS doesn't have manual_seed, but manual_seed should be sufficient
     
     print("Creating environment...")
-    env = make_env(cfg)
-    env = VectorWrapper(env, cfg.TRAIN.BATCH_SIZE)
+    base_env = make_env(cfg)
+    env = VectorWrapper(base_env, cfg.TRAIN.BATCH_SIZE)
+    
+    # DYSTS-specific training caveat: without the cache we only see x->x+1 from freshly
+    # reset initial conditions (i.e., mostly transients, not attractor distribution).
+    # This often yields models that "look fine" on 1-step error but fail catastrophically
+    # in long rollouts / phase portraits.
+    try:
+        from benchmarks.dysts_adapter import DystsEnv
+        if isinstance(env.unwrapped, DystsEnv) and not cfg.ENV.DYSTS.USE_NATIVE_CACHE:
+            print(
+                "[warn] Training on a dysts system without trajectory cache. "
+                "You are sampling only one-step transitions from reset() each step; "
+                "for chaotic/multi-basin systems this often trains poorly for long rollouts. "
+                "Consider adding --dysts_native_cache (and CACHE_WARMUP) and lowering "
+                "--dysts_ic_noise_scale (e.g. 0.2).",
+                flush=True,
+            )
+    except Exception:
+        pass
     
     # Get dt from environment config for ODE integration
     env_name = cfg.ENV.ENV_NAME.lower()
@@ -318,6 +338,31 @@ def train(
     rngs = [torch.Generator().manual_seed(cfg.SEED + i * cfg.TRAIN.BATCH_SIZE) for i in range(num_batches)]
 
     # Generate fixed validation set for consistent evaluation
+    # Optional dysts cache for faster data generation
+    dysts_cache = None
+    if cfg.ENV.DYSTS.USE_NATIVE_CACHE:
+        try:
+            from benchmarks.dysts_adapter import DystsEnv
+            if isinstance(env.unwrapped, DystsEnv):
+                print(
+                    "Initializing dysts native trajectory cache "
+                    f"(steps={cfg.ENV.DYSTS.CACHE_STEPS}, "
+                    f"trajectories={cfg.ENV.DYSTS.CACHE_TRAJECTORIES}, "
+                    f"warmup={cfg.ENV.DYSTS.CACHE_WARMUP}) ...",
+                    flush=True,
+                )
+                cache_rng = torch.Generator().manual_seed(cfg.SEED + 123456)
+                dysts_cache = DystsTrajectoryCache(env.unwrapped, cfg, cache_rng)
+                print(
+                    "Using dysts native trajectory cache "
+                    f"(steps={cfg.ENV.DYSTS.CACHE_STEPS}, "
+                    f"trajectories={cfg.ENV.DYSTS.CACHE_TRAJECTORIES})"
+                )
+            else:
+                print("Warning: Dysts cache enabled but environment is not dysts.")
+        except Exception as e:
+            print(f"Warning: Failed to initialize dysts cache: {e}")
+    
     print("Generating fixed validation set...")
     val_rng = torch.Generator().manual_seed(cfg.SEED + 999999) # Separate seed
     if cfg.TRAIN.USE_SEQUENCE_LOSS:
@@ -342,18 +387,33 @@ def train(
         rng = rngs[step % num_batches]
         
         if cfg.TRAIN.USE_SEQUENCE_LOSS:
-            # Generate sequence windows
-            x_seq = env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
-            # x_seq has shape [batch_size, seq_len+1, obs_size]
-            x_seq = x_seq.to(device)
+            if dysts_cache is not None:
+                x_seq = dysts_cache.sample_sequence_batch(
+                    rng,
+                    batch_size=cfg.TRAIN.BATCH_SIZE,
+                    window_length=cfg.TRAIN.SEQUENCE_LENGTH,
+                    device=device,
+                )
+            else:
+                # Generate sequence windows
+                x_seq = env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
+                # x_seq has shape [batch_size, seq_len+1, obs_size]
+                x_seq = x_seq.to(device)
             nx = None  # Not used for sequence loss
             metrics = train_step(model, optimizer, x_seq, nx, cfg, dt)
         else:
-            # Generate single transitions (backward compatibility)
-            x = env.reset(rng)
-            nx = env.step(x)
-            x = x.to(device)
-            nx = nx.to(device)
+            if dysts_cache is not None:
+                x, nx = dysts_cache.sample_pair_batch(
+                    rng,
+                    batch_size=cfg.TRAIN.BATCH_SIZE,
+                    device=device,
+                )
+            else:
+                # Generate single transitions (backward compatibility)
+                x = env.reset(rng)
+                nx = env.step(x)
+                x = x.to(device)
+                nx = nx.to(device)
             metrics = train_step(model, optimizer, x, nx, cfg, dt)
         
         logger.log_dict(metrics, step, prefix='train')
@@ -378,9 +438,15 @@ def train(
                 print(log_str)
         
         # Periodic evaluation and checkpoint saving
-        if step % 500 == 0 or step == cfg.TRAIN.NUM_STEPS - 1:
+        # Note: skip step=0 to avoid expensive eval before any learning happened.
+        if (step > 0 and step % cfg.TRAIN.EVAL_EVERY == 0) or step == cfg.TRAIN.NUM_STEPS - 1:
             # Use fixed validation set
-            eval_results = evaluate(model, val_x, lambda s: env.step(s), num_steps=200)
+            eval_results = evaluate(
+                model,
+                val_x,
+                lambda s: env.step(s),
+                num_steps=cfg.TRAIN.EVAL_NUM_STEPS,
+            )
             logger.log_scalar('eval/mean_error', eval_results['mean_error'], step)
             logger.log_scalar('eval/final_error', eval_results['final_error'], step)
             
@@ -604,6 +670,17 @@ Examples:
                         help='List all available dysts systems and exit')
     parser.add_argument('--standardize', action='store_true',
                         help='Standardize dysts data (zero mean, unit variance). Recommended for dysts systems.')
+    parser.add_argument('--dysts_ic_noise_scale', type=float, default=None,
+                        help='Dysts IC noise scale (perturbation around default IC). '
+                             'Smaller values keep trajectories near the canonical attractor.')
+    parser.add_argument('--dysts_native_cache', action='store_true',
+                        help='Use native dysts trajectory cache for training data')
+    parser.add_argument('--dysts_cache_steps', type=int, default=None,
+                        help='Length of each cached dysts trajectory')
+    parser.add_argument('--dysts_cache_trajectories', type=int, default=None,
+                        help='Number of cached dysts trajectories')
+    parser.add_argument('--dysts_cache_warmup', type=int, default=None,
+                        help='Warmup steps to discard from cached trajectories')
     
     # Training
     parser.add_argument('--num_steps', type=int, default=20000,
@@ -626,12 +703,24 @@ Examples:
                         help='Prediction loss weight (overrides config default)')
     parser.add_argument('--lista_alpha', type=float, default=None,
                         help='LISTA soft-threshold alpha (overrides config default)')
+
+    # HyperLISTA (HyperLISTAKM) hyperparameters
+    parser.add_argument('--hyperlista_c_theta', type=float, default=None,
+                        help='HyperLISTA threshold scaling C_THETA (overrides config default)')
+    parser.add_argument('--hyperlista_c_beta', type=float, default=None,
+                        help='HyperLISTA momentum scaling C_BETA (overrides config default)')
+    parser.add_argument('--hyperlista_c_ss', type=float, default=None,
+                        help='HyperLISTA support-selection scaling C_SS (overrides config default)')
     
     # Training mode
     parser.add_argument('--pairwise', action='store_true',
                         help='Use pairwise (single-step) training instead of sequence training')
     parser.add_argument('--sequence_length', type=int, default=10,
                         help='Sequence length for sequence training (overrides config default)')
+    parser.add_argument('--eval_every', type=int, default=None,
+                        help='Evaluate every N steps during training (overrides config default)')
+    parser.add_argument('--eval_num_steps', type=int, default=None,
+                        help='Rollout horizon for the quick eval during training (overrides config default)')
     
     # Logging
     parser.add_argument('--log_dir', type=str, default=None,
@@ -696,11 +785,29 @@ Examples:
         cfg.MODEL.PRED_COEFF = args.pred_coeff
     if args.lista_alpha is not None:
         cfg.MODEL.ENCODER.LISTA.ALPHA = args.lista_alpha
+    if args.hyperlista_c_theta is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = args.hyperlista_c_theta
+    if args.hyperlista_c_beta is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = args.hyperlista_c_beta
+    if args.hyperlista_c_ss is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.C_SS = args.hyperlista_c_ss
     
     # Dysts standardization
     if args.standardize:
         cfg.ENV.DYSTS.STANDARDIZE = True
         print("Using standardized dysts data (zero mean, unit variance)")
+    if args.dysts_ic_noise_scale is not None:
+        cfg.ENV.DYSTS.IC_NOISE_SCALE = float(args.dysts_ic_noise_scale)
+        print(f"Using dysts IC noise scale: {cfg.ENV.DYSTS.IC_NOISE_SCALE}")
+    if args.dysts_native_cache:
+        cfg.ENV.DYSTS.USE_NATIVE_CACHE = True
+        print("Using dysts native trajectory cache for training data")
+    if args.dysts_cache_steps is not None:
+        cfg.ENV.DYSTS.CACHE_STEPS = args.dysts_cache_steps
+    if args.dysts_cache_trajectories is not None:
+        cfg.ENV.DYSTS.CACHE_TRAJECTORIES = args.dysts_cache_trajectories
+    if args.dysts_cache_warmup is not None:
+        cfg.ENV.DYSTS.CACHE_WARMUP = args.dysts_cache_warmup
     
     # Training mode
     if args.pairwise:
@@ -708,6 +815,10 @@ Examples:
         print("Using pairwise (single-step) training mode")
     if args.sequence_length is not None:
         cfg.TRAIN.SEQUENCE_LENGTH = args.sequence_length
+    if args.eval_every is not None:
+        cfg.TRAIN.EVAL_EVERY = int(args.eval_every)
+    if args.eval_num_steps is not None:
+        cfg.TRAIN.EVAL_NUM_STEPS = int(args.eval_num_steps)
     
     # Auto-detect device
     device = get_device(args.device)

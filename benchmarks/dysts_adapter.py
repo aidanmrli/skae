@@ -211,6 +211,9 @@ class DystsEnv:
         
         # Config placeholder for compatibility
         self.cfg = None
+        
+        # Cache whether batch RHS is supported
+        self._batch_rhs_supported: Optional[bool] = None
     
     @property
     def observation_size(self) -> int:
@@ -234,6 +237,46 @@ class DystsEnv:
     def _from_standardized(self, x: torch.Tensor) -> torch.Tensor:
         """Convert standardized state back to raw coordinates."""
         return x * self._std + self._mean
+    
+    def _rhs_numpy(self, x_np: np.ndarray) -> np.ndarray:
+        """Compute derivatives via dysts rhs using numpy inputs."""
+        if x_np.ndim == 1:
+            dx_np = self.system.rhs(x_np, t=0)
+            return np.asarray(dx_np, dtype=np.float32)
+        
+        if self._batch_rhs_supported is False:
+            return np.stack([self._rhs_numpy(x) for x in x_np], axis=0)
+        
+        if self._batch_rhs_supported is None:
+            try:
+                dx_np = self.system.rhs(x_np, t=0)
+                dx_np = np.asarray(dx_np, dtype=np.float32)
+                if dx_np.shape != x_np.shape:
+                    raise ValueError("Batched rhs returned unexpected shape.")
+                self._batch_rhs_supported = True
+                return dx_np
+            except Exception:
+                self._batch_rhs_supported = False
+                return np.stack([self._rhs_numpy(x) for x in x_np], axis=0)
+        
+        try:
+            dx_np = self.system.rhs(x_np, t=0)
+            dx_np = np.asarray(dx_np, dtype=np.float32)
+            if dx_np.shape != x_np.shape:
+                raise ValueError("Batched rhs returned unexpected shape.")
+            return dx_np
+        except Exception:
+            self._batch_rhs_supported = False
+            return np.stack([self._rhs_numpy(x) for x in x_np], axis=0)
+    
+    def _rk4_numpy(self, x_np: np.ndarray) -> np.ndarray:
+        """RK4 integration using numpy arrays (supports batched input if rhs does)."""
+        dt = self.dt
+        k1 = self._rhs_numpy(x_np)
+        k2 = self._rhs_numpy(x_np + 0.5 * dt * k1)
+        k3 = self._rhs_numpy(x_np + 0.5 * dt * k2)
+        k4 = self._rhs_numpy(x_np + dt * k3)
+        return x_np + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
     
     def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
         """Reset to a random initial condition near the default IC.
@@ -269,16 +312,18 @@ class DystsEnv:
             Next state tensor with same shape as input.
             If standardize=True, returns standardized coordinates.
         """
+        # Ensure CPU tensor for numpy-based integration
+        state_cpu = state.detach().cpu().contiguous()
+        
         # Convert from standardized to raw if needed
         if self.standardize:
-            state = self._from_standardized(state)
+            state_cpu = self._from_standardized(state_cpu)
         
         # Handle batched input
-        if state.dim() == 1:
-            result = self._step_single(state)
+        if state_cpu.dim() == 1:
+            result = self._step_single(state_cpu)
         else:
-            # Vectorized step for batched states
-            result = torch.stack([self._step_single(s) for s in state])
+            result = self._step_batch(state_cpu)
         
         # Convert back to standardized if needed
         if self.standardize:
@@ -288,26 +333,15 @@ class DystsEnv:
     
     def _step_single(self, state: torch.Tensor) -> torch.Tensor:
         """Single-state RK4 integration step."""
-        dt = self.dt
-        
-        def rhs(x: torch.Tensor) -> torch.Tensor:
-            """Compute derivative using dysts's rhs method."""
-            # Ensure tensor is on CPU, contiguous, and has storage for numpy conversion
-            x_cpu = x.detach().cpu().contiguous()
-            x_np = x_cpu.numpy()
-            dx_np = self.system.rhs(x_np, t=0)
-            return torch.from_numpy(np.array(dx_np)).float()
-        
-        # Ensure state is on CPU for numpy-based integration
         state_cpu = state.detach().cpu().contiguous()
-        
-        # RK4 integration
-        k1 = rhs(state_cpu)
-        k2 = rhs(state_cpu + 0.5 * dt * k1)
-        k3 = rhs(state_cpu + 0.5 * dt * k2)
-        k4 = rhs(state_cpu + dt * k3)
-        
-        return state_cpu + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        out_np = self._rk4_numpy(state_cpu.numpy())
+        return torch.from_numpy(out_np).float()
+    
+    def _step_batch(self, state: torch.Tensor) -> torch.Tensor:
+        """Batched RK4 integration step using numpy."""
+        state_cpu = state.detach().cpu().contiguous()
+        out_np = self._rk4_numpy(state_cpu.numpy())
+        return torch.from_numpy(out_np).float()
     
     def make_trajectory(self, n: int, init_cond: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Generate a trajectory of n steps.
