@@ -21,7 +21,8 @@ BASE_OUT="/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear"
 mkdir -p "$BASE_OUT"
 
 # Multi-basin systems (from benchmarks/system_catalog.py)
-SYSTEMS=(
+SYSTEM=LorenzCoupled
+# (
 #   Dadras
 #   Duffing
 #   QiChen
@@ -34,16 +35,10 @@ SYSTEMS=(
 #   SanUmSrisuchinwong
 #   WangSun
 #   ShimizuMorioka
-  LorenzCoupled
+  # LorenzCoupled
 #   RikitakeDynamo
 #   Hadley
-)
-
-SYSTEM=${SYSTEMS[$SLURM_ARRAY_TASK_ID]}
-if [ -z "$SYSTEM" ]; then
-  echo "Invalid SLURM_ARRAY_TASK_ID: $SLURM_ARRAY_TASK_ID"
-  exit 1
-fi
+# )
 
 # Log job info
 echo "============================================="
