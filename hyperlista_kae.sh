@@ -40,6 +40,7 @@ uv run python train.py \
   --reconst_coeff 1.0 \
   --pred_coeff 1.0 \
   --sparsity_coeff 1.0 \
+  --lista_num_loops 5 \
   --hyperlista_c_theta 1e-2 \
   --hyperlista_c_beta 1e-4 \
   --hyperlista_c_ss 0.5 \

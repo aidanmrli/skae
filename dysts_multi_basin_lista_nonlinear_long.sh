@@ -66,6 +66,7 @@ uv run python train.py \
   --pred_coeff 10.0 \
   --sparsity_coeff 1.5 \
   --lista_alpha 0.35 \
+  --lista_num_loops 5 \
   --pairwise \
   --standardize \
   --dysts_ic_noise_scale 0.2 \
