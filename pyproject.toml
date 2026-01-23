@@ -22,6 +22,7 @@ dependencies = [
     "optax>=0.2.6",
     "torchdiffeq>=0.2.3",
     "dysts>=0.96",
+    "numba>=0.63.1",
 ]
 
 [project.optional-dependencies]
