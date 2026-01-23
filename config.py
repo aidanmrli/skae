@@ -181,10 +181,22 @@ class DystsConfig:
     """
     SYSTEM_NAME: str = "Lorenz"  # Name matching dysts.flows class
     DT_OVERRIDE: float = 0.0  # If > 0, override dysts default dt
-    IC_NOISE_SCALE: float = 0.2  # Scale for perturbation noise around default IC
+    # Scale for perturbation noise around default initial condition.
+    # IMPORTANT: this should be relatively small for most dysts systems; large values
+    # can throw trajectories far off-attractor and make phase portraits look "wrong".
+    # Kept aligned with benchmarks.dysts_adapter.DystsEnv default.
+    IC_NOISE_SCALE: float = 0.2
     STANDARDIZE: bool = False  # Whether to standardize trajectories
-    RESAMPLE: bool = True  # Use dysts's period-based resampling for native trajectories
+    # Use dysts's period-based resampling for native trajectories.
+    # NOTE: Resampling changes the effective time spacing between points and can
+    # make comparisons against one-step RK4 rollouts misleading. Keep this False
+    # unless you *really* intend to train/evaluate on the resampled map.
+    RESAMPLE: bool = False
     PTS_PER_PERIOD: int = 100  # Points per period if resampling
+    USE_NATIVE_CACHE: bool = False  # Precompute native dysts trajectories for training
+    CACHE_STEPS: int = 30000  # Length of each cached trajectory
+    CACHE_TRAJECTORIES: int = 200  # Number of cached trajectories
+    CACHE_WARMUP: int = 200  # Discard initial steps to skip transients
 
 
 @dataclass
@@ -286,6 +298,10 @@ class TrainConfig:
     LR: float = 1e-4  # main learning rate (encoder/decoder)
     WEIGHT_DECAY: float = 1e-4  # weight decay for AdamW optimizer
     K_MATRIX_LR: float = 1e-5  # learning rate for Koopman matrix parameters
+    
+    # Lightweight evaluation during training
+    EVAL_EVERY: int = 500  # evaluation interval in training steps
+    EVAL_NUM_STEPS: int = 200  # rollout horizon for the quick eval() helper
     
     # Sequence training parameters
     USE_SEQUENCE_LOSS: bool = False  # default to single-step loss for parity with JAX
@@ -458,17 +474,17 @@ def get_train_hyperlista_config() -> Config:
     cfg = Config()
     cfg.MODEL.MODEL_NAME = "HyperLISTAKM"
     cfg.MODEL.TARGET_SIZE = 1024 * 2
-    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 16
-    cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 5e-3
-    cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = 5e-3
+    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 8
+    cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 1e-2
+    cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = 1e-4
     cfg.MODEL.ENCODER.HYPERLISTA.C_SS = 0.5
     cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = True
     cfg.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = True
     cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS = True
     cfg.MODEL.RES_COEFF = 1.0
     cfg.MODEL.RECONST_COEFF = 1.0
-    cfg.MODEL.PRED_COEFF = 0.0
-    cfg.MODEL.SPARSITY_COEFF = 0.1
+    cfg.MODEL.PRED_COEFF = 1.0
+    cfg.MODEL.SPARSITY_COEFF = 1.0
     cfg.MODEL.USE_HOMOGENEOUS = True
     cfg.MODEL.HOMOGENEOUS_COEFF = 1.0
     return cfg
