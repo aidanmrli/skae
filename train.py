@@ -721,6 +721,8 @@ Examples:
                         help='Prediction loss weight (overrides config default)')
     parser.add_argument('--lista_alpha', type=float, default=None,
                         help='LISTA soft-threshold alpha (overrides config default)')
+    parser.add_argument('--lista_num_loops', type=int, default=None,
+                        help='Number of LISTA iterations (overrides config default)')
 
     # HyperLISTA (HyperLISTAKM) hyperparameters
     parser.add_argument('--hyperlista_c_theta', type=float, default=None,
@@ -803,6 +805,10 @@ Examples:
         cfg.MODEL.PRED_COEFF = args.pred_coeff
     if args.lista_alpha is not None:
         cfg.MODEL.ENCODER.LISTA.ALPHA = args.lista_alpha
+    if args.lista_num_loops is not None:
+        # Update both LISTA and HyperLISTA loop counts for convenience
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = args.lista_num_loops
+        cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = args.lista_num_loops
     if args.hyperlista_c_theta is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = args.hyperlista_c_theta
     if args.hyperlista_c_beta is not None:

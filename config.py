@@ -222,7 +222,7 @@ class EnvConfig:
 @dataclass
 class ListaConfig:
     """LISTA encoder-specific configuration."""
-    NUM_LOOPS: int = 10  # LISTA iterations
+    NUM_LOOPS: int = 5  # LISTA iterations
     L: float = 1e3  # Lipschitz constant estimate
     ALPHA: float = 0.1  # sparsity threshold
     LINEAR_ENCODER: bool = False  # use MLP vs linear encoder
@@ -237,7 +237,7 @@ class HyperListaConfig:
     
     See: "Hyperparameter Tuning is All You Need for LISTA" (Chen et al., NeurIPS 2021)
     """
-    NUM_LOOPS: int = 16              # Number of unrolled iterations
+    NUM_LOOPS: int = 5              # Number of unrolled iterations
     C_THETA: float = 5e-3            # Threshold scaling hyperparameter (c₁)
     C_BETA: float = 5e-3             # Momentum hyperparameter (c₂)
     C_SS: float = 0.5                # Support selection hyperparameter (c₃)
@@ -426,7 +426,7 @@ def get_train_lista_config() -> Config:
     cfg = Config()
     cfg.MODEL.MODEL_NAME = "LISTAKM"
     cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
-    cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 10
+    cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 5
     cfg.MODEL.TARGET_SIZE = 1024 * 2
     cfg.MODEL.RES_COEFF = 1.0
     cfg.MODEL.RECONST_COEFF = 1.0
@@ -447,7 +447,7 @@ def get_train_lista_nonlinear_config() -> Config:
     cfg.MODEL.MODEL_NAME = "LISTAKM"
     cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = False
     cfg.MODEL.ENCODER.LAYERS = [64, 64, 64]
-    cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 10
+    cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 5
     cfg.MODEL.TARGET_SIZE = 1024 * 2
     cfg.MODEL.RES_COEFF = 1.0
     cfg.MODEL.RECONST_COEFF = 1.0
@@ -474,7 +474,7 @@ def get_train_hyperlista_config() -> Config:
     cfg = Config()
     cfg.MODEL.MODEL_NAME = "HyperLISTAKM"
     cfg.MODEL.TARGET_SIZE = 1024 * 2
-    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 8
+    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 5
     cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 1e-2
     cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = 1e-4
     cfg.MODEL.ENCODER.HYPERLISTA.C_SS = 0.5
