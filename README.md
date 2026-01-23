@@ -93,6 +93,24 @@ uv run python train.py \
   --seed 42 \
   --device cuda
 
+# HyperLISTA: expose C_THETA / C_BETA / C_SS on CLI
+uv run python train.py \
+  --config hyperlista \
+  --env lyapunov \
+  --num_steps 3000 \
+  --batch_size 256 \
+  --target_size 256 \
+  --reconst_coeff 1.0 \
+  --pred_coeff 1.0 \
+  --sparsity_coeff 1.0 \
+  --hyperlista_c_theta 0.01 \
+  --hyperlista_c_beta 0.0 \
+  --hyperlista_c_ss 0.5 \
+  --pairwise \
+  --lr 5e-5 \
+  --seed 42 \
+  --device cuda
+
 uv run python evaluate_checkpoints.py \
   --run_dir runs/lista/20260119-185342 \
   --system lyapunov \
@@ -166,6 +184,12 @@ python train.py --config lista_nonlinear --env lorenz63
 - **Model**: LISTAKM with nonlinear pre-activation
 - **Encoder**: [64, 64, 64] MLP → LISTA
 
+### `hyperlista` - HyperLISTA sparse encoder (experimental)
+HyperLISTA exposes three scalar hyperparameters that control thresholding, momentum, and support selection:
+- `--hyperlista_c_theta` (C_THETA)
+- `--hyperlista_c_beta` (C_BETA)
+- `--hyperlista_c_ss` (C_SS)
+
 ## Environments
 
 | Environment | Dimension | Description |
@@ -232,7 +256,7 @@ For periodic reencoding, the evaluation automatically selects the best period pe
 
 For each system and rollout mode, the evaluation computes:
 
-- **Horizon-wise MSE**: Mean ± std MSE aggregated across initial conditions for horizons (default: 100, 1000 steps)
+- **Horizon-wise MSE**: Mean ± std MSE aggregated across initial conditions for horizons (default: 100–1000 in steps of 100)
 - **Cumulative MSE curve**: Time-averaged MSE vs. prediction horizon
 - **Per-step L2 error**: Mean L2 error at each prediction step
 - **Best periodic reencoding**: Automatically identifies optimal reencoding period per horizon
@@ -249,6 +273,7 @@ The evaluation generates the following outputs in `runs/kae/<timestamp>/evaluati
 **Plots:**
 - `phase_portrait_plot_eval.png`: Grid of phase portraits for different reencoding periods
 - `mse_vs_horizon.png`: Cumulative MSE curves for all rollout modes
+- `horizon_mse_selected.png`: Horizon MSE mean ± std for every_step/periodic_10/periodic_25
 - `error_curve_<mode>.png`: Per-step error curves for each mode
 - `error_curve_combined.png`: Combined per-step error curves for all modes
 

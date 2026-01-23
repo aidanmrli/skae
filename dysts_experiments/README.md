@@ -3,6 +3,18 @@
 This directory contains experiment scripts for benchmarking the Koopman autoencoder 
 on chaotic systems from the dysts library.
 
+## Important gotchas (very likely to cause "totally wrong" phase portraits)
+
+- **Match the initial-condition distribution**: `train.py` defaults to sampling ICs as
+  `ic + Normal(0, std * IC_NOISE_SCALE)`. If you generate "ground truth" portraits with a
+  different `--ic_noise_scale`, the portraits can look qualitatively different.
+  Recommended: use `--dysts_ic_noise_scale 0.2` for most systems.
+
+- **Prefer trajectory-based sampling for dysts**: pairwise training without a cache samples
+  only one-step transitions from `reset()` each step (mostly transients, not attractor distribution).
+  For chaotic/multi-basin systems this often yields poor long rollouts.
+  Recommended: add `--dysts_native_cache --dysts_cache_warmup 2000` to train runs.
+
 ## Scripts
 
 ### `run_dysts_sweep.py`
