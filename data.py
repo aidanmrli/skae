@@ -6,7 +6,9 @@ structured as environments.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Callable
+from typing import Optional, Callable, List
+import time
+import numpy as np
 import torch
 from config import Config
 
@@ -98,6 +100,7 @@ class VectorWrapper(Wrapper):
     def __init__(self, env: Env, batch_size: int):
         super().__init__(env)
         self.batch_size = batch_size
+        self._vmap_supported: Optional[bool] = None
 
     def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
         """Reset multiple environments in parallel with independent random seeds.
@@ -134,15 +137,25 @@ class VectorWrapper(Wrapper):
         """
         # Try vmap for environments that support it (pure PyTorch)
         # Fall back to direct call for environments with numpy ops (e.g., DystsEnv)
-        try:
+        if self._vmap_supported is True:
             if action is None:
                 return torch.vmap(lambda s: self.env.step(s, None))(state)
+            return torch.vmap(lambda s, a: self.env.step(s, a))(state, action)
+        if self._vmap_supported is False:
+            return self.env.step(state, action)
+        
+        try:
+            if action is None:
+                result = torch.vmap(lambda s: self.env.step(s, None))(state)
             else:
-                return torch.vmap(lambda s, a: self.env.step(s, a))(state, action)
+                result = torch.vmap(lambda s, a: self.env.step(s, a))(state, action)
+            self._vmap_supported = True
+            return result
         except RuntimeError as e:
             if "storage" in str(e).lower() or "vmap" in str(e).lower():
                 # Environment doesn't support vmap (uses numpy internally)
                 # Fall back to letting the environment handle batching
+                self._vmap_supported = False
                 return self.env.step(state, action)
             raise
     
@@ -179,6 +192,151 @@ class VectorWrapper(Wrapper):
         
         # Transpose to [batch_size, window_length+1, state_dim]
         return sequences.transpose(0, 1)
+
+
+# ---------------------------------------------------------------------------
+# Dysts trajectory cache for training
+# ---------------------------------------------------------------------------
+
+class DystsTrajectoryCache:
+    """In-memory cache of dysts trajectories for fast batch sampling."""
+    
+    def __init__(
+        self,
+        env,
+        cfg: Config,
+        rng: Optional[torch.Generator] = None,
+    ):
+        self.env = env
+        self.cfg = cfg
+        self.cache_steps = cfg.ENV.DYSTS.CACHE_STEPS
+        self.cache_trajectories = max(1, cfg.ENV.DYSTS.CACHE_TRAJECTORIES)
+        self.cache_warmup = max(0, cfg.ENV.DYSTS.CACHE_WARMUP)
+        self.standardize = cfg.ENV.DYSTS.STANDARDIZE
+        self.resample = cfg.ENV.DYSTS.RESAMPLE
+        self.pts_per_period = cfg.ENV.DYSTS.PTS_PER_PERIOD
+        
+        if self.cache_steps < 2:
+            raise ValueError("Dysts cache requires CACHE_STEPS >= 2")
+        
+        if rng is None:
+            rng = torch.Generator().manual_seed(0)
+        self._rng = rng
+        self._trajectories = self._build_cache()
+    
+    def _build_cache(self) -> torch.Tensor:
+        """Generate cached trajectories using dysts native integrator."""
+        base_ic = self.env._ic.detach().cpu().numpy()
+        base_std = self.env._std.detach().cpu().numpy()
+        original_ic = None
+        if hasattr(self.env.system, "ic"):
+            original_ic = np.array(self.env.system.ic, copy=True)
+        
+        trajectories: List[torch.Tensor] = []
+        t0 = time.perf_counter()
+        for i in range(self.cache_trajectories):
+            if i == 0 or (i + 1) % 10 == 0:
+                elapsed = time.perf_counter() - t0
+                print(
+                    f"[dysts cache] building trajectory {i + 1}/{self.cache_trajectories} "
+                    f"(elapsed={elapsed:.1f}s)",
+                    flush=True,
+                )
+            if i == 0:
+                ic = base_ic
+            else:
+                noise = torch.randn(self.env._dim, generator=self._rng).numpy()
+                ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
+            if hasattr(self.env.system, "ic"):
+                self.env.system.ic = np.array(ic, dtype=np.float32)
+            
+            try:
+                traj = self.env.make_trajectory_native(
+                    n=self.cache_steps + self.cache_warmup,
+                    resample=self.resample,
+                    pts_per_period=self.pts_per_period,
+                    standardize=self.standardize,
+                )
+            except Exception as e:
+                if i == 0:
+                    raise
+                print(
+                    f"Warning: Failed to build dysts trajectory {i + 1}/"
+                    f"{self.cache_trajectories}: {e}. Using fewer trajectories."
+                )
+                break
+            if self.cache_warmup > 0:
+                traj = traj[self.cache_warmup:]
+            traj = traj.float()
+            trajectories.append(traj)
+        
+        if original_ic is not None:
+            self.env.system.ic = original_ic
+        
+        elapsed = time.perf_counter() - t0
+        print(
+            f"[dysts cache] done: trajectories={len(trajectories)}, "
+            f"steps={trajectories[0].shape[0] if trajectories else 0} "
+            f"(total={elapsed:.1f}s)",
+            flush=True,
+        )
+        
+        if len(trajectories) == 1:
+            return trajectories[0].unsqueeze(0)
+        
+        return torch.stack(trajectories, dim=0)
+    
+    @property
+    def trajectories(self) -> torch.Tensor:
+        return self._trajectories
+    
+    def sample_pair_batch(
+        self,
+        rng: torch.Generator,
+        batch_size: int,
+        device: Optional[torch.device] = None,
+    ) -> torch.Tensor:
+        """Sample a batch of (x_t, x_{t+1}) pairs."""
+        traj_count, steps, _ = self._trajectories.shape
+        max_start = steps - 1
+        if max_start <= 0:
+            raise ValueError("Cached trajectories are too short for pairwise sampling.")
+        
+        traj_idx = torch.randint(0, traj_count, (batch_size,), generator=rng)
+        time_idx = torch.randint(0, max_start, (batch_size,), generator=rng)
+        x = self._trajectories[traj_idx, time_idx]
+        nx = self._trajectories[traj_idx, time_idx + 1]
+        
+        if device is not None:
+            x = x.to(device)
+            nx = nx.to(device)
+        return x, nx
+    
+    def sample_sequence_batch(
+        self,
+        rng: torch.Generator,
+        batch_size: int,
+        window_length: int,
+        device: Optional[torch.device] = None,
+    ) -> torch.Tensor:
+        """Sample a batch of sequence windows [x_t, ..., x_{t+T}]."""
+        traj_count, steps, _ = self._trajectories.shape
+        max_start = steps - (window_length + 1)
+        if max_start < 0:
+            raise ValueError(
+                "Cached trajectories are too short for sequence sampling. "
+                "Increase CACHE_STEPS or reduce SEQUENCE_LENGTH."
+            )
+        
+        traj_idx = torch.randint(0, traj_count, (batch_size,), generator=rng)
+        time_idx = torch.randint(0, max_start + 1, (batch_size,), generator=rng)
+        offsets = torch.arange(window_length + 1)
+        seq_idx = time_idx[:, None] + offsets[None, :]
+        sequences = self._trajectories[traj_idx[:, None], seq_idx]
+        
+        if device is not None:
+            sequences = sequences.to(device)
+        return sequences
 
 
 # ---------------------------------------------------------------------------
