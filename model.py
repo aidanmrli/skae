@@ -397,9 +397,9 @@ class HyperLISTA(nn.Module):
         Support selection bypasses thresholding for the top-p% largest magnitude entries,
         helping to preserve the support structure during convergence.
         
-        TODO: Optimize this implementation. The current per-sample loop for handling
-        variable p values is correct but slow. Consider using torch.gather or 
-        vectorized quantile computation for better performance.
+        NOTE: This uses a vectorized top-k approximation for speed. It selects the
+        top-k magnitudes per sample (k = ceil(p * zdim)) instead of computing the
+        exact per-sample quantile threshold.
         
         Args:
             x: Input tensor [..., zdim]
@@ -410,34 +410,32 @@ class HyperLISTA(nn.Module):
             Thresholded tensor with support selection
         """
         x_abs = x.abs()
-        
-        # Find quantile threshold for top-p entries
         batch_shape = x.shape[:-1]
+        zdim = x.shape[-1]
         
-        if len(batch_shape) == 0:
-            # Single sample case
-            threshold = torch.quantile(x_abs, 1 - p.item())
+        # Flatten batch dims for vectorized top-k selection
+        flat_x_abs = x_abs.reshape(-1, zdim)
+        flat_theta = theta.reshape(-1, 1)
+        flat_p = p.reshape(-1).clamp(0.0, 1.0)
+        
+        if flat_x_abs.numel() == 0:
+            return self._shrink(x, theta)
+        
+        # Select top-k per sample (approximate support selection)
+        k = torch.ceil(flat_p * zdim).to(torch.long).clamp(0, zdim)
+        k_max = int(k.max().item()) if k.numel() > 0 else 0
+        
+        if k_max == 0:
+            bypass_flat = torch.zeros_like(flat_x_abs, dtype=torch.bool)
         else:
-            # Batch case: need per-sample quantiles
-            # p has shape [..., 1], squeeze for quantile computation
-            p_squeezed = p.squeeze(-1)  # [...]
-            
-            # Compute quantiles - need to handle per-sample p values
-            # torch.quantile with per-sample q values requires iteration
-            thresholds = []
-            flat_x_abs = x_abs.view(-1, x_abs.shape[-1])  # [batch, zdim]
-            flat_p = p_squeezed.view(-1)  # [batch]
-            
-            for i in range(flat_x_abs.shape[0]):
-                q_val = (1.0 - flat_p[i].item())
-                q_val = max(0.0, min(1.0, q_val))  # Clamp to valid range
-                t = torch.quantile(flat_x_abs[i], q_val)
-                thresholds.append(t)
-            
-            threshold = torch.stack(thresholds).view(*batch_shape, 1)
+            topk_idx = torch.topk(flat_x_abs, k_max, dim=-1, largest=True, sorted=True).indices
+            selector = torch.arange(k_max, device=x.device).unsqueeze(0) < k.unsqueeze(1)
+            bypass_flat = torch.zeros_like(flat_x_abs, dtype=torch.bool)
+            bypass_flat.scatter_(1, topk_idx, selector)
         
-        # Bypass if: (1) above quantile threshold AND (2) above soft-threshold theta
-        bypass = ((x_abs >= threshold) & (x_abs >= theta)).detach()
+        # Bypass if: (1) selected in top-k AND (2) above soft-threshold theta
+        bypass_flat = bypass_flat & (flat_x_abs >= flat_theta)
+        bypass = bypass_flat.view(*batch_shape, zdim).detach()
         
         # Apply shrinkage only to non-bypassed entries
         return torch.where(bypass, x, self._shrink(x, theta))
