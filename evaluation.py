@@ -370,6 +370,67 @@ def _save_mse_curve_plot(curves: Dict[str, List[float]], path: Path, highlight_h
     plt.close(fig)
 
 
+def _save_horizon_mse_plot(
+    mode_metrics: Dict[str, Dict],
+    horizons: Sequence[int],
+    modes: Sequence[str],
+    path: Path,
+) -> None:
+    """Save mean ± std horizon MSE for selected modes."""
+
+    _ensure_matplotlib()
+    import matplotlib.pyplot as plt
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+    any_plotted = False
+
+    for mode in modes:
+        mode_data = mode_metrics.get(mode)
+        if not mode_data:
+            continue
+        xs: List[int] = []
+        means: List[float] = []
+        stds: List[float] = []
+        for horizon in horizons:
+            horizon_data = mode_data.get("horizons", {}).get(str(horizon))
+            if not horizon_data:
+                continue
+            mean = horizon_data.get("mean")
+            std = horizon_data.get("std", 0.0)
+            if mean is None or not np.isfinite(mean):
+                continue
+            xs.append(int(horizon))
+            means.append(float(mean))
+            stds.append(float(std) if std is not None else 0.0)
+        if not xs:
+            continue
+        ax.errorbar(
+            xs,
+            means,
+            yerr=stds,
+            marker="o",
+            linewidth=2,
+            capsize=3,
+            label=mode,
+        )
+        any_plotted = True
+
+    if not any_plotted:
+        plt.close(fig)
+        return
+
+    ax.set_xlabel("Prediction horizon")
+    ax.set_ylabel("Mean MSE ± std")
+    ax.set_title("Horizon MSE (selected modes)")
+    ax.grid(True, linestyle=":", alpha=0.4)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
 def _save_error_curve_single_mode(
     errors: torch.Tensor,
     path: Path,
@@ -798,9 +859,12 @@ def _save_jax_style_phase_portraits(
     cfg: Config,
     settings: "EvaluationSettings",
     path: Path,
+    plot_dim: int = 2,
 ) -> None:
     """Replicate notebooks/koopman_copy.py phase-portrait generation exactly."""
     if base_env.observation_size < 2:
+        return
+    if plot_dim == 3 and base_env.observation_size < 3:
         return
 
     _ensure_matplotlib()
@@ -820,13 +884,21 @@ def _save_jax_style_phase_portraits(
         trajectories[period] = traj  # [length, batch, obs_dim] on CPU
 
     num_modes = len(reencode_periods)
-    fig, axes = plt.subplots(
-        1, num_modes, figsize=(6 * num_modes, 5), squeeze=False
-    )
+    if plot_dim == 3:
+        fig = plt.figure(figsize=(6 * num_modes, 5))
+        axes = [[fig.add_subplot(1, num_modes, idx + 1, projection="3d") for idx in range(num_modes)]]
+    else:
+        fig, axes = plt.subplots(
+            1, num_modes, figsize=(6 * num_modes, 5), squeeze=False
+        )
 
     for ax, period in zip(axes[0], reencode_periods):
         traj = trajectories[period]
-        ax.plot(traj[:, :, 0], traj[:, :, 1])
+        if plot_dim == 3 and traj.shape[-1] >= 3:
+            for idx in range(traj.shape[1]):
+                ax.plot(traj[:, idx, 0], traj[:, idx, 1], traj[:, idx, 2])
+        else:
+            ax.plot(traj[:, :, 0], traj[:, :, 1])
         if period == 0:
             title = "reencode [x]"
         elif period == 1:
@@ -836,7 +908,10 @@ def _save_jax_style_phase_portraits(
         ax.set_title(title)
         ax.set_xlabel("x1")
         ax.set_ylabel("x2")
-        ax.set_aspect("equal", adjustable="box")
+        if plot_dim == 3 and traj.shape[-1] >= 3:
+            ax.set_zlabel("x3")
+        else:
+            ax.set_aspect("equal", adjustable="box")
         ax.grid(True, linestyle=":", alpha=0.4)
 
     fig.tight_layout()
@@ -857,13 +932,14 @@ class EvaluationSettings:
         # "parabolic",
         "lyapunov",
     )
-    horizons: Sequence[int] = (100, 1000)
+    horizons: Sequence[int] = tuple(range(100, 1001, 100))
     periodic_reencode_periods: Sequence[int] = (10, 25, 50, 100)
     batch_size: int = 100
     phase_portrait_samples: int = 20
     phase_portrait_length: int = 200
     phase_portrait_reencode_periods: Sequence[int] = (0, 1, 10, 25, 50)
     phase_portrait_batch_size: int = 256
+    phase_portrait_dims: Sequence[int] = (2,)
     seed_offset: int = 12345
 
 
@@ -1019,16 +1095,39 @@ def evaluate_model(
                 flush=True,
             )
 
+            # DYSTS: phase portraits should be long and include 3D by default.
+            # The qualitative plots are the main debugging signal for chaotic flows.
+            # Note: 30000 steps can be heavy; we also reduce the default portrait batch size
+            # if it's set very large to avoid excessive memory usage.
+            is_dysts = system.lower().startswith("dysts:")
+            old_portrait_length = settings.phase_portrait_length
+            old_portrait_dims = settings.phase_portrait_dims
+            old_portrait_bs = settings.phase_portrait_batch_size
+            if is_dysts:
+                settings.phase_portrait_length = 30000
+                settings.phase_portrait_dims = (2, 3)
+                if settings.phase_portrait_batch_size > 64:
+                    settings.phase_portrait_batch_size = 32
+
             # JAX-style phase portrait grid (matches notebooks/koopman_copy.py)
-            portrait_path = system_dir / "phase_portrait_plot_eval.png"
-            _save_jax_style_phase_portraits(
-                model=model,
-                base_env=base_env,
-                cfg=cfg,
-                settings=settings,
-                path=portrait_path,
-            )
-            files["phase_portrait_plot_eval"] = str(portrait_path)
+            for plot_dim in settings.phase_portrait_dims:
+                suffix = "2D" if plot_dim == 2 else "3D"
+                portrait_path = system_dir / f"phase_portrait_plot_eval_{suffix}.png"
+                _save_jax_style_phase_portraits(
+                    model=model,
+                    base_env=base_env,
+                    cfg=cfg,
+                    settings=settings,
+                    path=portrait_path,
+                    plot_dim=plot_dim,
+                )
+                files[f"phase_portrait_plot_eval_{suffix}"] = str(portrait_path)
+
+            # Restore settings (avoid cross-system contamination)
+            if is_dysts:
+                settings.phase_portrait_length = old_portrait_length
+                settings.phase_portrait_dims = old_portrait_dims
+                settings.phase_portrait_batch_size = old_portrait_bs
 
             curves = {
                 mode: data["mse_curve"]
@@ -1037,6 +1136,21 @@ def evaluate_model(
             curve_path = system_dir / "mse_vs_horizon.png"
             _save_mse_curve_plot(curves, curve_path, settings.horizons)
             files["mse_curve"] = str(curve_path)
+
+            selected_modes = [
+                mode
+                for mode in ("every_step", "periodic_10", "periodic_25")
+                if mode in mode_metrics
+            ]
+            if selected_modes:
+                horizon_mse_path = system_dir / "horizon_mse_selected.png"
+                _save_horizon_mse_plot(
+                    mode_metrics,
+                    settings.horizons,
+                    selected_modes,
+                    horizon_mse_path,
+                )
+                files["horizon_mse_selected"] = str(horizon_mse_path)
 
             # Per-mode error curves (analogous to notebook plot_eval)
             for mode_name, errors in per_step_errors.items():
