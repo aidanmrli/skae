@@ -46,11 +46,6 @@ uv pip install -e .
 # Train with defaults on the Duffing Oscillator
 uv run python train.py --config generic_sparse --env duffing --pairwise --num_steps 20000
 
-# Sweep over sparsity coefficient
-uv run python train.py --config generic_sparse --env pendulum --sparsity_coeff 0.001
-uv run python train.py --config generic_sparse --env pendulum --sparsity_coeff 0.01
-uv run python train.py --config generic_sparse --env pendulum --sparsity_coeff 0.1
-
 # Custom learning rate and latent dimension
 uv run python train.py \
   --config generic_sparse \
