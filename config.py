@@ -248,6 +248,26 @@ class HyperListaConfig:
 
 
 @dataclass
+class StructuredLatentConfig:
+    """Configuration for structured latent space partitioning.
+    
+    Enables basin-aware Koopman dynamics with:
+    - Global dynamics block (always active, shared physics)
+    - B basin blocks (mutually exclusive, local linear dynamics)
+    
+    Total latent dim = D_GLOBAL + NUM_BASINS * D_BASIN
+    """
+    ENABLED: bool = False              # Enable structured latent space
+    D_GLOBAL: int = 8                  # Dimension of global dynamics block
+    NUM_BASINS: int = 20               # Number of basin slots (B)
+    D_BASIN: int = 8                   # Dimension of each basin block
+    LAMBDA_GLOBAL: float = 1e-4        # Sparsity weight for global block (near-zero)
+    LAMBDA_LOCAL: float = 1e-3         # Sparsity weight for basin blocks
+    LAMBDA_EXCLUSIVITY: float = 1e-2   # Final exclusivity penalty weight
+    EXCL_WARMUP_STEPS: int = 1000      # Steps to ramp exclusivity from 0 to final
+
+
+@dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
     LAYERS: List[int] = field(default_factory=lambda: [16, 16])  # hidden layer sizes
@@ -287,6 +307,7 @@ class ModelConfig:
     # Sub-configs
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
     DECODER: DecoderConfig = field(default_factory=DecoderConfig)
+    STRUCTURED: StructuredLatentConfig = field(default_factory=StructuredLatentConfig)
 
 
 @dataclass
@@ -349,9 +370,11 @@ class Config:
         encoder.HYPERLISTA = hyperlista
         decoder = DecoderConfig(**model_dict.get("DECODER", {}))
         
-        model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER"]})
+        structured = StructuredLatentConfig(**model_dict.get("STRUCTURED", {}))
+        model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER", "STRUCTURED"]})
         model.ENCODER = encoder
         model.DECODER = decoder
+        model.STRUCTURED = structured
         
         train = TrainConfig(**config_dict.get("TRAIN", {}))
         

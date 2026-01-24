@@ -121,6 +121,7 @@ def train_step(
     nx: torch.Tensor,
     cfg: Config,
     dt: float,
+    step: int = 0,
 ) -> Dict[str, float]:
     """Perform one training step.
     
@@ -132,6 +133,7 @@ def train_step(
         nx: Next states [batch_size, observation_size] (unused if USE_SEQUENCE_LOSS=True)
         cfg: Configuration object
         dt: Time step for ODE integration
+        step: Current training step (for StructuredLISTAKM exclusivity warmup)
         
     Returns:
         Dictionary of metrics
@@ -142,10 +144,17 @@ def train_step(
     # Compute loss
     if cfg.TRAIN.USE_SEQUENCE_LOSS:
         # x is a sequence: [batch_size, seq_len, observation_size]
-        loss, metrics = model.loss_sequence(x, dt)
+        # StructuredLISTAKM needs step for exclusivity warmup
+        if hasattr(model, 'get_exclusivity_weight'):
+            loss, metrics = model.loss_sequence(x, dt, step=step)
+        else:
+            loss, metrics = model.loss_sequence(x, dt)
     else:
-        # Standard single-step loss
-        loss, metrics = model.loss(x, nx)
+        # Standard single-step loss (StructuredLISTAKM needs step for warmup)
+        if hasattr(model, 'get_exclusivity_weight'):
+            loss, metrics = model.loss(x, nx, step=step)
+        else:
+            loss, metrics = model.loss(x, nx)
     
     # Backward pass
     loss.backward()
@@ -400,7 +409,7 @@ def train(
                 # x_seq has shape [batch_size, seq_len+1, obs_size]
                 x_seq = x_seq.to(device)
             nx = None  # Not used for sequence loss
-            metrics = train_step(model, optimizer, x_seq, nx, cfg, dt)
+            metrics = train_step(model, optimizer, x_seq, nx, cfg, dt, step=step)
         else:
             if dysts_cache is not None:
                 x, nx = dysts_cache.sample_pair_batch(
@@ -414,7 +423,7 @@ def train(
                 nx = env.step(x)
                 x = x.to(device)
                 nx = nx.to(device)
-            metrics = train_step(model, optimizer, x, nx, cfg, dt)
+            metrics = train_step(model, optimizer, x, nx, cfg, dt, step=step)
         
         logger.log_dict(metrics, step, prefix='train')
         
@@ -732,6 +741,24 @@ Examples:
     parser.add_argument('--hyperlista_c_ss', type=float, default=None,
                         help='HyperLISTA support-selection scaling C_SS (overrides config default)')
     
+    # Structured latent space (StructuredLISTAKM)
+    parser.add_argument('--structured', action='store_true',
+                        help='Enable structured latent space with basin-aware Koopman')
+    parser.add_argument('--d_global', type=int, default=None,
+                        help='Global block dimension (default: 8)')
+    parser.add_argument('--num_basins', type=int, default=None,
+                        help='Number of basin slots (default: 20)')
+    parser.add_argument('--d_basin', type=int, default=None,
+                        help='Per-basin block dimension (default: 8)')
+    parser.add_argument('--lambda_global', type=float, default=None,
+                        help='Global sparsity weight (default: 1e-4)')
+    parser.add_argument('--lambda_local', type=float, default=None,
+                        help='Local sparsity weight (default: 1e-3)')
+    parser.add_argument('--lambda_exclusivity', type=float, default=None,
+                        help='Final exclusivity penalty weight (default: 1e-2)')
+    parser.add_argument('--excl_warmup_steps', type=int, default=None,
+                        help='Steps to ramp exclusivity from 0 to final (default: 1000)')
+    
     # Training mode
     parser.add_argument('--pairwise', action='store_true',
                         help='Use pairwise (single-step) training instead of sequence training')
@@ -843,7 +870,27 @@ Examples:
         cfg.TRAIN.EVAL_EVERY = int(args.eval_every)
     if args.eval_num_steps is not None:
         cfg.TRAIN.EVAL_NUM_STEPS = int(args.eval_num_steps)
-    
+
+    # Structured latent space config
+    if args.structured:
+        cfg.MODEL.STRUCTURED.ENABLED = True
+        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
+        print("Enabling structured latent space with StructuredLISTAKM")
+    if args.d_global is not None:
+        cfg.MODEL.STRUCTURED.D_GLOBAL = args.d_global
+    if args.num_basins is not None:
+        cfg.MODEL.STRUCTURED.NUM_BASINS = args.num_basins
+    if args.d_basin is not None:
+        cfg.MODEL.STRUCTURED.D_BASIN = args.d_basin
+    if args.lambda_global is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_GLOBAL = args.lambda_global
+    if args.lambda_local is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_LOCAL = args.lambda_local
+    if args.lambda_exclusivity is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_EXCLUSIVITY = args.lambda_exclusivity
+    if args.excl_warmup_steps is not None:
+        cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS = args.excl_warmup_steps
+
     # Auto-detect device
     device = get_device(args.device)
     print(f"Using device: {device}")
