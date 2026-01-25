@@ -762,6 +762,8 @@ Examples:
     # Training mode
     parser.add_argument('--pairwise', action='store_true',
                         help='Use pairwise (single-step) training instead of sequence training')
+    parser.add_argument('--sequence', action='store_true',
+                        help='Use sequence (multi-step ODE) training instead of pairwise')
     parser.add_argument('--sequence_length', type=int, default=10,
                         help='Sequence length for sequence training (overrides config default)')
     parser.add_argument('--eval_every', type=int, default=None,
@@ -861,9 +863,14 @@ Examples:
         cfg.ENV.DYSTS.CACHE_WARMUP = args.dysts_cache_warmup
     
     # Training mode
+    if args.pairwise and args.sequence:
+        raise ValueError("Cannot specify both --pairwise and --sequence")
     if args.pairwise:
         cfg.TRAIN.USE_SEQUENCE_LOSS = False
         print("Using pairwise (single-step) training mode")
+    if args.sequence:
+        cfg.TRAIN.USE_SEQUENCE_LOSS = True
+        print("Using sequence (multi-step ODE) training mode")
     if args.sequence_length is not None:
         cfg.TRAIN.SEQUENCE_LENGTH = args.sequence_length
     if args.eval_every is not None:
