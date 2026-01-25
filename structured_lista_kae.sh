@@ -46,7 +46,7 @@ LISTA_ALPHA=0.35        # Soft-threshold parameter
 LISTA_NUM_LOOPS=5       # LISTA iterations
 
 # Training config
-NUM_STEPS=20000
+NUM_STEPS=5000
 BATCH_SIZE=256
 RECONST_COEFF=1.0
 PRED_COEFF=10.0
