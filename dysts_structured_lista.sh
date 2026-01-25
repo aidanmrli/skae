@@ -21,9 +21,9 @@ source .venv/bin/activate
 # StructuredLISTAKM Hyperparameters (defined early for directory naming)
 # ============================================
 # Structured latent space config
-D_GLOBAL=8              # Global block dimension
+D_GLOBAL=32             # Global block dimension
 NUM_BASINS=20           # Number of basin slots
-D_BASIN=8               # Per-basin block dimension
+D_BASIN=32               # Per-basin block dimension
 # Total latent dim = D_GLOBAL + NUM_BASINS * D_BASIN = 168
 
 # Output directory base with structure info in name
