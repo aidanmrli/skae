@@ -2,6 +2,132 @@
 
 This document describes the experimental design for testing whether StructuredLISTAKM learns distinct Koopman dynamics for each basin of attraction.
 
+---
+
+## Preliminary Findings (2026-01-25)
+
+### GenericKM Baseline Analysis
+
+We evaluated whether the baseline GenericKM (MLP encoder) already learns basin-distinguishing representations, before testing StructuredLISTAKM.
+
+**System**: dysts:Duffing (2 basins)
+**Model**: GenericKM with 64-dim latent space, trained with generic_sparse config
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| **Linear Classifier Accuracy** | **92-98%** | MLP latent space CAN distinguish basins |
+| Silhouette Score | 0.30 | Moderate natural clustering |
+| Adjusted Rand Index | 0.02-0.10 | K-means doesn't align well with GT |
+| PCA Variance (2D) | 81% | Latent space is highly compressible |
+| Sparsity (fraction < 0.01) | 18% | Lower than expected |
+
+**Key Finding**: The GenericKM (MLP encoder) already learns basin-relevant structure. A simple logistic regression achieves ~92% accuracy classifying basins from latent codes. This sets a **baseline that StructuredLISTAKM must beat**.
+
+### Issue: Basin Imbalance in dysts:Duffing
+
+The dysts:Duffing initial condition distribution is heavily biased toward one basin:
+- Observed distribution: 197:3 (basin 0 vs basin 1)
+- This makes evaluation metrics unreliable
+
+**Root cause**: The dysts library's default initial conditions don't span both basins equally.
+
+**Workaround**: Use built-in `lyapunov` or `duffing` environments which have better IC coverage.
+
+### Note: LISTA Threshold Sensitivity
+
+LISTA models can achieve the same performance as MLP encoders, but are **highly sensitive to the threshold parameter** (`lista_alpha`). Key considerations:
+
+- If `alpha` is too high: all activations are zeroed out, no signal
+- If `alpha` is too low: no sparsity, behaves like dense network
+- Optimal `alpha` depends on the data distribution and is system-specific
+
+**Recommendation**: Always run an alpha sweep (0.1, 0.2, 0.3, 0.4, 0.5) when training LISTA on a new system:
+```bash
+sbatch sweep_lista_alpha.sh  # Sweeps alpha for lyapunov
+```
+
+### Implementation Status
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| `evaluate_basin_structure.py` | ✅ Complete | For StructuredLISTAKM with explicit basin blocks |
+| `evaluate_latent_basin_clustering.py` | ✅ Complete | For ANY model (GenericKM, LISTAKM, etc.) |
+| Basin identification (duffing) | ✅ Complete | Sign of x after long rollout |
+| Basin identification (lyapunov) | ✅ Complete | Nearest attractor |
+| Basin identification (dysts:Duffing) | ✅ Complete | Sign of x after long rollout |
+| Visualizations (PCA, t-SNE, heatmaps) | ✅ Complete | In evaluate_latent_basin_clustering.py |
+
+---
+
+## Experimental Results (2026-01-25)
+
+### Comparative Analysis on Lyapunov System (13 basins)
+
+Three models were trained on the `lyapunov` environment with matched capacity (~60-64 dims):
+- **GenericKM**: MLP encoder, 64-dim latent, `generic_sparse` config
+- **LISTAKM**: LISTA encoder, 64-dim latent, `lista_nonlinear` config
+- **StructuredLISTAKM**: LISTA encoder, 60-dim latent (8 global + 13×4 basin blocks)
+
+#### Latent Space Basin Clustering Results
+
+| Metric | GenericKM | LISTAKM | StructuredLISTAKM |
+|--------|-----------|---------|-------------------|
+| **Final Pred Error** | **0.149** | 0.522 | 0.298 |
+| **Silhouette Score** | 0.992 | 0.990 | 0.990 |
+| **Adjusted Rand Index** | 1.000 | 1.000 | 1.000 |
+| **K-means Purity** | 1.000 | 1.000 | 1.000 |
+| **Linear Classifier Acc** | **88.0%** | 82.0% | 70.0% |
+| **Sparsity (< 0.01)** | 33.3% | **72.4%** | 69.3% |
+| **L1 Norm** | 13.3 | 2.4 | 2.5 |
+| **PCA Variance (2D)** | **96.8%** | 63.7% | 67.5% |
+
+**Key Finding**: All three models achieve near-perfect basin clustering (ARI=1.0, purity=1.0). The lyapunov system has inherently separable basins that all architectures capture. GenericKM achieves lowest prediction error and highest linear classifier accuracy, while LISTA models achieve higher sparsity.
+
+#### StructuredLISTAKM Basin Block Analysis
+
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| **Basin Assignment Accuracy** | 37.9% | >80% | ❌ Failed |
+| **Temporal Consistency** | 99.7% | >95% | ✅ Pass |
+| **Activation Entropy** | 2.56 | <0.5 | ❌ Failed |
+| **Within-Basin Similarity** | 99.99% | High | ✅ Pass |
+| **Cross-Basin Separation** | 0.62 | High | ⚠️ Moderate |
+
+**Critical Issue: Basin Collapse**
+
+The confusion matrix reveals that model basins are NOT mapping 1:1 to ground-truth basins:
+- **Model Basin 6** handles 5 GT attractors (0, 2, 5, 7, 11)
+- **Model Basin 0** handles 2 GT attractors (10, 12)
+- **Model Basin 8** handles 2 GT attractors (1, 6)
+- Only 8 of 13 model basins are actively used
+
+The model learns deterministic basin assignments (each GT basin → one model basin), but multiple GT basins collapse to the same model basin. The exclusivity loss is not preventing this collapse.
+
+#### Recommendations
+
+1. **Increase `lambda_exclusivity`**: Current value (0.001) may be too weak
+2. **Longer training**: Current 5000 steps may be insufficient for basin specialization
+3. **Reduce `d_basin`**: 4 dims per basin may be too much capacity, allowing multiple basins to share a block
+4. **Add basin-specific regularization**: Penalize model basins that handle multiple distinct attractor patterns
+
+### Checkpoints
+
+| Model | Checkpoint Location |
+|-------|---------------------|
+| GenericKM | `/network/scratch/l/lia/skae/basin_comparison_lyapunov/generic_km/20260125-123035/checkpoint.pt` |
+| LISTAKM | `/network/scratch/l/lia/skae/basin_comparison_lyapunov/lista_km/20260125-123036/checkpoint.pt` |
+| StructuredLISTAKM | `/network/scratch/l/lia/skae/basin_comparison_lyapunov/structured_lista_km/20260125-123330/checkpoint.pt` |
+
+### Visualizations
+
+All saved to `/network/scratch/l/lia/skae/basin_comparison_lyapunov/<model>/evaluation/`:
+- `latent_pca.png` - PCA visualization colored by basin
+- `latent_tsne.png` - t-SNE visualization
+- `activation_heatmap.png` - Mean activations per basin
+- `confusion_matrix.png` - GT basin vs model basin (StructuredLISTAKM only)
+
+---
+
 ## Hypothesis
 
 The structured latent space partitioning in StructuredLISTAKM should learn to associate different basin blocks with different dynamical basins of attraction. Specifically:
@@ -309,31 +435,51 @@ def plot_activation_distributions(
 
 ## Implementation Structure
 
+### Script 1: `evaluate_latent_basin_clustering.py` (General Purpose)
+
+Works with ANY Koopman model (GenericKM, LISTAKM, StructuredLISTAKM). Analyzes whether latent space naturally clusters by basin.
+
 ```
-evaluate_basin_structure.py
+evaluate_latent_basin_clustering.py
 ├── BasinLabeledTrajectory (dataclass)
 ├── BasinLabeledDataset
-│   ├── __init__(system, num_trajectories, ...)
-│   ├── generate_trajectories()
-│   ├── identify_basins()
-│   └── __getitem__, __len__
-├── BasinStructureAnalyzer
-│   ├── __init__(model, dataset)
-│   ├── compute_all_activations()
-│   ├── compute_metrics() -> Dict[str, float]
-│   ├── build_confusion_matrix() -> Tensor
-│   └── run_full_analysis() -> AnalysisResults
-├── Visualization functions
-│   ├── plot_phase_portrait_basin_comparison()
-│   ├── plot_basin_norm_timeseries()
-│   ├── plot_basin_confusion_matrix()
-│   └── plot_activation_distributions()
+│   ├── Supports: duffing, lyapunov, dysts:Duffing
+│   └── Basin identification via long rollout
+├── Metrics
+│   ├── compute_sparsity_metrics() - L1 norm, fraction near-zero
+│   ├── compute_clustering_metrics() - Silhouette, ARI, K-means purity
+│   ├── compute_separability_metrics() - Linear classifier accuracy
+│   └── compute_pca_metrics() - Variance explained
+├── Visualizations
+│   ├── plot_latent_pca() - 2D PCA colored by basin
+│   ├── plot_latent_tsne() - t-SNE visualization
+│   ├── plot_latent_activation_heatmap() - Mean activations per basin
+│   ├── plot_latent_sparsity_distribution() - Sparsity histograms
+│   └── plot_phase_portrait_with_latent_coloring() - Phase space + PC1
 └── main() CLI
-    ├── --checkpoint: path to trained StructuredLISTAKM
-    ├── --system: duffing, lyapunov, or dysts:SystemName
-    ├── --num_trajectories: number of test trajectories
-    ├── --output_dir: where to save results
-    └── --seed: random seed
+    ├── --checkpoint: path to ANY trained model
+    ├── --system: (optional) override system, else use checkpoint's
+    └── --output_dir, --num_trajectories, --seed
+```
+
+### Script 2: `evaluate_basin_structure.py` (StructuredLISTAKM Only)
+
+Specifically for StructuredLISTAKM with explicit basin blocks. Analyzes basin block activations.
+
+```
+evaluate_basin_structure.py
+├── BasinActivations (dataclass) - z_global, z_basins, basin_norms
+├── BasinStructureAnalyzer
+│   ├── compute_basin_activations() - Per-block analysis
+│   ├── compute_basin_assignment_accuracy() - With optimal mapping
+│   ├── compute_temporal_consistency()
+│   └── run_full_analysis() -> AnalysisResults
+├── Visualizations
+│   ├── plot_phase_portrait_basin_comparison()
+│   ├── plot_basin_norm_timeseries() - Per-block norms over time
+│   ├── plot_confusion_matrix() - GT basin vs model basin
+│   └── plot_activation_distributions()
+└── main() CLI (requires StructuredLISTAKM checkpoint)
 ```
 
 ---
@@ -398,6 +544,7 @@ Track during training:
 - `seaborn`: Heatmaps and statistical plots (optional, enhances matplotlib)
 - `numpy`: Numerical utilities
 - `tqdm`: Progress bars for trajectory generation
+- `scikit-learn`: Clustering metrics, PCA, t-SNE, logistic regression (for evaluate_latent_basin_clustering.py)
 
 ---
 
@@ -410,7 +557,101 @@ The experiment is successful if:
 3. **Temporal Consistency**: >95% of timesteps within a trajectory have the same active basin
 4. **Activation Entropy**: Mean entropy < 0.5 (indicating one dominant basin per timestep)
 
+**Updated baseline to beat** (from GenericKM analysis):
+- Linear classifier accuracy on GenericKM: ~92%
+- StructuredLISTAKM should achieve **significantly higher** accuracy with cleaner separation
+
 If these criteria are not met, investigate:
 - Is the model undertrained?
 - Are hyperparameters (lambda_exclusivity, num_basins) appropriate?
 - Is the exclusivity loss actually encouraging basin specialization?
+
+---
+
+## TODO List
+
+### High Priority (COMPLETED ✅)
+
+- [x] **Train GenericKM on built-in lyapunov** ✅ Complete
+  - Checkpoint: `/network/scratch/l/lia/skae/basin_comparison_lyapunov/generic_km/20260125-123035/checkpoint.pt`
+
+- [x] **Train LISTAKM on lyapunov** ✅ Complete
+  - Checkpoint: `/network/scratch/l/lia/skae/basin_comparison_lyapunov/lista_km/20260125-123036/checkpoint.pt`
+
+- [x] **Train StructuredLISTAKM on lyapunov** ✅ Complete
+  - Checkpoint: `/network/scratch/l/lia/skae/basin_comparison_lyapunov/structured_lista_km/20260125-123330/checkpoint.pt`
+
+- [x] **Run comparative analysis** on all three models ✅ Complete
+  - Results in `/network/scratch/l/lia/skae/basin_comparison_lyapunov/<model>/evaluation/`
+
+### High Priority (NEW - Address Basin Collapse)
+
+- [ ] **Increase exclusivity loss** - Train StructuredLISTAKM with higher `lambda_exclusivity`:
+  ```bash
+  python train.py --config structured_lista --env lyapunov --num_steps 10000 \
+      --d_global 8 --num_basins 13 --d_basin 4 \
+      --lambda_exclusivity 0.01 --pairwise --device cuda  # 10x higher
+  ```
+
+- [ ] **Reduce basin capacity** - Try smaller `d_basin` to force basin specialization:
+  ```bash
+  python train.py --config structured_lista --env lyapunov --num_steps 10000 \
+      --d_global 8 --num_basins 13 --d_basin 2 \
+      --lambda_exclusivity 0.001 --pairwise --device cuda  # 2 dims per basin
+  ```
+
+- [ ] **Longer training** - Current 5000 steps may be insufficient:
+  ```bash
+  python train.py --config structured_lista --env lyapunov --num_steps 20000 \
+      --d_global 8 --num_basins 13 --d_basin 4 \
+      --lambda_exclusivity 0.001 --pairwise --device cuda
+  ```
+
+### Medium Priority
+
+- [ ] **Fix basin imbalance for dysts systems** - Options:
+  1. Stratified sampling by running long rollouts first to identify basins
+  2. Rejection sampling to balance basins
+  3. Use built-in environments instead
+
+- [ ] **Add training-time basin metrics** - Track basin separation during training to understand when structure emerges
+
+- [ ] **Test on simpler system (duffing)** - 2 basins should be easier to separate than 13
+
+### Low Priority
+
+- [ ] **Basin transition analysis** - Evaluate model behavior when trajectories cross basin boundaries
+
+- [ ] **Ablation studies**:
+  - Effect of `lambda_exclusivity` on basin separation (0.0001, 0.001, 0.01, 0.1)
+  - Effect of `num_basins` (over/under-specified: 7 vs 13 vs 20)
+  - Effect of warmup schedule (1000 vs 2000 vs 5000 steps)
+
+---
+
+## Quick Start Commands
+
+### Evaluate existing checkpoint (any model)
+```bash
+python evaluate_latent_basin_clustering.py \
+    --checkpoint <path_to_checkpoint.pt> \
+    --num_trajectories 100 \
+    --output_dir results/latent_clustering/<model_name>
+```
+
+### Evaluate StructuredLISTAKM specifically
+```bash
+python evaluate_basin_structure.py \
+    --checkpoint <path_to_structured_checkpoint.pt> \
+    --system lyapunov \
+    --num_trajectories 100 \
+    --output_dir results/basin_structure/<run_name>
+```
+
+### Compare outputs
+Results are saved to:
+- `analysis_results.json` - All metrics in JSON format
+- `latent_pca.png` - PCA visualization colored by basin
+- `latent_tsne.png` - t-SNE visualization
+- `activation_heatmap.png` - Mean activations per basin
+- `phase_portrait_latent.png` - Phase space colored by latent PC1
