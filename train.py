@@ -605,7 +605,142 @@ def train(
         summary_file = run_dir / "evaluation_summary.json"
         with open(summary_file, "w") as f:
             json.dump(summary, f, indent=2)
-    
+
+    # Run basin structure evaluation for StructuredLISTAKM models
+    if cfg.MODEL.STRUCTURED.ENABLED:
+        print("-" * 80)
+        print("Running basin structure evaluation for StructuredLISTAKM...")
+        try:
+            from evaluate_basin_structure import (
+                BasinLabeledDataset,
+                BasinStructureAnalyzer,
+                compute_basin_assignment_accuracy,
+                plot_phase_portrait_basin_comparison,
+                plot_confusion_matrix,
+                plot_basin_norm_timeseries,
+                plot_activation_distributions,
+            )
+            from model import StructuredLISTAKM
+            from dataclasses import asdict
+
+            # Load best checkpoint for basin analysis
+            best_ckpt_path = run_dir / 'checkpoint.pt'
+            if best_ckpt_path.exists():
+                print(f"Loading best checkpoint for basin analysis...")
+                ckpt = torch.load(best_ckpt_path, map_location=device)
+
+                # Create model and load weights
+                basin_eval_env = make_env(cfg)
+                basin_eval_model = make_model(cfg, basin_eval_env.observation_size)
+                basin_eval_model.load_state_dict(ckpt['model_state_dict'])
+                basin_eval_model = basin_eval_model.to(device)
+                basin_eval_model.eval()
+
+                if isinstance(basin_eval_model, StructuredLISTAKM):
+                    print(f"Model: {basin_eval_model.num_basins} model basins, "
+                          f"d_global={basin_eval_model.d_global}, d_basin={basin_eval_model.d_basin}")
+
+                    # Create basin-labeled dataset
+                    # Only run for systems with known basins (duffing, lyapunov)
+                    system_name = cfg.ENV.ENV_NAME.lower()
+                    if system_name in ['duffing', 'lyapunov']:
+                        print(f"Generating basin-labeled trajectories for {system_name}...")
+                        basin_dataset = BasinLabeledDataset(
+                            system=system_name,
+                            cfg=cfg,
+                            num_trajectories=100,
+                            trajectory_length=500,
+                            seed=cfg.SEED + 777777,  # Different seed for eval
+                        )
+
+                        # Run analysis
+                        basin_output_dir = run_dir / "basin_structure_analysis"
+                        basin_output_dir.mkdir(parents=True, exist_ok=True)
+
+                        analyzer = BasinStructureAnalyzer(
+                            basin_eval_model, basin_dataset, device=device
+                        )
+                        results = analyzer.run_full_analysis()
+
+                        # Get best mapping for visualizations
+                        _, confusion_matrix, best_mapping = compute_basin_assignment_accuracy(
+                            analyzer.activations_list,
+                            analyzer.ground_truth_basins,
+                            basin_dataset.num_basins,
+                            basin_eval_model.num_basins,
+                        )
+
+                        # Save results
+                        results_path = basin_output_dir / 'analysis_results.json'
+                        with open(results_path, 'w') as f:
+                            json.dump(asdict(results), f, indent=2)
+                        print(f"Saved basin analysis results to {results_path}")
+
+                        # Generate visualizations
+                        print("Generating basin structure visualizations...")
+
+                        plot_phase_portrait_basin_comparison(
+                            basin_dataset,
+                            analyzer.activations_list,
+                            best_mapping,
+                            output_path=basin_output_dir / 'phase_portrait_comparison.png',
+                        )
+
+                        plot_confusion_matrix(
+                            confusion_matrix,
+                            basin_dataset.basin_names,
+                            basin_eval_model.num_basins,
+                            output_path=basin_output_dir / 'confusion_matrix.png',
+                        )
+
+                        # Basin norm timeseries for a few examples
+                        for i in range(min(5, len(basin_dataset))):
+                            plot_basin_norm_timeseries(
+                                analyzer.activations_list[i],
+                                basin_dataset.trajectories[i].final_basin,
+                                title=f'Trajectory {i} (GT Basin: {basin_dataset.trajectories[i].final_basin})',
+                                output_path=basin_output_dir / f'basin_norms_traj_{i}.png',
+                            )
+
+                        plot_activation_distributions(
+                            analyzer.activations_list,
+                            analyzer.ground_truth_basins,
+                            basin_dataset.num_basins,
+                            output_path=basin_output_dir / 'activation_distributions.png',
+                        )
+
+                        # Print summary
+                        print("\n" + "=" * 60)
+                        print("BASIN STRUCTURE ANALYSIS SUMMARY")
+                        print("=" * 60)
+                        print(f"System: {results.system_name}")
+                        print(f"Ground-truth basins: {results.num_ground_truth_basins}")
+                        print(f"Model basins: {results.num_model_basins}")
+                        print("-" * 60)
+                        print(f"Basin Assignment Accuracy: {results.basin_assignment_accuracy:.4f}")
+                        print(f"Temporal Consistency: {results.temporal_consistency:.4f}")
+                        print(f"Mean Activation Entropy: {results.mean_activation_entropy:.4f}")
+                        print(f"Within-Basin Similarity: {results.within_basin_similarity:.4f}")
+                        print(f"Cross-Basin Separation: {results.cross_basin_separation:.4f}")
+                        print("-" * 60)
+                        print("Per-Basin Accuracy:")
+                        for gt_basin, acc in results.per_basin_accuracy.items():
+                            basin_name = basin_dataset.basin_names[gt_basin] if gt_basin < len(basin_dataset.basin_names) else f"Basin {gt_basin}"
+                            print(f"  {basin_name}: {acc:.4f}")
+                        print("=" * 60)
+                        print(f"Basin structure artifacts saved to {basin_output_dir}")
+                    else:
+                        print(f"Skipping basin structure analysis: system '{system_name}' "
+                              "does not have known basin labels (supported: duffing, lyapunov)")
+                else:
+                    print("Warning: Model is not StructuredLISTAKM, skipping basin analysis")
+            else:
+                print("Warning: Best checkpoint not found, skipping basin structure analysis")
+        except Exception as e:
+            print(f"Warning: Basin structure evaluation failed: {e}")
+            import traceback
+            traceback.print_exc()
+
     print("-" * 80)
     print(f"Training complete! Checkpoints saved to {run_dir}")
     
@@ -756,8 +891,10 @@ Examples:
                         help='Local sparsity weight (default: 1e-3)')
     parser.add_argument('--lambda_exclusivity', type=float, default=None,
                         help='Final exclusivity penalty weight (default: 1e-2)')
+    parser.add_argument('--lambda_sparsity', type=float, default=None,
+                        help='Explicit L1 sparsity weight on full z (default: 1e-3)')
     parser.add_argument('--excl_warmup_steps', type=int, default=None,
-                        help='Steps to ramp exclusivity from 0 to final (default: 1000)')
+                        help='Steps to ramp exclusivity/sparsity from 0 to final (default: 1000)')
     
     # Training mode
     parser.add_argument('--pairwise', action='store_true',
@@ -895,6 +1032,8 @@ Examples:
         cfg.MODEL.STRUCTURED.LAMBDA_LOCAL = args.lambda_local
     if args.lambda_exclusivity is not None:
         cfg.MODEL.STRUCTURED.LAMBDA_EXCLUSIVITY = args.lambda_exclusivity
+    if args.lambda_sparsity is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_SPARSITY = args.lambda_sparsity
     if args.excl_warmup_steps is not None:
         cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS = args.excl_warmup_steps
 
