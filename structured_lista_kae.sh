@@ -48,8 +48,8 @@ LISTA_NUM_LOOPS=5       # LISTA iterations
 # Training config
 NUM_STEPS=5000
 BATCH_SIZE=256
-RECONST_COEFF=1.0
-PRED_COEFF=10.0
+RECONST_COEFF=0.05
+PRED_COEFF=1.0
 
 # Output directory with structure info
 LOG_DIR="/network/scratch/l/lia/skae/structured_lista_g${D_GLOBAL}_b${NUM_BASINS}x${D_BASIN}/lyapunov"
