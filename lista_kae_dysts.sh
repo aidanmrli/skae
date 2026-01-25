@@ -16,12 +16,7 @@ module load cuda/12.6.0
 # Activate environment
 source .venv/bin/activate
 
-# Create output directory
-BASE_OUT="/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear"
-mkdir -p "$BASE_OUT"
-
 # Multi-basin systems (from benchmarks/system_catalog.py)
-SYSTEM=LorenzCoupled
 # (
 #   Dadras
 #   Duffing
@@ -39,7 +34,10 @@ SYSTEM=LorenzCoupled
 #   RikitakeDynamo
 #   Hadley
 # )
-
+# Create output directory
+BASE_OUT="/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear"
+mkdir -p "$BASE_OUT"
+SYSTEM=Duffing
 # Log job info
 echo "============================================="
 echo "Job ID: $SLURM_JOB_ID"
