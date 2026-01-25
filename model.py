@@ -1465,15 +1465,27 @@ class StructuredLISTAKM(LISTAKM):
             for _ in range(self.num_basins)
         ])  # B x [d_b, d_b]
 
+        # Compute memory savings from block-wise storage
+        dense_elements = self.target_size ** 2
+        block_elements = (self.d_global ** 2 +
+                          self.num_basins * self.d_basin * self.d_global +
+                          self.num_basins * self.d_basin ** 2)
+        sparsity_pct = 100.0 * (1.0 - block_elements / dense_elements)
+
         print(f"[StructuredLISTAKM] Initialized with:")
         print(f"  Global block: {self.d_global} dims")
         print(f"  Basin blocks: {self.num_basins} x {self.d_basin} dims")
         print(f"  Total latent: {self.target_size} dims")
+        print(f"  Koopman storage: {block_elements:,} params (vs {dense_elements:,} dense, {sparsity_pct:.1f}% sparse)")
         print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}")
         print(f"  Exclusivity warmup: {self.excl_warmup_steps} steps")
 
     def kmatrix(self) -> torch.Tensor:
         """Assemble full Koopman matrix from block parameters.
+
+        NOTE: This creates a dense N×N matrix. Use only for eigenvalue monitoring
+        (in torch.no_grad() blocks). For dynamics computation, use step_latent()
+        which operates directly on blocks without assembling the full matrix.
 
         Returns:
             Koopman matrix of shape [target_size, target_size] with arrowhead structure
@@ -1494,6 +1506,172 @@ class StructuredLISTAKM(LISTAKM):
             K[start:end, start:end] = self.K_basin[k]  # Basin self-dynamics
 
         return K
+
+    def _stack_koopman_blocks(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Stack Koopman block parameters for efficient batched computation.
+
+        Returns:
+            Tuple of (K_coupling_T [B, d_g, d_b], K_basin_stack [B, d_b, d_b])
+        """
+        # Stack and transpose coupling: [B, d_b, d_g] -> [B, d_g, d_b]
+        K_coupling_T = torch.stack([k.T for k in self.K_coupling])
+        # Stack basin blocks: [B, d_b, d_b]
+        K_basin_stack = torch.stack(list(self.K_basin))
+        return K_coupling_T, K_basin_stack
+
+    def _step_latent_with_blocks(
+        self,
+        z: torch.Tensor,
+        K_coupling_T: torch.Tensor,
+        K_basin_stack: torch.Tensor,
+    ) -> torch.Tensor:
+        """Compute z @ K using pre-stacked block parameters (no dense matrix).
+
+        This is the core block-wise computation:
+        - z_g' = z_g @ K_global
+        - z_k' = z_g @ K_coupling[k].T + z_k @ K_basin[k]  for each basin k
+
+        Args:
+            z: Latent codes [..., target_size]
+            K_coupling_T: Pre-stacked coupling matrices [B, d_g, d_b]
+            K_basin_stack: Pre-stacked basin matrices [B, d_b, d_b]
+
+        Returns:
+            Next latent codes [..., target_size]
+        """
+        z_g, z_basins = self._partition_latent(z)  # [..., d_g], [..., B, d_b]
+
+        # Global dynamics: z_g' = z_g @ K_global
+        z_g_next = z_g @ self.K_global  # [..., d_g]
+
+        # Basin dynamics (vectorized over all basins):
+        # Coupling term: z_g @ K_coupling[k].T for each k
+        # [..., d_g] @ [B, d_g, d_b] -> [..., B, d_b]
+        coupling_term = torch.einsum('...g,bgd->...bd', z_g, K_coupling_T)
+
+        # Self-dynamics term: z_k @ K_basin[k] for each k
+        # [..., B, d_b] @ [B, d_b, d_b] -> [..., B, d_b]
+        basin_term = torch.einsum('...bd,bde->...be', z_basins, K_basin_stack)
+
+        z_basins_next = coupling_term + basin_term  # [..., B, d_b]
+
+        # Reassemble: flatten basins and concatenate with global
+        batch_shape = z.shape[:-1]
+        z_basins_flat = z_basins_next.reshape(*batch_shape, self.num_basins * self.d_basin)
+
+        return torch.cat([z_g_next, z_basins_flat], dim=-1)
+
+    def step_latent(self, z: torch.Tensor) -> torch.Tensor:
+        """Step forward in latent space using block-wise Koopman computation.
+
+        Avoids assembling the full N×N Koopman matrix by computing directly
+        on the block parameters. Memory usage is O(d_g² + B*d_b*d_g + B*d_b²)
+        instead of O((d_g + B*d_b)²).
+
+        Args:
+            z: Latent codes of shape [..., target_size]
+
+        Returns:
+            Next latent codes of shape [..., target_size]
+        """
+        K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
+        return self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
+
+    def koopman_ode_func(self, t: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+        """ODE function for continuous-time Koopman dynamics: dz/dt = K @ z.
+
+        Uses block-wise computation. Note: For ODE integration, prefer
+        integrate_latent_ode() which stacks blocks once for efficiency.
+
+        Args:
+            t: Time (scalar, unused but required by odeint)
+            z: Latent state of shape [..., target_size]
+
+        Returns:
+            Time derivative dz/dt of shape [..., target_size]
+        """
+        return self.step_latent(z)
+
+    def integrate_latent_ode(
+        self,
+        z0: torch.Tensor,
+        t_span: torch.Tensor,
+        method: str = 'dopri5'
+    ) -> torch.Tensor:
+        """Integrate Koopman dynamics using efficient block-wise computation.
+
+        Stacks block parameters once at the start of integration, avoiding
+        repeated stacking during ODE solver iterations.
+
+        Args:
+            z0: Initial latent state [batch_size, target_size]
+            t_span: Time points [num_steps+1] starting from 0
+            method: Integration method ('dopri5' for adaptive, 'rk4' for fixed-step)
+
+        Returns:
+            Latent trajectory [num_steps+1, batch_size, target_size]
+        """
+        # Print integration method on first call
+        if not hasattr(self, '_printed_ode_method'):
+            if HAS_TORCHDIFFEQ:
+                print(f"Using torchdiffeq with method '{method}' for ODE integration")
+            else:
+                print("Using manual RK4 for ODE integration (torchdiffeq not available)")
+            self._printed_ode_method = True
+
+        # Stack blocks once for the entire integration
+        K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
+
+        # Create closure with pre-stacked blocks
+        def block_ode_func(t: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+            return self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
+
+        if HAS_TORCHDIFFEQ:
+            z_traj = odeint(
+                block_ode_func,
+                z0,
+                t_span,
+                method=method,
+                rtol=1e-5,
+                atol=1e-7,
+            )
+            return z_traj
+        else:
+            # Fallback: fixed-step RK4 with block-wise computation
+            return self._integrate_rk4_with_blocks(z0, t_span, block_ode_func)
+
+    def _integrate_rk4_with_blocks(
+        self,
+        z0: torch.Tensor,
+        t_span: torch.Tensor,
+        ode_func,
+    ) -> torch.Tensor:
+        """RK4 integration using pre-stacked block ODE function.
+
+        Args:
+            z0: Initial latent state [batch_size, target_size]
+            t_span: Time points [num_steps+1]
+            ode_func: ODE function that uses pre-stacked blocks
+
+        Returns:
+            Latent trajectory [num_steps+1, batch_size, target_size]
+        """
+        z_list = [z0]
+        z = z0
+        for i in range(len(t_span) - 1):
+            t = t_span[i]
+            dt = t_span[i+1] - t_span[i]
+
+            # RK4 stages using block-wise ode_func
+            k1 = ode_func(t, z)
+            k2 = ode_func(t + 0.5 * dt, z + 0.5 * dt * k1)
+            k3 = ode_func(t + 0.5 * dt, z + 0.5 * dt * k2)
+            k4 = ode_func(t + dt, z + dt * k3)
+
+            z = z + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+            z_list.append(z)
+
+        return torch.stack(z_list, dim=0)
 
     def _partition_latent(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Partition latent codes into global and basin blocks (vectorized).
@@ -1603,6 +1781,8 @@ class StructuredLISTAKM(LISTAKM):
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """Compute total loss with structured sparsity and exclusivity.
 
+        Uses block-wise Koopman computation to avoid assembling the full N×N matrix.
+
         Args:
             x: Current states of shape [batch_size, observation_size]
             nx: Next states of shape [batch_size, observation_size]
@@ -1614,18 +1794,23 @@ class StructuredLISTAKM(LISTAKM):
         # Encode once for efficiency (LISTA forward pass is expensive)
         z = self.encode(x)
         z_nx = self.encode(nx)
-        kmat = self.kmatrix()
+
+        # Stack Koopman blocks once for this forward pass
+        K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
+
+        # Compute z_next = z @ K using block-wise operation (no dense matrix)
+        z_next = self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
 
         # Decode for reconstruction and prediction
         x_recon = self.decode(z)
         nx_recon = self.decode(z_nx)
-        prediction = self.decode(z @ kmat)
+        prediction = self.decode(z_next)
 
         # Linear prediction loss
         prediction_loss = torch.norm(prediction - nx, dim=-1).mean()
 
         # Linear dynamics alignment loss: ||z @ K - z_nx||
-        residual_loss = torch.norm(z @ kmat - z_nx, dim=-1).mean()
+        residual_loss = torch.norm(z_next - z_nx, dim=-1).mean()
 
         # Reconstruction loss
         reconst_loss = torch.norm(x - x_recon, dim=-1).mean()
@@ -1641,8 +1826,9 @@ class StructuredLISTAKM(LISTAKM):
         excl_weight = self.get_exclusivity_weight(step)
         excl_loss = 0.5 * (self._exclusivity_from_z(z) + self._exclusivity_from_z(z_nx))
 
-        # Koopman matrix eigenvalues (for monitoring)
+        # Koopman matrix eigenvalues (for monitoring only - assembles dense matrix in no_grad)
         with torch.no_grad():
+            kmat = self.kmatrix()
             kmat_device = kmat.device
             if kmat_device.type == 'mps':
                 kmat_cpu = kmat.cpu()
