@@ -29,16 +29,17 @@ echo "============================================="
 # StructuredLISTAKM Hyperparameters
 # ============================================
 # Structured latent space config
-D_GLOBAL=8              # Global block dimension
+D_GLOBAL=32              # Global block dimension
 NUM_BASINS=20           # Number of basin slots
-D_BASIN=8               # Per-basin block dimension
+D_BASIN=32               # Per-basin block dimension
 # Total latent dim = D_GLOBAL + NUM_BASINS * D_BASIN
 
 # Structured loss weights
-LAMBDA_GLOBAL=1e-4      # Global sparsity weight (small to allow dense global)
+LAMBDA_GLOBAL=1e-3      # Global sparsity weight
 LAMBDA_LOCAL=1e-3       # Local/basin sparsity weight
-LAMBDA_EXCL=1e-2        # Exclusivity penalty weight
-EXCL_WARMUP=1000        # Steps to ramp exclusivity from 0 to final
+LAMBDA_EXCL=1e-3        # Exclusivity penalty weight
+LAMBDA_SPARSITY=1e-3    # Explicit L1 sparsity on full z
+EXCL_WARMUP=1000        # Steps to ramp exclusivity/sparsity from 0 to final
 
 # LISTA encoder config
 LISTA_ALPHA=0.35        # Soft-threshold parameter
@@ -49,6 +50,10 @@ NUM_STEPS=20000
 BATCH_SIZE=256
 RECONST_COEFF=1.0
 PRED_COEFF=10.0
+
+# Output directory with structure info
+LOG_DIR="/network/scratch/l/lia/skae/structured_lista_g${D_GLOBAL}_b${NUM_BASINS}x${D_BASIN}/lyapunov"
+mkdir -p "$LOG_DIR"
 
 # Run training
 uv run python train.py \
@@ -61,6 +66,7 @@ uv run python train.py \
   --lambda_global $LAMBDA_GLOBAL \
   --lambda_local $LAMBDA_LOCAL \
   --lambda_exclusivity $LAMBDA_EXCL \
+  --lambda_sparsity $LAMBDA_SPARSITY \
   --excl_warmup_steps $EXCL_WARMUP \
   --num_steps $NUM_STEPS \
   --batch_size $BATCH_SIZE \
@@ -70,7 +76,8 @@ uv run python train.py \
   --lista_num_loops $LISTA_NUM_LOOPS \
   --pairwise \
   --seed 42 \
-  --device cuda
+  --device cuda \
+  --log_dir "$LOG_DIR"
 
 echo "============================================="
 echo "End Time: $(date)"

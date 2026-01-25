@@ -1438,6 +1438,7 @@ class StructuredLISTAKM(LISTAKM):
         self.lambda_global = struct_cfg.LAMBDA_GLOBAL
         self.lambda_local = struct_cfg.LAMBDA_LOCAL
         self.lambda_exclusivity = struct_cfg.LAMBDA_EXCLUSIVITY
+        self.lambda_sparsity = struct_cfg.LAMBDA_SPARSITY
         self.excl_warmup_steps = struct_cfg.EXCL_WARMUP_STEPS
 
         # Compute and set TARGET_SIZE to match structured dimensions
@@ -1477,8 +1478,8 @@ class StructuredLISTAKM(LISTAKM):
         print(f"  Basin blocks: {self.num_basins} x {self.d_basin} dims")
         print(f"  Total latent: {self.target_size} dims")
         print(f"  Koopman storage: {block_elements:,} params (vs {dense_elements:,} dense, {sparsity_pct:.1f}% sparse)")
-        print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}")
-        print(f"  Exclusivity warmup: {self.excl_warmup_steps} steps")
+        print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}, λ_sparsity={self.lambda_sparsity}")
+        print(f"  Exclusivity/sparsity warmup: {self.excl_warmup_steps} steps")
 
     def kmatrix(self) -> torch.Tensor:
         """Assemble full Koopman matrix from block parameters.
@@ -1773,6 +1774,22 @@ class StructuredLISTAKM(LISTAKM):
         progress = min(1.0, step / self.excl_warmup_steps)
         return progress * self.lambda_exclusivity
 
+    def get_sparsity_weight(self, step: int) -> float:
+        """Get current sparsity weight based on linear warmup schedule.
+
+        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
+
+        Args:
+            step: Current training step
+
+        Returns:
+            Current sparsity coefficient (0 to lambda_sparsity)
+        """
+        if self.excl_warmup_steps <= 0:
+            return self.lambda_sparsity
+        progress = min(1.0, step / self.excl_warmup_steps)
+        return progress * self.lambda_sparsity
+
     def loss(
         self,
         x: torch.Tensor,
@@ -1826,6 +1843,13 @@ class StructuredLISTAKM(LISTAKM):
         excl_weight = self.get_exclusivity_weight(step)
         excl_loss = 0.5 * (self._exclusivity_from_z(z) + self._exclusivity_from_z(z_nx))
 
+        # Explicit L1 sparsity loss on full z with warmup
+        alpha = self.cfg.MODEL.ENCODER.LISTA.ALPHA
+        sparsity_weight = self.get_sparsity_weight(step)
+        sparsity_loss = 0.5 * alpha * (
+            torch.norm(z, p=1, dim=-1).mean() + torch.norm(z_nx, p=1, dim=-1).mean()
+        )
+
         # Koopman matrix eigenvalues (for monitoring only - assembles dense matrix in no_grad)
         with torch.no_grad():
             kmat = self.kmatrix()
@@ -1854,7 +1878,8 @@ class StructuredLISTAKM(LISTAKM):
             self.cfg.MODEL.PRED_COEFF * prediction_loss +
             self.lambda_global * global_sparsity_loss +
             self.lambda_local * local_sparsity_loss +
-            excl_weight * excl_loss
+            excl_weight * excl_loss +
+            sparsity_weight * sparsity_loss
         )
 
         # Homogeneous loss if enabled (reuse z, z_nx)
@@ -1873,6 +1898,8 @@ class StructuredLISTAKM(LISTAKM):
             'local_sparsity_loss': local_sparsity_loss.item(),
             'exclusivity_loss': excl_loss.item(),
             'exclusivity_weight': excl_weight,
+            'sparsity_loss': sparsity_loss.item(),
+            'sparsity_weight': sparsity_weight,
             'A_max_eigenvalue': max_eigenvalue.item(),
             'sparsity_ratio': sparsity_ratio.item(),
             'active_basins': active_basins,
@@ -1946,6 +1973,11 @@ class StructuredLISTAKM(LISTAKM):
         excl_weight = self.get_exclusivity_weight(step)
         excl_loss = self._exclusivity_from_z(z_flat)
 
+        # Explicit L1 sparsity loss on full z with warmup
+        alpha = self.cfg.MODEL.ENCODER.LISTA.ALPHA
+        sparsity_weight = self.get_sparsity_weight(step)
+        sparsity_loss = alpha * torch.norm(z_flat, p=1, dim=-1).mean()
+
         # Metrics for monitoring
         with torch.no_grad():
             kmat = self.kmatrix()
@@ -1972,7 +2004,8 @@ class StructuredLISTAKM(LISTAKM):
             self.cfg.MODEL.PRED_COEFF * prediction_loss +
             self.lambda_global * global_sparsity_loss +
             self.lambda_local * local_sparsity_loss +
-            excl_weight * excl_loss
+            excl_weight * excl_loss +
+            sparsity_weight * sparsity_loss
         )
 
         # Homogeneous loss if enabled
@@ -1990,6 +2023,8 @@ class StructuredLISTAKM(LISTAKM):
             'local_sparsity_loss': local_sparsity_loss.item(),
             'exclusivity_loss': excl_loss.item(),
             'exclusivity_weight': excl_weight,
+            'sparsity_loss': sparsity_loss.item(),
+            'sparsity_weight': sparsity_weight,
             'A_max_eigenvalue': max_eigenvalue.item(),
             'sparsity_ratio': sparsity_ratio.item(),
             'active_basins': active_basins,

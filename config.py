@@ -264,7 +264,8 @@ class StructuredLatentConfig:
     LAMBDA_GLOBAL: float = 1e-4        # Sparsity weight for global block (near-zero)
     LAMBDA_LOCAL: float = 1e-3         # Sparsity weight for basin blocks
     LAMBDA_EXCLUSIVITY: float = 1e-2   # Final exclusivity penalty weight
-    EXCL_WARMUP_STEPS: int = 1000      # Steps to ramp exclusivity from 0 to final
+    LAMBDA_SPARSITY: float = 1e-3      # Explicit L1 sparsity weight on full z
+    EXCL_WARMUP_STEPS: int = 1000      # Steps to ramp exclusivity/sparsity from 0 to final
 
 
 @dataclass
