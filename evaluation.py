@@ -942,8 +942,8 @@ class EvaluationSettings:
     phase_portrait_dims: Sequence[int] = (2,)
     seed_offset: int = 12345
     # Dysts-specific extended reencode periods
-    dysts_periodic_reencode_periods: Sequence[int] = (10, 25, 50, 100, 200, 500, 1000)
-    dysts_phase_portrait_reencode_periods: Sequence[int] = (0, 1, 10, 25, 50, 100, 200, 500, 1000)
+    dysts_periodic_reencode_periods: Sequence[int] = (1, 100, 200, 300, 400, 500, 1000)
+    dysts_phase_portrait_reencode_periods: Sequence[int] = (0, 1, 100, 200, 300, 400, 500, 1000)
 
 
 def evaluate_model(
