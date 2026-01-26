@@ -540,6 +540,8 @@ Initial experiments with the entropy-based exclusivity loss $\mathcal{L}_{\text{
 
 The likely explanation is that these losses are too aggressive at enforcing single-basin activation per sample, without accounting for the need for \emph{different} samples to activate \emph{different} basins. Combined with the existing pairwise exclusivity loss, the model over-regularizes and collapses to a degenerate solution where nearly all points are assigned to the same few basins. We have disabled these losses in subsequent experiments.
 
+\note{These negative results were obtained when the base configuration was already underperforming ($\sim$61\% accuracy). Once a well-functioning configuration is found (e.g., with larger basin dimensions or better hyperparameters), the entropy and dominance losses should be revisited---they may prove beneficial when the model has sufficient capacity and the pairwise exclusivity alone is insufficient to achieve clean basin separation.}
+
 \paragraph{Ongoing experiments.}
 We are currently investigating several directions to improve basin correspondence:
 \begin{enumerate}
