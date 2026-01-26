@@ -256,7 +256,7 @@ Some ablations I might like to try:
 \end{itemize}
 
 \paragraph{HyperLISTA Module.}
-We also explore a parameter-efficient variant called HyperLISTA \citep{chen_hyperparameter_2021}, which couples the encoder and decoder weights. Instead of learning $W_e$ and $S$ independently, HyperLISTA derives them analytically from the current decoder dictionary $D$:
+We also explore a parameter-efficient variant called HyperLISTA \citep{chen_hyperparameter_lista_2021}, which couples the encoder and decoder weights. Instead of learning $W_e$ and $S$ independently, HyperLISTA derives them analytically from the current decoder dictionary $D$:
 \begin{equation}
     W_e = \frac{1}{L} D^\top, \quad S = I - \frac{1}{L} D^\top D,
 \end{equation}
@@ -433,7 +433,7 @@ To stress-test the capacity of the sparse code, we construct a synthetic gradien
 with $\sigma = 0.5$ controlling the basin width. This environment explicitly tests whether the model can isolate $B = 13$ distinct local linearizations using a single global model with $B$ basin blocks.
 
 \paragraph{Multi-Basin Chaotic Systems.}
-We extend our evaluation to a curated subset of systems from the \texttt{dysts} benchmark database \citep{gilpin_dysts_2021}, focusing on higher-dimensional chaotic systems that exhibit multi-scroll attractors or multiple coexisting attractors (e.g., Lorenz, Chen, Chua, and related multi-wing systems). These represent a significantly harder challenge due to their chaotic nature and complex attractor topology.
+We extend our evaluation to a curated subset of systems from the \texttt{dysts} benchmark database \citep{gilpin_chaos_2021, gilpin_model_2023}, focusing on higher-dimensional chaotic systems that exhibit multi-scroll attractors or multiple coexisting attractors (e.g., Lorenz, Chen, Chua, and related multi-wing systems). These represent a significantly harder challenge due to their chaotic nature and complex attractor topology.
 
 \subsection{Experimental Setup}
 
