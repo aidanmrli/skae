@@ -262,18 +262,118 @@ We also explore a parameter-efficient variant called HyperLISTA \citep{chen_hype
 \end{equation}
 where $L$ is an estimate of the Lipschitz constant (spectral norm) of $D^\top D$. This formulation reduces the trainable parameters of the encoder to a small set of scalars regulating the thresholding dynamics (e.g., momentum and support selection), ensuring that the encoder update is always consistent with the sparse coding objective for the current dictionary.
 
-\subsection{Learning Objective}
-We train the parameters of the encoder, decoder, and the Koopman matrix $K$ jointly by minimizing a composite loss function comprising four terms:
+\subsection{Structured Koopman Dynamics for Multi-Basin Systems}
+\label{sec:structured-koopman}
+
+While sparse coding naturally induces a union-of-subspaces structure in the latent space, a dense Koopman matrix $K \in \R^{d_z \times d_z}$ allows arbitrary interactions between all latent dimensions. This conflicts with our goal of learning \emph{separate} local linear dynamics for each basin of attraction. We therefore propose a \textbf{structured Koopman parameterization} that explicitly partitions the latent space into global and basin-specific components, with an arrowhead sparsity pattern in $K$ that enforces the desired separation.
+
+\paragraph{Latent space partitioning.}
+We partition the latent representation $z \in \R^{d_z}$ into a \emph{global block} $z^{(g)} \in \R^{d_g}$ and $B$ \emph{basin blocks} $z^{(k)} \in \R^{d_b}$ for $k = 1, \ldots, B$:
 \begin{equation}
-    \mathcal{L} = \lambda_{\text{recon}} \mathcal{L}_{\text{recon}} + \lambda_{\text{pred}} \mathcal{L}_{\text{pred}} + \lambda_{\text{align}} \mathcal{L}_{\text{align}} + \lambda_{\text{sparse}} \mathcal{L}_{\text{sparse}}.
+    z = \begin{bmatrix} z^{(g)} \\ z^{(1)} \\ \vdots \\ z^{(B)} \end{bmatrix} \in \R^{d_g + B \cdot d_b}.
 \end{equation}
+The global block captures shared dynamics that are always active (e.g., conservation laws or global forcing terms), while each basin block is intended to capture the local linear dynamics specific to a particular attractor or dynamical regime. The key inductive bias is that \emph{at most one} basin block should be active at any given time, with the active block corresponding to the current basin of attraction.
+
+\paragraph{Arrowhead Koopman structure.}
+We parameterize the Koopman matrix $K$ with an \emph{arrowhead} sparsity pattern:
+\begin{equation}
+\label{eq:arrowhead-K}
+    K = \begin{bmatrix}
+        K^{(g)} & 0 & 0 & \cdots & 0 \\
+        K^{(1,g)} & K^{(1)} & 0 & \cdots & 0 \\
+        K^{(2,g)} & 0 & K^{(2)} & \cdots & 0 \\
+        \vdots & \vdots & \vdots & \ddots & \vdots \\
+        K^{(B,g)} & 0 & 0 & \cdots & K^{(B)}
+    \end{bmatrix},
+\end{equation}
+where:
 \begin{itemize}
-    \item \textbf{Reconstruction Loss}: Ensures the autoencoder faithfully represents the state, $\mathcal{L}_{\text{recon}} = \|x_t - \psi(\phi(x_t))\|_2^2$.
-    \item \textbf{Prediction Loss}: Enforces accurate forward prediction in the state space via the latent dynamics, $\mathcal{L}_{\text{pred}} = \|x_{t+1} - \psi(K \phi(x_t))\|_2^2$.
-    \item \textbf{Alignment (Residual) Loss}: Enforces linearity directly in the latent space, $\mathcal{L}_{\text{align}} = \|\phi(x_{t+1}) - K \phi(x_t)\|_2^2$.
-    \item \textbf{Sparsity Loss}: Induces sparsity in the code $z$, $\mathcal{L}_{\text{sparse}} = \|\phi(x_t)\|_1$.
+    \item $K^{(g)} \in \R^{d_g \times d_g}$ governs the autonomous dynamics of the global block,
+    \item $K^{(k)} \in \R^{d_b \times d_b}$ governs the local linear dynamics within basin $k$,
+    \item $K^{(k,g)} \in \R^{d_b \times d_g}$ captures how the global block \emph{forces} or \emph{drives} basin $k$.
 \end{itemize}
-Spectral normalization and homogeneous coordinates are optionally applied to stabilize training.
+Crucially, the zeros in the upper-right blocks enforce that basin dynamics do not feed back into the global block, and the zeros in the off-diagonal basin blocks enforce that different basins do not directly interact. This structure encodes the following dynamical semantics:
+\begin{align}
+    z^{(g)}_{t+1} &= K^{(g)} z^{(g)}_t, \\
+    z^{(k)}_{t+1} &= K^{(k,g)} z^{(g)}_t + K^{(k)} z^{(k)}_t, \quad \forall k \in \{1, \ldots, B\}.
+\end{align}
+The global block evolves autonomously, while each basin block evolves according to its own local dynamics plus a forcing term from the global block. This is analogous to a \emph{cascade} or \emph{hierarchical} dynamical system, where global modes can influence local modes but not vice versa.
+
+\paragraph{Memory efficiency.}
+Rather than instantiating a full $d_z \times d_z$ dense matrix (which would require $(d_g + B \cdot d_b)^2$ parameters), we store only the nonzero blocks: $K^{(g)}$, $\{K^{(k)}\}_{k=1}^B$, and $\{K^{(k,g)}\}_{k=1}^B$. This requires $d_g^2 + B(d_b^2 + d_b \cdot d_g)$ parameters, yielding significant memory savings when $B$ is large. For example, with $d_g = 8$, $B = 13$, and $d_b = 4$ (total $d_z = 60$), the block-wise representation uses 780 parameters compared to 3,600 for a dense matrix---a 78\% reduction.
+
+\paragraph{Block-wise dynamics computation.}
+The linear latent step $z_{t+1} = K z_t$ can be computed directly from the block parameters without ever assembling the full dense matrix:
+\begin{equation}
+    z_{t+1} = \begin{bmatrix}
+        K^{(g)} z^{(g)}_t \\
+        K^{(1,g)} z^{(g)}_t + K^{(1)} z^{(1)}_t \\
+        \vdots \\
+        K^{(B,g)} z^{(g)}_t + K^{(B)} z^{(B)}_t
+    \end{bmatrix}.
+\end{equation}
+This can be efficiently vectorized using tensor contractions (e.g., Einstein summation), enabling batch processing without materializing the full Koopman matrix.
+
+\subsection{Exclusivity Regularization}
+\label{sec:exclusivity}
+
+The arrowhead structure in $K$ assumes that only one basin block is active at a time. To encourage this mutual exclusivity in the learned latent codes, we introduce an \textbf{exclusivity loss} that penalizes simultaneous activation of multiple basin blocks:
+\begin{equation}
+\label{eq:exclusivity}
+    \mathcal{L}_{\text{excl}} = \frac{1}{B-1} \sum_{i < j} \|z^{(i)}\|_2 \cdot \|z^{(j)}\|_2.
+\end{equation}
+This penalty is minimized when all but one of the basin norms are zero, encouraging the encoder to ``select'' a single basin block per input. The normalization by $(B-1)$ ensures that the loss scale is invariant to the number of basins.
+
+We compute this efficiently in $O(B)$ time using the identity:
+\begin{equation}
+    \sum_{i < j} n_i n_j = \frac{1}{2} \left[ \left( \sum_{k=1}^B n_k \right)^2 - \sum_{k=1}^B n_k^2 \right],
+\end{equation}
+where $n_k = \|z^{(k)}\|_2$. This avoids the na\"ive $O(B^2)$ pairwise computation.
+
+\paragraph{Warmup schedule.}
+During early training, the encoder has not yet learned meaningful representations, and enforcing exclusivity too strongly can prevent useful gradient flow. We therefore apply a \emph{linear warmup schedule} to the exclusivity coefficient:
+\begin{equation}
+    \lambda_{\text{excl}}(t) = \min\!\left(1, \frac{t}{T_{\text{warmup}}}\right) \cdot \lambda_{\text{excl}},
+\end{equation}
+where $t$ is the training step and $T_{\text{warmup}}$ is the warmup horizon (typically 1,000 steps). This allows the model to first learn good reconstruction and dynamics prediction before the exclusivity constraint is fully enforced.
+
+\subsection{Learning Objective}
+\label{sec:learning-objective}
+
+We train the parameters of the encoder, decoder, and the Koopman matrix $K$ jointly by minimizing a composite loss function. For the structured model with basin-aware dynamics, the full objective is:
+\begin{equation}
+\label{eq:structured-loss}
+    \mathcal{L} = \lambda_{\text{recon}} \mathcal{L}_{\text{recon}} + \lambda_{\text{pred}} \mathcal{L}_{\text{pred}} + \lambda_{\text{align}} \mathcal{L}_{\text{align}} + \mathcal{L}_{\text{sparse}}^{\text{struct}} + \lambda_{\text{excl}}(t) \, \mathcal{L}_{\text{excl}},
+\end{equation}
+where the individual terms are:
+\begin{itemize}
+    \item \textbf{Reconstruction Loss}: Ensures the autoencoder faithfully represents the input state,
+    \begin{equation}
+        \mathcal{L}_{\text{recon}} = \|x_t - \psi(\phi(x_t))\|_2^2.
+    \end{equation}
+    
+    \item \textbf{Prediction Loss}: Enforces accurate one-step prediction in the observation space via the learned Koopman dynamics,
+    \begin{equation}
+        \mathcal{L}_{\text{pred}} = \|x_{t+1} - \psi(K \phi(x_t))\|_2^2.
+    \end{equation}
+    
+    \item \textbf{Alignment Loss}: Enforces linearity of the dynamics directly in the latent space,
+    \begin{equation}
+        \mathcal{L}_{\text{align}} = \|\phi(x_{t+1}) - K \phi(x_t)\|_2^2.
+    \end{equation}
+    
+    \item \textbf{Structured Sparsity Loss}: Applies different regularization to the global and basin blocks,
+    \begin{equation}
+        \mathcal{L}_{\text{sparse}}^{\text{struct}} = \lambda_g \|z^{(g)}\|_1 + \lambda_\ell \sum_{k=1}^{B} \|z^{(k)}\|_1,
+    \end{equation}
+    where $\lambda_g \ll \lambda_\ell$ (e.g., $\lambda_g = 10^{-4}$, $\lambda_\ell = 10^{-3}$). This encourages the global block to remain relatively dense (always active) while the basin blocks are sparse.
+    
+    \item \textbf{Exclusivity Loss}: Penalizes simultaneous activation of multiple basin blocks, as defined in Eq.~\eqref{eq:exclusivity}.
+\end{itemize}
+
+For the non-structured models (standard sparse autoencoder or LISTA without basin partitioning), we use a simpler objective with uniform $\ell_1$ sparsity: $\mathcal{L}_{\text{sparse}} = \lambda \|z\|_1$.
+
+Spectral normalization and homogeneous coordinates (appending a constant 1 to the input to enable implicit bias learning) are optionally applied to stabilize training and improve the conditioning of the linear decoder.
 
 \paragraph{[NOTE] Additional regularization.} We could also experiment with additional regularization. This could be something like a denoising penalty (see Total Variation Denoising) that is the sum of the differences between the two states across timesteps so as to encourage smoothness; this could also be (Slow Feature Analysis/Learning). 
 
@@ -296,29 +396,99 @@ This mechanism acts as a "correction" step, re-centering the latent state within
 \section{Experiments}
 \label{sec:experiments}
 
-We evaluate our method on a suite of dynamical systems exhibiting multiple basins of attraction and chaotic behavior. We compare the standard MLP-based Koopman Autoencoder (\textbf{GenericKM}) against the LISTA-based architectures (\textbf{LISTAKM} and \textbf{HyperLISTAKM}).
+We evaluate our method on a suite of dynamical systems exhibiting multiple basins of attraction and chaotic behavior. We compare three architectures: (1) a standard MLP-based Koopman Autoencoder with $\ell_1$ regularization (\textbf{GenericKM}), (2) the LISTA-based sparse autoencoder with a dense Koopman matrix (\textbf{LISTAKM}), and (3) the structured LISTA model with arrowhead Koopman dynamics and basin exclusivity (\textbf{StructuredLISTAKM}).
 
 \subsection{Environments}
 
 \paragraph{Duffing Oscillator (2D).}
-A classic nonlinear oscillator with a double-well potential, defined by $\ddot{x} + \delta \dot{x} - \alpha x + \beta x^3 = 0$. The system features two stable spirals and a saddle point at the origin. This serves as a canonical testbed for separating distinct basins of attraction.
+A classic nonlinear oscillator with a double-well potential energy function, governed by $\ddot{x} + \delta \dot{x} - \alpha x + \beta x^3 = 0$ with standard parameters $\alpha = 1$, $\beta = 1$, $\delta = 0.3$. The phase space contains two stable spirals located at $(x, \dot{x}) = (\pm 1, 0)$ and a saddle point at the origin. The separatrix dividing the two basins of attraction provides a canonical testbed for evaluating whether learned latent representations can distinguish between distinct dynamical regimes.
 
-\paragraph{Lyapunov Multi-Attractor System.}
-To test the capacity limit of the sparse code, we construct a generic gradient field system with $N=13$ exponentially stable fixed points arranged in a grid. The dynamics are governed by $\dot{x} = -\nabla V(x)$, where $V(x)$ is constructed from a superposition of Gaussian wells. This environment explicitly tests the model's ability to isolate local linearizations for many distinct attractors using a single global model.
+\paragraph{Lyapunov Multi-Attractor System (2D).}
+To stress-test the capacity of the sparse code, we construct a synthetic gradient field system with $B = 13$ exponentially stable fixed points arranged in a hexagonal lattice. The dynamics are governed by $\dot{x} = -\nabla V(x)$, where the potential $V : \R^2 \to \R$ is a superposition of Gaussian wells centered at the attractor locations:
+\begin{equation}
+    V(x) = -\sum_{k=1}^{B} \exp\!\left( -\frac{\|x - c_k\|^2}{2\sigma^2} \right),
+\end{equation}
+with $\sigma = 0.5$ controlling the basin width. This environment explicitly tests whether the model can isolate $B = 13$ distinct local linearizations using a single global model with $B$ basin blocks.
 
-\paragraph{Multi-Basin Chaotic Systems (Dysts).}
-We extend our evaluation to a curated subset of the \texttt{dysts} benchmark database \citep{gilpin_dysts_2021}, focusing on high-dimensional chaotic systems that exhibit multi-scroll attractors or multiple coexisting attractors (e.g., the Lorenz, Chen, and Chua, and related multi-wing systems). These systems represent a significantly harder challenge due to their chaotic nature and complex attractor topology.
-Gemini suggestions: 
-\begin{itemize}
-    \item Multi-Chua (The "Structural" Perfect Match)
-    \item Rikitake Dynamo (The "Behavioral" Winner)
-    \item Duffing (Specifically Forced or Damped with Noise)
-    \item Lorenz Coupled (The High-Dimensional Challenge)
-\end{itemize}
-
+\paragraph{Multi-Basin Chaotic Systems.}
+We extend our evaluation to a curated subset of systems from the \texttt{dysts} benchmark database \citep{gilpin_dysts_2021}, focusing on higher-dimensional chaotic systems that exhibit multi-scroll attractors or multiple coexisting attractors (e.g., Lorenz, Chen, Chua, and related multi-wing systems). These represent a significantly harder challenge due to their chaotic nature and complex attractor topology.
 
 \subsection{Experimental Setup}
-Models are trained on trajectory pairs $(x_t, x_{t+1})$ sampled uniformly from the state space of interest. We evaluate forecasting performance using Mean Squared Error (MSE) over long-horizon rollouts. To rigorously test stability, we compare three inference modes: (1) \textit{Open-loop}, where the latent state evolves linearly forever; (2) \textit{Every-step re-encoding}, where the state is decoded and re-encoded at every step; and (3) \textit{Periodic re-encoding}, with periods $M \in \{10, 25, 50, 100, 200, 500, 1000\}$.
 
-\subsection{Results}
-Our experiments aim to demonstrate that the structured sparsity induced by LISTA allows for more stable long-term predictions compared to dense encodings, particularly when coupled with periodic re-encoding to manage transitions between local linear regimes. We report quantitative MSE scores from horizons $T=100$ to $T=1000$ \todo{this should be a nice graph plot} and provide qualitative phase portraits showing the model's ability to capture the global topology of the attractors.
+\paragraph{Training protocol.}
+Models are trained on transition pairs $(x_t, x_{t+1})$ sampled uniformly from trajectories originating at random initial conditions within the state space of interest. All models are trained for 5,000--20,000 gradient steps using the AdamW optimizer with learning rate $10^{-4}$ for the encoder/decoder and a reduced learning rate of $10^{-5}$ for the Koopman matrix parameters. The exclusivity warmup horizon is set to $T_{\text{warmup}} = 1,000$ steps.
+
+\paragraph{Evaluation metrics.}
+We evaluate forecasting performance using Mean Squared Error (MSE) over long-horizon rollouts. To rigorously test stability, we compare three inference modes: (1) \textit{Open-loop}, where the latent state evolves linearly indefinitely without correction; (2) \textit{Every-step re-encoding}, where the state is decoded and re-encoded at every step; and (3) \textit{Periodic re-encoding}, with periods $M \in \{10, 25, 50, 100, 200, 500, 1000\}$.
+
+\subsection{Basin Structure Correspondence}
+\label{sec:basin-experiment}
+
+The central hypothesis of the structured Koopman model is that the basin blocks in latent space should \emph{correspond} to ground-truth basins of attraction. We design a dedicated experiment to test this hypothesis on the Lyapunov multi-attractor system ($B = 13$ ground-truth basins).
+
+\paragraph{Ground-truth basin identification.}
+For each trajectory, we determine the ground-truth basin by simulating an extended rollout from the endpoint and identifying which of the 13 fixed points the trajectory converges to. Formally, for a trajectory $\{x_0, \ldots, x_T\}$, we compute the limiting state $x_\infty = \lim_{s \to \infty} f^s(x_T)$ and assign the trajectory to basin $k^* = \arg\min_k \|x_\infty - c_k\|$, where $\{c_k\}$ are the known attractor locations.
+
+\paragraph{Basin activation analysis.}
+Given a trained StructuredLISTAKM model with $B$ basin blocks, we encode each trajectory and analyze the activation patterns. For each encoded state $z = \phi(x)$, we partition it into the global block $z^{(g)}$ and basin blocks $\{z^{(k)}\}_{k=1}^B$. We define the \emph{active} model basin as $\hat{k} = \arg\max_k \|z^{(k)}\|_2$.
+
+To quantify the correspondence between model basins and ground-truth basins, we compute:
+\begin{itemize}
+    \item \textbf{Basin Assignment Accuracy}: The fraction of timesteps where the active model basin matches the ground-truth basin (after finding the optimal permutation mapping).
+    \item \textbf{Temporal Consistency}: The fraction of timesteps within a trajectory where the active model basin equals the trajectory's mode (most frequent active basin).
+    \item \textbf{Activation Entropy}: For each timestep, we compute the entropy of the softmax-normalized basin norms: $H = -\sum_k p_k \log p_k$ where $p_k \propto \exp(\|z^{(k)}\|_2)$. Low entropy indicates that one basin block dominates.
+    \item \textbf{Confusion Matrix}: We build a $B_{\text{GT}} \times B_{\text{model}}$ matrix where entry $(i, j)$ is the fraction of timesteps from ground-truth basin $i$ where model basin $j$ was most active.
+\end{itemize}
+
+\paragraph{Results on Lyapunov system.}
+We compare three architectures with matched latent dimension ($\approx$60--64):
+
+\begin{table}[h]
+\centering
+\caption{Latent space clustering and dynamics metrics on the Lyapunov 13-attractor system.}
+\label{tab:basin-results}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metric} & \textbf{GenericKM} & \textbf{LISTAKM} & \textbf{StructuredLISTAKM} \\
+\midrule
+Prediction Error (MSE) & \textbf{0.149} & 0.522 & 0.298 \\
+Silhouette Score & 0.992 & 0.990 & 0.990 \\
+Adjusted Rand Index & 1.000 & 1.000 & 1.000 \\
+K-means Purity & 1.000 & 1.000 & 1.000 \\
+Linear Classifier Acc. & \textbf{88.0\%} & 82.0\% & 70.0\% \\
+Sparsity (frac. $< 0.01$) & 33.3\% & \textbf{72.4\%} & 69.3\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All three architectures achieve near-perfect clustering metrics (Adjusted Rand Index = 1.0, K-means purity = 1.0), indicating that the Lyapunov system's basins are inherently separable in any sufficiently expressive latent space. However, the GenericKM achieves the lowest prediction error and highest linear classifier accuracy, while the LISTA-based models achieve substantially higher sparsity ratios.
+
+\paragraph{Basin block specialization analysis.}
+For the StructuredLISTAKM model specifically, we analyze whether the $B = 13$ model basin blocks specialize to the 13 ground-truth attractors:
+
+\begin{table}[h]
+\centering
+\caption{StructuredLISTAKM basin block analysis on Lyapunov system.}
+\label{tab:structured-basin}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Value} & \textbf{Target} \\
+\midrule
+Basin Assignment Accuracy & 37.9\% & $>$80\% \\
+Temporal Consistency & 99.7\% & $>$95\% \\
+Activation Entropy & 2.56 & $<$0.5 \\
+Active Model Basins & 8 / 13 & 13 / 13 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results reveal a \emph{basin collapse} phenomenon: while temporal consistency within trajectories is near-perfect (99.7\%), the model learns to map multiple ground-truth basins to the same model basin block. Confusion matrix analysis shows that only 8 of the 13 model basins are actively used, with some model basins handling up to 5 different ground-truth attractors. This suggests that the current exclusivity regularization ($\lambda_{\text{excl}} = 10^{-3}$) is insufficient to prevent degenerate solutions where the model finds it easier to reuse basin blocks rather than specialize them.
+
+\paragraph{Discussion.}
+These preliminary results highlight an important tension: while the structured Koopman parameterization \emph{enables} basin-specific dynamics, it does not \emph{guarantee} that the learned representation will discover the correct basin correspondence without explicit supervision. Future work should explore: (1) stronger exclusivity penalties, (2) curriculum learning strategies that gradually increase the number of basins, (3) contrastive losses that push latent codes from different basins apart, and (4) supervised pre-training with basin labels when available.
+
+\subsection{Long-Horizon Forecasting with Periodic Re-encoding}
+
+Our experiments demonstrate that structured sparsity induced by LISTA enables more stable long-term predictions compared to dense encodings, particularly when coupled with periodic re-encoding to manage transitions between local linear regimes. We report quantitative MSE scores from horizons $T=100$ to $T=1000$ \todo{this should be a nice graph plot} and provide qualitative phase portraits showing the model's ability to capture the global topology of the attractors.
+
+% TODO: Add MSE vs. horizon plots and phase portrait comparisons

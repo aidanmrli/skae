@@ -71,8 +71,35 @@ uv run python train.py \
   --device cuda \
   --log_dir "/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear/dysts:${SYSTEM}"
 
+# Train StructuredLISTAKM with basin-aware dynamics
+uv run python train.py \
+  --config structured_lista \
+  --env lyapunov \
+  --num_steps 10000 \
+  --batch_size 256 \
+  --d_global 16 \
+  --num_basins 13 \
+  --d_basin 16 \
+  --lambda_exclusivity 0.01 \
+  --pairwise \
+  --seed 42 \
+  --device cuda
+
 # Evaluate a trained checkpoint
 uv run python evaluate_checkpoints.py --run_dir runs/lista/<timestamp> --system lyapunov --device cuda
+
+# Evaluate basin structure correspondence (for any model)
+uv run python evaluate_latent_basin_clustering.py \
+  --checkpoint runs/<model>/<timestamp>/checkpoint.pt \
+  --num_trajectories 100 \
+  --output_dir results/latent_clustering/<model_name>
+
+# Evaluate basin block specialization (StructuredLISTAKM only)
+uv run python evaluate_basin_structure.py \
+  --checkpoint runs/structured_lista/<timestamp>/checkpoint.pt \
+  --system lyapunov \
+  --num_trajectories 100 \
+  --output_dir results/basin_structure/<run_name>
 
 # Run sbatch sweep using lista_nonlinear config on dysts multi-basin environments. Note that hyperparameters should be set manually and carefully.
 sbatch dysts_multi_basin_lista_nonlinear_long.sh
@@ -136,6 +163,11 @@ Key config paths:
 - `cfg.MODEL.ENCODER.LISTA.ALPHA`: LISTA soft-threshold
 - `cfg.MODEL.ENCODER.HYPERLISTA.C_THETA/C_BETA/C_SS`: HyperLISTA hyperparams
 - `cfg.TRAIN.USE_SEQUENCE_LOSS`: False for pairwise, True for sequence training
+- `cfg.MODEL.STRUCTURED.D_GLOBAL`: Dimension of global dynamics block (StructuredLISTAKM)
+- `cfg.MODEL.STRUCTURED.NUM_BASINS`: Number of basin blocks B (StructuredLISTAKM)
+- `cfg.MODEL.STRUCTURED.D_BASIN`: Dimension per basin block (StructuredLISTAKM)
+- `cfg.MODEL.STRUCTURED.LAMBDA_EXCLUSIVITY`: Mutual exclusivity penalty weight
+- `cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS`: Steps to ramp exclusivity from 0 to final
 
 ## Model Factory
 
@@ -160,4 +192,8 @@ runs/<model>/<timestamp>/
 - Homogeneous coordinates (`cfg.MODEL.USE_HOMOGENEOUS=True`): Appends 1 to input for implicit bias learning in LISTA/HyperLISTA
 - Koopman matrix uses separate learning rate (`cfg.TRAIN.K_MATRIX_LR`, typically lower than encoder/decoder)
 - LISTA/HyperLISTA dictionaries are column-normalized during forward pass
-- StructuredLISTAKM uses block-wise Koopman parameters for basin-aware dynamics
+- StructuredLISTAKM uses block-wise Koopman parameters for basin-aware dynamics:
+  - Latent space partitioned into global block z^(g) and B basin blocks z^(k)
+  - Arrowhead Koopman structure: global evolves autonomously, basins receive global forcing
+  - Exclusivity loss encourages one basin block active at a time
+  - Linear warmup schedule for exclusivity/sparsity penalties
