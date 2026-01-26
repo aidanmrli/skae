@@ -10,7 +10,9 @@ We are attempting to use a LISTA encoder instead of a MLP encoder for this Koopm
 
 We want to induce structured sparsity on the Koopman matrix such that each basin of attraction corresponds to its own high dimensional subspace where the Koopman dynamics are approximately linear. Our key insight is to enforce a sparse latent representation, structured as a union of subspaces, where each active support approximately corresponds to a specific basin of attraction or dynamical regime. Ideally, we would like to see if we can isolate distinct Koopman linear dynamics for each basin. 
 
-If this is true, we can isolate each basin and solve with LQR. Then, a nonlinear control problem over multiple basins of attraction reduces to solving linear Koopman dynamics within each basin using LQR, and modeling the changes between basins. We hypothesize that our periodic reencoding mechanism at inference time where we encode and immediately decode an input might be a good mechanism for modeling changes between basins..
+If this is true, we can isolate each basin and solve with LQR. Then, a nonlinear control problem over multiple basins of attraction reduces to solving linear Koopman dynamics within each basin using LQR, and modeling the changes between basins. We hypothesize that our periodic reencoding mechanism at inference time where we encode and immediately decode an input might be a good mechanism for modeling changes between basins.
+
+More detailed notes about the project are in `notes.tex`, which contains the working draft of the research paper that we will publish and contains any annotated notes. This essentially contains the current state of the project. After any experiments that we run or changes that we make to the framework, we should update this file.
 
 ## Common Commands
 

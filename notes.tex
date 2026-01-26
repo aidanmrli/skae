@@ -235,8 +235,8 @@ As a baseline, we employ a standard Multi-Layer Perceptron (MLP) for both the en
 
 \paragraph{LISTA Encoder.}
 To enforce structured sparsity and interpretability, we replace the generic MLP encoder with a Learned Iterative Soft-Thresholding Algorithm (LISTA) network \citep{gregor_learning_2010}. LISTA is an unrolled optimization algorithm that approximates the solution to the sparse coding problem:
-\begin{equation}
-    z^* = \argmin_z \frac{1}{2} \|x - D z\|_2^2 + \lambda \|z\|_1,
+\begin{equation}\label{eq:LISTA}
+    z^* = \arg\min_z \frac{1}{2} \|x - D z\|_2^2 + \lambda \|z\|_1,
 \end{equation}
 where $D \in \mathbb{R}^{d_x \times d_z}$ is the decoder dictionary.
 Our encoder $\phi(x)$ consists of $T$ iterations of the update rule:
@@ -244,6 +244,16 @@ Our encoder $\phi(x)$ consists of $T$ iterations of the update rule:
     z^{(t+1)} = \mathcal{S}_{\alpha} (W_e x + S z^{(t)}),
 \end{equation}
 where $\mathcal{S}_\alpha(\cdot)$ is the element-wise soft-thresholding operator with threshold $\alpha$, and $W_e$ and $S$ are learnable weight matrices. In our implementation, we optionally preprocess $x$ with a shallow MLP before feeding it into the LISTA layers (referred to as \textit{Nonlinear LISTA}) to allow for a nonlinear transform into the sparse basis. The decoder is strictly linear, $\psi(z) = D z$, where the columns of $D$ serve as the dictionary atoms.
+
+\paragraph{[NOTE] LISTA's relation to the decoder.} 
+Recall that in LISTA's objective \eqref{eq:LISTA}, we have a $W_d$ term that allows for a mapping from $z$-space to $x$-space. We do not have this $W_d$ term in training LISTA, but we can couple it to the $W_e$ term that we do have! In the original derivation of ISTA, $W_e = \frac{1}{L} W_d^\top$. Maybe what we can do is set our decoder as this trainable matrix; set $\psi(z) = W_d z$ as our decoder and tie $W_d$ to $W_e$. It would make this simpler, cheaper, and more interpretable.
+
+Some ablations I might like to try:
+\begin{itemize}
+    \item Linear decoder $\psi(z) = W_d z$ with $W_d^\top \approx W_e$, possibly through regularization of $\lVert W_d^T - W_e \rVert_F$.
+    \item Use a nonlinear decoder with this linear $W_d$ as a residual connection: $\psi(z) = W_d z + f_{MLP}(W_d z)$.
+    \item Nonlinear MLP with no restriction or concept of $W_z$.
+\end{itemize}
 
 \paragraph{HyperLISTA Module.}
 We also explore a parameter-efficient variant called HyperLISTA \citep{chen_hyperparameter_2021}, which couples the encoder and decoder weights. Instead of learning $W_e$ and $S$ independently, HyperLISTA derives them analytically from the current decoder dictionary $D$:
@@ -265,12 +275,23 @@ We train the parameters of the encoder, decoder, and the Koopman matrix $K$ join
 \end{itemize}
 Spectral normalization and homogeneous coordinates are optionally applied to stabilize training.
 
+\paragraph{[NOTE] Additional regularization.} We could also experiment with additional regularization. This could be something like a denoising penalty (see Total Variation Denoising) that is the sum of the differences between the two states across timesteps so as to encourage smoothness; this could also be (Slow Feature Analysis/Learning). 
+
+Although maybe it's not nice, we could also regularize the eigenvalues of the Koopman matrix for LISTA since I observed that the LISTA encoder is a bit more brittle and prone to having exploding $K$ eigenvalues. e.g. could add $\lambda_{\text{spec}} \cdot \max(0, \rho(K) - 1)^2$ to the loss, where $\rho(K)$ is the spectral radius. This explicitly prevents $K$ from having eigenvalues outside the unit disk. We could also regularize the inhibition matrix $S$ which is applied to the sparse code $z$ in the shrinkage operation by forcing it to stay at or within some constant initial value.
+
+\paragraph{[NOTE] Over-sampling transitions.} Transitions between local regions might be rare. We would need to bias the sampling of training samples for transitions vs steady local rollouts to ensure the model sees enough of the possibly rare transitions that are the crucial dynamics for us.
+
 \subsection{Inference with Periodic Re-encoding}
 Long-term forecasting with purely linear latent dynamics ($z_{t+k} = K^k z_t$) often suffers from drift, where the latent state typically departs the valid manifold of the encoder. To mitigate this, we employ \textit{periodic re-encoding} \citep{fathi_course_2023}. Every $M$ steps, we project the predicted latent state back to the physical state space and re-encode it:
 \begin{equation}
     z_{t+M} \leftarrow \phi(\psi(z_{t+M})).
 \end{equation}
 This mechanism acts as a "correction" step, re-centering the latent state within the appropriate basin of attraction and allowing the sparse encoder to switch active sub-dictionaries as the trajectory crosses dynamical boundaries.
+
+\todo{Two things I would like to try in the future: (1) is to randomize the $k$ value throughout training so the model does not overfit to a single cadence.
+(2) is to make $k$ adaptive to the system. For example, if the system is changing quickly, we should reencode more often. If the system is changing slowly, we should reencode less often. Ideas from the adaptive MCMC literature might be useful here.
+}
+
 
 \section{Experiments}
 \label{sec:experiments}
@@ -287,9 +308,17 @@ To test the capacity limit of the sparse code, we construct a generic gradient f
 
 \paragraph{Multi-Basin Chaotic Systems (Dysts).}
 We extend our evaluation to a curated subset of the \texttt{dysts} benchmark database \citep{gilpin_dysts_2021}, focusing on high-dimensional chaotic systems that exhibit multi-scroll attractors or multiple coexisting attractors (e.g., the Lorenz, Chen, and Chua, and related multi-wing systems). These systems represent a significantly harder challenge due to their chaotic nature and complex attractor topology.
+Gemini suggestions: 
+\begin{itemize}
+    \item Multi-Chua (The "Structural" Perfect Match)
+    \item Rikitake Dynamo (The "Behavioral" Winner)
+    \item Duffing (Specifically Forced or Damped with Noise)
+    \item Lorenz Coupled (The High-Dimensional Challenge)
+\end{itemize}
+
 
 \subsection{Experimental Setup}
-Models are trained on trajectory pairs $(x_t, x_{t+1})$ sampled uniformly from the state space of interest. We evaluate forecasting performance using Mean Squared Error (MSE) over long-horizon rollouts. To rigorously test stability, we compare three inference modes: (1) \textit{Open-loop}, where the latent state evolves linearly forever; (2) \textit{Every-step re-encoding}, where the state is decoded and re-encoded at every step; and (3) \textit{Periodic re-encoding}, with periods $M \in \{10, 25, 50, 100\}$.
+Models are trained on trajectory pairs $(x_t, x_{t+1})$ sampled uniformly from the state space of interest. We evaluate forecasting performance using Mean Squared Error (MSE) over long-horizon rollouts. To rigorously test stability, we compare three inference modes: (1) \textit{Open-loop}, where the latent state evolves linearly forever; (2) \textit{Every-step re-encoding}, where the state is decoded and re-encoded at every step; and (3) \textit{Periodic re-encoding}, with periods $M \in \{10, 25, 50, 100, 200, 500, 1000\}$.
 
 \subsection{Results}
-Our experiments aim to demonstrate that the structured sparsity induced by LISTA allows for more stable long-term predictions compared to dense encodings, particularly when coupled with periodic re-encoding to manage transitions between local linear regimes. We report quantitative MSE scores at horizons $T=100$ to $T=1000$ and provide qualitative phase portraits showing the model's ability to capture the global topology of the attractors.
+Our experiments aim to demonstrate that the structured sparsity induced by LISTA allows for more stable long-term predictions compared to dense encodings, particularly when coupled with periodic re-encoding to manage transitions between local linear regimes. We report quantitative MSE scores from horizons $T=100$ to $T=1000$ \todo{this should be a nice graph plot} and provide qualitative phase portraits showing the model's ability to capture the global topology of the attractors.
