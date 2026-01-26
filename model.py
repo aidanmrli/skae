@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict, Tuple, List
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from config import Config
 
 try:
@@ -1438,6 +1439,8 @@ class StructuredLISTAKM(LISTAKM):
         self.lambda_global = struct_cfg.LAMBDA_GLOBAL
         self.lambda_local = struct_cfg.LAMBDA_LOCAL
         self.lambda_exclusivity = struct_cfg.LAMBDA_EXCLUSIVITY
+        self.lambda_entropy = struct_cfg.LAMBDA_ENTROPY
+        self.lambda_dominance = struct_cfg.LAMBDA_DOMINANCE
         self.lambda_sparsity = struct_cfg.LAMBDA_SPARSITY
         self.excl_warmup_steps = struct_cfg.EXCL_WARMUP_STEPS
 
@@ -1478,7 +1481,8 @@ class StructuredLISTAKM(LISTAKM):
         print(f"  Basin blocks: {self.num_basins} x {self.d_basin} dims")
         print(f"  Total latent: {self.target_size} dims")
         print(f"  Koopman storage: {block_elements:,} params (vs {dense_elements:,} dense, {sparsity_pct:.1f}% sparse)")
-        print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}, λ_sparsity={self.lambda_sparsity}")
+        print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}")
+        print(f"  λ_entropy={self.lambda_entropy}, λ_dominance={self.lambda_dominance}, λ_sparsity={self.lambda_sparsity}")
         print(f"  Exclusivity/sparsity warmup: {self.excl_warmup_steps} steps")
 
     def kmatrix(self) -> torch.Tensor:
@@ -1738,6 +1742,63 @@ class StructuredLISTAKM(LISTAKM):
         # Normalize by 1/(B-1)
         return pairwise_sum.mean() / max(B - 1, 1)
 
+    def _entropy_exclusivity_from_z(self, z: torch.Tensor) -> torch.Tensor:
+        """Compute entropy-based exclusivity penalty from pre-encoded latents.
+
+        Penalizes high entropy of the normalized basin norm distribution.
+        Low entropy = one basin dominates. High entropy = multiple basins active.
+
+        Uses softmax over basin norms to get a probability distribution, then
+        computes the entropy. Minimizing this encourages single-basin dominance.
+
+        Args:
+            z: Latent codes of shape [..., target_size]
+
+        Returns:
+            Mean entropy over batch (scalar)
+        """
+        _, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
+
+        # Compute L2 norms per basin: [..., B]
+        norms = torch.norm(z_basins, p=2, dim=-1)
+
+        # Softmax to get probability distribution over basins
+        probs = F.softmax(norms, dim=-1)  # [..., B]
+
+        # Compute entropy: -sum(p * log(p))
+        entropy = -torch.sum(probs * torch.log(probs + 1e-8), dim=-1)  # [...]
+
+        return entropy.mean()
+
+    def _dominance_loss_from_z(self, z: torch.Tensor) -> torch.Tensor:
+        """Compute top-1 dominance loss from pre-encoded latents.
+
+        Encourages the maximum-norm basin to be significantly larger than others.
+        Penalizes the ratio of (sum of non-max norms) / (max norm).
+
+        When ratio is 0, only one basin is active (ideal).
+        When ratio is high, multiple basins have comparable activations.
+
+        Args:
+            z: Latent codes of shape [..., target_size]
+
+        Returns:
+            Mean dominance ratio over batch (scalar)
+        """
+        _, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
+
+        # Compute L2 norms per basin: [..., B]
+        norms = torch.norm(z_basins, p=2, dim=-1)
+
+        # Get max norm and sum of other norms
+        max_norm, _ = norms.max(dim=-1, keepdim=True)  # [..., 1]
+        other_norms_sum = norms.sum(dim=-1, keepdim=True) - max_norm  # [..., 1]
+
+        # Compute ratio (with epsilon for numerical stability)
+        dominance_ratio = other_norms_sum / (max_norm + 1e-8)
+
+        return dominance_ratio.mean()
+
     def structured_sparsity_loss(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute block-weighted sparsity loss (convenience wrapper).
 
@@ -1789,6 +1850,38 @@ class StructuredLISTAKM(LISTAKM):
             return self.lambda_sparsity
         progress = min(1.0, step / self.excl_warmup_steps)
         return progress * self.lambda_sparsity
+
+    def get_entropy_weight(self, step: int) -> float:
+        """Get current entropy exclusivity weight based on linear warmup schedule.
+
+        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
+
+        Args:
+            step: Current training step
+
+        Returns:
+            Current entropy coefficient (0 to lambda_entropy)
+        """
+        if self.excl_warmup_steps <= 0:
+            return self.lambda_entropy
+        progress = min(1.0, step / self.excl_warmup_steps)
+        return progress * self.lambda_entropy
+
+    def get_dominance_weight(self, step: int) -> float:
+        """Get current dominance loss weight based on linear warmup schedule.
+
+        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
+
+        Args:
+            step: Current training step
+
+        Returns:
+            Current dominance coefficient (0 to lambda_dominance)
+        """
+        if self.excl_warmup_steps <= 0:
+            return self.lambda_dominance
+        progress = min(1.0, step / self.excl_warmup_steps)
+        return progress * self.lambda_dominance
 
     def loss(
         self,
@@ -1843,6 +1936,14 @@ class StructuredLISTAKM(LISTAKM):
         excl_weight = self.get_exclusivity_weight(step)
         excl_loss = 0.5 * (self._exclusivity_from_z(z) + self._exclusivity_from_z(z_nx))
 
+        # Entropy-based exclusivity loss with warmup (encourages single dominant basin)
+        entropy_weight = self.get_entropy_weight(step)
+        entropy_loss = 0.5 * (self._entropy_exclusivity_from_z(z) + self._entropy_exclusivity_from_z(z_nx))
+
+        # Top-1 dominance loss with warmup (penalizes non-max basins)
+        dominance_weight = self.get_dominance_weight(step)
+        dominance_loss = 0.5 * (self._dominance_loss_from_z(z) + self._dominance_loss_from_z(z_nx))
+
         # Explicit L1 sparsity loss on full z with warmup
         alpha = self.cfg.MODEL.ENCODER.LISTA.ALPHA
         sparsity_weight = self.get_sparsity_weight(step)
@@ -1879,6 +1980,8 @@ class StructuredLISTAKM(LISTAKM):
             self.lambda_global * global_sparsity_loss +
             self.lambda_local * local_sparsity_loss +
             excl_weight * excl_loss +
+            entropy_weight * entropy_loss +
+            dominance_weight * dominance_loss +
             sparsity_weight * sparsity_loss
         )
 
@@ -1898,6 +2001,10 @@ class StructuredLISTAKM(LISTAKM):
             'local_sparsity_loss': local_sparsity_loss.item(),
             'exclusivity_loss': excl_loss.item(),
             'exclusivity_weight': excl_weight,
+            'entropy_loss': entropy_loss.item(),
+            'entropy_weight': entropy_weight,
+            'dominance_loss': dominance_loss.item(),
+            'dominance_weight': dominance_weight,
             'sparsity_loss': sparsity_loss.item(),
             'sparsity_weight': sparsity_weight,
             'A_max_eigenvalue': max_eigenvalue.item(),

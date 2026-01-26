@@ -76,15 +76,19 @@ uv run python train.py \
   --log_dir "/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear/dysts:${SYSTEM}"
 
 # Train StructuredLISTAKM with basin-aware dynamics
+# Note: Over-specifying basins (B > GT basins) improves accuracy
+# Note: Only use lambda_exclusivity; entropy/dominance losses harm performance
 uv run python train.py \
-  --config structured_lista \
+  --config lista_nonlinear \
   --env lyapunov \
+  --structured \
   --num_steps 10000 \
   --batch_size 256 \
   --d_global 16 \
-  --num_basins 13 \
+  --num_basins 20 \
   --d_basin 16 \
-  --lambda_exclusivity 0.01 \
+  --lambda_exclusivity 0.05 \
+  --lambda_sparsity 0.3 \
   --pairwise \
   --seed 42 \
   --device cuda
@@ -201,3 +205,4 @@ runs/<model>/<timestamp>/
   - Arrowhead Koopman structure: global evolves autonomously, basins receive global forcing
   - Exclusivity loss encourages one basin block active at a time
   - Linear warmup schedule for exclusivity/sparsity penalties
+  - **Important**: Only use `--lambda_exclusivity` (pairwise exclusivity). The entropy and dominance losses (`--lambda_entropy`, `--lambda_dominance`) cause severe performance degradation and should NOT be used.

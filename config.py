@@ -250,11 +250,11 @@ class HyperListaConfig:
 @dataclass
 class StructuredLatentConfig:
     """Configuration for structured latent space partitioning.
-    
+
     Enables basin-aware Koopman dynamics with:
     - Global dynamics block (always active, shared physics)
     - B basin blocks (mutually exclusive, local linear dynamics)
-    
+
     Total latent dim = D_GLOBAL + NUM_BASINS * D_BASIN
     """
     ENABLED: bool = False              # Enable structured latent space
@@ -263,7 +263,9 @@ class StructuredLatentConfig:
     D_BASIN: int = 8                   # Dimension of each basin block
     LAMBDA_GLOBAL: float = 1e-4        # Sparsity weight for global block (near-zero)
     LAMBDA_LOCAL: float = 1e-3         # Sparsity weight for basin blocks
-    LAMBDA_EXCLUSIVITY: float = 1e-2   # Final exclusivity penalty weight
+    LAMBDA_EXCLUSIVITY: float = 1e-2   # Final exclusivity penalty weight (pairwise)
+    LAMBDA_ENTROPY: float = 0.0        # Entropy-based exclusivity penalty (low entropy = 1 dominant basin)
+    LAMBDA_DOMINANCE: float = 0.0      # Top-1 dominance loss (penalize non-max basins)
     LAMBDA_SPARSITY: float = 1e-3      # Explicit L1 sparsity weight on full z
     EXCL_WARMUP_STEPS: int = 1000      # Steps to ramp exclusivity/sparsity from 0 to final
 

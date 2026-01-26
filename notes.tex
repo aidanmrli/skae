@@ -317,7 +317,10 @@ This can be efficiently vectorized using tensor contractions (e.g., Einstein sum
 \subsection{Exclusivity Regularization}
 \label{sec:exclusivity}
 
-The arrowhead structure in $K$ assumes that only one basin block is active at a time. To encourage this mutual exclusivity in the learned latent codes, we introduce an \textbf{exclusivity loss} that penalizes simultaneous activation of multiple basin blocks:
+The arrowhead structure in $K$ assumes that only one basin block is active at a time. To encourage this mutual exclusivity in the learned latent codes, we introduce several complementary loss terms.
+
+\paragraph{Pairwise exclusivity loss.}
+The basic exclusivity loss penalizes simultaneous activation of multiple basin blocks via pairwise products:
 \begin{equation}
 \label{eq:exclusivity}
     \mathcal{L}_{\text{excl}} = \frac{1}{B-1} \sum_{i < j} \|z^{(i)}\|_2 \cdot \|z^{(j)}\|_2.
@@ -330,12 +333,28 @@ We compute this efficiently in $O(B)$ time using the identity:
 \end{equation}
 where $n_k = \|z^{(k)}\|_2$. This avoids the na\"ive $O(B^2)$ pairwise computation.
 
-\paragraph{Warmup schedule.}
-During early training, the encoder has not yet learned meaningful representations, and enforcing exclusivity too strongly can prevent useful gradient flow. We therefore apply a \emph{linear warmup schedule} to the exclusivity coefficient:
+\paragraph{Entropy-based exclusivity loss.}
+However, the pairwise loss does not directly minimize the entropy of the basin activation distribution. If all basins have similar small activations, the pairwise penalty remains low even though no single basin dominates. To address this, we introduce an entropy-based penalty that directly encourages a peaked distribution:
 \begin{equation}
-    \lambda_{\text{excl}}(t) = \min\!\left(1, \frac{t}{T_{\text{warmup}}}\right) \cdot \lambda_{\text{excl}},
+\label{eq:entropy-excl}
+    \mathcal{L}_{\text{entropy}} = -\sum_{k=1}^B p_k \log p_k, \quad \text{where } p_k = \frac{\exp(\|z^{(k)}\|_2)}{\sum_{j=1}^B \exp(\|z^{(j)}\|_2)}.
 \end{equation}
-where $t$ is the training step and $T_{\text{warmup}}$ is the warmup horizon (typically 1,000 steps). This allows the model to first learn good reconstruction and dynamics prediction before the exclusivity constraint is fully enforced.
+Minimizing this entropy encourages the softmax-normalized basin norms to concentrate on a single basin, directly enforcing winner-take-all behavior.
+
+\paragraph{Top-1 dominance loss.}
+As an alternative formulation, we penalize the ratio of non-dominant basin activations to the dominant one:
+\begin{equation}
+\label{eq:dominance}
+    \mathcal{L}_{\text{dom}} = \frac{\sum_{k=1}^B \|z^{(k)}\|_2 - \max_k \|z^{(k)}\|_2}{\max_k \|z^{(k)}\|_2 + \epsilon},
+\end{equation}
+where $\epsilon > 0$ is a small constant for numerical stability. This loss is zero when only one basin is active and increases as other basins become comparably active. Unlike the entropy loss which operates on a softmax distribution, the dominance loss directly penalizes the magnitude ratio.
+
+\paragraph{Warmup schedule.}
+During early training, the encoder has not yet learned meaningful representations, and enforcing exclusivity too strongly can prevent useful gradient flow. We therefore apply a \emph{linear warmup schedule} to all exclusivity-related coefficients:
+\begin{equation}
+    \lambda(t) = \min\!\left(1, \frac{t}{T_{\text{warmup}}}\right) \cdot \lambda_{\text{final}},
+\end{equation}
+where $t$ is the training step and $T_{\text{warmup}}$ is the warmup horizon (typically 1,000--2,000 steps). This allows the model to first learn good reconstruction and dynamics prediction before the exclusivity constraints are fully enforced.
 
 \subsection{Learning Objective}
 \label{sec:learning-objective}
@@ -343,7 +362,10 @@ where $t$ is the training step and $T_{\text{warmup}}$ is the warmup horizon (ty
 We train the parameters of the encoder, decoder, and the Koopman matrix $K$ jointly by minimizing a composite loss function. For the structured model with basin-aware dynamics, the full objective is:
 \begin{equation}
 \label{eq:structured-loss}
-    \mathcal{L} = \lambda_{\text{recon}} \mathcal{L}_{\text{recon}} + \lambda_{\text{pred}} \mathcal{L}_{\text{pred}} + \lambda_{\text{align}} \mathcal{L}_{\text{align}} + \mathcal{L}_{\text{sparse}}^{\text{struct}} + \lambda_{\text{excl}}(t) \, \mathcal{L}_{\text{excl}},
+\begin{split}
+    \mathcal{L} = \;& \lambda_{\text{recon}} \mathcal{L}_{\text{recon}} + \lambda_{\text{pred}} \mathcal{L}_{\text{pred}} + \lambda_{\text{align}} \mathcal{L}_{\text{align}} + \mathcal{L}_{\text{sparse}}^{\text{struct}} \\
+    &+ \lambda_{\text{excl}}(t) \, \mathcal{L}_{\text{excl}} + \lambda_{\text{ent}}(t) \, \mathcal{L}_{\text{entropy}} + \lambda_{\text{dom}}(t) \, \mathcal{L}_{\text{dom}},
+\end{split}
 \end{equation}
 where the individual terms are:
 \begin{itemize}
@@ -351,24 +373,24 @@ where the individual terms are:
     \begin{equation}
         \mathcal{L}_{\text{recon}} = \|x_t - \psi(\phi(x_t))\|_2^2.
     \end{equation}
-    
+
     \item \textbf{Prediction Loss}: Enforces accurate one-step prediction in the observation space via the learned Koopman dynamics,
     \begin{equation}
         \mathcal{L}_{\text{pred}} = \|x_{t+1} - \psi(K \phi(x_t))\|_2^2.
     \end{equation}
-    
+
     \item \textbf{Alignment Loss}: Enforces linearity of the dynamics directly in the latent space,
     \begin{equation}
         \mathcal{L}_{\text{align}} = \|\phi(x_{t+1}) - K \phi(x_t)\|_2^2.
     \end{equation}
-    
+
     \item \textbf{Structured Sparsity Loss}: Applies different regularization to the global and basin blocks,
     \begin{equation}
         \mathcal{L}_{\text{sparse}}^{\text{struct}} = \lambda_g \|z^{(g)}\|_1 + \lambda_\ell \sum_{k=1}^{B} \|z^{(k)}\|_1,
     \end{equation}
     where $\lambda_g \ll \lambda_\ell$ (e.g., $\lambda_g = 10^{-4}$, $\lambda_\ell = 10^{-3}$). This encourages the global block to remain relatively dense (always active) while the basin blocks are sparse.
-    
-    \item \textbf{Exclusivity Loss}: Penalizes simultaneous activation of multiple basin blocks, as defined in Eq.~\eqref{eq:exclusivity}.
+
+    \item \textbf{Exclusivity Losses}: We employ three complementary regularizers to encourage mutual exclusivity among basin blocks: the pairwise exclusivity loss $\mathcal{L}_{\text{excl}}$ (Eq.~\ref{eq:exclusivity}), the entropy-based loss $\mathcal{L}_{\text{entropy}}$ (Eq.~\ref{eq:entropy-excl}), and the dominance loss $\mathcal{L}_{\text{dom}}$ (Eq.~\ref{eq:dominance}). All three are subject to the linear warmup schedule described in Section~\ref{sec:exclusivity}.
 \end{itemize}
 
 For the non-structured models (standard sparse autoencoder or LISTA without basin partitioning), we use a simpler objective with uniform $\ell_1$ sparsity: $\mathcal{L}_{\text{sparse}} = \lambda \|z\|_1$.
@@ -464,11 +486,11 @@ Sparsity (frac. $< 0.01$) & 33.3\% & \textbf{72.4\%} & 69.3\% \\
 All three architectures achieve near-perfect clustering metrics (Adjusted Rand Index = 1.0, K-means purity = 1.0), indicating that the Lyapunov system's basins are inherently separable in any sufficiently expressive latent space. However, the GenericKM achieves the lowest prediction error and highest linear classifier accuracy, while the LISTA-based models achieve substantially higher sparsity ratios.
 
 \paragraph{Basin block specialization analysis.}
-For the StructuredLISTAKM model specifically, we analyze whether the $B = 13$ model basin blocks specialize to the 13 ground-truth attractors:
+For the StructuredLISTAKM model specifically, we analyze whether the $B = 13$ model basin blocks specialize to the 13 ground-truth attractors. Initial experiments with small basin block dimensions ($d_b = 4$) and weak exclusivity ($\lambda_{\text{excl}} = 10^{-3}$) revealed a \emph{basin collapse} phenomenon:
 
 \begin{table}[h]
 \centering
-\caption{StructuredLISTAKM basin block analysis on Lyapunov system.}
+\caption{StructuredLISTAKM basin block analysis on Lyapunov system (initial configuration).}
 \label{tab:structured-basin}
 \begin{tabular}{lcc}
 \toprule
@@ -482,10 +504,52 @@ Active Model Basins & 8 / 13 & 13 / 13 \\
 \end{tabular}
 \end{table}
 
-The results reveal a \emph{basin collapse} phenomenon: while temporal consistency within trajectories is near-perfect (99.7\%), the model learns to map multiple ground-truth basins to the same model basin block. Confusion matrix analysis shows that only 8 of the 13 model basins are actively used, with some model basins handling up to 5 different ground-truth attractors. This suggests that the current exclusivity regularization ($\lambda_{\text{excl}} = 10^{-3}$) is insufficient to prevent degenerate solutions where the model finds it easier to reuse basin blocks rather than specialize them.
+While temporal consistency within trajectories is near-perfect (99.7\%), the model learns to map multiple ground-truth basins to the same model basin block. Confusion matrix analysis shows that only 8 of the 13 model basins are actively used, with some model basins handling up to 5 different ground-truth attractors.
+
+\paragraph{Hyperparameter sensitivity analysis.}
+We conducted a systematic sweep over key hyperparameters to understand the factors contributing to basin collapse:
+
+\begin{table}[h]
+\centering
+\caption{Effect of hyperparameters on basin assignment accuracy (Lyapunov system, 13 GT basins).}
+\label{tab:hyperparam-sweep}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Config} & $\lambda_{\text{excl}}$ & $d_b$ & $B$ & \textbf{Steps} & \textbf{Basin Acc.} \\
+\midrule
+Baseline & 0.001 & 4 & 13 & 5,000 & 37.9\% \\
+Stronger excl. & 0.01 & 4 & 13 & 10,000 & 30.0\% \\
+Much stronger & 0.05 & 4 & 13 & 10,000 & 37.9\% \\
+Very strong & 0.1 & 4 & 13 & 10,000 & 42.9\% \\
+Larger $d_b$ & 0.05 & 8 & 13 & 10,000 & 47.4\% \\
+Longer training & 0.1 & 4 & 13 & 20,000 & 42.9\% \\
+\textbf{Over-specified} & \textbf{0.05} & \textbf{4} & \textbf{20} & \textbf{10,000} & \textbf{61.5\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The most significant finding is that \emph{over-specifying} the number of model basins ($B = 20$ for 13 ground-truth basins) substantially improves basin assignment accuracy from 37.9\% to 61.5\%. This suggests that providing excess capacity allows the model to avoid the degenerate solution of collapsing multiple basins together. Simply increasing the exclusivity penalty or training longer shows diminishing returns, while increasing basin block dimension $d_b$ provides modest improvements.
+
+\paragraph{Theoretical considerations on latent dimension.}
+Koopman operator theory indicates that exact linearization of nonlinear dynamics requires an infinite-dimensional lifting. Our initial choice of small basin dimensions ($d_b = 4$, total latent dimension $\approx 60$) may be fundamentally insufficient to capture the local Koopman dynamics around each attractor. This capacity bottleneck could force the model to share basin blocks across multiple ground-truth basins.
+
+Furthermore, the LISTA encoder is designed for \emph{sparse overcomplete} representations, where the dictionary has many more atoms than the input dimension, but only a sparse subset is active for any given input. Our initial configuration contradicts this design principle by using small dense basin blocks. An alternative approach would use large sparse basin blocks ($d_b = 64$ or higher) where sparsity within each block, rather than across blocks, provides the desired structure.
+
+\paragraph{Entropy and dominance losses: negative results.}
+Initial experiments with the entropy-based exclusivity loss $\mathcal{L}_{\text{entropy}}$ (Eq.~\ref{eq:entropy-excl}) and dominance loss $\mathcal{L}_{\text{dom}}$ (Eq.~\ref{eq:dominance}) show that these regularizers \emph{harm} basin assignment accuracy. Adding $\lambda_{\text{entropy}} = 0.01$ or $\lambda_{\text{dom}} = 0.01$ to the best baseline configuration ($B=20$, $d_b=4$, $\lambda_{\text{excl}}=0.05$, achieving 61.5\% accuracy) causes accuracy to drop to approximately 20\%---worse than random assignment.
+
+The likely explanation is that these losses are too aggressive at enforcing single-basin activation per sample, without accounting for the need for \emph{different} samples to activate \emph{different} basins. Combined with the existing pairwise exclusivity loss, the model over-regularizes and collapses to a degenerate solution where nearly all points are assigned to the same few basins. We have disabled these losses in subsequent experiments.
+
+\paragraph{Ongoing experiments.}
+We are currently investigating several directions to improve basin correspondence:
+\begin{enumerate}
+    \item \textbf{Larger basin dimensions}: Testing $d_b \in \{16, 32, 64\}$ with $d_g \in \{16, 32\}$ for total latent dimensions of 300--1,300, using only pairwise exclusivity loss (no entropy/dominance).
+    \item \textbf{Unstructured sparse baselines}: Testing whether standard LISTAKM with large latent dimension (512--2048) naturally learns basin-distinguishing sparse supports without explicit partitioning.
+    \item \textbf{GenericKM baselines}: Establishing comparison baselines with MLP encoders at various dimensions.
+\end{enumerate}
 
 \paragraph{Discussion.}
-These preliminary results highlight an important tension: while the structured Koopman parameterization \emph{enables} basin-specific dynamics, it does not \emph{guarantee} that the learned representation will discover the correct basin correspondence without explicit supervision. Future work should explore: (1) stronger exclusivity penalties, (2) curriculum learning strategies that gradually increase the number of basins, (3) contrastive losses that push latent codes from different basins apart, and (4) supervised pre-training with basin labels when available.
+These results highlight an important tension: while the structured Koopman parameterization \emph{enables} basin-specific dynamics, it does not \emph{guarantee} that the learned representation will discover the correct basin correspondence without explicit supervision. The over-specification finding suggests that the optimization landscape favors basin collapse when the model capacity exactly matches the number of ground-truth basins. Providing excess capacity may smooth the loss landscape and allow gradient-based optimization to find solutions with better basin separation.
 
 \subsection{Long-Horizon Forecasting with Periodic Re-encoding}
 

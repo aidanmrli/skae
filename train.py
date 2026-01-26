@@ -893,6 +893,10 @@ Examples:
                         help='Final exclusivity penalty weight (default: 1e-2)')
     parser.add_argument('--lambda_sparsity', type=float, default=None,
                         help='Explicit L1 sparsity weight on full z (default: 1e-3)')
+    parser.add_argument('--lambda_entropy', type=float, default=None,
+                        help='Entropy-based exclusivity weight (penalizes multiple active basins, default: 0)')
+    parser.add_argument('--lambda_dominance', type=float, default=None,
+                        help='Top-1 dominance loss weight (encourages one basin to dominate, default: 0)')
     parser.add_argument('--excl_warmup_steps', type=int, default=None,
                         help='Steps to ramp exclusivity/sparsity from 0 to final (default: 1000)')
     
@@ -1034,6 +1038,10 @@ Examples:
         cfg.MODEL.STRUCTURED.LAMBDA_EXCLUSIVITY = args.lambda_exclusivity
     if args.lambda_sparsity is not None:
         cfg.MODEL.STRUCTURED.LAMBDA_SPARSITY = args.lambda_sparsity
+    if args.lambda_entropy is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_ENTROPY = args.lambda_entropy
+    if args.lambda_dominance is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_DOMINANCE = args.lambda_dominance
     if args.excl_warmup_steps is not None:
         cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS = args.excl_warmup_steps
 
