@@ -643,16 +643,37 @@ The large-dimension sweep and baseline comparisons yield several key insights:
 The 76.6\% basin assignment accuracy, while substantially improved, remains below our target of 80\%. The high variance across seeds suggests that the current training objective does not reliably guide the model toward correct basin-block correspondences. Several directions may address this limitation:
 
 \begin{itemize}
-    \item \textbf{Contrastive losses}: Explicitly encourage different basins to activate different blocks by penalizing when two samples from different ground-truth basins activate the same model basin. This would provide direct supervision for the correspondence problem.
-
     \item \textbf{Temperature scheduling}: Apply a temperature parameter to the basin activation softmax, starting high (encouraging exploration of all basins) and annealing to low (encouraging commitment to single basins) over training.
-
-    \item \textbf{Curriculum learning}: Train first on a simplified system with fewer attractors, then gradually increase complexity. This may help the model learn clean basin separation before facing the full combinatorial matching problem.
 
     \item \textbf{Initialization strategies}: Given the high seed sensitivity, specialized initialization schemes that pre-assign basin blocks to different regions of state space may improve convergence to correct correspondences.
 \end{itemize}
 
 The entropy and dominance losses, previously found to harm performance, may warrant reconsideration now that a better-performing base configuration exists. These losses were tested on configurations achieving only 61.5\% accuracy; with the improved 76.6\% baseline, they may provide additional benefit rather than causing collapse.
+
+\paragraph{Sequence training for improved basin correspondence.}
+A fundamental limitation of the pairwise training mode used in the experiments above is that it discards trajectory structure: each transition pair $(x_t, x_{t+1})$ is treated independently, erasing information about which samples belong to the same trajectory and hence the same basin. This may explain why basin correspondence is difficult---the model sees randomly shuffled pairs from all basins simultaneously, providing no signal about which pairs should route to the same basin block.
+
+We implement \textit{sequence training}, where the model receives contiguous trajectory windows $[x_0, x_1, \ldots, x_T]$ and computes losses over the entire sequence. The training objective integrates the latent dynamics via ODE integration from the initial encoded state $z_0 = \phi(x_0)$:
+\begin{align}
+    \mathcal{L}_{\text{align}}^{\text{seq}} &= \sum_{t=1}^{T} \| \hat{z}_t - \phi(x_t) \|_2^2, \\
+    \mathcal{L}_{\text{pred}}^{\text{seq}} &= \sum_{t=1}^{T} \| \psi(\hat{z}_t) - x_t \|_2^2,
+\end{align}
+where $\hat{z}_t$ is obtained by integrating the Koopman dynamics $\dot{z} = K z$ from $z_0$ over time $t \cdot \Delta t$. The exclusivity loss is computed over all encoded states in the sequence, providing multiple gradient signals for consistent basin activation.
+
+Preliminary tests confirm that sequence training for StructuredLISTAKM runs successfully and maintains high temporal consistency (99.5\% in a 500-step test). However, training is more computationally expensive due to ODE integration at each step, and hyperparameters (sequence length, exclusivity coefficients) may require re-tuning.
+
+\paragraph{Temporal consistency loss.}
+To further exploit trajectory structure, we introduce a \textit{temporal consistency loss} that explicitly penalizes changes in basin activation pattern within a trajectory window. The intuition is that points in the same trajectory are almost always in the same basin of attraction (basin transitions are rare except near separatrices), so the active basin block should remain consistent throughout the sequence.
+
+For a sequence of encoded states $z_0, \ldots, z_T$, we compute basin block norms at each timestep $n_t^{(k)} = \| z_t^{(k)} \|_2$ and penalize deviation from the initial activation pattern:
+\begin{equation}
+    \mathcal{L}_{\text{temporal}} = \frac{1}{T} \sum_{t=1}^{T} \sum_{k=1}^{B} \left( n_t^{(k)} - n_0^{(k)} \right)^2.
+\end{equation}
+This loss is minimized when the basin activation pattern at $t=0$ persists throughout the trajectory. Combined with the exclusivity loss (which encourages one basin to dominate at each timestep), the temporal consistency loss encourages the \emph{same} basin to dominate across all timesteps in the trajectory.
+
+The temporal consistency loss is subject to the same linear warmup schedule as other exclusivity-related terms, allowing the model to first learn useful dynamics before the consistency constraint is enforced. It is only computed in sequence training mode.
+
+We expect that sequence training with temporal consistency will provide stronger gradients for learning correct basin-block correspondences, as the model now receives explicit signal that samples within a trajectory should route to the same basin. This unsupervised signal exploits the trajectory structure of dynamical systems data without requiring ground-truth basin labels.
 
 \subsection{Long-Horizon Forecasting with Periodic Re-encoding}
 

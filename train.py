@@ -897,6 +897,8 @@ Examples:
                         help='Entropy-based exclusivity weight (penalizes multiple active basins, default: 0)')
     parser.add_argument('--lambda_dominance', type=float, default=None,
                         help='Top-1 dominance loss weight (encourages one basin to dominate, default: 0)')
+    parser.add_argument('--lambda_temporal', type=float, default=None,
+                        help='Temporal consistency loss weight for sequence training (penalizes basin changes within trajectory, default: 0)')
     parser.add_argument('--excl_warmup_steps', type=int, default=None,
                         help='Steps to ramp exclusivity/sparsity from 0 to final (default: 1000)')
     
@@ -1042,6 +1044,8 @@ Examples:
         cfg.MODEL.STRUCTURED.LAMBDA_ENTROPY = args.lambda_entropy
     if args.lambda_dominance is not None:
         cfg.MODEL.STRUCTURED.LAMBDA_DOMINANCE = args.lambda_dominance
+    if args.lambda_temporal is not None:
+        cfg.MODEL.STRUCTURED.LAMBDA_TEMPORAL = args.lambda_temporal
     if args.excl_warmup_steps is not None:
         cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS = args.excl_warmup_steps
 

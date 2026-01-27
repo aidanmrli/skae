@@ -267,6 +267,7 @@ class StructuredLatentConfig:
     LAMBDA_ENTROPY: float = 0.0        # Entropy-based exclusivity penalty (low entropy = 1 dominant basin)
     LAMBDA_DOMINANCE: float = 0.0      # Top-1 dominance loss (penalize non-max basins)
     LAMBDA_SPARSITY: float = 1e-3      # Explicit L1 sparsity weight on full z
+    LAMBDA_TEMPORAL: float = 0.0       # Temporal consistency loss weight (sequence training only)
     EXCL_WARMUP_STEPS: int = 1000      # Steps to ramp exclusivity/sparsity from 0 to final
 
 

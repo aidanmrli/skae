@@ -1442,6 +1442,7 @@ class StructuredLISTAKM(LISTAKM):
         self.lambda_entropy = struct_cfg.LAMBDA_ENTROPY
         self.lambda_dominance = struct_cfg.LAMBDA_DOMINANCE
         self.lambda_sparsity = struct_cfg.LAMBDA_SPARSITY
+        self.lambda_temporal = struct_cfg.LAMBDA_TEMPORAL
         self.excl_warmup_steps = struct_cfg.EXCL_WARMUP_STEPS
 
         # Compute and set TARGET_SIZE to match structured dimensions
@@ -1483,6 +1484,7 @@ class StructuredLISTAKM(LISTAKM):
         print(f"  Koopman storage: {block_elements:,} params (vs {dense_elements:,} dense, {sparsity_pct:.1f}% sparse)")
         print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}")
         print(f"  λ_entropy={self.lambda_entropy}, λ_dominance={self.lambda_dominance}, λ_sparsity={self.lambda_sparsity}")
+        print(f"  λ_temporal={self.lambda_temporal}")
         print(f"  Exclusivity/sparsity warmup: {self.excl_warmup_steps} steps")
 
     def kmatrix(self) -> torch.Tensor:
@@ -1799,6 +1801,60 @@ class StructuredLISTAKM(LISTAKM):
 
         return dominance_ratio.mean()
 
+    def _temporal_consistency_from_z_seq(
+        self, z_seq: torch.Tensor
+    ) -> torch.Tensor:
+        """Compute temporal consistency loss for sequence training.
+
+        Penalizes changes in basin activation pattern within a trajectory window.
+        Points in the same trajectory are (almost always) in the same basin, so
+        the active basin should remain consistent throughout the sequence.
+
+        Mathematical formulation:
+        Given sequence z_0, ..., z_T, compute basin norms n_t^(k) = ||z_t^(k)||_2
+        L_temporal = (1/T) Σ_t Σ_k (n_t^(k) - n_0^(k))²
+
+        Args:
+            z_seq: Latent codes of shape [batch_size, seq_len, target_size]
+
+        Returns:
+            Scalar temporal consistency loss
+        """
+        batch_size, seq_len, _ = z_seq.shape
+
+        # Partition into basins: [batch, seq_len, B, d_basin]
+        z_flat = z_seq.reshape(batch_size * seq_len, -1)
+        _, z_basins_flat = self._partition_latent(z_flat)  # [batch*seq, B, d_b]
+        z_basins = z_basins_flat.reshape(batch_size, seq_len, self.num_basins, self.d_basin)
+
+        # Compute basin norms: [batch, seq_len, B]
+        basin_norms = torch.norm(z_basins, p=2, dim=-1)
+
+        # Reference norms from t=0: [batch, 1, B]
+        ref_norms = basin_norms[:, 0:1, :]
+
+        # Temporal consistency: penalize deviation from initial basin pattern
+        # [batch, seq_len, B] -> scalar
+        temporal_loss = torch.mean((basin_norms - ref_norms) ** 2)
+
+        return temporal_loss
+
+    def get_temporal_weight(self, step: int) -> float:
+        """Get current temporal consistency weight based on linear warmup schedule.
+
+        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
+
+        Args:
+            step: Current training step
+
+        Returns:
+            Current temporal coefficient (0 to lambda_temporal)
+        """
+        if self.excl_warmup_steps <= 0:
+            return self.lambda_temporal
+        progress = min(1.0, step / self.excl_warmup_steps)
+        return progress * self.lambda_temporal
+
     def structured_sparsity_loss(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute block-weighted sparsity loss (convenience wrapper).
 
@@ -2085,6 +2141,10 @@ class StructuredLISTAKM(LISTAKM):
         sparsity_weight = self.get_sparsity_weight(step)
         sparsity_loss = alpha * torch.norm(z_flat, p=1, dim=-1).mean()
 
+        # Temporal consistency loss: penalize basin activation changes within trajectory
+        temporal_weight = self.get_temporal_weight(step)
+        temporal_loss = self._temporal_consistency_from_z_seq(z_seq)
+
         # Metrics for monitoring
         with torch.no_grad():
             kmat = self.kmatrix()
@@ -2112,7 +2172,8 @@ class StructuredLISTAKM(LISTAKM):
             self.lambda_global * global_sparsity_loss +
             self.lambda_local * local_sparsity_loss +
             excl_weight * excl_loss +
-            sparsity_weight * sparsity_loss
+            sparsity_weight * sparsity_loss +
+            temporal_weight * temporal_loss
         )
 
         # Homogeneous loss if enabled
@@ -2132,6 +2193,8 @@ class StructuredLISTAKM(LISTAKM):
             'exclusivity_weight': excl_weight,
             'sparsity_loss': sparsity_loss.item(),
             'sparsity_weight': sparsity_weight,
+            'temporal_loss': temporal_loss.item(),
+            'temporal_weight': temporal_weight,
             'A_max_eigenvalue': max_eigenvalue.item(),
             'sparsity_ratio': sparsity_ratio.item(),
             'active_basins': active_basins,
