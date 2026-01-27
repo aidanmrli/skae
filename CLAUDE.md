@@ -151,7 +151,10 @@ KoopmanMachine (ABC)
 
 ### Environment System
 
-Built-in environments: `duffing`, `pendulum`, `lotka_volterra`, `lorenz63`, `parabolic`, `lyapunov`
+Built-in environments: `duffing`, `pendulum`, `lotka_volterra`, `lorenz63`, `parabolic`, `lyapunov`, `blended`
+
+- `lyapunov`: 13 identical Gaussian wells in hexagonal pattern (tests basin separation, but all basins have same dynamics)
+- `blended`: 3 basins with genuinely different local dynamics (spiral, slow-horizontal, fast-vertical eigenstructures). Better test for whether model learns dynamical regimes vs geometric features.
 
 External dysts systems: Use `--env dysts:SystemName` (e.g., `dysts:Lorenz`, `dysts:Chua`)
 

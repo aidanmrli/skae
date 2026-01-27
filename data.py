@@ -725,6 +725,170 @@ class LyapunovMultiAttractor(Env):
 
         return integrate_rk4(state, None, self.dt, dynamics_fn)
 
+
+class BlendedLinearSystem(Env):
+    """Synthetic 2D system with 3 basins having genuinely different local dynamics.
+
+    This environment tests whether models learn dynamical regions vs geometric features.
+    Unlike Lyapunov (identical Gaussian wells), each basin has distinct eigenstructure:
+
+    Basin 1 (Spiral): Complex eigenvalues, oscillatory approach to equilibrium
+        - Center: (2, 0)
+        - Eigenvalues: -0.5 ± 3i (damped oscillation)
+
+    Basin 2 (Slow Horizontal): Stiff system with slow X decay, fast Y decay
+        - Center: (-2, 2)
+        - Eigenvalues: -0.2 (slow), -5.0 (fast)
+        - Trajectories look like horizontal lines approaching attractor
+
+    Basin 3 (Fast Vertical): Stiff system with fast X decay, moderate Y decay
+        - Center: (-2, -2)
+        - Eigenvalues: -5.0 (fast), -2.0 (moderate)
+        - Trajectories look like vertical lines approaching attractor
+
+    The global dynamics are a softmax-weighted blend of local linear systems:
+        dx/dt = sum_i w_i(x) * A_i * (x - c_i)
+    where w_i(x) = softmax(-||x - c_i||^2 / (2*sigma^2))
+
+    Key test: If a model learns geometric features (horizontal/vertical lines) rather
+    than dynamical basins, it will confuse Basin 1's spiral (which passes through
+    horizontal/vertical orientations) with Basins 2/3's manifold structure.
+    """
+
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
+
+        # Timestep for integration
+        self.dt = 0.05
+
+        # Blending width (controls how sharply basins transition)
+        self.sigma = 1.5
+
+        # Basin centers
+        self.centers = torch.tensor([
+            [2.0, 0.0],    # Basin 1: Spiral (right)
+            [-2.0, 2.0],   # Basin 2: Slow horizontal (top-left)
+            [-2.0, -2.0],  # Basin 3: Fast vertical (bottom-left)
+        ], dtype=torch.float32)
+
+        # Local dynamics matrices A_i
+        # Basin 1: Spiral (complex eigenvalues: -0.5 ± 3i)
+        A1 = torch.tensor([
+            [-0.5, -3.0],
+            [3.0, -0.5]
+        ], dtype=torch.float32)
+
+        # Basin 2: Slow horizontal decay (eigenvalues: -0.2, -5.0)
+        # Fast Y collapse, slow X drift -> horizontal manifold
+        A2 = torch.tensor([
+            [-0.2, 0.0],
+            [0.0, -5.0]
+        ], dtype=torch.float32)
+
+        # Basin 3: Fast vertical decay (eigenvalues: -5.0, -2.0)
+        # Fast X collapse, moderate Y decay -> vertical manifold
+        A3 = torch.tensor([
+            [-5.0, 0.0],
+            [0.0, -2.0]
+        ], dtype=torch.float32)
+
+        self.matrices = torch.stack([A1, A2, A3], dim=0)  # [3, 2, 2]
+
+        # Precompute sigma^2
+        self._sigma2 = self.sigma ** 2
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def _get_weights(self, state: torch.Tensor) -> torch.Tensor:
+        """Compute softmax blending weights based on distance to basin centers.
+
+        Args:
+            state: Current state [..., 2]
+
+        Returns:
+            Weights [..., 3] summing to 1
+        """
+        # Compute squared distances to each center
+        # state: [..., 2], centers: [3, 2]
+        diff = state.unsqueeze(-2) - self.centers  # [..., 3, 2]
+        dist_sq = (diff ** 2).sum(dim=-1)  # [..., 3]
+
+        # Gaussian weights (unnormalized)
+        raw_weights = torch.exp(-dist_sq / (2 * self._sigma2))  # [..., 3]
+
+        # Normalize to sum to 1
+        return raw_weights / (raw_weights.sum(dim=-1, keepdim=True) + 1e-8)
+
+    def _dynamics(self, state: torch.Tensor) -> torch.Tensor:
+        """Compute the blended vector field dx/dt.
+
+        Args:
+            state: Current state [..., 2]
+
+        Returns:
+            Velocity [..., 2]
+        """
+        weights = self._get_weights(state)  # [..., 3]
+
+        # Compute local velocities for each basin
+        # diff: [..., 3, 2] = state - center for each basin
+        diff = state.unsqueeze(-2) - self.centers  # [..., 3, 2]
+
+        # Local velocity: A_i @ (x - c_i) for each basin
+        # matrices: [3, 2, 2], diff: [..., 3, 2]
+        # We want: [..., 3, 2] where each [..., i, :] = A_i @ diff[..., i, :]
+        local_vel = torch.einsum('ijk,...ik->...ij', self.matrices, diff)  # [..., 3, 2]
+
+        # Weighted sum: sum_i w_i * v_i
+        # weights: [..., 3], local_vel: [..., 3, 2]
+        velocity = (weights.unsqueeze(-1) * local_vel).sum(dim=-2)  # [..., 2]
+
+        return velocity
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        """Reset to random initial state in [-4, 4]^2."""
+        if rng is None:
+            rng = torch.Generator()
+        x1 = torch.empty(1).uniform_(-4.0, 4.0, generator=rng)
+        x2 = torch.empty(1).uniform_(-4.0, 4.0, generator=rng)
+        return torch.tensor([x1.item(), x2.item()], dtype=torch.float32)
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Integrate one timestep using RK4."""
+        def dynamics_fn(s: torch.Tensor, a: Optional[torch.Tensor] = None) -> torch.Tensor:
+            return self._dynamics(s)
+
+        return integrate_rk4(state, None, self.dt, dynamics_fn)
+
+    def get_basin_label(self, state: torch.Tensor) -> torch.Tensor:
+        """Get the dominant basin for each state (for evaluation).
+
+        Args:
+            state: States [..., 2]
+
+        Returns:
+            Basin indices [...] in {0, 1, 2}
+        """
+        weights = self._get_weights(state)
+        return weights.argmax(dim=-1)
+
+    def get_local_jacobian(self, state: torch.Tensor) -> torch.Tensor:
+        """Get the dominant basin's Jacobian matrix (ground-truth local dynamics).
+
+        This is useful for evaluating whether the learned K^(k) matches the true A_i.
+
+        Args:
+            state: States [..., 2]
+
+        Returns:
+            Jacobian matrices [..., 2, 2]
+        """
+        basin_idx = self.get_basin_label(state)  # [...]
+        return self.matrices[basin_idx]  # [..., 2, 2]
+
+
 # ---------------------------------------------------------------------------
 # Registry and Factory
 # ---------------------------------------------------------------------------
@@ -737,6 +901,7 @@ _ENV_REGISTRY = {
     "lorenz63": Lorenz63,
     "parabolic": Parabolic,
     "lyapunov": LyapunovMultiAttractor,
+    "blended": BlendedLinearSystem,
 }
 
 
