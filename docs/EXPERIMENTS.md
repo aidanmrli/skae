@@ -8,11 +8,39 @@ Goal: Achieve **unique support patterns for unique basins** (mechanistic interpr
 - **Default SLURM partition is `long`** for all sbatch scripts. (The `main` partition has GPU count restrictions.)
 - Support uniqueness is measured with `tools/evaluate_support_uniqueness.py`.
 - Threshold sweeps are **post‑hoc** and require a completed checkpoint.
+- **Training-time support monitoring** is now available via `--monitor_support` flag (logs `support/*` metrics every 500 steps).
 
 ## Queue Status
-Submitted successfully (February 2, 2026):
-- Lyapunov‑HD target size sweep: job `8601836`
-- Duffing target size sweep: job `8601837`
+Submitted successfully (February 2, 2026, with support monitoring):
+- Lyapunov‑HD target size sweep: job `8602046` (array 0-4)
+- Duffing target size sweep: job `8602047` (array 0-4)
+
+Previous jobs (8601923, 8601924) were cancelled and resubmitted with support monitoring enabled.
+
+### Monitoring Commands
+```bash
+# Check job status
+squeue -u $USER -a
+
+# Watch Lyapunov-HD support metrics as they come in
+tail -f /network/scratch/l/lia/skae/lyap_hd_tsize-8602046_*.out | grep -E "(Step|Support)"
+
+# Watch Duffing support metrics
+tail -f /network/scratch/l/lia/skae/duffing_tsize-8602047_*.out | grep -E "(Step|Support)"
+
+# Check separation scores across all runs
+grep "separation_score" /network/scratch/l/lia/skae/lyap_hd_tsize-8602046_*.out
+```
+
+### Interpreting Support Metrics
+During training, you'll see lines like:
+```
+  Support[✓]: sep=0.72 cons=0.85 uniq=11 size=18.3
+```
+- **sep** (separation_score): Higher = less overlap between basins (target: >0.7)
+- **cons** (intra_basin_consistency): Higher = stable supports within each basin (target: >0.8)
+- **uniq** (unique_support_count): Should approach `num_basins` (13 for Lyapunov, 2 for Duffing)
+- **size** (mean_support_size): Should be moderate (5-20% of `target_size`)
 
 ## Queued Experiments (to submit)
 
