@@ -205,7 +205,7 @@ def evaluate(
     """Quick evaluation helper used during training and unit tests."""
     
     # Lazy import to avoid loading evaluation module at startup
-    from evaluation import rollout_every_step_reencode
+    from skae.evaluation import rollout_every_step_reencode
 
     model.eval()
     device = next(model.parameters()).device
@@ -504,7 +504,7 @@ def train(
     print("-" * 80)
     print("Running standardized evaluation suite...")
     print("Loading evaluation module...")
-    from evaluation import EvaluationSettings, evaluate_model
+    from skae.evaluation import EvaluationSettings, evaluate_model
     
     def evaluate_checkpoint(checkpoint_path: Path, checkpoint_name: str):
         """Load a checkpoint and evaluate it."""
