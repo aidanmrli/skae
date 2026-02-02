@@ -143,6 +143,7 @@ class SupportUniquenessResults:
     mean_pairwise_jaccard: float
     per_basin_consistency: Dict[int, float] = field(default_factory=dict)
     per_basin_support_size: Dict[int, float] = field(default_factory=dict)
+    per_basin_active_indices: Dict[int, List[int]] = field(default_factory=dict)
 
 
 def _support_from_latents(
@@ -195,6 +196,7 @@ def compute_support_uniqueness(
     # Mode support per basin + consistency
     per_basin_consistency: Dict[int, float] = {}
     per_basin_support_size: Dict[int, float] = {}
+    per_basin_active_indices: Dict[int, List[int]] = {}
     basin_mode_supports: Dict[int, Tuple[int, ...]] = {}
     for basin, supports in basin_supports.items():
         if not supports:
@@ -208,6 +210,7 @@ def compute_support_uniqueness(
         basin_mode_supports[basin] = mode_support
         per_basin_consistency[basin] = mode_count / max(1, len(supports))
         per_basin_support_size[basin] = float(np.sum(mode_support))
+        per_basin_active_indices[basin] = [i for i, v in enumerate(mode_support) if v == 1]
 
     # Uniqueness across basins
     mode_support_list = list(basin_mode_supports.values())
@@ -247,6 +250,7 @@ def compute_support_uniqueness(
         mean_pairwise_jaccard=mean_jaccard,
         per_basin_consistency=per_basin_consistency,
         per_basin_support_size=per_basin_support_size,
+        per_basin_active_indices=per_basin_active_indices,
     )
 
 
