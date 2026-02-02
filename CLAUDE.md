@@ -6,17 +6,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SKAE (Sparse Koopman Autoencoder) is a PyTorch research codebase for learning Koopman operator representations of nonlinear dynamical systems. The Koopman operator provides a linear representation of nonlinear dynamics in a lifted feature space, enabling linear prediction of nonlinear system evolution.
 
-We are attempting to use a LISTA encoder instead of a MLP encoder for this Koopman autoencoder, which attempts to learn to make forecasts for nonlinear dynamical systems with multiple basins of attraction determined by having multiple fixed points. The idea is that the LISTA encoder should naturally enforce sparsity and allow for more simple and interpretable behavior. 
+We are attempting to use a LISTA encoder instead of a MLP encoder for this Koopman autoencoder, which attempts to learn to make forecasts for nonlinear dynamical systems with multiple basins of attraction determined by having multiple fixed points. The idea is that the LISTA encoder should naturally enforce sparsity and allow for more simple and interpretable behavior.
 
-We want to induce structured sparsity on the Koopman matrix such that each basin of attraction corresponds to its own high dimensional subspace where the Koopman dynamics are approximately linear. Our key insight is to enforce a sparse latent representation, structured as a union of subspaces, where each active support approximately corresponds to a specific basin of attraction or dynamical regime. Ideally, we would like to see if we can isolate distinct Koopman linear dynamics for each basin. 
+We want to induce structured sparsity on the Koopman matrix such that each basin of attraction corresponds to its own high dimensional subspace where the Koopman dynamics are approximately linear. Our key insight is to enforce a sparse latent representation, structured as a union of subspaces, where each active support approximately corresponds to a specific basin of attraction or dynamical regime. Ideally, we would like to see if we can isolate distinct Koopman linear dynamics for each basin.
 
 If this is true, we can isolate each basin and solve with LQR. Then, a nonlinear control problem over multiple basins of attraction reduces to solving linear Koopman dynamics within each basin using LQR, and modeling the changes between basins. We hypothesize that our periodic reencoding mechanism at inference time where we encode and immediately decode an input might be a good mechanism for modeling changes between basins.
 
-More detailed notes about the project are in `notes.tex`, which contains the working draft of the research paper that we will publish and contains any annotated notes. This essentially contains the current state of the project. 
+More detailed notes about the project are in `docs/notes.tex`, which contains the working draft of the research paper that we will publish and contains any annotated notes. This essentially contains the current state of the project.
 
 IMPORTANT NOTE: After any changes that we make to the framework or experiments that we run, we should ALWAYS
-* make a descriptive git commit and push, and 
-* update `notes.tex` by describing the experiment that was ran, and the results of the experiment. Also, interpret the results of the experiment in context if possible. When writing, carefully discern what has been implemented and explain it to me thoroughly. Check all the math. The tone of your writing should be academic and appropriate for an audience specializing in mathematics and machine learning. The writing should be for an award-winning paper at NeurIPS or ICML. Do not make any explicit references to code or filenames. Focus on explaining well in a scientific manner so that a reader can understand and reproduce the results.
+* make a descriptive git commit and push, and
+* update `docs/notes.tex` by describing the experiment that was ran, and the results of the experiment. Also, interpret the results of the experiment in context if possible. When writing, carefully discern what has been implemented and explain it to me thoroughly. Check all the math. The tone of your writing should be academic and appropriate for an audience specializing in mathematics and machine learning. The writing should be for an award-winning paper at NeurIPS or ICML. Do not make any explicit references to code or filenames. Focus on explaining well in a scientific manner so that a reader can understand and reproduce the results.
+
+## Directory Structure
+
+```
+skae/
+├── skae/                  # Core library package
+│   ├── __init__.py
+│   ├── config.py          # Dataclass-based configuration system
+│   ├── model.py           # Koopman machine implementations
+│   ├── data.py            # Dynamical systems environments
+│   ├── evaluation.py      # Model evaluation utilities
+│   └── benchmarks/        # Benchmark system catalogs and adapters
+├── tools/                 # CLI tools and scripts
+│   ├── train.py           # Training script
+│   ├── evaluate_checkpoints.py
+│   ├── evaluate_basin_structure.py
+│   ├── evaluate_latent_basin_clustering.py
+│   ├── collect_sweep_results.py
+│   ├── plot_training_metrics.py
+│   └── tune_hyperlista.py
+├── scripts/               # Shell scripts for experiments (sbatch, etc.)
+├── experiments/           # Experiment-specific code
+├── tests/                 # Test suite
+├── notebooks/             # Jupyter notebooks
+├── docs/                  # Documentation
+│   ├── notes.tex          # Research paper draft
+│   ├── figures/           # Figures and visualizations
+│   └── planning/          # Planning documents
+└── runs/                  # Training outputs (gitignored)
+```
 
 ## Common Commands
 
@@ -27,7 +57,7 @@ uv sync
 uv add <package_name>
 
 # Train a model (basic examples)
-uv run python train.py \
+uv run python tools/train.py \
   --config generic_sparse \
   --env lyapunov \
   --num_steps 5000 \
@@ -40,7 +70,7 @@ uv run python train.py \
   --seed 0 \
   --device cuda
 
-uv run python train.py \
+uv run python tools/train.py \
   --config lista_nonlinear \
   --env lyapunov \
   --num_steps 20000 \
@@ -55,7 +85,7 @@ uv run python train.py \
   --device cuda
 
 # Example for one of the dysts systems
-uv run python train.py \
+uv run python tools/train.py \
   --config lista_nonlinear \
   --env "dysts:${SYSTEM}" \
   --num_steps 5000 \
@@ -78,7 +108,7 @@ uv run python train.py \
 # Train StructuredLISTAKM with basin-aware dynamics
 # Note: Over-specifying basins (B > GT basins) improves accuracy
 # Note: Only use lambda_exclusivity; entropy/dominance losses harm performance
-uv run python train.py \
+uv run python tools/train.py \
   --config lista_nonlinear \
   --env lyapunov \
   --structured \
@@ -94,23 +124,23 @@ uv run python train.py \
   --device cuda
 
 # Evaluate a trained checkpoint
-uv run python evaluate_checkpoints.py --run_dir runs/lista/<timestamp> --system lyapunov --device cuda
+uv run python tools/evaluate_checkpoints.py --run_dir runs/lista/<timestamp> --system lyapunov --device cuda
 
 # Evaluate basin structure correspondence (for any model)
-uv run python evaluate_latent_basin_clustering.py \
+uv run python tools/evaluate_latent_basin_clustering.py \
   --checkpoint runs/<model>/<timestamp>/checkpoint.pt \
   --num_trajectories 100 \
   --output_dir results/latent_clustering/<model_name>
 
 # Evaluate basin block specialization (StructuredLISTAKM only)
-uv run python evaluate_basin_structure.py \
+uv run python tools/evaluate_basin_structure.py \
   --checkpoint runs/structured_lista/<timestamp>/checkpoint.pt \
   --system lyapunov \
   --num_trajectories 100 \
   --output_dir results/basin_structure/<run_name>
 
-# Run sbatch sweep using lista_nonlinear config on dysts multi-basin environments. Note that hyperparameters should be set manually and carefully.
-sbatch dysts_multi_basin_lista_nonlinear_long.sh
+# Run sbatch sweep using lista_nonlinear config on dysts multi-basin environments
+sbatch scripts/dysts_multi_basin_lista_nonlinear_long.sh
 
 # Run all tests
 pytest
@@ -119,17 +149,16 @@ pytest
 pytest tests/test_model.py -v
 
 # List available dysts chaotic systems
-uv run python train.py --list-dysts
+uv run python tools/train.py --list-dysts
 ```
 
 ## Architecture
 
-### Core Components
+### Core Components (in `skae/`)
 
 - **`config.py`**: Dataclass-based configuration system with presets (`generic`, `generic_sparse`, `lista`, `lista_nonlinear`, `hyperlista`)
 - **`model.py`**: Koopman machine implementations inheriting from `KoopmanMachine` base class
 - **`data.py`**: Dynamical systems environments (Duffing, Pendulum, Lorenz63, Lyapunov, etc.) with `Env` base class
-- **`train.py`**: Training loop with CLI interface and automatic evaluation
 - **`evaluation.py`**: Comprehensive model evaluation with rollout strategies
 
 ### Model Hierarchy
@@ -162,7 +191,7 @@ External dysts systems: Use `--env dysts:SystemName` (e.g., `dysts:Lorenz`, `dys
 
 Get a preset config and modify:
 ```python
-from config import get_config
+from skae.config import get_config
 cfg = get_config("lista")
 cfg.MODEL.TARGET_SIZE = 512
 cfg.TRAIN.NUM_STEPS = 10000
@@ -183,7 +212,7 @@ Key config paths:
 ## Model Factory
 
 ```python
-from model import make_model
+from skae.model import make_model
 model = make_model(cfg, observation_size)  # Uses cfg.MODEL.MODEL_NAME
 ```
 

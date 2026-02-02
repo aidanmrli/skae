@@ -5,7 +5,7 @@ Tests configuration loading, modification, and registry functionality.
 
 import pytest
 
-from config import (
+from skae.config import (
     get_config,
     get_default_config,
     get_train_generic_km_config,

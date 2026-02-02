@@ -2,9 +2,9 @@
 
 import torch
 import pytest
-from config import get_config
-from data import make_env, VectorWrapper, generate_trajectory
-from model import make_model
+from skae.config import get_config
+from skae.data import make_env, VectorWrapper, generate_trajectory
+from skae.model import make_model
 
 
 class TestModelDataIntegration:

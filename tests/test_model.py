@@ -2,8 +2,8 @@
 
 import torch
 import pytest
-from config import get_config, Config
-from model import (
+from skae.config import get_config, Config
+from skae.model import (
     MLPCoder,
     LISTA,
     GenericKM,

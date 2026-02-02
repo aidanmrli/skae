@@ -7,8 +7,8 @@ import pytest
 import torch
 import numpy as np
 
-from config import Config
-from data import (
+from skae.config import Config
+from skae.data import (
     Env,
     Wrapper,
     VectorWrapper,

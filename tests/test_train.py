@@ -13,10 +13,10 @@ import torch
 import tempfile
 from pathlib import Path
 
-from config import get_config
-from data import make_env, VectorWrapper
-from model import make_model
-from train import train_step, evaluate, train, build_optimizer
+from skae.config import get_config
+from skae.data import make_env, VectorWrapper
+from skae.model import make_model
+from tools.train import train_step, evaluate, train, build_optimizer
 
 
 class TestTrainStep:

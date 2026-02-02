@@ -6,8 +6,8 @@ including mathematical dynamics, integration, trajectory generation, and batchin
 
 import unittest
 import torch
-from config import Config
-from data import (
+from skae.config import Config
+from skae.data import (
     Env, Wrapper, VectorWrapper,
     Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic,
     integrate_euler, integrate_rk4, generate_trajectory, make_env

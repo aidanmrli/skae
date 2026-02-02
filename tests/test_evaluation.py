@@ -3,9 +3,9 @@
 import numpy as np
 import torch
 
-from config import get_config
-from data import make_env
-from evaluation import (
+from skae.config import get_config
+from skae.data import make_env
+from skae.evaluation import (
     EvaluationSettings,
     evaluate_model,
     rollout_every_step_reencode,
@@ -14,7 +14,7 @@ from evaluation import (
     _estimate_learned_attractors,
     _save_lyapunov_phase_portrait_comparison,
 )
-from model import make_model
+from skae.model import make_model
 
 
 def _build_model_and_states(system: str, batch_size: int = 4) -> tuple:
