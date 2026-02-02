@@ -826,6 +826,24 @@ Examples:
                         help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '
                              'lorenz63, parabolic, lyapunov. '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
+    parser.add_argument('--lyapunov_dim', type=int, default=None,
+                        help='Lyapunov state dimension (default: 2)')
+    parser.add_argument('--lyapunov_num_basins', type=int, default=None,
+                        help='Number of Lyapunov attractor centers (default: 13)')
+    parser.add_argument('--lyapunov_points_mode', type=str, default=None,
+                        choices=['fixed', 'random'],
+                        help='Lyapunov center layout: fixed (canonical 2D grid) or random')
+    parser.add_argument('--lyapunov_center_scale', type=float, default=None,
+                        help='Lyapunov random center range scale (uniform in [-scale, scale])')
+    parser.add_argument('--lyapunov_min_separation', type=float, default=None,
+                        help='Minimum separation between Lyapunov random centers')
+    parser.add_argument('--lyapunov_init_range', type=float, default=None,
+                        help='Lyapunov reset range (uniform in [-r, r])')
+    parser.add_argument('--lyapunov_extend_mode', type=str, default=None,
+                        choices=['embed', 'full'],
+                        help='Lyapunov dimension extension mode: embed (2D + decay) or full')
+    parser.add_argument('--lyapunov_extra_decay', type=float, default=None,
+                        help='Decay rate for extra dimensions in embed mode')
     
     # Dysts utilities
     parser.add_argument('--list-dysts', action='store_true',
@@ -963,6 +981,24 @@ Examples:
     cfg.TRAIN.NUM_STEPS = args.num_steps
     cfg.TRAIN.BATCH_SIZE = args.batch_size
     cfg.SEED = args.seed
+
+    # Lyapunov environment overrides
+    if args.lyapunov_dim is not None:
+        cfg.ENV.LYAPUNOV.DIM = args.lyapunov_dim
+    if args.lyapunov_num_basins is not None:
+        cfg.ENV.LYAPUNOV.NUM_BASINS = args.lyapunov_num_basins
+    if args.lyapunov_points_mode is not None:
+        cfg.ENV.LYAPUNOV.POINTS_MODE = args.lyapunov_points_mode
+    if args.lyapunov_center_scale is not None:
+        cfg.ENV.LYAPUNOV.CENTER_SCALE = args.lyapunov_center_scale
+    if args.lyapunov_min_separation is not None:
+        cfg.ENV.LYAPUNOV.MIN_SEPARATION = args.lyapunov_min_separation
+    if args.lyapunov_init_range is not None:
+        cfg.ENV.LYAPUNOV.INIT_RANGE = args.lyapunov_init_range
+    if args.lyapunov_extend_mode is not None:
+        cfg.ENV.LYAPUNOV.EXTEND_MODE = args.lyapunov_extend_mode
+    if args.lyapunov_extra_decay is not None:
+        cfg.ENV.LYAPUNOV.EXTRA_DECAY = args.lyapunov_extra_decay
     
     # Override config with command-line args
     if args.lr is not None:
@@ -1065,4 +1101,3 @@ Examples:
 
 if __name__ == '__main__':
     main()
-

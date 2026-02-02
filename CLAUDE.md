@@ -182,10 +182,35 @@ KoopmanMachine (ABC)
 
 Built-in environments: `duffing`, `pendulum`, `lotka_volterra`, `lorenz63`, `parabolic`, `lyapunov`, `blended`
 
-- `lyapunov`: 13 identical Gaussian wells in hexagonal pattern (tests basin separation, but all basins have same dynamics)
+- `lyapunov`: Configurable multi-attractor system with Gaussian wells (tests basin separation)
 - `blended`: 3 basins with genuinely different local dynamics (spiral, slow-horizontal, fast-vertical eigenstructures). Better test for whether model learns dynamical regimes vs geometric features.
 
 External dysts systems: Use `--env dysts:SystemName` (e.g., `dysts:Lorenz`, `dysts:Chua`)
+
+#### Lyapunov Environment Configuration
+
+The Lyapunov environment supports configurable dimensions and basin layouts via CLI or config:
+
+```bash
+uv run python tools/train.py \
+  --env lyapunov \
+  --lyapunov_dim 4 \              # State dimension (default: 2)
+  --lyapunov_num_basins 8 \       # Number of attractor centers (default: 13)
+  --lyapunov_points_mode random \ # "fixed" (canonical 2D grid) or "random"
+  --lyapunov_center_scale 3.0 \   # Range for random centers (default: 2.0)
+  --lyapunov_min_separation 0.6 \ # Minimum separation for random centers
+  --lyapunov_init_range 2.5 \     # Reset range for initial states
+  --lyapunov_extend_mode embed \  # "embed" (2D + decay) or "full" (full-dim dynamics)
+  --lyapunov_extra_decay 1.0 \    # Decay rate for extra dims in embed mode
+  ...
+```
+
+Config paths:
+- `cfg.ENV.LYAPUNOV.DIM`: State dimension
+- `cfg.ENV.LYAPUNOV.NUM_BASINS`: Number of attractor centers
+- `cfg.ENV.LYAPUNOV.POINTS_MODE`: "fixed" or "random"
+- `cfg.ENV.LYAPUNOV.CENTER_SCALE`: Range for random centers
+- `cfg.ENV.LYAPUNOV.EXTEND_MODE`: "embed" or "full"
 
 ## Configuration Patterns
 

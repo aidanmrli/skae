@@ -186,9 +186,9 @@ class BasinLabeledDataset:
             self.attractor_positions = torch.tensor([[-1.0, 0.0], [1.0, 0.0]])
             self.is_dysts_duffing = is_dysts_duffing
         elif system_lower == 'lyapunov':
-            self.num_basins = 13
+            self.num_basins = int(self.env.points.shape[0])
             self.attractor_positions = self.env.points.clone()
-            self.basin_names = [f'Attractor {i}' for i in range(13)]
+            self.basin_names = [f'Attractor {i}' for i in range(self.num_basins)]
             self.is_dysts_duffing = False
         else:
             raise ValueError(

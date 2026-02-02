@@ -120,7 +120,7 @@ def identify_lyapunov_basin(
     """
     Identify which basin a Lyapunov trajectory belongs to.
 
-    Lyapunov system has 13 fixed-point attractors.
+    Lyapunov system has multiple fixed-point attractors.
     Identify basin by nearest attractor after convergence.
 
     Args:
@@ -180,9 +180,9 @@ class BasinLabeledDataset:
             self.basin_names = ['Left Well (x→-1)', 'Right Well (x→+1)']
             self.attractor_positions = torch.tensor([[-1.0, 0.0], [1.0, 0.0]])
         elif system.lower() == 'lyapunov':
-            self.num_basins = 13
+            self.num_basins = int(self.env.points.shape[0])
             self.attractor_positions = self.env.points.clone()
-            self.basin_names = [f'Attractor {i}' for i in range(13)]
+            self.basin_names = [f'Attractor {i}' for i in range(self.num_basins)]
         else:
             raise ValueError(f"Unknown system: {system}. Supported: duffing, lyapunov")
 

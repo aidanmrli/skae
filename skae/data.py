@@ -6,7 +6,7 @@ structured as environments.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Tuple
 import time
 import numpy as np
 import torch
@@ -678,20 +678,86 @@ class LyapunovMultiAttractor(Env):
 
     def __init__(self, cfg: Config):
         super().__init__(cfg)
-        # Configurable parameters
-        # Defaults chosen to match the notebook example
-        self.dt = getattr(cfg.ENV, 'LYAPUNOV', None).DT if hasattr(cfg.ENV, 'LYAPUNOV') else 0.05
-        self.sigma = getattr(cfg.ENV, 'LYAPUNOV', None).SIGMA if hasattr(cfg.ENV, 'LYAPUNOV') else 0.5
+        # Configurable parameters (defaults match the notebook example)
+        lyap_cfg = cfg.ENV.LYAPUNOV if hasattr(cfg.ENV, 'LYAPUNOV') else None
+        self.dt = lyap_cfg.DT if lyap_cfg is not None else 0.05
+        self.sigma = lyap_cfg.SIGMA if lyap_cfg is not None else 0.5
+        self.dim = lyap_cfg.DIM if lyap_cfg is not None else 2
+        self.num_basins = lyap_cfg.NUM_BASINS if lyap_cfg is not None else 13
+        self.points_mode = lyap_cfg.POINTS_MODE if lyap_cfg is not None else "fixed"
+        self.center_scale = lyap_cfg.CENTER_SCALE if lyap_cfg is not None else 2.0
+        self.min_separation = lyap_cfg.MIN_SEPARATION if lyap_cfg is not None else 0.6
+        self.init_range = lyap_cfg.INIT_RANGE if lyap_cfg is not None else 2.5
+        self.extend_mode = lyap_cfg.EXTEND_MODE if lyap_cfg is not None else "embed"
+        self.extra_decay = lyap_cfg.EXTRA_DECAY if lyap_cfg is not None else 1.0
 
-        # Stable points (equilibria)
-        self.points = torch.tensor([
+        # Stable points (equilibria) - canonical 2D layout
+        self._base_points_2d = torch.tensor([
             [-1.0, -1.0], [ 1.0, -1.0], [-1.0,  1.0], [ 1.0,  1.0],
             [ 0.0,  0.0],
             [-1.0, -2.0], [ 1.0, -2.0], [-1.0,  2.0], [ 1.0,  2.0],
             [-2.0, -1.0], [ 2.0, -1.0], [-2.0,  1.0], [ 2.0,  1.0],
         ], dtype=torch.float32)
 
+        self.points_2d, self.points = self._init_points()
         self._sigma2 = float(self.sigma) * float(self.sigma)
+
+    def _sample_points(
+        self,
+        num_points: int,
+        dim: int,
+        rng: torch.Generator,
+    ) -> torch.Tensor:
+        """Sample random centers with a minimum separation constraint."""
+        points: List[torch.Tensor] = []
+        max_tries = max(1000, num_points * 500)
+        tries = 0
+        while len(points) < num_points and tries < max_tries:
+            candidate = (torch.rand(dim, generator=rng) * 2.0 - 1.0) * self.center_scale
+            if not points:
+                points.append(candidate)
+            else:
+                dists = torch.stack([torch.norm(candidate - p) for p in points])
+                if torch.all(dists >= self.min_separation):
+                    points.append(candidate)
+            tries += 1
+        if len(points) < num_points:
+            # Fall back to unconstrained sampling for remaining points
+            remaining = num_points - len(points)
+            extra = (torch.rand(remaining, dim, generator=rng) * 2.0 - 1.0) * self.center_scale
+            points.extend([p for p in extra])
+        return torch.stack(points, dim=0)
+
+    def _pad_points(self, points: torch.Tensor, dim: int) -> torch.Tensor:
+        if points.shape[1] == dim:
+            return points
+        padded = torch.zeros(points.shape[0], dim, dtype=points.dtype)
+        padded[:, :points.shape[1]] = points
+        return padded
+
+    def _init_points(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Initialize attractor centers (points_2d, points_full)."""
+        seed = getattr(self.cfg, 'SEED', 0)
+        rng = torch.Generator().manual_seed(seed)
+
+        # For embed mode, always generate centers in 2D and pad
+        point_dim = 2 if self.extend_mode == "embed" else self.dim
+
+        if self.points_mode == "fixed":
+            points = self._base_points_2d.clone()
+            if self.num_basins <= points.shape[0]:
+                points = points[:self.num_basins]
+            else:
+                extra = self._sample_points(self.num_basins - points.shape[0], 2, rng)
+                points = torch.cat([points, extra], dim=0)
+        elif self.points_mode == "random":
+            points = self._sample_points(self.num_basins, point_dim, rng)
+        else:
+            raise ValueError(f"Unknown POINTS_MODE '{self.points_mode}' (expected 'fixed' or 'random').")
+
+        points_2d = points[:, :2] if points.shape[1] >= 2 else self._pad_points(points, 2)
+        points_full = self._pad_points(points, self.dim)
+        return points_2d, points_full
 
     @property
     def action_size(self) -> int:
@@ -700,26 +766,40 @@ class LyapunovMultiAttractor(Env):
     def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
         if rng is None:
             rng = torch.Generator()
-        x1 = torch.empty(1).uniform_(-2.5, 2.5, generator=rng)
-        x2 = torch.empty(1).uniform_(-2.5, 2.5, generator=rng)
-        return torch.tensor([x1.item(), x2.item()], dtype=torch.float32)
+        state = torch.empty(self.dim).uniform_(-self.init_range, self.init_range, generator=rng)
+        return state.to(dtype=torch.float32)
 
     def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
         sigma2 = self._sigma2
 
         def dynamics_fn(state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
-            # Vectorized over all equilibrium points
-            diff = state.unsqueeze(0) - self.points  # [M, 2]
+            if self.extend_mode == "embed" and self.dim > 2:
+                # 2D Lyapunov dynamics + linear decay for extra dimensions
+                state_2d = state[:2]
+                diff = state_2d.unsqueeze(0) - self.points_2d  # [M, 2]
+                r2 = (diff * diff).sum(dim=1)  # [M]
+                normx2 = torch.dot(state_2d, state_2d)
+
+                psi1 = normx2 * torch.exp(-r2 / sigma2)  # [M]
+                term1 = (-2.0 / sigma2) * (psi1.unsqueeze(1) * diff).sum(dim=0)  # [2]
+
+                psi2 = torch.exp(-r2 / sigma2)  # [M]
+                term2 = -(psi2.unsqueeze(1) * diff).sum(dim=0)  # [2]
+
+                dx2 = term1 + term2
+                dx_extra = -self.extra_decay * state[2:]
+                return torch.cat([dx2, dx_extra], dim=0)
+
+            # Full-dimensional Lyapunov dynamics
+            diff = state.unsqueeze(0) - self.points  # [M, d]
             r2 = (diff * diff).sum(dim=1)  # [M]
             normx2 = torch.dot(state, state)
 
-            # First term: - 2/sigma^2 * sum_i diff_i * (||x||^2 * exp(-||x-p_i||^2 / sigma^2))
             psi1 = normx2 * torch.exp(-r2 / sigma2)  # [M]
-            term1 = (-2.0 / sigma2) * (psi1.unsqueeze(1) * diff).sum(dim=0)  # [2]
+            term1 = (-2.0 / sigma2) * (psi1.unsqueeze(1) * diff).sum(dim=0)  # [d]
 
-            # Second term: -sum_i diff_i * exp(-||x-p_i||^2 / sigma^2)
             psi2 = torch.exp(-r2 / sigma2)  # [M]
-            term2 = -(psi2.unsqueeze(1) * diff).sum(dim=0)  # [2]
+            term2 = -(psi2.unsqueeze(1) * diff).sum(dim=0)  # [d]
 
             return term1 + term2
 

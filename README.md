@@ -9,6 +9,8 @@ This repository implements several variants of Koopman autoencoders:
 - **GenericKM**: Standard Koopman autoencoder with MLP encoder
 - **SparseKM**: Koopman autoencoder with L1 sparsity regularization
 - **LISTAKM**: Learned Iterative Soft-Thresholding Algorithm (LISTA) based sparse encoder
+- **HyperLISTAKM**: HyperLISTA with 3 scalar hyperparameters and gradient flow to dictionary
+- **StructuredLISTAKM**: Basin-aware Koopman with structured latent space for multi-basin systems
 
 ## Quick Start
 
@@ -23,13 +25,12 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 To install uv for Windows, open PowerShell and run:
 ```bash
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
-The -ExecutionPolicy ByPass flag allows running the installation script from the internet.
 
 **Install the project and dependencies**:
 ```bash
-# Clone the repository (if you haven't already)
+# Clone the repository
 git clone <repository-url>
 cd skae
 
@@ -44,10 +45,10 @@ uv pip install -e .
 
 ```bash
 # Train with defaults on the Duffing Oscillator
-uv run python train.py --config generic_sparse --env duffing --pairwise --num_steps 20000
+uv run python tools/train.py --config generic_sparse --env duffing --pairwise --num_steps 20000
 
 # Custom learning rate and latent dimension
-uv run python train.py \
+uv run python tools/train.py \
   --config generic_sparse \
   --env lyapunov \
   --num_steps 5000 \
@@ -60,21 +61,8 @@ uv run python train.py \
   --seed 0 \
   --device cuda
 
-uv run python train.py \
-  --config lista_nonlinear \
-  --env lyapunov \
-  --num_steps 5000 \
-  --batch_size 256 \
-  --target_size 64 \
-  --reconst_coeff 0.03 \
-  --pred_coeff 1.0 \
-  --sparsity_coeff 10.0 \
-  --lista_alpha 0.005 \
-  --pairwise \
-  --seed 0 \
-  --device cuda
-
-uv run python train.py \
+# LISTA with nonlinear pre-activation
+uv run python tools/train.py \
   --config lista_nonlinear \
   --env lyapunov \
   --num_steps 20000 \
@@ -88,8 +76,8 @@ uv run python train.py \
   --seed 42 \
   --device cuda
 
-# HyperLISTA: expose C_THETA / C_BETA / C_SS on CLI
-uv run python train.py \
+# HyperLISTA with custom hyperparameters
+uv run python tools/train.py \
   --config hyperlista \
   --env lyapunov \
   --num_steps 3000 \
@@ -106,39 +94,81 @@ uv run python train.py \
   --seed 42 \
   --device cuda
 
-uv run python evaluate_checkpoints.py \
-  --run_dir runs/lista/20260119-185342 \
+# StructuredLISTAKM for multi-basin systems
+uv run python tools/train.py \
+  --config lista_nonlinear \
+  --env lyapunov \
+  --structured \
+  --num_steps 10000 \
+  --batch_size 256 \
+  --d_global 16 \
+  --num_basins 20 \
+  --d_basin 16 \
+  --lambda_exclusivity 0.05 \
+  --lambda_sparsity 0.3 \
+  --pairwise \
+  --seed 42 \
+  --device cuda
+```
+
+### Evaluate a Trained Model
+
+```bash
+# Evaluate checkpoint on a specific system
+uv run python tools/evaluate_checkpoints.py \
+  --run_dir runs/lista/<timestamp> \
   --system lyapunov \
   --device cuda
-  
-# Evaluation from checkpoints
-# Required: specify system
-python evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system duffing
 
-# With other options
-python evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system pendulum --device cpu
-python evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system lorenz63 --checkpoints checkpoint.pt
+# Evaluate basin structure correspondence (any model)
+uv run python tools/evaluate_latent_basin_clustering.py \
+  --checkpoint runs/<model>/<timestamp>/checkpoint.pt \
+  --num_trajectories 100 \
+  --output_dir results/latent_clustering/<model_name>
+
+# Evaluate basin block specialization (StructuredLISTAKM only)
+uv run python tools/evaluate_basin_structure.py \
+  --checkpoint runs/structured_lista/<timestamp>/checkpoint.pt \
+  --system lyapunov \
+  --num_trajectories 100 \
+  --output_dir results/basin_structure/<run_name>
 ```
 
 ## Repository Structure
 
 ```
 skae/
-├── config.py              # Configuration system with presets
-├── data.py                # Dynamical systems environments
-├── model.py               # Koopman autoencoder models
-├── train.py               # Training script (CLI + API)
-├── evaluation.py          # Model evaluation
-├── plot_metrics.py        # Visualization utilities
+├── skae/                  # Core library package
+│   ├── __init__.py
+│   ├── config.py          # Configuration system with presets
+│   ├── model.py           # Koopman autoencoder models
+│   ├── data.py            # Dynamical systems environments
+│   ├── evaluation.py      # Model evaluation utilities
+│   └── benchmarks/        # Benchmark system catalogs and adapters
+├── tools/                 # CLI tools and scripts
+│   ├── train.py           # Training script (CLI + API)
+│   ├── evaluate_checkpoints.py
+│   ├── evaluate_basin_structure.py
+│   ├── evaluate_latent_basin_clustering.py
+│   ├── tune_hyperlista.py
+│   ├── plot_training_metrics.py
+│   └── collect_sweep_results.py
+├── scripts/               # Shell scripts for experiments (sbatch, sweeps)
+├── experiments/           # Experiment-specific code
 ├── tests/                 # Unit tests
 ├── notebooks/             # Research notebooks
+├── docs/                  # Documentation
+│   ├── notes.tex          # Research paper draft
+│   ├── figures/           # Visualizations
+│   └── planning/          # Planning documents
+└── runs/                  # Training outputs (gitignored)
 ```
 
 ## Available Configurations
 
 ### `generic` - Standard Koopman Autoencoder
 ```bash
-python train.py --config generic --env duffing
+uv run python tools/train.py --config generic --env duffing
 ```
 - **Model**: GenericKM
 - **Target size**: 64
@@ -148,7 +178,7 @@ python train.py --config generic --env duffing
 
 ### `generic_sparse` - Sparse Koopman with L1 regularization
 ```bash
-python train.py --config generic_sparse --env duffing --sparsity_coeff 0.01
+uv run python tools/train.py --config generic_sparse --env duffing --sparsity_coeff 0.01
 ```
 - **Model**: GenericKM
 - **Target size**: 64
@@ -158,32 +188,32 @@ python train.py --config generic_sparse --env duffing --sparsity_coeff 0.01
 
 ### `generic_prediction` - Prediction-focused
 ```bash
-python train.py --config generic_prediction --env duffing
+uv run python tools/train.py --config generic_prediction --env duffing
 ```
 - **Loss weights**: Prediction (1.0), others disabled
 
 ### `lista` - LISTA Sparse Encoder
 ```bash
-python train.py --config lista --env lotka_volterra --target_size 2048
+uv run python tools/train.py --config lista --env lotka_volterra --target_size 2048
 ```
 - **Model**: LISTAKM
 - **Target size**: 2048 (overcomplete)
-- **Encoder**: LISTA with 10 iterations
+- **Encoder**: LISTA with 5 iterations
 - **Decoder**: Normalized dictionary
 - **Loss weights**: Residual (1.0), Reconstruction (1.0), Sparsity (1.0)
 
 ### `lista_nonlinear` - LISTA with MLP
 ```bash
-python train.py --config lista_nonlinear --env lorenz63
+uv run python tools/train.py --config lista_nonlinear --env lorenz63
 ```
 - **Model**: LISTAKM with nonlinear pre-activation
-- **Encoder**: [64, 64, 64] MLP → LISTA
+- **Encoder**: [16, 16] MLP → LISTA
 
-### `hyperlista` - HyperLISTA sparse encoder (experimental)
+### `hyperlista` - HyperLISTA sparse encoder
 HyperLISTA exposes three scalar hyperparameters that control thresholding, momentum, and support selection:
-- `--hyperlista_c_theta` (C_THETA)
-- `--hyperlista_c_beta` (C_BETA)
-- `--hyperlista_c_ss` (C_SS)
+- `--hyperlista_c_theta` (C_THETA): Threshold scaling
+- `--hyperlista_c_beta` (C_BETA): Momentum coefficient
+- `--hyperlista_c_ss` (C_SS): Support selection ratio
 
 ## Environments
 
@@ -194,48 +224,58 @@ HyperLISTA exposes three scalar hyperparameters that control thresholding, momen
 | `lotka_volterra` | 2D | Predator-prey dynamics |
 | `lorenz63` | 3D | Chaotic Lorenz attractor |
 | `parabolic` | 2D | Parabolic attractor (analytical Koopman) |
-| `lyapunov` | 2D | Multi-attractor system with Lyapunov dynamics |
+| `lyapunov` | Configurable | Multi-attractor system with Lyapunov dynamics |
+| `blended` | 2D | 3 basins with genuinely different local dynamics |
+| `dysts:*` | Various | 135+ chaotic systems from dysts library |
+
+### Lyapunov Environment Options
+
+The Lyapunov environment supports configurable dimensions and basin layouts:
+
+```bash
+uv run python tools/train.py \
+  --env lyapunov \
+  --lyapunov_dim 4 \
+  --lyapunov_num_basins 8 \
+  --lyapunov_points_mode random \
+  --lyapunov_center_scale 3.0 \
+  --lyapunov_extend_mode embed \
+  ...
+```
+
+### Dysts Systems
+
+Access 135+ chaotic systems from the [dysts](https://github.com/williamgilpin/dysts) library:
+
+```bash
+# List available systems
+uv run python tools/train.py --list-dysts
+
+# Train on a dysts system
+uv run python tools/train.py \
+  --config lista_nonlinear \
+  --env "dysts:Lorenz" \
+  --standardize \
+  --dysts_ic_noise_scale 0.2 \
+  ...
+```
 
 ## Training Output
 
 Each training run creates a timestamped directory:
 
 ```
-runs/kae/20251106-223912/
+runs/<model>/<timestamp>/
 ├── config.json              # Full configuration (reproducibility)
 ├── checkpoint.pt            # Best model (lowest validation error)
 ├── last.pt                  # Latest checkpoint
 ├── metrics_history.jsonl    # Time series of all metrics
-├── metrics_summary.json     # Summary statistics
-└── final_metrics.json       # Final step metrics
+└── evaluation_*/            # Evaluation results and plots
 ```
 
 ## Model Evaluation
 
-The evaluation module (`evaluation.py`) provides comprehensive evaluation of trained Koopman models using multiple rollout strategies and horizon-wise metrics.
-
-### Automatic Evaluation
-
-Evaluation runs automatically at the end of training and saves results to `runs/kae/<timestamp>/evaluation/`. The evaluation protocol tests models on multiple dynamical systems, computes horizon-wise mean-squared error metrics, and generates qualitative plots.
-
-### Standalone Evaluation
-
-You can also evaluate trained checkpoints independently using `evaluate_checkpoints.py`:
-
-```bash
-# Evaluate a checkpoint on a specific system
-uv run python evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system duffing
-
-# Evaluate multiple checkpoints
-uv run python evaluate_checkpoints.py \
-  --run_dir runs/kae/<timestamp> \
-  --system pendulum \
-  --checkpoints checkpoint.pt last.pt \
-  --device cuda
-
-# Evaluate on CPU
-uv run python evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system lyapunov --device cpu
-```
+The evaluation module provides comprehensive evaluation of trained Koopman models using multiple rollout strategies and horizon-wise metrics.
 
 ### Rollout Strategies
 
@@ -245,67 +285,38 @@ The evaluation protocol tests three rollout modes:
 2. **Every-step reencoding** (`every_step`): Reencodes at each step using `step_env()` (state-space evolution)
 3. **Periodic reencoding** (`periodic_k`): Reencodes every k steps (default periods: 10, 25, 50, 100)
 
-For periodic reencoding, the evaluation automatically selects the best period per horizon based on MSE.
-
 ### Evaluation Metrics
 
 For each system and rollout mode, the evaluation computes:
 
-- **Horizon-wise MSE**: Mean ± std MSE aggregated across initial conditions for horizons (default: 100–1000 in steps of 100)
+- **Horizon-wise MSE**: Mean ± std MSE aggregated across initial conditions
 - **Cumulative MSE curve**: Time-averaged MSE vs. prediction horizon
 - **Per-step L2 error**: Mean L2 error at each prediction step
 - **Best periodic reencoding**: Automatically identifies optimal reencoding period per horizon
 
-Metrics are computed over a batch of unseen initial conditions (default: 100 samples) and handle exploding rollouts gracefully by marking them as NaN.
+## Python API
 
-### Evaluation Output
+```python
+from skae.config import get_config
+from skae.model import make_model
+from skae.data import make_env, generate_trajectory
+from skae.evaluation import evaluate_model, EvaluationSettings
 
-The evaluation generates the following outputs in `runs/kae/<timestamp>/evaluation/<system>/`:
+# Create config and environment
+cfg = get_config("lista_nonlinear")
+cfg.ENV.ENV_NAME = "lyapunov"
+cfg.MODEL.TARGET_SIZE = 512
 
-**Metrics:**
-- `metrics.json`: Structured JSON with all metrics organized by system, mode, and horizon
+env = make_env(cfg)
+model = make_model(cfg, env.observation_size)
 
-**Plots:**
-- `phase_portrait_plot_eval.png`: Grid of phase portraits for different reencoding periods
-- `mse_vs_horizon.png`: Cumulative MSE curves for all rollout modes
-- `horizon_mse_selected.png`: Horizon MSE mean ± std for every_step/periodic_10/periodic_25
-- `error_curve_<mode>.png`: Per-step error curves for each mode
-- `error_curve_combined.png`: Combined per-step error curves for all modes
+# Generate trajectories
+trajectory = generate_trajectory(env, length=100, batch_size=32)
 
-**Special plots for Lyapunov system:**
-- `phase_portrait_comparison.png`: Side-by-side comparison of true vs. learned system with Voronoi regions, vector fields, and trajectories
-- `phase_portrait_vector_hist_true.png`: Histogram of vector field magnitudes (true system)
-- `phase_portrait_vector_hist_learned.png`: Histogram of vector field magnitudes (learned system)
-
-The `metrics.json` structure:
-```json
-{
-  "<system>": {
-    "modes": {
-      "no_reencode": {
-        "horizons": {
-          "100": {"mean": <float>, "std": <float>, "num_valid": <int>, "values": [<float>]},
-          "1000": {...}
-        },
-        "mse_curve": [<float>]
-      },
-      "every_step": {...},
-      "periodic_10": {...},
-      ...
-    },
-    "best_periodic": {
-      "100": {"mode": "periodic_25", "mean": <float>},
-      "1000": {...}
-    },
-    "files": {
-      "phase_portrait_plot_eval": "<path>",
-      "mse_curve": "<path>",
-      ...
-    }
-  }
-}
+# Evaluate model
+settings = EvaluationSettings(horizons=[100, 500, 1000])
+metrics = evaluate_model(model, env, settings)
 ```
-
 
 ## Testing
 
@@ -314,13 +325,12 @@ The `metrics.json` structure:
 pytest
 
 # Run specific test suite
-pytest tests/test_train.py -v
+pytest tests/test_model.py -v
 
 # Run with coverage
-pytest --cov=. --cov-report=html
+pytest --cov=skae --cov-report=html
 ```
 
 ## License
 
 See `LICENSE` file for details.
-

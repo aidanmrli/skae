@@ -168,6 +168,14 @@ class LyapunovConfig:
     """Lyapunov multi-attractor system parameters."""
     DT: float = 0.05
     SIGMA: float = 0.5
+    DIM: int = 2  # state dimension
+    NUM_BASINS: int = 13  # number of attractor centers
+    POINTS_MODE: str = "fixed"  # "fixed" (use canonical 2D grid) or "random"
+    CENTER_SCALE: float = 2.0  # range for random centers (uniform in [-scale, scale])
+    MIN_SEPARATION: float = 0.6  # minimum separation for random centers
+    INIT_RANGE: float = 2.5  # reset range for initial states (uniform in [-r, r])
+    EXTEND_MODE: str = "embed"  # "embed" (2D Lyapunov + linear decay dims) or "full"
+    EXTRA_DECAY: float = 1.0  # decay for extra dims in embed mode
 
 
 @dataclass
@@ -547,4 +555,3 @@ def get_config(name: str = "default") -> Config:
     if name not in _TRAIN_CONFIG_REGISTRY:
         raise ValueError(f"Unknown config name '{name}'. Available: {list(_TRAIN_CONFIG_REGISTRY.keys())}")
     return _TRAIN_CONFIG_REGISTRY[name]()
-
