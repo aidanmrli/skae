@@ -49,6 +49,9 @@ uv run python tools/train.py \
   --target_size "$TARGET_SIZE" \
   --sparsity_coeff "$SPARSITY" \
   --pairwise \
+  --monitor_support \
+  --support_monitor_every 500 \
+  --support_threshold "$SUPPORT_THRESHOLD" \
   --device cuda \
   --log_dir "$LOG_DIR"
 

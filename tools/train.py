@@ -244,15 +244,21 @@ def train(
     log_dir: Optional[str] = None,
     checkpoint_path: Optional[str] = None,
     device: str = 'cuda',
+    monitor_support: bool = False,
+    support_monitor_every: int = 500,
+    support_threshold: float = 1e-3,
 ) -> nn.Module:
     """Main training function.
-    
+
     Args:
         cfg: Configuration object
         log_dir: Directory for tensorboard logs and checkpoints
         checkpoint_path: Path to checkpoint to resume from
         device: Device to train on ('cpu', 'cuda', 'mps')
-        
+        monitor_support: Enable training-time support monitoring
+        support_monitor_every: Compute support diagnostics every N steps
+        support_threshold: Threshold for active support dimensions
+
     Returns:
         Trained model
     """
@@ -388,7 +394,26 @@ def train(
     print(f"Total steps: {cfg.TRAIN.NUM_STEPS}")
     print(f"Log directory: {run_dir}")
     print("-" * 80)
-    
+
+    # Initialize support monitor if enabled (for multi-basin systems)
+    support_monitor = None
+    if monitor_support:
+        system_name = cfg.ENV.ENV_NAME.lower()
+        if system_name in ['duffing', 'lyapunov', 'blended']:
+            from skae.support_monitor import SupportMonitor
+            print(f"Initializing support monitor for {system_name}...")
+            support_monitor = SupportMonitor(
+                cfg,
+                device=device,
+                num_trajectories_per_basin=5,
+                trajectory_length=100,
+                support_threshold=support_threshold,
+                seed=cfg.SEED + 888888,
+            )
+            print(f"  Monitoring {support_monitor.num_basins} basins, eval every {support_monitor_every} steps")
+        else:
+            print(f"Warning: support monitoring not supported for {system_name}, skipping")
+
     best_eval_final_error = float('inf')
     
     for step in range(start_step, cfg.TRAIN.NUM_STEPS):
@@ -446,6 +471,16 @@ def train(
                     log_str += f" | Homog: {metrics['homogeneous_loss']:.4f}"
                 print(log_str)
         
+        # Support monitoring for basin correspondence (if enabled)
+        if support_monitor is not None and step > 0 and step % support_monitor_every == 0:
+            try:
+                diagnostics = support_monitor.compute(model)
+                support_metrics = support_monitor.to_log_dict(diagnostics)
+                logger.log_dict(support_metrics, step, prefix='support')
+                print(f"  {diagnostics.summary_str()}")
+            except Exception as e:
+                print(f"  Support monitor error: {e}")
+
         # Periodic evaluation and checkpoint saving
         # Note: skip step=0 to avoid expensive eval before any learning happened.
         if (step > 0 and step % cfg.TRAIN.EVAL_EVERY == 0) or step == cfg.TRAIN.NUM_STEPS - 1:
@@ -931,6 +966,14 @@ Examples:
                         help='Evaluate every N steps during training (overrides config default)')
     parser.add_argument('--eval_num_steps', type=int, default=None,
                         help='Rollout horizon for the quick eval during training (overrides config default)')
+
+    # Support monitoring (for basin-support correspondence diagnostics)
+    parser.add_argument('--monitor_support', action='store_true',
+                        help='Enable training-time support monitoring for basin correspondence')
+    parser.add_argument('--support_monitor_every', type=int, default=500,
+                        help='Compute support diagnostics every N steps (default: 500)')
+    parser.add_argument('--support_threshold', type=float, default=1e-3,
+                        help='Threshold for determining active support dimensions (default: 1e-3)')
     
     # Logging
     parser.add_argument('--log_dir', type=str, default=None,
@@ -1096,7 +1139,15 @@ Examples:
         print("  Using CPU")
     
     # Train
-    train(cfg, log_dir=args.log_dir, checkpoint_path=args.checkpoint, device=device)
+    train(
+        cfg,
+        log_dir=args.log_dir,
+        checkpoint_path=args.checkpoint,
+        device=device,
+        monitor_support=args.monitor_support,
+        support_monitor_every=args.support_monitor_every,
+        support_threshold=args.support_threshold,
+    )
 
 
 if __name__ == '__main__':
