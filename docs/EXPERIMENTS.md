@@ -11,9 +11,14 @@ Goal: Achieve **unique support patterns for unique basins** (mechanistic interpr
 - **Training-time support monitoring** is now available via `--monitor_support` flag (logs `support/*` metrics every 500 steps).
 
 ## Queue Status
-All jobs completed (February 2, 2026):
+
+Completed (February 2, 2026):
 - Lyapunov-HD target size sweep: job `8602046` (array 0-4) -- **COMPLETED**
 - Duffing target size sweep: job `8602047` (array 0-4) -- **COMPLETED**
+
+Running (February 3, 2026):
+- K structure × target size sweep: job `8603752` (array 0-14, 5 target sizes × 3 K structures) -- **RUNNING**
+- Arrowhead (StructuredLISTAKM) sweep: job `8603753` (array 0-4, 5 total latent dims) -- **RUNNING**
 
 ---
 
@@ -171,16 +176,152 @@ sbatch --export=ALL,CKPT=/path/to/checkpoint.pt,OUT_BASE=/path/to/out \
 
 Thresholds tested: `1e-4 3e-4 1e-3 3e-3 1e-2 3e-2 1e-1`
 
+### 4) K structure × target size sweep
+Script: `scripts/sweep_k_structure_lyapunov.sh`
+
+```bash
+sbatch scripts/sweep_k_structure_lyapunov.sh
+```
+
+15 jobs: 5 target sizes × 3 K structures (dense, diagonal, block_diagonal).
+Post-training eval includes `--threshold_sweep` + cosine similarity.
+Output: `/network/scratch/l/lia/skae/lyapunov_k_structure_sweep/`
+
+### 5) Arrowhead (StructuredLISTAKM) sweep
+Script: `scripts/sweep_arrowhead_lyapunov.sh`
+
+```bash
+sbatch scripts/sweep_arrowhead_lyapunov.sh
+```
+
+5 jobs: total latent dims 64, 128, 256, 512, 1024 (d_global + 13 * d_basin = total_dim).
+Uses `lambda_exclusivity=0.05`, `lambda_sparsity=0.3`, `excl_warmup=2000`.
+Output: `/network/scratch/l/lia/skae/lyapunov_k_structure_sweep/`
+
+---
+
+## Experiment: Koopman Structure + Refined Diagnostics (February 3, 2026)
+
+### Motivation
+
+The previous experiments established that the LISTA encoder learns basin-discriminative support patterns with a dense Koopman matrix, but two open questions remain:
+
+1. **Is low consistency real or a thresholding artefact?** Consistency was measured by exact binary support match at threshold `1e-3`. Two activations of magnitude `9e-4` and `1.1e-3` are functionally identical but produce different binary supports. If consistency rises substantially at a different threshold, the inconsistency is noise rather than a structural problem.
+
+2. **Does constraining the Koopman matrix improve basin--support correspondence?** A dense `K` has `d²` free parameters and no inductive bias toward basin-aligned dynamics. If different basins truly correspond to different subspaces, a structured `K` that respects that block structure should (a) improve support consistency by reducing cross-basin interference, and (b) improve long-horizon stability by having fewer eigenvalues to control.
+
+### Hypotheses
+
+- **H1 (threshold sensitivity):** The low consistency (~0.14--0.19) at `tau=1e-3` is largely a thresholding artefact. We expect to find a threshold where consistency is substantially higher while uniqueness is preserved. The cosine similarity metrics (which are threshold-free) should show high intra-basin similarity and low inter-basin similarity, confirming that the continuous representations are basin-discriminative even when binary supports fluctuate.
+
+- **H2 (diagonal K):** A diagonal Koopman matrix forces each latent coordinate to evolve independently (`z_i' = k_i * z_i`). This is the most parsimonious structure (`d` parameters). If the LISTA encoder already produces basin-discriminative supports, diagonal dynamics may suffice for short-horizon prediction within a basin -- but may struggle to capture cross-coordinate coupling needed for accurate dynamics.
+
+- **H3 (block-diagonal K):** With blocks of size `d/13` (one per ground-truth basin), the block-diagonal structure allows within-block coupling while preventing cross-block interaction. If the encoder aligns one block per basin, this should simultaneously (a) improve support consistency (each block is an independent dynamical unit), (b) maintain uniqueness (blocks are decoupled), and (c) improve long-horizon stability (smaller blocks = smaller eigenvalue problems).
+
+- **H4 (arrowhead K):** The arrowhead structure (global block + basin blocks with one-directional coupling) is the most expressive structured option. It explicitly separates shared physics (global block) from basin-local dynamics, with the exclusivity regulariser encouraging one-basin-at-a-time activation. We expect this to produce the cleanest basin--support correspondence, but with higher training complexity and sensitivity to the exclusivity/sparsity hyperparameters.
+
+- **H5 (structure vs capacity tradeoff):** Structured `K` matrices reduce the number of learnable dynamics parameters. At small latent dimensions (ts=64), this may help by reducing overfitting. At large dimensions (ts=1024), it may hurt by being too constrained. We expect an interaction between structure and latent dimension.
+
+### Experiment Design
+
+**All experiments use:** Lyapunov-HD (8D, 13 basins, embedded from 2D), `lista_nonlinear` config, pairwise training, `sparsity_coeff=1.0`, `batch_size=512`, 10k steps, `--monitor_support`.
+
+#### Job 8603752: K structure × target size sweep (15 jobs)
+
+Script: `scripts/sweep_k_structure_lyapunov.sh`
+
+| Array ID | target_size | K structure | K params | Block size |
+|----------|-------------|-------------|----------|------------|
+| 0 | 64 | dense | 4,096 | -- |
+| 1 | 64 | diagonal | 64 | -- |
+| 2 | 64 | block_diagonal | 5 × 4² + 1 × 4² = 96 | 4 |
+| 3 | 128 | dense | 16,384 | -- |
+| 4 | 128 | diagonal | 128 | -- |
+| 5 | 128 | block_diagonal | 13 × 9² + 1 × 11² = 1,174 | 9 |
+| 6 | 256 | dense | 65,536 | -- |
+| 7 | 256 | diagonal | 256 | -- |
+| 8 | 256 | block_diagonal | 13 × 19² = 4,693 | 19 |
+| 9 | 512 | dense | 262,144 | -- |
+| 10 | 512 | diagonal | 512 | -- |
+| 11 | 512 | block_diagonal | 13 × 39² = 19,773 | 39 |
+| 12 | 1024 | dense | 1,048,576 | -- |
+| 13 | 1024 | diagonal | 1,024 | -- |
+| 14 | 1024 | block_diagonal | 13 × 78² = 79,092 | 78 |
+
+Block size for block_diagonal = `target_size // 13` (one block per GT basin).
+
+#### Job 8603753: Arrowhead (StructuredLISTAKM) sweep (5 jobs)
+
+Script: `scripts/sweep_arrowhead_lyapunov.sh`
+
+Total latent dim is set to match the K structure sweep: `d_global + 13 * d_basin = total_dim`.
+
+| Array ID | total_dim | d_global | d_basin | B | lambda_excl | lambda_sparsity |
+|----------|-----------|----------|---------|---|-------------|-----------------|
+| 0 | 64 | 12 | 4 | 13 | 0.05 | 0.3 |
+| 1 | 128 | 11 | 9 | 13 | 0.05 | 0.3 |
+| 2 | 256 | 9 | 19 | 13 | 0.05 | 0.3 |
+| 3 | 512 | 5 | 39 | 13 | 0.05 | 0.3 |
+| 4 | 1024 | 10 | 78 | 13 | 0.05 | 0.3 |
+
+Exclusivity warmup: 2000 steps.
+
+#### Post-training evaluation
+
+Every job runs `evaluate_support_uniqueness.py --threshold_sweep` after training, which produces:
+- **Threshold sweep:** consistency, uniqueness, Jaccard, support size at 7 thresholds (`1e-4` to `1e-1`)
+- **Cosine similarity:** intra-basin cosine, inter-basin cosine, separation score (threshold-free)
+- Results saved to `<log_dir>/support_eval/threshold_sweep.json`
+
+### What to look for in results
+
+1. **Threshold sweep table:** Find the threshold that maximizes `consistency × uniqueness_rate`. If a sweet spot exists (e.g., `tau=5e-3` gives consistency=0.6 with 13/13 uniqueness), the low consistency was indeed a thresholding artefact.
+
+2. **Cosine separation score:** Should be positive and large if the LISTA encoder produces basin-discriminative continuous representations. Compare across K structures -- if structured K increases the cosine separation score, it's actively helping basin discrimination.
+
+3. **Structure comparison at fixed target_size:** For each ts, compare the 4 structures (dense, diagonal, block_diagonal, arrowhead) on uniqueness, consistency, separation, and prediction MSE. The key question is whether structure helps or hurts.
+
+4. **Parameter efficiency:** Block-diagonal and diagonal have orders of magnitude fewer K parameters. If they match dense on uniqueness/separation while being more stable at long horizons, that's a strong argument for structure.
+
+5. **Convergence speed:** The `--monitor_support` logs will show whether structured K converges to basin separation faster or slower than dense K.
+
+### Next steps after results
+
+**If H1 is confirmed (consistency is a threshold artefact):**
+- Report the optimal threshold and the cosine metrics as the primary diagnostic
+- The uniqueness--consistency tradeoff is resolved; focus shifts entirely to dynamics quality
+
+**If H2/H3 show structured K helps:**
+- Run prediction MSE evaluation on the structured checkpoints to see if stability improves
+- Try block-diagonal with block_size != d/13 to test sensitivity to block alignment
+- Combine the best K structure with different sparsity coefficients
+
+**If H4 (arrowhead) dominates:**
+- Sweep exclusivity and sparsity weights more finely
+- Evaluate whether the global block captures shared dynamics vs just being a constant offset
+- Test on Duffing (2 basins) and dysts multi-basin systems
+
+**If structured K hurts (dense remains best):**
+- This would suggest the encoder needs full coupling in K to learn good dynamics
+- Focus instead on adding an explicit within-basin consistency loss to the training objective
+- Consider post-hoc structure extraction (e.g., clustering the dense K eigenspectrum)
+
+**Regardless of structure results:**
+- Collect prediction MSE with periodic reencoding for all 20 configurations
+- Compare K eigenvalue spectra across structures (diagonal K gives eigenvalues directly)
+- Produce phase portrait comparisons for best/worst configurations
+
 ---
 
 ## Iteration Plan
 
 1. **Simple baselines** (DONE): dense Koopman `K`, LISTA encoder, linear decoder, strong sparsity.
 2. **Find stable unique supports** (DONE): ts >= 256 achieves full uniqueness.
-3. **Improve consistency** (NEXT): threshold sweep, soft metrics, consistency regularization.
-4. **Re-introduce Koopman structure** (AFTER): diagonal, block-diagonal constraints once support correspondence is stable.
+3. **Improve consistency + K structure** (IN PROGRESS): threshold sweep, cosine metrics, diagonal/block-diagonal/arrowhead K.
+4. **Dynamics quality** (NEXT): prediction MSE + long-horizon stability for structured K.
+5. **Best structure on more systems** (AFTER): apply winning configuration to Duffing, dysts multi-basin systems.
 
-## Pending (needs code changes)
-- Soft support similarity metrics (cosine on continuous activations)
-- Within-basin consistency regularization loss
-- Koopman structure restrictions beyond arrowhead (diagonal, block-diagonal)
+## Pending
+- Collect results from jobs `8603752` and `8603753`
+- Within-basin consistency regularization loss (if consistency remains low even with soft metrics)
+- Prediction MSE evaluation on structured K checkpoints
