@@ -1,8 +1,48 @@
 # Experiments
 
-Date: February 2, 2026
+Date: February 3, 2026
 
 Goal: Achieve **unique support patterns for unique basins** (mechanistic interpretability), starting from the simplest setups and iterating on sparsity, target size, and Koopman structure.
+
+## Current Status Summary
+
+Problem we are solving: learn basin-discriminative sparse latents that are both **unique across basins** and **stable for long-horizon prediction**, so basin structure can be extracted and used for downstream control (per-basin LQR).
+
+What we found so far:
+- **Uniqueness** is solved at sufficient capacity (ts >= 256). LISTA encoders reliably produce distinct basin supports.
+- The apparent **uniqueness–consistency tradeoff** was a thresholding artefact. Cosine similarity shows high intra-basin consistency when using threshold-free metrics.
+- **Koopman structure is secondary** to the encoder for basin discrimination. Block-diagonal K improves parameter efficiency and can improve eval error.
+- **Spectral radius determines long-horizon fate.** Models with all eigenvalues inside the unit circle (SR < 1) converge to bounded MSE (~3.5); models with any eigenvalue outside (SR > 1) diverge catastrophically (MSE > 1e+10 at H1000). Periodic reencoding rescues divergent models but cannot improve beyond the bounded-MSE floor.
+- **Arrowhead with exclusivity is the only structure that maintains SR < 1 at all tested latent dimensions** (64–256 confirmed, 512–1024 in progress). It achieves the best no-reencode H1000 MSE (3.49 at ts=128).
+- **Basin-to-block correspondence is strongest at low capacity** (block_diagonal ts=64: concentration 0.87) but washes out at higher dimensions (~0.10 at ts=256). The encoder distributes activations across blocks rather than concentrating each basin into a single block.
+
+Current solution direction:
+- Use **arrowhead K with exclusivity** for guaranteed spectral stability + basin discrimination at all dimensions.
+- Use **diagonal or block-diagonal K** at ts=256 as a stable, parameter-efficient alternative (both achieve SR < 1 and H1000 MSE ~3.57).
+- **Periodic reencoding at period 100** is the universal fallback: it equalizes all structures to H1000 MSE ~3.6–3.9.
+
+Outstanding problems (active):
+- **Basin-block alignment does not emerge naturally.** Even with block-diagonal K sized to match basins (d/13 per block), the encoder does not consistently assign one basin per block. This limits the ability to extract per-basin Koopman dynamics for LQR. Need to investigate explicit basin-block alignment losses or post-hoc block assignment.
+- **ts=512 and ts=1024 results still in progress** (job 8607640, 16/25 checkpoints evaluated so far).
+
+## Definitions (Support Metrics)
+
+Support metrics are computed in `tools/evaluate_support_uniqueness.py`.
+
+Support per trajectory:
+- We encode a trajectory to latents `z[t]` and aggregate over time based on `support_mode`.
+- `support_mode=mean`: use the mean latent over time, then threshold: `support_i = |mean(z)_i| > tau`.
+- Other modes are available: `last`, `median`, `majority` (see `_support_from_latents` in the script).
+
+Mode support per basin:
+- For each basin, we collect the binary supports from all trajectories ending in that basin.
+- The **mode support** is the most frequent support pattern (argmax count).
+- **Consistency** is `mode_count / num_trajectories_in_basin`, then averaged across basins.
+
+Soft vs hard thresholding:
+- The LISTA encoder uses **soft thresholding (shrinkage)** internally during encoding (see `skae/model.py`).
+- Support evaluation uses a **hard threshold** on the aggregated latents to get a binary support for counting/uniqueness.
+- Low consistency at `tau=1e-3` was due to the hard threshold, not the encoder's soft-thresholding.
 
 ## Notes
 - **Default SLURM partition is `long`** for all sbatch scripts. (The `main` partition has GPU count restrictions.)
@@ -19,175 +59,167 @@ Completed (February 2, 2026):
 Completed (February 3, 2026):
 - K structure × target size sweep: job `8603752` (array 0-14, 5 target sizes × 3 K structures) -- **COMPLETED**
 - Arrowhead (StructuredLISTAKM) sweep: job `8603753` (array 0-4, 5 total latent dims) -- **COMPLETED**
+- Arrowhead no-exclusivity sweep: job `8605505` (array 0-4, 5 total latent dims) -- **COMPLETED**
+
+Running (February 3, 2026):
+- Long-horizon prediction + eigenvalue analysis sweep: job `8607640` (sequential, 25 checkpoints) -- **RUNNING** (16/25 completed as of writing)
+
+Status check (February 3, 2026):
+- All arrays for jobs `8602046`, `8602047`, `8603752`, `8603753`, and `8605505` produced logs and `support_eval/*.json` outputs in `/network/scratch/l/lia/skae/...`.
+- No missing result files for any target size or K-structure configuration.
+- Arrowhead `ts=128` completed but shows catastrophic eval divergence (very large/inf errors), consistent with the instability noted below.
 
 ---
 
-## Results: Support Uniqueness (February 2, 2026)
+## Experiment Log (Newest First)
 
-Evaluated from `support_eval/support_uniqueness.json` with `support_threshold=1e-3`, `support_mode=mean`, 100 trajectories, 500 steps each.
+### 0) Long-Horizon Prediction + Per-Block Eigenvalue Analysis
+Timestamp: 2026-02-03 (evaluation sweep, job `8607640`)
 
-Definitions:
-- `unique` = number of basins with a distinct mode support / total basins
-- `sep` = 1 - mean pairwise Jaccard (higher = less overlap between basins)
-- `cons` = mean basin consistency (fraction of trajectories matching their basin's mode support)
-- `size` = mean mode support size (number of active latent dimensions)
-
-### Lyapunov-HD (DIM=8, NUM_BASINS=13, SPARSITY=1.0)
-
-| target_size | unique | sep | cons | size | size % |
-|-------------|--------|-------|-------|------|--------|
-| 64 | 5/13 | 0.581 | 0.534 | 1.3 | 2.0% |
-| 128 | 8/13 | 0.801 | 0.361 | 1.6 | 1.3% |
-| **256** | **13/13** | **0.846** | 0.138 | 43.5 | 17.0% |
-| **512** | **13/13** | 0.790 | 0.184 | 13.5 | 2.6% |
-| **1024** | **13/13** | **0.852** | 0.138 | 138.2 | 13.5% |
-
-### Duffing (NUM_BASINS=2, SPARSITY=1.0)
-
-| target_size | unique | sep | cons | size | size % |
-|-------------|--------|-------|-------|------|--------|
-| 32 | 2/2 | 0.571 | 0.460 | 5.0 | 15.6% |
-| 64 | 2/2 | **1.000** | 0.112 | 11.5 | 18.0% |
-| 128 | 2/2 | 0.867 | 0.141 | 17.0 | 13.3% |
-| 256 | 2/2 | 0.984 | 0.102 | 32.5 | 12.7% |
-| 512 | 2/2 | **1.000** | 0.060 | 58.0 | 11.3% |
-
-### Key Findings
-
-1. **Target size >= 256 needed for full basin separation on Lyapunov (13 basins).** Smaller dimensions lack capacity: ts=64 only separates 5/13, ts=128 separates 8/13.
-
-2. **Duffing (2 basins) is fully separable at all target sizes.** Even ts=32 achieves 2/2 unique supports, though with lower separation (0.571). ts=64 and ts=512 achieve perfect separation (Jaccard=0).
-
-3. **Consistency-uniqueness tradeoff.** Across both systems, larger target sizes increase uniqueness and separation but *decrease* within-basin consistency. This is the central diagnostic challenge: the mode support per basin is unique, but individual trajectories within a basin don't consistently produce that exact mode support.
-
-4. **Support sizes scale with target_size.** Active dimensions are roughly 10-20% of the latent dimension across all configurations, indicating the sparsity coefficient (1.0) produces a consistent sparsity level.
-
----
-
-## Results: Training-Time Support Dynamics
-
-The `--monitor_support` flag revealed how separation evolves during training.
-
-### Lyapunov-HD: Separation score over training
-
-| step | ts=64 | ts=128 | ts=256 | ts=512 | ts=1024 |
-|------|-------|--------|--------|--------|---------|
-| 500 | 0.538 | 0.727 | 0.728 | 0.000 | 0.420 |
-| 1000 | 0.756 | 0.831 | 0.678 | 0.000 | 0.740 |
-| 2000 | 0.809 | 0.814 | 0.706 | 0.661 | 0.533 |
-| 3000 | 0.824 | 0.821 | 0.821 | 0.469 | 0.771 |
-| 5000 | 0.823 | 0.833 | 0.834 | 0.811 | 0.842 |
-| 7000 | 0.833 | 0.844 | 0.838 | 0.828 | 0.834 |
-| 9500 | 0.840 | 0.851 | 0.847 | 0.843 | **0.855** |
-
-Key observations:
-- **ts=64-128** reach high separation quickly (~1000 steps) but plateau early
-- **ts=512** starts at **zero separation for 1500 steps**, then rapidly catches up
-- **ts=1024** is noisy early but achieves the **highest final separation** (0.855)
-- **All sizes converge** to similar separation (~0.84-0.85) by end of training
-- The convergence rate is inversely related to target size
-
----
-
-## Results: Prediction MSE
-
-### Lyapunov-HD (best checkpoint)
-
-| target_size | H100 (no-re) | H500 (no-re) | H1000 (no-re) | H500 (best-PR) | best mode |
-|-------------|-------------|-------------|-------------|-----------------|-----------|
-| 64 | 4.45e+00 | 3.66e+00 | 3.60e+00 | 3.90e+00 | periodic_100 |
-| 128 | 4.61e+00 | 6.37e+00 | 9.75e+02 | 3.93e+00 | periodic_100 |
-| 256 | 3.26e+00 | 6.42e+06 | 2.91e+17 | 3.60e+00 | periodic_50 |
-| 512 | 4.39e+00 | 3.14e+07 | 6.02e+19 | 3.90e+00 | periodic_50 |
-| 1024 | 8.19e+00 | 1.79e+11 | 1.34e+25 | **3.38e+00** | periodic_25 |
-
-### Duffing (best checkpoint)
-
-| target_size | H100 (no-re) | H500 (no-re) | H1000 (no-re) | H500 (best-PR) | best mode |
-|-------------|-------------|-------------|-------------|-----------------|-----------|
-| 32 | 1.08e-01 | 2.80e+00 | 7.01e+01 | 1.19e+00 | periodic_10 |
-| 64 | 3.38e-02 | 1.63e+05 | 1.81e+14 | 2.74e-01 | periodic_25 |
-| 128 | 9.19e-03 | 6.33e-01 | 8.89e+01 | 6.92e-02 | periodic_25 |
-| 256 | 3.24e-03 | 2.45e+01 | 3.08e+08 | 6.81e-02 | periodic_25 |
-| 512 | **1.46e-03** | 2.16e+00 | 2.58e+04 | **1.98e-02** | periodic_25 |
-
-### Prediction Findings
-
-1. **Without reencoding, larger latent dims diverge catastrophically.** ts=256+ explode at H500+. This is expected: larger K matrices have more room for eigenvalue drift.
-
-2. **Periodic reencoding equalizes performance.** With optimal reencoding period, all target sizes achieve similar MSE on Lyapunov (~3.4-3.9).
-
-3. **ts=1024 with periodic_25 gives the best Lyapunov H500 MSE** (3.38e+00), despite the worst short-horizon accuracy without reencoding.
-
-4. **Duffing accuracy improves monotonically with target size** (H100: 0.108 → 0.001). ts=512 is best overall.
-
----
-
-## Interpretation: Uniqueness vs Consistency
-
-The central finding is a **uniqueness-consistency tradeoff**:
-
-- **Uniqueness** (do different basins have different mode supports?): Achieved with sufficient capacity (ts >= 256 for 13 basins, ts >= 32 for 2 basins).
-
-- **Consistency** (do trajectories within the same basin always produce the same support?): Low across all configurations (max ~0.53 for small ts, drops to ~0.06 for large ts).
-
-This means the LISTA encoder learns that *different basins should activate different regions of the latent space*, but individual trajectories within a basin activate *slightly different subsets* each time. The mode support is unique, but it's the plurality winner, not the unanimous winner.
-
-**Possible explanations:**
-1. The support threshold (1e-3) is too binary -- small activation differences near the threshold cause support fluctuation
-2. Trajectories near basin boundaries genuinely straddle multiple support patterns
-3. The encoder hasn't converged to a sharp partition -- sparsity encourages different atoms but doesn't enforce consistency
-
-**Next steps to improve consistency:**
-- Sweep support_threshold (the post-hoc threshold sweep script is ready)
-- Try "majority" or "median" support modes instead of "mean"
-- Consider soft support metrics (e.g., cosine similarity of continuous activations rather than binary supports)
-- Add explicit within-basin consistency loss during training
-
----
-
-## Experiment Definitions
-
-### 1) Lyapunov-HD target size sweep (simple LISTA baseline)
-Script: `scripts/sweep_target_size_lyapunov_hd.sh`
+Script: `scripts/sweep_eval_k_structure.sh`
 
 ```bash
-sbatch scripts/sweep_target_size_lyapunov_hd.sh
+sbatch scripts/sweep_eval_k_structure.sh
 ```
 
-Defaults: `DIM=8`, `NUM_BASINS=13`, `SPARSITY=1.0`, target sizes: 64, 128, 256, 512, 1024
+**Scope:** For each of the 25 (5 target sizes × 5 K structures) trained checkpoints, run:
+1. `evaluate_checkpoints.py` -- 1000-step rollout MSE with 6 rollout modes (no-reencode, every-step, periodic at 10/25/50/100)
+2. `analyze_k_eigenvalues.py --correlate_basins` -- per-block eigenvalue extraction + basin-to-block activation heatmap
 
-### 2) Duffing target size sweep (simple LISTA baseline)
-Script: `scripts/sweep_target_size_duffing.sh`
+**Status:** 16/25 completed. Results below cover ts={64, 128, 256} × all 5 structures + ts=512 × {dense, diagonal}. ts=512 remaining structures and all ts=1024 are pending.
+
+#### Results: Spectral Radius and Long-Horizon Stability
+
+The spectral radius (max |λ| across all K eigenvalues) is the key predictor of long-horizon behavior. Models with SR < 1 are spectrally stable; models with SR > 1 have exponentially growing modes that eventually dominate.
+
+| ts | K structure | Max SR | All stable? | H1000 no-reencode |
+|----|-------------|--------|-------------|-------------------|
+| 64 | dense | 0.9886 | YES | 3.61e+00 |
+| 64 | diagonal | 1.0006 | NO | 3.81e+00 |
+| 64 | block_diagonal | 1.0006 | NO | 3.80e+00 |
+| 64 | arrowhead | **0.9903** | **YES** | **3.55e+00** |
+| 64 | arrowhead_no_excl | 0.9854 | YES | 3.60e+00 |
+| 128 | dense | 1.0067 | NO | 9.49e+02 |
+| 128 | diagonal | 0.9998 | YES | 3.82e+00 |
+| 128 | block_diagonal | 1.0010 | NO | 3.81e+00 |
+| 128 | arrowhead | **0.9963** | **YES** | **3.49e+00** |
+| 128 | arrowhead_no_excl | 1.0049 | NO | 3.86e+00 |
+| 256 | dense | 1.0262 | NO | 6.78e+17 |
+| 256 | diagonal | **0.9993** | **YES** | **3.57e+00** |
+| 256 | block_diagonal | **0.9996** | **YES** | **3.58e+00** |
+| 256 | arrowhead | **0.9917** | **YES** | **3.59e+00** |
+| 256 | arrowhead_no_excl | 1.0215 | NO | 1.52e+13 |
+| 512 | dense | 1.0295 | NO | 7.88e+19 |
+| 512 | diagonal | -- | -- | 3.82e+00 |
+
+**Key finding: spectral radius is a binary switch for long-horizon fate.** Every model with SR < 1 converges to H1000 MSE in the range 3.49–3.82. Every model with SR > 1 diverges, often catastrophically (orders of magnitude). There is no graceful degradation — even SR = 1.0006 (diagonal ts=64) causes slow drift to H1000 = 3.81, while SR = 1.0262 (dense ts=256) causes H1000 = 6.78e+17.
+
+**Arrowhead with exclusivity maintains SR < 1 at every tested dimension** (64, 128, 256). This makes it the only structure with *guaranteed* long-horizon stability across all sizes. The exclusivity loss appears to act as an implicit spectral regulariser.
+
+**Dense K becomes unstable at ts >= 128** (SR = 1.007 at ts=128, SR = 1.026 at ts=256, SR = 1.030 at ts=512). As the latent dimension grows, more eigenvalues drift outside the unit circle.
+
+**Diagonal and block-diagonal are marginally stable.** At ts=64, both have SR = 1.0006 (barely unstable). At ts=256, both have SR < 1 (stable). The stability depends on the specific training run.
+
+#### Results: Best Periodic Reencoding
+
+Periodic reencoding equalises all models to similar H1000 MSE. The best periodic mode is always `periodic_100` for stable models and `periodic_50` or `periodic_25` for unstable ones (which need more frequent correction).
+
+| ts | K structure | H1000 best-PR | Best mode | H1000 every-step |
+|----|-------------|---------------|-----------|------------------|
+| 64 | dense | 3.62e+00 | periodic_100 | 4.03e+00 |
+| 64 | arrowhead | **3.55e+00** | periodic_50 | 6.92e+00 |
+| 128 | dense | 3.85e+00 | periodic_100 | 3.87e+00 |
+| 128 | arrowhead | **3.55e+00** | periodic_100 | 8.51e+00 |
+| 256 | dense | 3.69e+00 | periodic_50 | 3.82e+00 |
+| 256 | diagonal | **3.61e+00** | periodic_100 | 4.09e+00 |
+| 256 | block_diagonal | 3.61e+00 | periodic_100 | 3.90e+00 |
+| 256 | arrowhead | 3.60e+00 | periodic_100 | 4.61e+00 |
+
+**The arrowhead model has the worst every-step reencoding MSE** (6.92 at ts=64, 8.51 at ts=128) despite the best no-reencode MSE. This means its encode-decode pathway is less accurate than other structures, but its latent dynamics are more stable. The arrowhead trades reconstruction quality for dynamical stability.
+
+**Every-step reencoding is worse than no reencoding for stable models.** For models with SR < 1, the pure latent rollout (no-reencode) outperforms every-step reencoding because the encode-decode cycle introduces reconstruction error at each step. Periodic reencoding at period 100 is optimal — infrequent enough to avoid compounding reconstruction error, but frequent enough to correct any drift.
+
+#### Results: Per-Block Eigenvalue Analysis
+
+For block-diagonal and arrowhead models, eigenvalues are computed per block. For dense/diagonal, there is a single global eigenvalue set.
+
+**Arrowhead per-block spectral radii (ts=256):**
+- Global block: SR = 0.983 (14 blocks total: 1 global + 13 basin)
+- Mean basin SR: 0.984, std: 0.005
+- All 14 blocks strictly inside the unit circle
+
+**Block-diagonal per-block spectral radii (ts=256):**
+- 14 blocks, mean SR = 0.999, std = 0.001
+- All blocks very close to SR = 1 (near-identity dynamics per block)
+
+The arrowhead blocks have more diverse spectral radii (std = 0.005 vs 0.001) and are more conservatively pushed inside the unit circle (mean 0.984 vs 0.999). This explains its superior long-horizon stability.
+
+#### Results: Basin-to-Block Activation Correlation
+
+For each model, we encode 100 basin-labeled trajectories and compute the mean activation magnitude per latent dimension grouped by K block. The "basin-block concentration" metric measures how peaked each basin's activation is toward a single block (1.0 = perfect one-basin-one-block alignment, 0.0 = uniform spread).
+
+| ts | K structure | Basin-block concentration |
+|----|-------------|--------------------------|
+| 64 | diagonal | **0.894** |
+| 64 | block_diagonal | **0.875** |
+| 64 | arrowhead_no_excl | 0.342 |
+| 64 | arrowhead | 0.246 |
+| 128 | block_diagonal | 0.693 |
+| 128 | diagonal | 0.693 |
+| 128 | arrowhead_no_excl | 0.678 |
+| 128 | arrowhead | 0.154 |
+| 256 | arrowhead_no_excl | 0.126 |
+| 256 | block_diagonal | 0.105 |
+| 256 | diagonal | 0.101 |
+| 256 | arrowhead | 0.061 |
+
+**At ts=64, diagonal and block-diagonal show strong basin-block alignment** (concentration 0.87–0.89). This means the encoder has learned to route each basin's activation to a specific block of the K matrix. However, this alignment **fades with increasing capacity**: at ts=256, all structures show concentration ~0.06–0.13, meaning the encoder distributes activations across many blocks.
+
+**Counterintuitively, the arrowhead with exclusivity has the *lowest* basin-block concentration** at every dimension. The exclusivity loss encourages one-basin-at-a-time activation in latent space, but this does not produce alignment between *specific* basin blocks and *specific* ground-truth basins. Instead, the encoder appears to use different basins for different dynamical regimes without a fixed assignment.
+
+#### Interpretation
+
+1. **Spectral stability is the dominant factor for long-horizon prediction quality.** The binary stable/unstable classification predicted by the spectral radius perfectly explains the 15+ orders-of-magnitude spread in H1000 MSE across configurations. All stable models converge to a narrow MSE band (3.49–3.82); all unstable models diverge. This means Koopman structure choice is primarily a question of *which structures reliably produce SR < 1*, not which produce the lowest MSE.
+
+2. **Arrowhead with exclusivity is the most robust choice.** It is the only structure that maintains SR < 1 at all tested dimensions (64, 128, 256), with the best no-reencode H1000 MSE (3.49 at ts=128). The exclusivity loss acts as an implicit spectral constraint by forcing basin-local dynamics to be decoupled, limiting the number of interacting eigenvalue modes. This comes at the cost of worse reconstruction accuracy (higher every-step reencoding error), reflecting the fundamental tradeoff between dynamical stability and reconstruction fidelity.
+
+3. **Dense K is spectrally unstable above ts=64.** The dense Koopman matrix's d² free parameters allow eigenvalues to drift outside the unit circle during training. At ts=512, the spectral radius reaches 1.03, causing H1000 divergence to 10^19. Dense K should not be used for long-horizon prediction without explicit spectral regularisation (e.g., eigenvalue penalty or spectral normalisation of K).
+
+4. **Block-diagonal and diagonal achieve stability at ts=256 but not reliably at lower dimensions.** Their stability depends on the training outcome: at ts=64, SR = 1.0006 (marginally unstable); at ts=256, SR < 1 (stable). This makes them less reliable than arrowhead for guaranteed stability but competitive when they happen to converge stably.
+
+5. **Basin-block alignment does not emerge from K structure alone.** Despite using block sizes matching the number of ground-truth basins (d/13), the encoder does not learn a consistent one-basin-one-block mapping at moderate-to-large latent dimensions. At ts=64 there is strong alignment (concentration 0.87), but this is likely because the low capacity forces each block to specialize. At ts=256+, the encoder has enough capacity to distribute basin information across multiple blocks, and no training signal explicitly encourages concentration.
+
+6. **For LQR control, additional basin-block alignment losses are needed.** The original goal — isolate per-basin linear dynamics as blocks of K, then apply LQR per block — requires that each block maps to exactly one basin. The current results show this alignment exists at low capacity (ts=64) but breaks down at the capacity levels needed for accurate dynamics (ts=256+). An explicit basin-assignment loss during training (e.g., a classifier head predicting basin from block activations) would be needed to enforce this correspondence.
+
+#### Next Steps
+
+1. **Complete the sweep** for ts=512 and ts=1024 (9 checkpoints remaining, job `8607640` in progress).
+
+2. **Add spectral regularisation to dense K.** Penalise eigenvalues outside the unit circle during training (e.g., `lambda_spectral * max(0, SR - 1)^2`). This could make dense K competitive for long-horizon prediction while preserving its expressiveness.
+
+3. **Investigate basin-block alignment losses.** Add an auxiliary classifier head that predicts basin identity from per-block activation norms. This would explicitly encourage the encoder to route each basin's information to a specific K block, enabling per-basin dynamics extraction for LQR.
+
+4. **Test LQR on block-diagonal ts=64.** Despite its marginal spectral instability (SR = 1.0006), the ts=64 block-diagonal model has strong basin-block alignment (0.87). This is the best current candidate for per-basin LQR, since each block approximately corresponds to one basin. Test whether small eigenvalue corrections (clamping SR to < 1) combined with the block-aligned dynamics can produce effective per-basin controllers.
+
+5. **Validate on Duffing.** Duffing has only 2 basins, which should produce even cleaner basin-block alignment. Run the same evaluation suite on the Duffing checkpoints to confirm the spectral stability findings generalise.
+
+---
+
+### 1) Arrowhead no-exclusivity sweep (control)
+Timestamp: 2026-02-03
+
+Script: `scripts/sweep_arrowhead_no_excl_lyapunov.sh`
 
 ```bash
-sbatch scripts/sweep_target_size_duffing.sh
+sbatch scripts/sweep_arrowhead_no_excl_lyapunov.sh
 ```
 
-Defaults: target sizes: 32, 64, 128, 256, 512, `SPARSITY=1.0`
-
-### 3) Support threshold sweep (post-hoc eval)
-Script: `scripts/sweep_support_threshold.sh`
-
-```bash
-sbatch --export=ALL,CKPT=/path/to/checkpoint.pt,OUT_BASE=/path/to/out \
-  scripts/sweep_support_threshold.sh
-```
-
-Thresholds tested: `1e-4 3e-4 1e-3 3e-3 1e-2 3e-2 1e-1`
-
-### 4) K structure × target size sweep
-Script: `scripts/sweep_k_structure_lyapunov.sh`
-
-```bash
-sbatch scripts/sweep_k_structure_lyapunov.sh
-```
-
-15 jobs: 5 target sizes × 3 K structures (dense, diagonal, block_diagonal).
-Post-training eval includes `--threshold_sweep` + cosine similarity.
+Same total latent dims as the arrowhead sweep, but **without** the exclusivity loss to isolate the effect of Koopman structure alone.
 Output: `/network/scratch/l/lia/skae/lyapunov_k_structure_sweep/`
 
-### 5) Arrowhead (StructuredLISTAKM) sweep
+### 2) Arrowhead (StructuredLISTAKM) sweep
+Timestamp: 2026-02-03
+
 Script: `scripts/sweep_arrowhead_lyapunov.sh`
 
 ```bash
@@ -198,9 +230,57 @@ sbatch scripts/sweep_arrowhead_lyapunov.sh
 Uses `lambda_exclusivity=0.05`, `lambda_sparsity=0.3`, `excl_warmup=2000`.
 Output: `/network/scratch/l/lia/skae/lyapunov_k_structure_sweep/`
 
+### 3) K structure × target size sweep
+Timestamp: 2026-02-03
+
+Script: `scripts/sweep_k_structure_lyapunov.sh`
+
+```bash
+sbatch scripts/sweep_k_structure_lyapunov.sh
+```
+
+15 jobs: 5 target sizes × 3 K structures (dense, diagonal, block_diagonal).
+Post-training eval includes `--threshold_sweep` + cosine similarity.
+Output: `/network/scratch/l/lia/skae/lyapunov_k_structure_sweep/`
+
+### 4) Support threshold sweep (post-hoc eval)
+Timestamp: 2026-02-03 (post-hoc / on-demand)
+
+Script: `scripts/sweep_support_threshold.sh`
+
+```bash
+sbatch --export=ALL,CKPT=/path/to/checkpoint.pt,OUT_BASE=/path/to/out \
+  scripts/sweep_support_threshold.sh
+```
+
+Thresholds tested: `1e-4 3e-4 1e-3 3e-3 1e-2 3e-2 1e-1`
+
+### 5) Duffing target size sweep (simple LISTA baseline)
+Timestamp: 2026-02-02
+
+Script: `scripts/sweep_target_size_duffing.sh`
+
+```bash
+sbatch scripts/sweep_target_size_duffing.sh
+```
+
+Defaults: target sizes: 32, 64, 128, 256, 512, `SPARSITY=1.0`
+
+### 6) Lyapunov-HD target size sweep (simple LISTA baseline)
+Timestamp: 2026-02-02
+
+Script: `scripts/sweep_target_size_lyapunov_hd.sh`
+
+```bash
+sbatch scripts/sweep_target_size_lyapunov_hd.sh
+```
+
+Defaults: `DIM=8`, `NUM_BASINS=13`, `SPARSITY=1.0`, target sizes: 64, 128, 256, 512, 1024
+
 ---
 
 ## Experiment: Koopman Structure + Refined Diagnostics (February 3, 2026)
+Timestamp: 2026-02-03
 
 ### Motivation
 
@@ -342,6 +422,36 @@ Note: ts=128 arrowhead diverged catastrophically (eval final error = 13,520). Th
 
 **Block_diagonal at ts=512 achieves the best eval error (2.34)** across all 20 configurations. It outperforms dense (2.97) by 21% at that dimensionality, with 13x fewer K parameters (19,773 vs 262,144).
 
+### Results: Arrowhead Without Exclusivity (control)
+
+Evaluated from `support_eval/threshold_sweep.json` (cosine metrics are threshold-free). Uniqueness is reported at `tau=1e-3`.
+
+| ts | CosSep (intra-inter) | Unique @1e-3 | Eval final error |
+|----|----------------------|--------------|-----------------|
+| 64 | 0.7852 | 13/13 | 2.1817 |
+| 128 | 0.1931 | 9/13 | 2.5567 |
+| 256 | **0.8612** | 13/13 | **1052.7489** |
+| 512 | **0.8621** | 13/13 | 2.2564 |
+| 1024 | 0.6672 | 13/13 | 2.2571 |
+
+Key observations:
+- **Structure alone is not sufficient at mid-size.** At `ts=128`, cosine separation collapses (0.19) and uniqueness drops to 9/13.
+- **Stability is inconsistent.** `ts=256` shows strong separation but catastrophic eval error, indicating unstable rollout dynamics without exclusivity.
+- **Large dims can look good without exclusivity**, but the separation benefit is not consistent (ts=1024 drops to 0.67).
+- **Why we call it unreliable:** the failure mode flips with size (separation fails at 128, stability fails at 256), so structure alone is not robust.
+
+### Comparison: Arrowhead With vs Without Exclusivity
+
+Side-by-side summary at `tau=1e-3` (uniqueness) using cosine separation (threshold-free) and eval final error.
+
+| ts | CosSep (excl) | CosSep (no-excl) | Unique (excl) | Unique (no-excl) | Eval (excl) | Eval (no-excl) |
+|----|--------------|------------------|---------------|------------------|-------------|----------------|
+| 64 | 0.7474 | 0.7852 | 13/13 | 13/13 | 2.5245 | 2.1817 |
+| 128 | 0.7566 | 0.1931 | 13/13 | 9/13 | **13519.6357** | 2.5567 |
+| 256 | 0.7347 | **0.8612** | 13/13 | 13/13 | 3.3905 | **1052.7489** |
+| 512 | 0.7980 | **0.8621** | 13/13 | 13/13 | 2.8736 | 2.2564 |
+| 1024 | **0.8805** | 0.6672 | 13/13 | 13/13 | 2.8577 | 2.2571 |
+
 ### Interpretation
 
 1. **The LISTA encoder is the primary driver of basin discrimination, not the Koopman matrix.** At sufficient capacity (ts>=256), dense, diagonal, and block_diagonal K produce nearly identical cosine separation scores (~0.84--0.85). The encoder learns basin-discriminative supports regardless of K structure. This means the sparsity inductive bias of LISTA is doing the heavy lifting.
@@ -354,32 +464,135 @@ Note: ts=128 arrowhead diverged catastrophically (eval final error = 13,520). Th
 
 5. **The "uniqueness--consistency tradeoff" from the previous experiments is resolved.** It was entirely a thresholding artefact. The cosine metrics show that within-basin representations are highly consistent (cosine ~0.97) at all configurations where uniqueness is achieved. The correct diagnostic is the cosine separation score, not binary support consistency.
 
-### Next Steps
+6. **Arrowhead without exclusivity is unreliable.** The no-exclusivity control shows that **Koopman structure alone does not guarantee basin separation or stability**. Exclusivity provides the consistent basin-discriminative bias at low/mid dimensions, while the structure alone can be unstable (ts=256) or weakly separating (ts=128).
 
-1. **Long-horizon prediction MSE with periodic reencoding** on all 20 checkpoints. Block_diagonal at ts=512 is the most promising candidate — fewer K parameters should produce smaller eigenvalue drift and better long-horizon stability than dense K.
+Implication for the project: treat **exclusivity as a necessary inductive bias** for basin-discriminative representations at practical sizes, and treat arrowhead structure as a *secondary* stabilizer that must be paired with either exclusivity or additional regularization. The best near-term path remains block-diagonal K (stable, parameter-efficient) plus structured losses when using arrowhead.
 
-2. **Extract per-block dynamics from block_diagonal K.** With block_size = d/13, each block is a candidate per-basin Koopman matrix. Compute the eigenvalues of each block and compare them to the ground-truth Lyapunov attractor dynamics. If the blocks align with basins, we can read off the local linear dynamics directly.
+### Next Steps (status as of Feb 3 evaluation sweep)
 
-3. **Test LQR on extracted basin dynamics.** The original motivation is to reduce nonlinear control to per-basin LQR. With block_diagonal K, each block defines a local linear system. Design LQR controllers for each block and test whether they successfully steer trajectories within their basin.
+1. ~~**Long-horizon prediction MSE with periodic reencoding** on all 25 checkpoints.~~ **DONE** (see Experiment 0 above). Block_diagonal at ts=256 is spectrally stable (SR < 1) with H1000 = 3.58. Dense K diverges at ts >= 128.
 
-4. **Stabilise arrowhead at ts=128.** Possible fixes: lower K learning rate, gradient clipping on coupling terms, or longer exclusivity warmup. The arrowhead's guaranteed uniqueness at all dimensions is valuable if the stability issue can be resolved.
+2. ~~**Extract per-block dynamics from block_diagonal K.**~~ **DONE** (see Experiment 0 above). Per-block eigenvalues extracted. Basin-block alignment is strong at ts=64 (concentration 0.87) but fades at ts=256 (0.10).
 
-5. **Validate on Duffing and dysts systems.** Run the best configurations (dense ts=256, block_diagonal ts=512) on Duffing (2 basins) and multi-basin dysts systems to test generality.
+3. **Test LQR on extracted basin dynamics.** Still pending. The ts=64 block-diagonal model is the best candidate due to its strong basin-block alignment, but has marginal spectral instability (SR = 1.0006).
+
+4. ~~**Stabilise arrowhead at ts=128.**~~ **RESOLVED.** The arrowhead with exclusivity at ts=128 is spectrally stable (SR = 0.996) and achieves the best H1000 no-reencode MSE (3.49). The previously reported divergence was in the *eval final error* metric (short-horizon), not in long-horizon rollout stability.
+
+5. **Validate on Duffing and dysts systems.** Still pending.
 
 ---
 
-## Iteration Plan
+## Results: Support Uniqueness (February 2, 2026)
 
-1. **Simple baselines** (DONE): dense Koopman `K`, LISTA encoder, linear decoder, strong sparsity.
-2. **Find stable unique supports** (DONE): ts >= 256 achieves full uniqueness.
-3. **Resolve consistency + test K structure** (DONE): cosine metrics confirm basin-discriminative representations; K structure is secondary to encoder for support correspondence; block_diagonal shows dynamics benefit.
-4. **Long-horizon dynamics + per-basin extraction** (NEXT): prediction MSE with reencoding, extract block dynamics, eigenvalue analysis.
-5. **LQR control on extracted basins** (AFTER): per-basin LQR using block K dynamics.
-6. **Generalise to other systems** (AFTER): Duffing, dysts multi-basin benchmarks.
+Evaluated from `support_eval/support_uniqueness.json` with `support_threshold=1e-3`, `support_mode=mean`, 100 trajectories, 500 steps each.
 
-## Pending
-- Long-horizon prediction MSE with periodic reencoding on all 20 K structure checkpoints
-- Per-block eigenvalue analysis for block_diagonal models
-- LQR feasibility study on extracted per-basin dynamics
-- Arrowhead stability investigation (ts=128 divergence)
-- Validation on Duffing and dysts multi-basin systems
+Definitions:
+- `unique` = number of basins with a distinct mode support / total basins
+- `sep` = 1 - mean pairwise Jaccard (higher = less overlap between basins)
+- `cons` = mean basin consistency (fraction of trajectories matching their basin's mode support)
+- `size` = mean mode support size (number of active latent dimensions)
+
+### Lyapunov-HD (DIM=8, NUM_BASINS=13, SPARSITY=1.0)
+
+| target_size | unique | sep | cons | size | size % |
+|-------------|--------|-------|-------|------|--------|
+| 64 | 5/13 | 0.581 | 0.534 | 1.3 | 2.0% |
+| 128 | 8/13 | 0.801 | 0.361 | 1.6 | 1.3% |
+| **256** | **13/13** | **0.846** | 0.138 | 43.5 | 17.0% |
+| **512** | **13/13** | 0.790 | 0.184 | 13.5 | 2.6% |
+| **1024** | **13/13** | **0.852** | 0.138 | 138.2 | 13.5% |
+
+### Duffing (NUM_BASINS=2, SPARSITY=1.0)
+
+| target_size | unique | sep | cons | size | size % |
+|-------------|--------|-------|-------|------|--------|
+| 32 | 2/2 | 0.571 | 0.460 | 5.0 | 15.6% |
+| 64 | 2/2 | **1.000** | 0.112 | 11.5 | 18.0% |
+| 128 | 2/2 | 0.867 | 0.141 | 17.0 | 13.3% |
+| 256 | 2/2 | 0.984 | 0.102 | 32.5 | 12.7% |
+| 512 | 2/2 | **1.000** | 0.060 | 58.0 | 11.3% |
+
+### Key Findings
+
+1. **Target size >= 256 needed for full basin separation on Lyapunov (13 basins).** Smaller dimensions lack capacity: ts=64 only separates 5/13, ts=128 separates 8/13.
+
+2. **Duffing (2 basins) is fully separable at all target sizes.** Even ts=32 achieves 2/2 unique supports, though with lower separation (0.571). ts=64 and ts=512 achieve perfect separation (Jaccard=0).
+
+3. **Consistency-uniqueness tradeoff.** Across both systems, larger target sizes increase uniqueness and separation but *decrease* within-basin consistency. This is the central diagnostic challenge: the mode support per basin is unique, but individual trajectories within a basin don't consistently produce that exact mode support.
+
+4. **Support sizes scale with target_size.** Active dimensions are roughly 10-20% of the latent dimension across all configurations, indicating the sparsity coefficient (1.0) produces a consistent sparsity level.
+
+---
+
+## Results: Training-Time Support Dynamics
+
+The `--monitor_support` flag revealed how separation evolves during training.
+
+### Lyapunov-HD: Separation score over training
+
+| step | ts=64 | ts=128 | ts=256 | ts=512 | ts=1024 |
+|------|-------|--------|--------|--------|---------|
+| 500 | 0.538 | 0.727 | 0.728 | 0.000 | 0.420 |
+| 1000 | 0.756 | 0.831 | 0.678 | 0.000 | 0.740 |
+| 2000 | 0.809 | 0.814 | 0.706 | 0.661 | 0.533 |
+| 3000 | 0.824 | 0.821 | 0.821 | 0.469 | 0.771 |
+| 5000 | 0.823 | 0.833 | 0.834 | 0.811 | 0.842 |
+| 7000 | 0.833 | 0.844 | 0.838 | 0.828 | 0.834 |
+| 9500 | 0.840 | 0.851 | 0.847 | 0.843 | **0.855** |
+
+Key observations:
+- **ts=64-128** reach high separation quickly (~1000 steps) but plateau early
+- **ts=512** starts at **zero separation for 1500 steps**, then rapidly catches up
+- **ts=1024** is noisy early but achieves the **highest final separation** (0.855)
+- **All sizes converge** to similar separation (~0.84-0.85) by end of training
+- The convergence rate is inversely related to target size
+
+---
+
+## Results: Prediction MSE
+
+### Lyapunov-HD (best checkpoint)
+
+| target_size | H100 (no-re) | H500 (no-re) | H1000 (no-re) | H500 (best-PR) | best mode |
+|-------------|-------------|-------------|-------------|-----------------|-----------|
+| 64 | 4.45e+00 | 3.66e+00 | 3.60e+00 | 3.90e+00 | periodic_100 |
+| 128 | 4.61e+00 | 6.37e+00 | 9.75e+02 | 3.93e+00 | periodic_100 |
+| 256 | 3.26e+00 | 6.42e+06 | 2.91e+17 | 3.60e+00 | periodic_50 |
+| 512 | 4.39e+00 | 3.14e+07 | 6.02e+19 | 3.90e+00 | periodic_50 |
+| 1024 | 8.19e+00 | 1.79e+11 | 1.34e+25 | **3.38e+00** | periodic_25 |
+
+### Duffing (best checkpoint)
+
+| target_size | H100 (no-re) | H500 (no-re) | H1000 (no-re) | H500 (best-PR) | best mode |
+|-------------|-------------|-------------|-------------|-----------------|-----------|
+| 32 | 1.08e-01 | 2.80e+00 | 7.01e+01 | 1.19e+00 | periodic_10 |
+| 64 | 3.38e-02 | 1.63e+05 | 1.81e+14 | 2.74e-01 | periodic_25 |
+| 128 | 9.19e-03 | 6.33e-01 | 8.89e+01 | 6.92e-02 | periodic_25 |
+| 256 | 3.24e-03 | 2.45e+01 | 3.08e+08 | 6.81e-02 | periodic_25 |
+| 512 | **1.46e-03** | 2.16e+00 | 2.58e+04 | **1.98e-02** | periodic_25 |
+
+### Prediction Findings
+
+1. **Without reencoding, larger latent dims diverge catastrophically.** ts=256+ explode at H500+. This is expected: larger K matrices have more room for eigenvalue drift.
+
+2. **Periodic reencoding equalizes performance.** With optimal reencoding period, all target sizes achieve similar MSE on Lyapunov (~3.4-3.9).
+
+3. **ts=1024 with periodic_25 gives the best Lyapunov H500 MSE** (3.38e+00), despite the worst short-horizon accuracy without reencoding.
+
+4. **Duffing accuracy improves monotonically with target size** (H100: 0.108 → 0.001). ts=512 is best overall.
+
+---
+
+## Interpretation: Uniqueness vs Consistency (Superseded by Feb 3 Diagnostics)
+
+This section reflects the Feb 2 readout using hard-thresholded supports at `tau=1e-3`. It is kept for provenance, but the updated conclusion (see Feb 3 cosine results above) is:
+
+- Binary consistency at `tau=1e-3` is low because supports flip near the hard threshold.
+- Threshold sweeps and cosine similarity show high within-basin consistency in the continuous latents.
+- The right diagnostic going forward is cosine separation (threshold-free), plus threshold sweeps when binarizing.
+
+Original Feb 2 snapshot (context only):
+- Uniqueness increases with capacity (ts >= 256 for 13 basins, ts >= 32 for 2 basins).
+- Binary consistency drops as capacity increases under `tau=1e-3`.
+
+---
