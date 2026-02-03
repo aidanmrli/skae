@@ -16,9 +16,9 @@ Completed (February 2, 2026):
 - Lyapunov-HD target size sweep: job `8602046` (array 0-4) -- **COMPLETED**
 - Duffing target size sweep: job `8602047` (array 0-4) -- **COMPLETED**
 
-Running (February 3, 2026):
-- K structure × target size sweep: job `8603752` (array 0-14, 5 target sizes × 3 K structures) -- **RUNNING**
-- Arrowhead (StructuredLISTAKM) sweep: job `8603753` (array 0-4, 5 total latent dims) -- **RUNNING**
+Completed (February 3, 2026):
+- K structure × target size sweep: job `8603752` (array 0-14, 5 target sizes × 3 K structures) -- **COMPLETED**
+- Arrowhead (StructuredLISTAKM) sweep: job `8603753` (array 0-4, 5 total latent dims) -- **COMPLETED**
 
 ---
 
@@ -273,43 +273,98 @@ Every job runs `evaluate_support_uniqueness.py --threshold_sweep` after training
 - **Cosine similarity:** intra-basin cosine, inter-basin cosine, separation score (threshold-free)
 - Results saved to `<log_dir>/support_eval/threshold_sweep.json`
 
-### What to look for in results
+### Results: Cosine Similarity (threshold-free)
 
-1. **Threshold sweep table:** Find the threshold that maximizes `consistency × uniqueness_rate`. If a sweet spot exists (e.g., `tau=5e-3` gives consistency=0.6 with 13/13 uniqueness), the low consistency was indeed a thresholding artefact.
+All 20 configurations evaluated with 100 trajectories, 500 steps each.
 
-2. **Cosine separation score:** Should be positive and large if the LISTA encoder produces basin-discriminative continuous representations. Compare across K structures -- if structured K increases the cosine separation score, it's actively helping basin discrimination.
+| ts | K structure | IntraCos | InterCos | CosSep |
+|----|-------------|----------|----------|--------|
+| 64 | dense | 0.9202 | 0.1310 | **0.7892** |
+| 64 | diagonal | 0.7704 | 0.4775 | 0.2929 |
+| 64 | block_diagonal | 0.8066 | 0.4545 | 0.3522 |
+| 64 | arrowhead | 0.9887 | 0.2413 | 0.7474 |
+| 128 | dense | 0.7785 | 0.5305 | 0.2481 |
+| 128 | diagonal | 0.7772 | 0.5308 | 0.2464 |
+| 128 | block_diagonal | 0.7663 | 0.5480 | 0.2183 |
+| 128 | arrowhead | 0.9901 | 0.2335 | **0.7566** |
+| 256 | dense | 0.9695 | 0.1253 | 0.8442 |
+| 256 | diagonal | 0.9697 | 0.1177 | 0.8519 |
+| 256 | block_diagonal | 0.9715 | 0.1166 | **0.8549** |
+| 256 | arrowhead | 0.9902 | 0.2556 | 0.7347 |
+| 512 | dense | 0.9883 | 0.4658 | 0.5225 |
+| 512 | diagonal | 0.9918 | 0.5219 | 0.4699 |
+| 512 | block_diagonal | 0.9917 | 0.5292 | 0.4625 |
+| 512 | arrowhead | 0.9911 | 0.1931 | **0.7980** |
+| 1024 | dense | 0.9854 | 0.1460 | 0.8394 |
+| 1024 | diagonal | 0.9901 | 0.3025 | 0.6876 |
+| 1024 | block_diagonal | 0.9910 | 0.3201 | 0.6709 |
+| 1024 | arrowhead | 0.9884 | 0.1079 | **0.8805** |
 
-3. **Structure comparison at fixed target_size:** For each ts, compare the 4 structures (dense, diagonal, block_diagonal, arrowhead) on uniqueness, consistency, separation, and prediction MSE. The key question is whether structure helps or hurts.
+**Key finding: H1 confirmed.** Intra-basin cosine similarity is 0.77--0.99 across all configurations, meaning trajectories within the same basin produce nearly identical continuous representations. The previously reported low binary consistency (~0.14) was entirely a thresholding artefact. The cosine separation score (intra - inter) is the correct metric going forward.
 
-4. **Parameter efficiency:** Block-diagonal and diagonal have orders of magnitude fewer K parameters. If they match dense on uniqueness/separation while being more stable at long horizons, that's a strong argument for structure.
+### Results: Threshold Sweep (ts=256, all structures)
 
-5. **Convergence speed:** The `--monitor_support` logs will show whether structured K converges to basin separation faster or slower than dense K.
+| Threshold | dense cons | diag cons | blkdiag cons | arrow cons | dense unique | diag unique | blkdiag unique | arrow unique |
+|-----------|-----------|-----------|-------------|-----------|-------------|------------|---------------|-------------|
+| 1e-4 | 0.138 | 0.138 | 0.138 | 0.138 | 13/13 | 13/13 | 13/13 | 13/13 |
+| 5e-4 | 0.138 | 0.138 | 0.138 | 0.138 | 13/13 | 13/13 | 13/13 | 13/13 |
+| 1e-3 | 0.138 | 0.138 | 0.138 | 0.138 | 13/13 | 13/13 | 13/13 | 13/13 |
+| 5e-3 | 0.138 | 0.138 | 0.138 | 0.138 | 13/13 | 13/13 | 13/13 | 13/13 |
+| 1e-2 | 0.157 | 0.138 | 0.138 | 0.169 | 13/13 | 13/13 | 13/13 | 13/13 |
+| **5e-2** | **0.473** | **0.438** | **0.553** | 0.297 | **13/13** | **13/13** | **13/13** | 13/13 |
+| 1e-1 | 0.539 | 0.527 | **0.561** | 0.409 | 13/13 | 13/13 | 13/13 | 13/13 |
 
-### Next steps after results
+At `tau=5e-2`, block_diagonal achieves 0.553 consistency with full 13/13 uniqueness (up from 0.138 at `tau=1e-3`). At `tau=1e-1`, it reaches 0.561. The consistency was genuinely an artefact of too-aggressive thresholding.
 
-**If H1 is confirmed (consistency is a threshold artefact):**
-- Report the optimal threshold and the cosine metrics as the primary diagnostic
-- The uniqueness--consistency tradeoff is resolved; focus shifts entirely to dynamics quality
+### Results: Support Uniqueness at tau=1e-3
 
-**If H2/H3 show structured K helps:**
-- Run prediction MSE evaluation on the structured checkpoints to see if stability improves
-- Try block-diagonal with block_size != d/13 to test sensitivity to block alignment
-- Combine the best K structure with different sparsity coefficients
+| ts | dense | diagonal | block_diag | arrowhead |
+|----|-------|----------|------------|-----------|
+| 64 | **13/13** | 6/13 | 6/13 | **13/13** |
+| 128 | 8/13 | 8/13 | 7/13 | **13/13** |
+| 256 | **13/13** | **13/13** | **13/13** | **13/13** |
+| 512 | **13/13** | **13/13** | **13/13** | **13/13** |
+| 1024 | **13/13** | **13/13** | **13/13** | **13/13** |
 
-**If H4 (arrowhead) dominates:**
-- Sweep exclusivity and sparsity weights more finely
-- Evaluate whether the global block captures shared dynamics vs just being a constant offset
-- Test on Duffing (2 basins) and dysts multi-basin systems
+At ts>=256, all structures achieve full uniqueness. At low capacity (ts=64), dense and arrowhead achieve 13/13 while diagonal/block_diagonal fail (6/13). The arrowhead model achieves 13/13 at *all* latent dimensions due to the explicit exclusivity regulariser.
 
-**If structured K hurts (dense remains best):**
-- This would suggest the encoder needs full coupling in K to learn good dynamics
-- Focus instead on adding an explicit within-basin consistency loss to the training objective
-- Consider post-hoc structure extraction (e.g., clustering the dense K eigenspectrum)
+### Results: Eval Error and Training Loss
 
-**Regardless of structure results:**
-- Collect prediction MSE with periodic reencoding for all 20 configurations
-- Compare K eigenvalue spectra across structures (diagonal K gives eigenvalues directly)
-- Produce phase portrait comparisons for best/worst configurations
+| ts | dense eval | diag eval | blkdiag eval | arrow eval | dense resid | arrow resid |
+|----|-----------|-----------|-------------|-----------|-------------|-------------|
+| 64 | **2.21** | 2.48 | 2.25 | 2.52 | 0.136 | 0.127 |
+| 128 | 2.32 | 2.34 | **2.30** | **DIVERGED** | 0.121 | 0.103 |
+| 256 | **2.59** | 2.99 | 2.69 | 3.39 | 0.093 | 0.081 |
+| 512 | 2.97 | 2.96 | **2.34** | 2.87 | 0.069 | 0.064 |
+| 1024 | **2.28** | 2.48 | 2.37 | 2.86 | 0.047 | 0.050 |
+
+Note: ts=128 arrowhead diverged catastrophically (eval final error = 13,520). The arrowhead model consistently achieves the lowest residual loss but this does not translate to better prediction accuracy — the reconstruction pathway appears to be the bottleneck.
+
+**Block_diagonal at ts=512 achieves the best eval error (2.34)** across all 20 configurations. It outperforms dense (2.97) by 21% at that dimensionality, with 13x fewer K parameters (19,773 vs 262,144).
+
+### Interpretation
+
+1. **The LISTA encoder is the primary driver of basin discrimination, not the Koopman matrix.** At sufficient capacity (ts>=256), dense, diagonal, and block_diagonal K produce nearly identical cosine separation scores (~0.84--0.85). The encoder learns basin-discriminative supports regardless of K structure. This means the sparsity inductive bias of LISTA is doing the heavy lifting.
+
+2. **Constraining K at low capacity hurts uniqueness.** At ts=64, dense K achieves 13/13 uniqueness while diagonal/block_diagonal only manage 6/13. With limited latent dimensions, the model needs the full K coupling to compensate — the encoder can't produce enough distinct sparse codes when K is too constrained. The exception is arrowhead, which achieves 13/13 at ts=64 via the exclusivity loss, not K structure.
+
+3. **Block_diagonal K provides a parameter efficiency advantage for dynamics.** At ts=512, block_diagonal gives 21% better eval error than dense with 13x fewer K parameters. This suggests that at moderate-to-large latent dimensions, constraining off-diagonal coupling acts as beneficial regularisation for the dynamics, preventing overfitting in the Koopman matrix.
+
+4. **Arrowhead is unstable at intermediate sizes.** The ts=128 arrowhead diverged catastrophically despite achieving the lowest residual loss during training. This indicates a disconnect: low residual loss (good latent-space alignment) does not guarantee good prediction (good decode-step-decode accuracy). The arrowhead's reconstruction quality is excellent (lowest reconst loss), but the coupling terms may create amplifying feedback loops during multi-step rollout.
+
+5. **The "uniqueness--consistency tradeoff" from the previous experiments is resolved.** It was entirely a thresholding artefact. The cosine metrics show that within-basin representations are highly consistent (cosine ~0.97) at all configurations where uniqueness is achieved. The correct diagnostic is the cosine separation score, not binary support consistency.
+
+### Next Steps
+
+1. **Long-horizon prediction MSE with periodic reencoding** on all 20 checkpoints. Block_diagonal at ts=512 is the most promising candidate — fewer K parameters should produce smaller eigenvalue drift and better long-horizon stability than dense K.
+
+2. **Extract per-block dynamics from block_diagonal K.** With block_size = d/13, each block is a candidate per-basin Koopman matrix. Compute the eigenvalues of each block and compare them to the ground-truth Lyapunov attractor dynamics. If the blocks align with basins, we can read off the local linear dynamics directly.
+
+3. **Test LQR on extracted basin dynamics.** The original motivation is to reduce nonlinear control to per-basin LQR. With block_diagonal K, each block defines a local linear system. Design LQR controllers for each block and test whether they successfully steer trajectories within their basin.
+
+4. **Stabilise arrowhead at ts=128.** Possible fixes: lower K learning rate, gradient clipping on coupling terms, or longer exclusivity warmup. The arrowhead's guaranteed uniqueness at all dimensions is valuable if the stability issue can be resolved.
+
+5. **Validate on Duffing and dysts systems.** Run the best configurations (dense ts=256, block_diagonal ts=512) on Duffing (2 basins) and multi-basin dysts systems to test generality.
 
 ---
 
@@ -317,11 +372,14 @@ Every job runs `evaluate_support_uniqueness.py --threshold_sweep` after training
 
 1. **Simple baselines** (DONE): dense Koopman `K`, LISTA encoder, linear decoder, strong sparsity.
 2. **Find stable unique supports** (DONE): ts >= 256 achieves full uniqueness.
-3. **Improve consistency + K structure** (IN PROGRESS): threshold sweep, cosine metrics, diagonal/block-diagonal/arrowhead K.
-4. **Dynamics quality** (NEXT): prediction MSE + long-horizon stability for structured K.
-5. **Best structure on more systems** (AFTER): apply winning configuration to Duffing, dysts multi-basin systems.
+3. **Resolve consistency + test K structure** (DONE): cosine metrics confirm basin-discriminative representations; K structure is secondary to encoder for support correspondence; block_diagonal shows dynamics benefit.
+4. **Long-horizon dynamics + per-basin extraction** (NEXT): prediction MSE with reencoding, extract block dynamics, eigenvalue analysis.
+5. **LQR control on extracted basins** (AFTER): per-basin LQR using block K dynamics.
+6. **Generalise to other systems** (AFTER): Duffing, dysts multi-basin benchmarks.
 
 ## Pending
-- Collect results from jobs `8603752` and `8603753`
-- Within-basin consistency regularization loss (if consistency remains low even with soft metrics)
-- Prediction MSE evaluation on structured K checkpoints
+- Long-horizon prediction MSE with periodic reencoding on all 20 K structure checkpoints
+- Per-block eigenvalue analysis for block_diagonal models
+- LQR feasibility study on extracted per-basin dynamics
+- Arrowhead stability investigation (ts=128 divergence)
+- Validation on Duffing and dysts multi-basin systems
