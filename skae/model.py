@@ -1080,9 +1080,31 @@ class LISTAKM(KoopmanMachine):
         
         # LISTA encoder (uses internal_obs_size)
         self.lista = LISTA(cfg, self._internal_obs_size, Wd_init, L_override=L)
-        
-        # Koopman matrix (learnable)
-        self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
+
+        # Koopman matrix (learnable) — structure depends on cfg.MODEL.K_STRUCTURE
+        self._k_structure = cfg.MODEL.K_STRUCTURE
+        zdim = cfg.MODEL.TARGET_SIZE
+        if self._k_structure == "diagonal":
+            self.kmat_diag = nn.Parameter(torch.ones(zdim))
+            print(f"  Diagonal K: {zdim} parameters")
+        elif self._k_structure == "block_diagonal":
+            block_size = cfg.MODEL.K_BLOCK_SIZE
+            if block_size <= 0:
+                block_size = max(1, zdim // 13)
+            self._k_block_size = block_size
+            self._k_num_blocks = zdim // block_size
+            self._k_remainder = zdim - self._k_num_blocks * block_size
+            self.kmat_blocks = nn.ParameterList([
+                nn.Parameter(torch.eye(block_size))
+                for _ in range(self._k_num_blocks)
+            ])
+            if self._k_remainder > 0:
+                self.kmat_remainder = nn.Parameter(torch.eye(self._k_remainder))
+            print(f"  Block-diagonal K: {self._k_num_blocks} blocks of size "
+                  f"{block_size}" + (f" + remainder {self._k_remainder}" if self._k_remainder > 0 else ""))
+        else:
+            # Dense (default)
+            self.kmat = nn.Parameter(torch.eye(zdim))
     
     def _augment_homogeneous(self, x: torch.Tensor) -> torch.Tensor:
         """Augment input with homogeneous coordinate [x, 1]."""
@@ -1152,24 +1174,62 @@ class LISTAKM(KoopmanMachine):
     
     def kmatrix(self) -> torch.Tensor:
         """Get the Koopman matrix.
-        
+
         Returns:
             Koopman matrix of shape [target_size, target_size]
         """
-        return self.kmat
-    
+        if self._k_structure == "diagonal":
+            return torch.diag(self.kmat_diag)
+        elif self._k_structure == "block_diagonal":
+            blocks = [b for b in self.kmat_blocks]
+            if self._k_remainder > 0:
+                blocks.append(self.kmat_remainder)
+            return torch.block_diag(*blocks)
+        else:
+            return self.kmat
+
+    def step_latent(self, y: torch.Tensor) -> torch.Tensor:
+        """Step forward in latent space using Koopman matrix.
+
+        Uses efficient computation for structured K:
+          - diagonal: element-wise multiply O(n)
+          - block_diagonal: per-block matmul O(n * block_size)
+          - dense: full matmul O(n^2)
+        """
+        if self._k_structure == "diagonal":
+            return y * self.kmat_diag
+        elif self._k_structure == "block_diagonal":
+            bs = self._k_block_size
+            parts = []
+            for i, block in enumerate(self.kmat_blocks):
+                yi = y[..., i * bs:(i + 1) * bs]
+                parts.append(yi @ block)
+            if self._k_remainder > 0:
+                offset = self._k_num_blocks * bs
+                yi = y[..., offset:]
+                parts.append(yi @ self.kmat_remainder)
+            return torch.cat(parts, dim=-1)
+        else:
+            return y @ self.kmat
+
+    def residual(self, x: torch.Tensor, nx: torch.Tensor) -> torch.Tensor:
+        """Alignment loss using efficient step_latent (avoids materializing full K)."""
+        y = self.encode(x)
+        ny = self.encode(nx)
+        return torch.norm(self.step_latent(y) - ny, dim=-1)
+
     def sparsity_loss(self, x: torch.Tensor) -> torch.Tensor:
         """Compute L1 sparsity loss weighted by LISTA alpha.
-        
+
         Args:
             x: Observations of shape [..., observation_size]
-            
+
         Returns:
             Scalar sparsity loss
         """
         z = self.encode(x)
         return self.cfg.MODEL.ENCODER.LISTA.ALPHA * torch.norm(z, p=1, dim=-1).mean()
-    
+
     def homogeneous_loss(self, x: torch.Tensor) -> torch.Tensor:
         """Compute homogeneous coordinate consistency loss: penalize ĉ ≠ 1.
         

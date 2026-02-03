@@ -315,7 +315,11 @@ class ModelConfig:
     
     # Homogeneous coordinates: append 1 to input, enables implicit bias learning
     USE_HOMOGENEOUS: bool = False
-    
+
+    # Koopman matrix structure: "dense" (full NxN), "diagonal", "block_diagonal"
+    K_STRUCTURE: str = "dense"
+    K_BLOCK_SIZE: int = 0  # block size for block_diagonal (0 = auto: target_size // 13)
+
     # Sub-configs
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
     DECODER: DecoderConfig = field(default_factory=DecoderConfig)

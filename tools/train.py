@@ -247,6 +247,8 @@ def train(
     monitor_support: bool = False,
     support_monitor_every: int = 500,
     support_threshold: float = 1e-3,
+    skip_eval: bool = False,
+    skip_basin_eval: bool = False,
 ) -> nn.Module:
     """Main training function.
 
@@ -536,10 +538,11 @@ def train(
         print(f"Warning: Failed to plot training metrics: {e}")
         print("Continuing with evaluation...")
 
-    print("-" * 80)
-    print("Running standardized evaluation suite...")
-    print("Loading evaluation module...")
-    from skae.evaluation import EvaluationSettings, evaluate_model
+    if not skip_eval:
+        print("-" * 80)
+        print("Running standardized evaluation suite...")
+        print("Loading evaluation module...")
+        from skae.evaluation import EvaluationSettings, evaluate_model
     
     def evaluate_checkpoint(checkpoint_path: Path, checkpoint_name: str):
         """Load a checkpoint and evaluate it."""
@@ -624,25 +627,25 @@ def train(
         print(f"  Evaluation artifacts saved to {eval_dir}")
         return eval_results
     
-    # Evaluate both checkpoints
-    last_checkpoint = run_dir / 'last.pt'
-    best_checkpoint = run_dir / 'checkpoint.pt'
-    
-    eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
-    eval_results_best = evaluate_checkpoint(best_checkpoint, "best")
-    
-    # Also save a combined summary
-    if eval_results_last is not None or eval_results_best is not None:
-        summary = {
-            "last_checkpoint": eval_results_last is not None,
-            "best_checkpoint": eval_results_best is not None,
-        }
-        summary_file = run_dir / "evaluation_summary.json"
-        with open(summary_file, "w") as f:
-            json.dump(summary, f, indent=2)
+        # Evaluate both checkpoints
+        last_checkpoint = run_dir / 'last.pt'
+        best_checkpoint = run_dir / 'checkpoint.pt'
+        
+        eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
+        eval_results_best = evaluate_checkpoint(best_checkpoint, "best")
+        
+        # Also save a combined summary
+        if eval_results_last is not None or eval_results_best is not None:
+            summary = {
+                "last_checkpoint": eval_results_last is not None,
+                "best_checkpoint": eval_results_best is not None,
+            }
+            summary_file = run_dir / "evaluation_summary.json"
+            with open(summary_file, "w") as f:
+                json.dump(summary, f, indent=2)
 
     # Run basin structure evaluation for StructuredLISTAKM models
-    if cfg.MODEL.STRUCTURED.ENABLED:
+    if cfg.MODEL.STRUCTURED.ENABLED and not skip_basin_eval:
         print("-" * 80)
         print("Running basin structure evaluation for StructuredLISTAKM...")
         try:
@@ -921,6 +924,13 @@ Examples:
     parser.add_argument('--lista_num_loops', type=int, default=None,
                         help='Number of LISTA iterations (overrides config default)')
 
+    # Koopman matrix structure
+    parser.add_argument('--k_structure', type=str, default=None,
+                        choices=['dense', 'diagonal', 'block_diagonal'],
+                        help='Koopman matrix structure (default: dense)')
+    parser.add_argument('--k_block_size', type=int, default=None,
+                        help='Block size for block_diagonal K (default: auto = target_size // 13)')
+
     # HyperLISTA (HyperLISTAKM) hyperparameters
     parser.add_argument('--hyperlista_c_theta', type=float, default=None,
                         help='HyperLISTA threshold scaling C_THETA (overrides config default)')
@@ -966,6 +976,10 @@ Examples:
                         help='Evaluate every N steps during training (overrides config default)')
     parser.add_argument('--eval_num_steps', type=int, default=None,
                         help='Rollout horizon for the quick eval during training (overrides config default)')
+    parser.add_argument('--skip_eval', action='store_true',
+                        help='Skip standardized evaluation suite after training')
+    parser.add_argument('--skip_basin_eval', action='store_true',
+                        help='Skip basin structure evaluation after training')
 
     # Support monitoring (for basin-support correspondence diagnostics)
     parser.add_argument('--monitor_support', action='store_true',
@@ -1060,6 +1074,12 @@ Examples:
         # Update both LISTA and HyperLISTA loop counts for convenience
         cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = args.lista_num_loops
         cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = args.lista_num_loops
+    if args.k_structure is not None:
+        cfg.MODEL.K_STRUCTURE = args.k_structure
+        print(f"Using Koopman matrix structure: {args.k_structure}")
+    if args.k_block_size is not None:
+        cfg.MODEL.K_BLOCK_SIZE = args.k_block_size
+
     if args.hyperlista_c_theta is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = args.hyperlista_c_theta
     if args.hyperlista_c_beta is not None:
@@ -1147,6 +1167,8 @@ Examples:
         monitor_support=args.monitor_support,
         support_monitor_every=args.support_monitor_every,
         support_threshold=args.support_threshold,
+        skip_eval=args.skip_eval,
+        skip_basin_eval=args.skip_basin_eval,
     )
 
 

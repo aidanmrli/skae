@@ -141,6 +141,10 @@ class SupportUniquenessResults:
     mean_basin_consistency: float
     mean_mode_support_size: float
     mean_pairwise_jaccard: float
+    # Cosine similarity metrics (threshold-free)
+    mean_intra_basin_cosine: float = 0.0
+    mean_inter_basin_cosine: float = 0.0
+    cosine_separation_score: float = 0.0
     per_basin_consistency: Dict[int, float] = field(default_factory=dict)
     per_basin_support_size: Dict[int, float] = field(default_factory=dict)
     per_basin_active_indices: Dict[int, List[int]] = field(default_factory=dict)
@@ -174,6 +178,74 @@ def _jaccard(a: np.ndarray, b: np.ndarray) -> float:
     if union == 0:
         return 1.0
     return float(inter) / float(union)
+
+
+def compute_cosine_basin_similarity(
+    model,
+    dataset: BasinLabeledDataset,
+    device: str,
+) -> Dict[str, float]:
+    """Compute cosine similarity metrics on continuous latent activations.
+
+    Operates on the raw (unthresholded) encoded vectors, avoiding the
+    sensitivity to hard threshold choices that plagues binary support metrics.
+
+    Returns dict with:
+        mean_intra_basin_cosine: mean cosine similarity within each basin
+        mean_inter_basin_cosine: mean cosine similarity between basin centroids
+        cosine_separation_score: intra - inter (higher = better)
+    """
+    model.eval()
+    basin_latents: Dict[int, List[np.ndarray]] = {
+        b: [] for b in range(dataset.num_basins)
+    }
+
+    with torch.no_grad():
+        for traj in dataset.trajectories:
+            states = traj.states.to(device)
+            z = model.encode(states)
+            # Use trajectory-mean latent as the representative vector
+            z_mean = z.mean(dim=0).cpu().numpy()
+            basin_latents[traj.final_basin].append(z_mean)
+
+    def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+        na = np.linalg.norm(a)
+        nb = np.linalg.norm(b)
+        if na < 1e-12 or nb < 1e-12:
+            return 0.0
+        return float(np.dot(a, b) / (na * nb))
+
+    # Intra-basin: mean pairwise cosine within each basin
+    intra_cosines = []
+    for basin, vecs in basin_latents.items():
+        if len(vecs) < 2:
+            continue
+        pairs = []
+        for i in range(len(vecs)):
+            for j in range(i + 1, len(vecs)):
+                pairs.append(_cosine(vecs[i], vecs[j]))
+        if pairs:
+            intra_cosines.append(float(np.mean(pairs)))
+
+    # Inter-basin: cosine between basin centroids
+    centroids: Dict[int, np.ndarray] = {}
+    for basin, vecs in basin_latents.items():
+        if vecs:
+            centroids[basin] = np.mean(vecs, axis=0)
+    inter_cosines = []
+    basins_sorted = sorted(centroids.keys())
+    for i, bi in enumerate(basins_sorted):
+        for bj in basins_sorted[i + 1:]:
+            inter_cosines.append(_cosine(centroids[bi], centroids[bj]))
+
+    mean_intra = float(np.mean(intra_cosines)) if intra_cosines else 0.0
+    mean_inter = float(np.mean(inter_cosines)) if inter_cosines else 0.0
+
+    return {
+        "mean_intra_basin_cosine": mean_intra,
+        "mean_inter_basin_cosine": mean_inter,
+        "cosine_separation_score": mean_intra - mean_inter,
+    }
 
 
 def compute_support_uniqueness(
@@ -285,6 +357,8 @@ def main():
     parser.add_argument('--device', type=str, default='cpu',
                         choices=['cpu', 'cuda', 'mps'],
                         help='Device to run on')
+    parser.add_argument('--threshold_sweep', action='store_true',
+                        help='Run evaluation across multiple thresholds')
 
     args = parser.parse_args()
 
@@ -315,26 +389,61 @@ def main():
         seed=args.seed,
     )
 
-    results = compute_support_uniqueness(
-        model,
-        dataset,
-        device=args.device,
-        support_threshold=args.support_threshold,
-        support_mode=args.support_mode,
-    )
+    # Cosine similarity metrics (threshold-free)
+    cosine_metrics = compute_cosine_basin_similarity(model, dataset, args.device)
+    print("\nCosine similarity metrics (threshold-free):")
+    print(f"  Mean intra-basin cosine: {cosine_metrics['mean_intra_basin_cosine']:.4f}")
+    print(f"  Mean inter-basin cosine: {cosine_metrics['mean_inter_basin_cosine']:.4f}")
+    print(f"  Cosine separation score: {cosine_metrics['cosine_separation_score']:.4f}")
 
-    results_path = output_dir / "support_uniqueness.json"
-    with open(results_path, "w") as f:
-        json.dump(asdict(results), f, indent=2)
+    if args.threshold_sweep:
+        thresholds = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1]
+        sweep_results = []
+        print(f"\nThreshold sweep across {len(thresholds)} values:")
+        print(f"{'Threshold':>12} {'Consistency':>12} {'Uniqueness':>11} "
+              f"{'Jaccard':>8} {'SupportSize':>12} {'UniqueSupp':>11}")
+        print("-" * 70)
+        for thresh in thresholds:
+            res = compute_support_uniqueness(
+                model, dataset, device=args.device,
+                support_threshold=thresh, support_mode=args.support_mode,
+            )
+            # Attach cosine metrics
+            res.mean_intra_basin_cosine = cosine_metrics['mean_intra_basin_cosine']
+            res.mean_inter_basin_cosine = cosine_metrics['mean_inter_basin_cosine']
+            res.cosine_separation_score = cosine_metrics['cosine_separation_score']
+            sweep_results.append(asdict(res))
+            print(f"{thresh:>12.1e} {res.mean_basin_consistency:>12.3f} "
+                  f"{res.mode_uniqueness_rate:>11.3f} {res.mean_pairwise_jaccard:>8.3f} "
+                  f"{res.mean_mode_support_size:>12.1f} "
+                  f"{res.unique_mode_supports:>5}/{res.num_basins}")
 
-    print("\nSupport uniqueness results:")
-    print(f"  Unique mode supports: {results.unique_mode_supports}/{results.num_basins}")
-    print(f"  Mode collisions (pairs): {results.mode_collision_pairs}")
-    print(f"  Mode uniqueness rate: {results.mode_uniqueness_rate:.3f}")
-    print(f"  Mean basin consistency: {results.mean_basin_consistency:.3f}")
-    print(f"  Mean mode support size: {results.mean_mode_support_size:.1f}")
-    print(f"  Mean pairwise Jaccard: {results.mean_pairwise_jaccard:.3f}")
-    print(f"\nSaved results to {results_path}")
+        sweep_path = output_dir / "threshold_sweep.json"
+        with open(sweep_path, "w") as f:
+            json.dump(sweep_results, f, indent=2)
+        print(f"\nSaved threshold sweep to {sweep_path}")
+    else:
+        results = compute_support_uniqueness(
+            model, dataset, device=args.device,
+            support_threshold=args.support_threshold,
+            support_mode=args.support_mode,
+        )
+        results.mean_intra_basin_cosine = cosine_metrics['mean_intra_basin_cosine']
+        results.mean_inter_basin_cosine = cosine_metrics['mean_inter_basin_cosine']
+        results.cosine_separation_score = cosine_metrics['cosine_separation_score']
+
+        results_path = output_dir / "support_uniqueness.json"
+        with open(results_path, "w") as f:
+            json.dump(asdict(results), f, indent=2)
+
+        print("\nSupport uniqueness results:")
+        print(f"  Unique mode supports: {results.unique_mode_supports}/{results.num_basins}")
+        print(f"  Mode collisions (pairs): {results.mode_collision_pairs}")
+        print(f"  Mode uniqueness rate: {results.mode_uniqueness_rate:.3f}")
+        print(f"  Mean basin consistency: {results.mean_basin_consistency:.3f}")
+        print(f"  Mean mode support size: {results.mean_mode_support_size:.1f}")
+        print(f"  Mean pairwise Jaccard: {results.mean_pairwise_jaccard:.3f}")
+        print(f"\nSaved results to {results_path}")
 
 
 if __name__ == "__main__":
