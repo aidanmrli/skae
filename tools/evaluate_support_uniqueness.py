@@ -271,6 +271,8 @@ def main():
                         help='Number of test trajectories')
     parser.add_argument('--trajectory_length', type=int, default=500,
                         help='Length of each trajectory')
+    parser.add_argument('--long_rollout_steps', type=int, default=5000,
+                        help='Steps for basin identification after trajectory end')
     parser.add_argument('--support_threshold', type=float, default=1e-3,
                         help='Threshold for nonzero support')
     parser.add_argument('--support_mode', type=str, default='mean',
@@ -309,6 +311,7 @@ def main():
         cfg=cfg,
         num_trajectories=args.num_trajectories,
         trajectory_length=args.trajectory_length,
+        long_rollout_steps=args.long_rollout_steps,
         seed=args.seed,
     )
 

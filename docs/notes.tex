@@ -702,8 +702,59 @@ The temporal consistency loss is subject to the same linear warmup schedule as o
 
 We expect that sequence training with temporal consistency will provide stronger gradients for learning correct basin-block correspondences, as the model now receives explicit signal that samples within a trajectory should route to the same basin. This unsupervised signal exploits the trajectory structure of dynamical systems data without requiring ground-truth basin labels.
 
+\subsection{Support Uniqueness: Mechanistic Diagnostics for Basin--Support Correspondence}
+
+A central hypothesis of our approach is that the sparse support pattern of the LISTA encoding should serve as a mechanistic indicator of the dynamical regime: distinct basins of attraction should activate distinct subsets of dictionary atoms. We develop a suite of diagnostics to evaluate this hypothesis both during and after training.
+
+\paragraph{Evaluation methodology.}
+Given a trained model with latent dimension $d$, we generate trajectories from each basin of attraction and record the binary support pattern $s = \mathbf{1}[|\bar{z}| > \tau]$, where $\bar{z}$ is the mean encoding over the trajectory and $\tau = 10^{-3}$ is a fixed threshold. For each basin $b$, we identify the \emph{mode support}---the most frequently occurring binary pattern among trajectories converging to that basin. We then evaluate:
+\begin{itemize}
+    \item \textbf{Mode uniqueness}: The number of basins with a distinct mode support, normalized by total basins. A uniqueness of $B/B$ indicates perfect separation.
+    \item \textbf{Pairwise Jaccard distance}: For each pair of basins, we compute $1 - J(s_i, s_j)$ where $J$ is the Jaccard similarity between mode supports. Higher values indicate less overlap.
+    \item \textbf{Intra-basin consistency}: The fraction of trajectories within each basin whose support matches the mode support. This measures how reliably the encoder maps a given basin to a single support pattern.
+\end{itemize}
+
+\paragraph{Training-time monitoring.}
+To observe how basin--support correspondence emerges during optimization, we introduce a lightweight monitor that periodically (every 500 gradient steps) samples a small number of trajectories per basin, computes the above metrics, and logs them alongside standard training losses. This provides real-time visibility into whether support separation is progressing, stagnating, or collapsing.
+
+\paragraph{Results on the Lyapunov multi-attractor system.}
+We train the LISTA Koopman autoencoder on the 8-dimensional Lyapunov system with 13 basins of attraction, sweeping the latent dimension $d \in \{64, 128, 256, 512, 1024\}$ with sparsity coefficient $\lambda = 1.0$. Post-hoc evaluation uses 100 trajectories of length 500.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+$d$ & Unique supports & Separation & Consistency & Support size (\%) \\
+\midrule
+64 & 5/13 & 0.581 & 0.534 & 2.0\% \\
+128 & 8/13 & 0.801 & 0.361 & 1.3\% \\
+256 & \textbf{13/13} & \textbf{0.846} & 0.138 & 17.0\% \\
+512 & \textbf{13/13} & 0.790 & 0.184 & 2.6\% \\
+1024 & \textbf{13/13} & \textbf{0.852} & 0.138 & 13.5\% \\
+\bottomrule
+\end{tabular}
+\caption{Support uniqueness on the 13-basin Lyapunov system. Latent dimensions $d \geq 256$ achieve complete basin separation (13/13 unique mode supports).}
+\label{tab:lyapunov_support}
+\end{table}
+
+For the Duffing oscillator (2 basins), all latent dimensions $d \in \{32, 64, 128, 256, 512\}$ achieve perfect uniqueness (2/2), with $d = 64$ and $d = 512$ attaining perfect separation (Jaccard distance~$= 1.0$).
+
+\paragraph{Learning dynamics.}
+The training-time monitor reveals qualitatively different learning trajectories across latent dimensions. Smaller dimensions ($d = 64, 128$) achieve high separation scores ($> 0.75$) within the first 1000 gradient steps but plateau at that level. Larger dimensions ($d = 512, 1024$) exhibit a striking delayed onset: the separation score remains at or near zero for the first 1000--1500 steps before a rapid phase transition to high separation. By the end of training (10{,}000 steps), all configurations converge to similar separation scores ($\approx 0.84$--$0.86$).
+
+This delayed onset in larger latent spaces is consistent with the hypothesis that the encoder must first learn a good dictionary before the sparse coding mechanism can produce basin-discriminative supports. In higher dimensions, the dictionary has more degrees of freedom and requires more gradient updates to organize.
+
+\paragraph{The uniqueness--consistency tradeoff.}
+A notable finding is the inverse relationship between mode uniqueness and intra-basin consistency. Configurations with complete uniqueness ($d \geq 256$) exhibit low consistency ($\leq 0.19$), meaning that while each basin's mode support is unique, individual trajectories within a basin do not always produce exactly the same binary support. In contrast, smaller latent dimensions ($d = 64$) show higher consistency ($0.53$) but fail to produce unique supports for all basins.
+
+This tradeoff has several possible explanations. First, the binary thresholding operation amplifies small numerical differences: two activations of magnitude $9 \times 10^{-4}$ and $1.1 \times 10^{-3}$ are functionally similar but produce different binary supports. Second, trajectories near basin boundaries may genuinely straddle multiple support patterns, reflecting the continuous nature of the dynamical landscape. Third, the sparsity penalty encourages the encoder to distribute information across different atom subsets but does not explicitly enforce within-basin consistency.
+
+These findings motivate the development of \emph{soft} support metrics---for example, comparing the cosine similarity of continuous latent activations rather than binary support patterns---and the potential introduction of a within-basin consistency regularizer during training. The clean separation at the mode level nonetheless confirms our core hypothesis: the LISTA encoder learns support patterns that act as implicit basin identifiers.
+
 \subsection{Long-Horizon Forecasting with Periodic Re-encoding}
 
-Our experiments demonstrate that structured sparsity induced by LISTA enables more stable long-term predictions compared to dense encodings, particularly when coupled with periodic re-encoding to manage transitions between local linear regimes. We report quantitative MSE scores from horizons $T=100$ to $T=1000$ \todo{this should be a nice graph plot} and provide qualitative phase portraits showing the model's ability to capture the global topology of the attractors.
+We evaluate prediction accuracy on horizons from $T = 100$ to $T = 1000$ steps. Without periodic re-encoding, larger latent dimensions ($d \geq 128$) exhibit catastrophic divergence at long horizons due to eigenvalue drift in the Koopman matrix $K$. With periodic re-encoding---passing the decoded state back through the encoder at regular intervals---all configurations achieve comparable prediction error, with the optimal re-encoding period decreasing as latent dimension increases ($T_{\text{re}} = 100$ for $d = 64$, $T_{\text{re}} = 25$ for $d = 1024$).
+
+On the Duffing system, prediction accuracy improves monotonically with latent dimension (1-step MSE ranges from $1.08 \times 10^{-1}$ at $d = 32$ to $1.46 \times 10^{-3}$ at $d = 512$), suggesting that larger dictionaries enable more faithful reconstruction despite the stability challenges at long horizons.
 
 % TODO: Add MSE vs. horizon plots and phase portrait comparisons

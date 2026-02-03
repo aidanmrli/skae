@@ -20,6 +20,36 @@ This document tracks the experimental status for basin structure correspondence 
 
 The losses over-regularize and cause the model to collapse to a degenerate solution where nearly all points are assigned to the same few basins. These losses have been disabled in subsequent experiments.
 
+### Support Uniqueness Results (2026-02-02, COMPLETE)
+
+Post-hoc support uniqueness evaluation (`support_threshold=1e-3`, `support_mode=mean`, 100 trajectories, 500 steps).
+Training-time monitoring via `--monitor_support` confirmed convergence dynamics.
+
+Lyapunov-HD (DIM=8, NUM_BASINS=13, SPARSITY=1.0):
+| target_size | unique | sep | cons | size |
+|---|---|---|---|---|
+| 64 | 5/13 | 0.581 | 0.534 | 1.3 |
+| 128 | 8/13 | 0.801 | 0.361 | 1.6 |
+| **256** | **13/13** | **0.846** | 0.138 | 43.5 |
+| **512** | **13/13** | 0.790 | 0.184 | 13.5 |
+| **1024** | **13/13** | **0.852** | 0.138 | 138.2 |
+
+Duffing (NUM_BASINS=2, SPARSITY=1.0):
+| target_size | unique | sep | cons | size |
+|---|---|---|---|---|
+| 32 | 2/2 | 0.571 | 0.460 | 5.0 |
+| 64 | 2/2 | **1.000** | 0.112 | 11.5 |
+| 128 | 2/2 | 0.867 | 0.141 | 17.0 |
+| 256 | 2/2 | 0.984 | 0.102 | 32.5 |
+| 512 | 2/2 | **1.000** | 0.060 | 58.0 |
+
+**Key findings:**
+- **ts >= 256 achieves 13/13 unique supports** on Lyapunov (full basin separation).
+- **ts=1024 has highest separation** (0.852) despite slowest convergence during training.
+- **Consistency is universally low** (0.06-0.53): the main remaining challenge. Individual trajectories within a basin don't always produce the exact same binary support pattern, even though the mode support per basin is unique.
+- Training-time monitor revealed ts=512 starts at **zero separation for 1500 steps** before rapidly catching up, suggesting a phase transition in learning.
+- Larger latent dims diverge without reencoding, but periodic reencoding equalizes prediction MSE across sizes.
+
 ### Completed Experiments
 
 | Experiment | Best Result | Key Finding |
