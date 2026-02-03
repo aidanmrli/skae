@@ -758,3 +758,36 @@ We evaluate prediction accuracy on horizons from $T = 100$ to $T = 1000$ steps. 
 On the Duffing system, prediction accuracy improves monotonically with latent dimension (1-step MSE ranges from $1.08 \times 10^{-1}$ at $d = 32$ to $1.46 \times 10^{-3}$ at $d = 512$), suggesting that larger dictionaries enable more faithful reconstruction despite the stability challenges at long horizons.
 
 % TODO: Add MSE vs. horizon plots and phase portrait comparisons
+
+\subsection{Structured Koopman Dynamics and Refined Support Diagnostics}
+
+The previous support uniqueness analysis revealed a tension between mode uniqueness and intra-basin consistency: while each basin's most frequent binary support is distinct at latent dimensions $d \geq 256$, the consistency of individual trajectories matching that mode is low ($\leq 0.19$). We hypothesised that this low consistency may be partly an artefact of hard binary thresholding, since two activations of similar magnitude straddling the threshold produce different binary patterns despite being functionally identical. To disentangle genuine inconsistency from thresholding noise, and to investigate whether imposing structural constraints on the Koopman matrix $K$ improves basin--support correspondence, we conduct two complementary sets of experiments.
+
+\paragraph{Threshold-free cosine similarity metrics.}
+We introduce a soft evaluation metric that bypasses binary thresholding entirely. For each trajectory, we compute the mean latent code $\bar{z} = T^{-1} \sum_{t=1}^{T} z_t$ as a continuous representative vector. We then define two quantities: (i) the \emph{intra-basin cosine similarity}, the mean pairwise cosine similarity among all trajectory-mean vectors within the same basin, and (ii) the \emph{inter-basin cosine similarity}, the mean cosine similarity between basin centroids (the mean of the trajectory-mean vectors for each basin). Their difference, the \emph{cosine separation score}, measures how much more similar within-basin representations are compared to across-basin ones, without any dependence on an activation threshold.
+
+\paragraph{Threshold sweep.}
+In addition, we evaluate the binary support metrics at seven thresholds $\tau \in \{10^{-4}, 5 \times 10^{-4}, 10^{-3}, 5 \times 10^{-3}, 10^{-2}, 5 \times 10^{-2}, 10^{-1}\}$. This sweep directly tests whether the previously observed low consistency is an artefact of the threshold choice: if consistency rises substantially at a slightly different $\tau$ while uniqueness is preserved, the inconsistency is largely numerical rather than structural.
+
+\paragraph{Koopman matrix structure.}
+The previous experiments employed a full dense Koopman matrix $K \in \mathbb{R}^{d \times d}$, which has $d^2$ free parameters and places no inductive bias on the latent dynamics. We now consider three structured alternatives that trade expressiveness for parsimony and interpretability:
+
+\begin{enumerate}
+    \item \textbf{Diagonal:} $K = \operatorname{diag}(k_1, \ldots, k_d)$, with $d$ parameters. Each latent coordinate evolves independently as $z_i^{(t+1)} = k_i z_i^{(t)}$, enforcing a completely decoupled dynamical system in the latent space. This is the most parsimonious structure and tests whether independent coordinate-wise dynamics are sufficient.
+
+    \item \textbf{Block-diagonal:} $K = \operatorname{blkdiag}(K^{(1)}, \ldots, K^{(B)})$, where each block $K^{(b)} \in \mathbb{R}^{s \times s}$ with $s = \lfloor d / B \rfloor$. The latent space is partitioned into $B$ blocks that evolve independently but allow within-block coupling. The block size is set to $s = \lfloor d / 13 \rfloor$ to match the number of ground-truth basins ($B_{\mathrm{GT}} = 13$) in the Lyapunov multi-attractor system, testing whether the encoder naturally aligns one block per basin.
+
+    \item \textbf{Arrowhead:} Implemented via the structured latent space model, the Koopman operator is partitioned as
+    \[
+        K = \begin{pmatrix} K^{(g)} & 0 & \cdots & 0 \\
+        C^{(1)} & K^{(1)} & & 0 \\
+        \vdots & & \ddots & \\
+        C^{(B)} & 0 & \cdots & K^{(B)} \end{pmatrix},
+    \]
+    where $K^{(g)} \in \mathbb{R}^{d_g \times d_g}$ governs a global dynamics block, each $K^{(b)} \in \mathbb{R}^{d_b \times d_b}$ governs basin-local dynamics, and $C^{(b)} \in \mathbb{R}^{d_b \times d_g}$ couples global dynamics into each basin. The global block evolves autonomously while basin blocks receive global forcing, producing a one-directional information flow from shared dynamics to basin-specific ones. An exclusivity regulariser encourages only one basin block to be active at a time.
+\end{enumerate}
+
+\paragraph{Experimental setup.}
+We train all models on the 8-dimensional Lyapunov multi-attractor system (13 basins, embedded from 2D with decaying extra dimensions) using the LISTA nonlinear encoder configuration with pairwise training. For the dense, diagonal, and block-diagonal structures, we sweep across five latent dimensions $d \in \{64, 128, 256, 512, 1024\}$ using the same hyperparameters: sparsity coefficient $\lambda_1 = 1.0$, batch size 512, and 10{,}000 training steps. For the arrowhead structure, we set the total latent dimension to match by choosing $d_g$ and $d_b$ such that $d_g + B \cdot d_b = d$ (with $B = 13$ basin slots), and use exclusivity weight $\lambda_{\text{excl}} = 0.05$, sparsity weight $\lambda_s = 0.3$, and a 2{,}000-step warmup for the exclusivity penalty. After training, each model is evaluated with the threshold sweep and cosine similarity diagnostics.
+
+% TODO: Report results when experiments complete (jobs 8603752, 8603753)
