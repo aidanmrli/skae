@@ -149,6 +149,13 @@ def train_step(
             loss, metrics = model.loss_sequence(x, dt, step=step)
         else:
             loss, metrics = model.loss_sequence(x, dt)
+    elif cfg.TRAIN.USE_MULTISTEP_LOSS:
+        # x is a sequence: [batch_size, seq_len, observation_size]
+        # Discrete multi-step rollout (K applied repeatedly as discrete map)
+        if hasattr(model, 'loss_multistep'):
+            loss, metrics = model.loss_multistep(x)
+        else:
+            raise ValueError(f"Model {type(model).__name__} does not support loss_multistep")
     else:
         # Standard single-step loss (StructuredLISTAKM needs step for warmup)
         if hasattr(model, 'get_exclusivity_weight'):
@@ -422,7 +429,7 @@ def train(
         # Generate batch
         rng = rngs[step % num_batches]
         
-        if cfg.TRAIN.USE_SEQUENCE_LOSS:
+        if cfg.TRAIN.USE_SEQUENCE_LOSS or cfg.TRAIN.USE_MULTISTEP_LOSS:
             if dysts_cache is not None:
                 x_seq = dysts_cache.sample_sequence_batch(
                     rng,
@@ -435,7 +442,7 @@ def train(
                 x_seq = env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
                 # x_seq has shape [batch_size, seq_len+1, obs_size]
                 x_seq = x_seq.to(device)
-            nx = None  # Not used for sequence loss
+            nx = None  # Not used for sequence/multistep loss
             metrics = train_step(model, optimizer, x_seq, nx, cfg, dt, step=step)
         else:
             if dysts_cache is not None:
@@ -455,13 +462,17 @@ def train(
         logger.log_dict(metrics, step, prefix='train')
         
         if step % 100 == 0:
-            if cfg.TRAIN.USE_SEQUENCE_LOSS:
+            if cfg.TRAIN.USE_SEQUENCE_LOSS or cfg.TRAIN.USE_MULTISTEP_LOSS:
+                sr_str = ""
+                if 'spectral_radius' in metrics:
+                    sr_str = f" | SR: {metrics['spectral_radius']:.4f}"
                 print(f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
                       f"Loss: {metrics['loss']:.4f} | "
                       f"Align: {metrics['alignment_loss']:.4f} | "
                       f"Recon: {metrics['reconst_loss']:.4f} | "
                       f"Pred: {metrics['prediction_loss']:.4f} | "
-                      f"Sparsity: {metrics['sparsity_ratio']:.3f}")
+                      f"Sparsity: {metrics['sparsity_ratio']:.3f}"
+                      f"{sr_str}")
             else:
                 log_str = (f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
                            f"Loss: {metrics['loss']:.4f} | "
@@ -919,6 +930,8 @@ Examples:
                         help='Reconstruction loss weight (overrides config default)')
     parser.add_argument('--pred_coeff', type=float, default=None,
                         help='Prediction loss weight (overrides config default)')
+    parser.add_argument('--res_coeff', type=float, default=None,
+                        help='Residual/alignment loss weight (overrides config default)')
     parser.add_argument('--lista_alpha', type=float, default=None,
                         help='LISTA soft-threshold alpha (overrides config default)')
     parser.add_argument('--lista_num_loops', type=int, default=None,
@@ -930,6 +943,25 @@ Examples:
                         help='Koopman matrix structure (default: dense)')
     parser.add_argument('--k_block_size', type=int, default=None,
                         help='Block size for block_diagonal K (default: auto = target_size // 13)')
+
+    # Block activation losses (for block_diagonal K)
+    parser.add_argument('--block_loss', action='store_true',
+                        help='Enable block activation losses for block_diagonal K')
+    parser.add_argument('--block_one_block_loss', type=str, default=None,
+                        choices=['none', 'low_entropy', 'pairwise_overlap', 'top1_margin'],
+                        help='Per-sample one-block loss type (default: none)')
+    parser.add_argument('--block_one_block_weight', type=float, default=None,
+                        help='Weight for per-sample one-block loss (default: 0)')
+    parser.add_argument('--block_top1_margin', type=float, default=None,
+                        help='Margin for top1_margin loss (default: 0.1)')
+    parser.add_argument('--block_balance_loss', type=str, default=None,
+                        choices=['none', 'usage_entropy', 'kl_uniform'],
+                        help='Across-batch balance loss type (default: none)')
+    parser.add_argument('--block_balance_weight', type=float, default=None,
+                        help='Weight for across-batch balance loss (default: 0)')
+    parser.add_argument('--block_energy_norm', type=str, default=None,
+                        choices=['l1', 'l2'],
+                        help='Energy norm for block activations (default: l2)')
 
     # HyperLISTA (HyperLISTAKM) hyperparameters
     parser.add_argument('--hyperlista_c_theta', type=float, default=None,
@@ -970,8 +1002,10 @@ Examples:
                         help='Use pairwise (single-step) training instead of sequence training')
     parser.add_argument('--sequence', action='store_true',
                         help='Use sequence (multi-step ODE) training instead of pairwise')
+    parser.add_argument('--multistep', action='store_true',
+                        help='Use discrete multi-step rollout training (z_{t+k} = K^k z_t)')
     parser.add_argument('--sequence_length', type=int, default=10,
-                        help='Sequence length for sequence training (overrides config default)')
+                        help='Sequence length for sequence/multistep training (overrides config default)')
     parser.add_argument('--eval_every', type=int, default=None,
                         help='Evaluate every N steps during training (overrides config default)')
     parser.add_argument('--eval_num_steps', type=int, default=None,
@@ -1068,6 +1102,8 @@ Examples:
         cfg.MODEL.RECONST_COEFF = args.reconst_coeff
     if args.pred_coeff is not None:
         cfg.MODEL.PRED_COEFF = args.pred_coeff
+    if args.res_coeff is not None:
+        cfg.MODEL.RES_COEFF = args.res_coeff
     if args.lista_alpha is not None:
         cfg.MODEL.ENCODER.LISTA.ALPHA = args.lista_alpha
     if args.lista_num_loops is not None:
@@ -1079,6 +1115,28 @@ Examples:
         print(f"Using Koopman matrix structure: {args.k_structure}")
     if args.k_block_size is not None:
         cfg.MODEL.K_BLOCK_SIZE = args.k_block_size
+
+    # Block activation loss config
+    if args.block_loss:
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
+    if args.block_one_block_loss is not None:
+        cfg.MODEL.BLOCK_LOSS.ONE_BLOCK_LOSS = args.block_one_block_loss
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
+    if args.block_one_block_weight is not None:
+        cfg.MODEL.BLOCK_LOSS.ONE_BLOCK_WEIGHT = args.block_one_block_weight
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
+    if args.block_top1_margin is not None:
+        cfg.MODEL.BLOCK_LOSS.TOP1_MARGIN = args.block_top1_margin
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
+    if args.block_balance_loss is not None:
+        cfg.MODEL.BLOCK_LOSS.BALANCE_LOSS = args.block_balance_loss
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
+    if args.block_balance_weight is not None:
+        cfg.MODEL.BLOCK_LOSS.BALANCE_WEIGHT = args.block_balance_weight
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
+    if args.block_energy_norm is not None:
+        cfg.MODEL.BLOCK_LOSS.ENERGY_NORM = args.block_energy_norm
+        cfg.MODEL.BLOCK_LOSS.ENABLED = True
 
     if args.hyperlista_c_theta is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = args.hyperlista_c_theta
@@ -1105,14 +1163,21 @@ Examples:
         cfg.ENV.DYSTS.CACHE_WARMUP = args.dysts_cache_warmup
     
     # Training mode
-    if args.pairwise and args.sequence:
-        raise ValueError("Cannot specify both --pairwise and --sequence")
+    mode_flags = sum([args.pairwise, args.sequence, args.multistep])
+    if mode_flags > 1:
+        raise ValueError("Cannot specify more than one of --pairwise, --sequence, --multistep")
     if args.pairwise:
         cfg.TRAIN.USE_SEQUENCE_LOSS = False
+        cfg.TRAIN.USE_MULTISTEP_LOSS = False
         print("Using pairwise (single-step) training mode")
     if args.sequence:
         cfg.TRAIN.USE_SEQUENCE_LOSS = True
+        cfg.TRAIN.USE_MULTISTEP_LOSS = False
         print("Using sequence (multi-step ODE) training mode")
+    if args.multistep:
+        cfg.TRAIN.USE_SEQUENCE_LOSS = False
+        cfg.TRAIN.USE_MULTISTEP_LOSS = True
+        print(f"Using discrete multi-step rollout training (L={args.sequence_length})")
     if args.sequence_length is not None:
         cfg.TRAIN.SEQUENCE_LENGTH = args.sequence_length
     if args.eval_every is not None:

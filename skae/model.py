@@ -758,7 +758,224 @@ class KoopmanMachine(ABC, nn.Module):
         }
         
         return total_loss, metrics
+
+    def loss_multistep(
+        self,
+        x_seq: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Discrete multi-step loss with optional block activation losses."""
+        total_loss, metrics = super().loss_multistep(x_seq)
+        if self._block_loss_cfg.ENABLED:
+            batch_size, seq_len, obs_size = x_seq.shape
+            x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
+            z_flat = self.encode(x_flat)
+            one_block_loss, balance_loss, block_metrics = self._block_losses_from_z(z_flat)
+            total_loss = (
+                total_loss +
+                self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
+                self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
+            )
+            metrics.update({
+                'block_one_block_loss': one_block_loss.item(),
+                'block_balance_loss': balance_loss.item(),
+                'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
+                'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
+                'block_entropy': block_metrics['block_entropy'].item(),
+                'block_usage_entropy': block_metrics['block_usage_entropy'].item(),
+                'block_top1_gap': block_metrics['block_top1_gap'].item(),
+            })
+            metrics['loss'] = total_loss.item()
+        return total_loss, metrics
+
+    def loss_sequence(
+        self,
+        x_seq: torch.Tensor,
+        dt: float,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Sequence-based loss with optional block activation losses."""
+        total_loss, metrics = super().loss_sequence(x_seq, dt)
+        if self._block_loss_cfg.ENABLED:
+            batch_size, seq_len, obs_size = x_seq.shape
+            x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
+            z_flat = self.encode(x_flat)
+            one_block_loss, balance_loss, block_metrics = self._block_losses_from_z(z_flat)
+            total_loss = (
+                total_loss +
+                self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
+                self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
+            )
+            metrics.update({
+                'block_one_block_loss': one_block_loss.item(),
+                'block_balance_loss': balance_loss.item(),
+                'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
+                'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
+                'block_entropy': block_metrics['block_entropy'].item(),
+                'block_usage_entropy': block_metrics['block_usage_entropy'].item(),
+                'block_top1_gap': block_metrics['block_top1_gap'].item(),
+            })
+            metrics['loss'] = total_loss.item()
+        return total_loss, metrics
     
+    def loss_multistep(
+        self,
+        x_seq: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Discrete multi-step loss. Dispatches to sequential rollout (default).
+
+        For large L, use loss_multistep_scan which has O(log L) depth.
+        """
+        batch_size, seq_len, obs_size = x_seq.shape
+        kmat = self.kmatrix()  # [d, d]
+        L = seq_len - 1
+
+        # Encode all ground-truth states
+        x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
+        z_flat = self.encode(x_flat)
+        z_seq = z_flat.reshape(batch_size, seq_len, self.target_size)
+        z0 = z_seq[:, 0, :]  # [batch, d]
+
+        # Sequential rollout: z_{k+1} = z_k @ K
+        z_hat_list = [z0]
+        z_cur = z0
+        for _ in range(L):
+            z_cur = z_cur @ kmat
+            z_hat_list.append(z_cur)
+        z_hat_seq = torch.stack(z_hat_list, dim=1)  # [batch, seq_len, d]
+
+        # Decode
+        z_hat_flat = z_hat_seq.reshape(batch_size * seq_len, self.target_size)
+        x_hat_seq = self.decode(z_hat_flat).reshape(batch_size, seq_len, obs_size)
+        x_tilde = self.decode(z_flat).reshape(batch_size, seq_len, obs_size)
+
+        # Eigenvalues for monitoring
+        with torch.no_grad():
+            kmat_for_eig = kmat.cpu() if kmat.device.type == 'mps' else kmat
+            eigvals = torch.linalg.eigvals(kmat_for_eig)
+
+        return self._multistep_losses(
+            x_seq, z_seq, z_hat_seq, x_hat_seq, x_tilde, eigvals
+        )
+
+    def _multistep_losses(
+        self,
+        x_seq: torch.Tensor,
+        z_seq: torch.Tensor,
+        z_hat_seq: torch.Tensor,
+        x_hat_seq: torch.Tensor,
+        x_tilde: torch.Tensor,
+        eigvals: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Shared loss computation for both multistep backends.
+
+        Alignment and prediction are averaged over time (multi-step signal).
+        Reconstruction and sparsity match pairwise scale (anchor the encoder).
+        """
+        # Alignment: predicted latent vs encoded latent (skip t=0)
+        alignment_loss = torch.norm(
+            z_hat_seq[:, 1:, :] - z_seq[:, 1:, :],
+            dim=-1
+        ).mean()
+
+        # Prediction: decoded rollout vs ground truth (skip t=0)
+        prediction_loss = torch.norm(
+            x_seq[:, 1:, :] - x_hat_seq[:, 1:, :],
+            dim=-1
+        ).mean()
+
+        # Reconstruction: SUM of first + last state (matches pairwise scale)
+        reconst_loss = torch.norm(
+            x_seq[:, 0, :] - x_tilde[:, 0, :], dim=-1
+        ).mean()
+        reconst_loss += torch.norm(
+            x_seq[:, -1, :] - x_tilde[:, -1, :], dim=-1
+        ).mean()
+
+        # Sparsity: same as pairwise (first + last, halved)
+        sparsity_loss = self.sparsity_loss(x_seq[:, 0, :])
+        sparsity_loss += self.sparsity_loss(x_seq[:, -1, :])
+        sparsity_loss *= 0.5
+
+        # Monitoring
+        with torch.no_grad():
+            spectral_radius = torch.max(eigvals.abs())
+            max_eigenvalue = torch.max(eigvals.real)
+            num_nonzero_codes = (z_seq.abs() > 1e-6).float().sum(dim=-1).mean()
+            sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
+
+        total_loss = (
+            self.cfg.MODEL.RES_COEFF * alignment_loss +
+            self.cfg.MODEL.RECONST_COEFF * reconst_loss +
+            self.cfg.MODEL.PRED_COEFF * prediction_loss +
+            self.cfg.MODEL.SPARSITY_COEFF * sparsity_loss
+        )
+
+        metrics = {
+            'loss': total_loss.item(),
+            'alignment_loss': alignment_loss.item(),
+            'reconst_loss': reconst_loss.item(),
+            'prediction_loss': prediction_loss.item(),
+            'sparsity_loss': sparsity_loss.item(),
+            'A_max_eigenvalue': max_eigenvalue.item(),
+            'spectral_radius': spectral_radius.item(),
+            'sparsity_ratio': sparsity_ratio.item(),
+        }
+
+        return total_loss, metrics
+
+    def loss_multistep_scan(
+        self,
+        x_seq: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Discrete multi-step loss via parallel prefix scan.
+
+        Computes K^1, K^2, ..., K^L using an associative scan on matrix
+        multiplication in O(log L) sequential batched matmuls, then applies
+        all powers to z_0 in a single einsum.
+
+        Args:
+            x_seq: Sequence of states [batch_size, seq_len, observation_size]
+
+        Returns:
+            Tuple of (total_loss, metrics_dict)
+        """
+        batch_size, seq_len, obs_size = x_seq.shape
+        kmat = self.kmatrix()  # [d, d]
+        L = seq_len - 1
+
+        # Encode all ground-truth states
+        x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
+        z_flat = self.encode(x_flat)
+        z_seq = z_flat.reshape(batch_size, seq_len, self.target_size)
+
+        # Parallel prefix scan for K^1, K^2, ..., K^L
+        K_powers = kmat.unsqueeze(0).expand(L, -1, -1)  # [L, d, d] all K
+        stride = 1
+        while stride < L:
+            left = K_powers[:-stride]
+            right = K_powers[stride:]
+            combined = right @ left
+            K_powers = torch.cat([K_powers[:stride], combined], dim=0)
+            stride *= 2
+
+        # Apply all powers to z_0 in parallel
+        z0 = z_seq[:, 0, :]
+        z_hat_future = torch.einsum('bd,lde->ble', z0, K_powers)  # [batch, L, d]
+        z_hat_seq = torch.cat([z0.unsqueeze(1), z_hat_future], dim=1)
+
+        # Decode
+        z_hat_flat = z_hat_seq.reshape(batch_size * seq_len, self.target_size)
+        x_hat_seq = self.decode(z_hat_flat).reshape(batch_size, seq_len, obs_size)
+        x_tilde = self.decode(z_flat).reshape(batch_size, seq_len, obs_size)
+
+        # Eigenvalues for monitoring only
+        with torch.no_grad():
+            kmat_for_eig = kmat.cpu() if kmat.device.type == 'mps' else kmat
+            eigvals = torch.linalg.eigvals(kmat_for_eig)
+
+        return self._multistep_losses(
+            x_seq, z_seq, z_hat_seq, x_hat_seq, x_tilde, eigvals
+        )
+
     def loss_sequence(
         self,
         x_seq: torch.Tensor,
@@ -1105,6 +1322,21 @@ class LISTAKM(KoopmanMachine):
         else:
             # Dense (default)
             self.kmat = nn.Parameter(torch.eye(zdim))
+
+        # Block activation losses (only valid for block_diagonal K)
+        self._block_loss_cfg = cfg.MODEL.BLOCK_LOSS
+        if self._block_loss_cfg.ENABLED and self._k_structure != "block_diagonal":
+            print("  Block losses enabled but K is not block_diagonal; disabling block losses.")
+            self._block_loss_cfg.ENABLED = False
+        if self._block_loss_cfg.ENABLED:
+            print("  Block losses enabled:")
+            print(f"    one_block={self._block_loss_cfg.ONE_BLOCK_LOSS}"
+                  f" (w={self._block_loss_cfg.ONE_BLOCK_WEIGHT})")
+            print(f"    balance={self._block_loss_cfg.BALANCE_LOSS}"
+                  f" (w={self._block_loss_cfg.BALANCE_WEIGHT})")
+            if self._block_loss_cfg.ONE_BLOCK_LOSS == "top1_margin":
+                print(f"    top1_margin={self._block_loss_cfg.TOP1_MARGIN}")
+            print(f"    energy_norm={self._block_loss_cfg.ENERGY_NORM}")
     
     def _augment_homogeneous(self, x: torch.Tensor) -> torch.Tensor:
         """Augment input with homogeneous coordinate [x, 1]."""
@@ -1230,6 +1462,99 @@ class LISTAKM(KoopmanMachine):
         z = self.encode(x)
         return self.cfg.MODEL.ENCODER.LISTA.ALPHA * torch.norm(z, p=1, dim=-1).mean()
 
+    def _block_energies(self, z: torch.Tensor) -> Optional[torch.Tensor]:
+        """Compute per-block energies for block_diagonal K.
+
+        Args:
+            z: Latents of shape [..., target_size]
+
+        Returns:
+            Tensor of shape [..., num_blocks_total] with per-block energies,
+            or None if K is not block_diagonal.
+        """
+        if self._k_structure != "block_diagonal":
+            return None
+        bs = self._k_block_size
+        num_blocks = self._k_num_blocks
+        if num_blocks <= 0:
+            return None
+
+        end = num_blocks * bs
+        z_main = z[..., :end].view(*z.shape[:-1], num_blocks, bs)
+        if self._block_loss_cfg.ENERGY_NORM == "l1":
+            energies_main = z_main.abs().sum(dim=-1)
+        else:
+            energies_main = torch.norm(z_main, p=2, dim=-1)
+
+        if self._k_remainder > 0:
+            z_rem = z[..., end:]
+            if self._block_loss_cfg.ENERGY_NORM == "l1":
+                energy_rem = z_rem.abs().sum(dim=-1, keepdim=True)
+            else:
+                energy_rem = torch.norm(z_rem, p=2, dim=-1, keepdim=True)
+            return torch.cat([energies_main, energy_rem], dim=-1)
+        return energies_main
+
+    def _block_losses_from_z(
+        self, z: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        """Compute block activation losses from pre-encoded latents."""
+        cfg = self._block_loss_cfg
+        energies = self._block_energies(z)
+        if energies is None:
+            zero = torch.tensor(0.0, device=z.device)
+            return zero, zero, {
+                'block_entropy': zero,
+                'block_usage_entropy': zero,
+                'block_top1_gap': zero,
+            }
+
+        eps = cfg.EPS
+        denom = energies.sum(dim=-1, keepdim=True) + eps
+        probs = energies / denom
+
+        # Per-sample entropy (lower = more exclusive)
+        entropy = -torch.sum(probs * torch.log(probs + eps), dim=-1)
+
+        one_block_loss = torch.tensor(0.0, device=z.device)
+        if cfg.ONE_BLOCK_LOSS == "low_entropy":
+            one_block_loss = entropy.mean()
+        elif cfg.ONE_BLOCK_LOSS == "pairwise_overlap":
+            sum_e = energies.sum(dim=-1)
+            sum_sq = (energies ** 2).sum(dim=-1)
+            denom_pair = (sum_e + eps) ** 2
+            one_block_loss = ((sum_e ** 2 - sum_sq) / denom_pair).mean()
+        elif cfg.ONE_BLOCK_LOSS == "top1_margin":
+            if energies.shape[-1] >= 2:
+                top2 = torch.topk(energies, k=2, dim=-1).values
+                gap = top2[..., 0] - top2[..., 1]
+                one_block_loss = torch.relu(cfg.TOP1_MARGIN - gap).mean()
+
+        # Batch-level usage balance
+        q = probs.mean(dim=0)  # [num_blocks]
+        usage_entropy = -torch.sum(q * torch.log(q + eps))
+        balance_loss = torch.tensor(0.0, device=z.device)
+        if cfg.BALANCE_LOSS == "usage_entropy":
+            balance_loss = -usage_entropy  # minimize negative entropy => maximize usage entropy
+        elif cfg.BALANCE_LOSS == "kl_uniform":
+            num_blocks = q.shape[0]
+            log_uniform = math.log(1.0 / num_blocks)
+            balance_loss = torch.sum(q * (torch.log(q + eps) - log_uniform))
+
+        # Top-1 gap metric for monitoring
+        if energies.shape[-1] >= 2:
+            top2 = torch.topk(energies, k=2, dim=-1).values
+            top1_gap = (top2[..., 0] - top2[..., 1]).mean()
+        else:
+            top1_gap = torch.tensor(0.0, device=z.device)
+
+        metrics = {
+            'block_entropy': entropy.mean(),
+            'block_usage_entropy': usage_entropy,
+            'block_top1_gap': top1_gap,
+        }
+        return one_block_loss, balance_loss, metrics
+
     def homogeneous_loss(self, x: torch.Tensor) -> torch.Tensor:
         """Compute homogeneous coordinate consistency loss: penalize ĉ ≠ 1.
         
@@ -1262,6 +1587,32 @@ class LISTAKM(KoopmanMachine):
         # Get base loss and metrics from parent class
         total_loss, metrics = super().loss(x, nx)
         
+        # Add block activation losses (block_diagonal K only)
+        if self._block_loss_cfg.ENABLED:
+            z = self.encode(x)
+            z_nx = self.encode(nx)
+            one_a, bal_a, metrics_a = self._block_losses_from_z(z)
+            one_b, bal_b, metrics_b = self._block_losses_from_z(z_nx)
+
+            one_block_loss = 0.5 * (one_a + one_b)
+            balance_loss = 0.5 * (bal_a + bal_b)
+
+            total_loss = (
+                total_loss +
+                self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
+                self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
+            )
+
+            metrics.update({
+                'block_one_block_loss': one_block_loss.item(),
+                'block_balance_loss': balance_loss.item(),
+                'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
+                'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
+                'block_entropy': 0.5 * (metrics_a['block_entropy'] + metrics_b['block_entropy']).item(),
+                'block_usage_entropy': 0.5 * (metrics_a['block_usage_entropy'] + metrics_b['block_usage_entropy']).item(),
+                'block_top1_gap': 0.5 * (metrics_a['block_top1_gap'] + metrics_b['block_top1_gap']).item(),
+            })
+
         # Add homogeneous consistency loss if enabled
         if self.use_homogeneous:
             homog_loss = self.homogeneous_loss(x) + self.homogeneous_loss(nx)
@@ -1270,6 +1621,9 @@ class LISTAKM(KoopmanMachine):
             total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
             metrics['homogeneous_loss'] = homog_loss.item()
             metrics['loss'] = total_loss.item()
+
+        # Update loss metric if modified
+        metrics['loss'] = total_loss.item()
         
         return total_loss, metrics
 

@@ -11,7 +11,7 @@ import argparse
 import json
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -73,6 +73,19 @@ def _support_from_latents(
     return support.astype(np.int8)
 
 
+def _aggregate_latents_for_cosine(
+    latents: torch.Tensor,
+    aggregation: str,
+) -> torch.Tensor:
+    if aggregation == "mean":
+        return latents.mean(dim=0)
+    if aggregation == "median":
+        return latents.median(dim=0).values
+    if aggregation == "mean_abs":
+        return latents.abs().mean(dim=0)
+    raise ValueError(f"Unknown cosine aggregation '{aggregation}'")
+
+
 def _jaccard(a: np.ndarray, b: np.ndarray) -> float:
     inter = np.logical_and(a, b).sum()
     union = np.logical_or(a, b).sum()
@@ -81,40 +94,22 @@ def _jaccard(a: np.ndarray, b: np.ndarray) -> float:
     return float(inter) / float(union)
 
 
-def compute_cosine_basin_similarity(
-    model,
-    dataset: BasinLabeledDataset,
-    device: str,
+def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+    na = np.linalg.norm(a)
+    nb = np.linalg.norm(b)
+    if na < 1e-12 or nb < 1e-12:
+        return 0.0
+    return float(np.dot(a, b) / (na * nb))
+
+
+def _compute_cosine_metrics(
+    vectors: np.ndarray,
+    basin_ids: np.ndarray,
+    num_basins: int,
 ) -> Dict[str, float]:
-    """Compute cosine similarity metrics on continuous latent activations.
-
-    Operates on the raw (unthresholded) encoded vectors, avoiding the
-    sensitivity to hard threshold choices that plagues binary support metrics.
-
-    Returns dict with:
-        mean_intra_basin_cosine: mean cosine similarity within each basin
-        mean_inter_basin_cosine: mean cosine similarity between basin centroids
-        cosine_separation_score: intra - inter (higher = better)
-    """
-    model.eval()
-    basin_latents: Dict[int, List[np.ndarray]] = {
-        b: [] for b in range(dataset.num_basins)
-    }
-
-    with torch.no_grad():
-        for traj in dataset.trajectories:
-            states = traj.states.to(device)
-            z = model.encode(states)
-            # Use trajectory-mean latent as the representative vector
-            z_mean = z.mean(dim=0).cpu().numpy()
-            basin_latents[traj.final_basin].append(z_mean)
-
-    def _cosine(a: np.ndarray, b: np.ndarray) -> float:
-        na = np.linalg.norm(a)
-        nb = np.linalg.norm(b)
-        if na < 1e-12 or nb < 1e-12:
-            return 0.0
-        return float(np.dot(a, b) / (na * nb))
+    basin_latents: Dict[int, List[np.ndarray]] = {b: [] for b in range(num_basins)}
+    for vec, basin in zip(vectors, basin_ids):
+        basin_latents[int(basin)].append(vec)
 
     # Intra-basin: mean pairwise cosine within each basin
     intra_cosines = []
@@ -147,6 +142,147 @@ def compute_cosine_basin_similarity(
         "mean_inter_basin_cosine": mean_inter,
         "cosine_separation_score": mean_intra - mean_inter,
     }
+
+
+def _demean_vectors(vectors: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    mean_vec = vectors.mean(axis=0)
+    return vectors - mean_vec, mean_vec
+
+
+def _remove_pc1(vectors: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
+    if vectors.shape[0] < 2:
+        return vectors, np.zeros((vectors.shape[1],), dtype=vectors.dtype), 0.0
+    u, s, vt = np.linalg.svd(vectors, full_matrices=False)
+    pc1 = vt[0]
+    projected = (vectors @ pc1)[:, None] * pc1[None, :]
+    removed = vectors - projected
+    total_var = float((s ** 2).sum())
+    pc1_var = float(s[0] ** 2) if s.size > 0 else 0.0
+    pc1_ratio = (pc1_var / total_var) if total_var > 0 else 0.0
+    return removed, pc1, pc1_ratio
+
+
+def compute_cosine_basin_similarity(
+    model,
+    dataset: BasinLabeledDataset,
+    device: str,
+    aggregation: str = "mean",
+    demean: bool = False,
+    remove_pc1: bool = False,
+) -> Dict[str, float]:
+    """Compute cosine similarity metrics on continuous latent activations.
+
+    Operates on the raw (unthresholded) encoded vectors, avoiding the
+    sensitivity to hard threshold choices that plagues binary support metrics.
+
+    Returns dict with:
+        mean_intra_basin_cosine: mean cosine similarity within each basin
+        mean_inter_basin_cosine: mean cosine similarity between basin centroids
+        cosine_separation_score: intra - inter (higher = better)
+    """
+    model.eval()
+    vectors: List[np.ndarray] = []
+    basin_ids: List[int] = []
+
+    with torch.no_grad():
+        for traj in dataset.trajectories:
+            states = traj.states.to(device)
+            z = model.encode(states)
+            z_vec = _aggregate_latents_for_cosine(z, aggregation).cpu().numpy()
+            vectors.append(z_vec)
+            basin_ids.append(traj.final_basin)
+
+    if not vectors:
+        return {
+            "mean_intra_basin_cosine": 0.0,
+            "mean_inter_basin_cosine": 0.0,
+            "cosine_separation_score": 0.0,
+        }
+
+    vectors_np = np.stack(vectors, axis=0)
+    if demean or remove_pc1:
+        vectors_np, _ = _demean_vectors(vectors_np)
+    if remove_pc1:
+        vectors_np, _, _ = _remove_pc1(vectors_np)
+
+    return _compute_cosine_metrics(
+        vectors_np,
+        np.array(basin_ids, dtype=np.int64),
+        dataset.num_basins,
+    )
+
+
+def compute_cosine_diagnostics(
+    model,
+    dataset: BasinLabeledDataset,
+    device: str,
+    aggregations: Sequence[str] = ("mean", "median", "mean_abs"),
+) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """Compute cosine separation diagnostics across aggregations and transforms."""
+    model.eval()
+    diagnostics: Dict[str, Dict[str, Dict[str, float]]] = {}
+
+    for agg in aggregations:
+        vectors: List[np.ndarray] = []
+        basin_ids: List[int] = []
+        with torch.no_grad():
+            for traj in dataset.trajectories:
+                states = traj.states.to(device)
+                z = model.encode(states)
+                z_vec = _aggregate_latents_for_cosine(z, agg).cpu().numpy()
+                vectors.append(z_vec)
+                basin_ids.append(traj.final_basin)
+
+        if not vectors:
+            diagnostics[agg] = {}
+            continue
+
+        vectors_np = np.stack(vectors, axis=0)
+        basin_ids_np = np.array(basin_ids, dtype=np.int64)
+
+        def _stats(vecs: np.ndarray) -> Dict[str, float]:
+            norms = np.linalg.norm(vecs, axis=1)
+            centroid_norms = []
+            for b in range(dataset.num_basins):
+                mask = basin_ids_np == b
+                if not np.any(mask):
+                    continue
+                centroid = vecs[mask].mean(axis=0)
+                centroid_norms.append(float(np.linalg.norm(centroid)))
+            centroid_norms = np.array(centroid_norms, dtype=np.float64)
+            return {
+                "mean_vector_norm": float(np.mean(norms)),
+                "mean_abs_value": float(np.mean(np.abs(vecs))),
+                "global_mean_norm": float(np.linalg.norm(vecs.mean(axis=0))),
+                "centroid_norm_mean": float(np.mean(centroid_norms)) if centroid_norms.size else 0.0,
+                "centroid_norm_std": float(np.std(centroid_norms)) if centroid_norms.size else 0.0,
+                "centroid_norm_min": float(np.min(centroid_norms)) if centroid_norms.size else 0.0,
+                "centroid_norm_max": float(np.max(centroid_norms)) if centroid_norms.size else 0.0,
+            }
+
+        diagnostics[agg] = {}
+
+        raw_metrics = _compute_cosine_metrics(vectors_np, basin_ids_np, dataset.num_basins)
+        diagnostics[agg]["raw"] = {**raw_metrics, **_stats(vectors_np)}
+
+        demeaned, mean_vec = _demean_vectors(vectors_np)
+        demean_metrics = _compute_cosine_metrics(demeaned, basin_ids_np, dataset.num_basins)
+        diagnostics[agg]["demean"] = {
+            **demean_metrics,
+            **_stats(demeaned),
+            "global_mean_norm": float(np.linalg.norm(mean_vec)),
+        }
+
+        pc_removed, pc1, pc1_ratio = _remove_pc1(demeaned)
+        pc_metrics = _compute_cosine_metrics(pc_removed, basin_ids_np, dataset.num_basins)
+        diagnostics[agg]["pc1_removed"] = {
+            **pc_metrics,
+            **_stats(pc_removed),
+            "pc1_norm": float(np.linalg.norm(pc1)),
+            "pc1_explained_variance_ratio": float(pc1_ratio),
+        }
+
+    return diagnostics
 
 
 def compute_support_uniqueness(
@@ -251,6 +387,19 @@ def main():
     parser.add_argument('--support_mode', type=str, default='mean',
                         choices=['mean', 'last', 'median', 'majority'],
                         help='How to aggregate support over a trajectory')
+    parser.add_argument('--cosine_aggregation', type=str, default='mean',
+                        choices=['mean', 'median', 'mean_abs'],
+                        help='Aggregation for cosine similarity metrics')
+    parser.add_argument('--cosine_report_all', action='store_true',
+                        help='Report cosine metrics for mean/median/mean_abs')
+    parser.add_argument('--cosine_diag', action='store_true',
+                        help='Save extended cosine diagnostics to JSON')
+    parser.add_argument('--cosine_demean', action='store_true',
+                        help='Demean trajectory vectors before cosine metrics')
+    parser.add_argument('--cosine_remove_pc1', action='store_true',
+                        help='Remove top principal component before cosine metrics')
+    parser.add_argument('--cosine_only', action='store_true',
+                        help='Only compute cosine metrics (skip support thresholding)')
     parser.add_argument('--output_dir', type=str, default='results/support_uniqueness',
                         help='Directory to save results')
     parser.add_argument('--seed', type=int, default=42,
@@ -291,13 +440,46 @@ def main():
     )
 
     # Cosine similarity metrics (threshold-free)
-    cosine_metrics = compute_cosine_basin_similarity(model, dataset, args.device)
+    cosine_metrics = compute_cosine_basin_similarity(
+        model,
+        dataset,
+        args.device,
+        aggregation=args.cosine_aggregation,
+        demean=args.cosine_demean,
+        remove_pc1=args.cosine_remove_pc1,
+    )
     print("\nCosine similarity metrics (threshold-free):")
+    print(f"  Aggregation: {args.cosine_aggregation}")
+    if args.cosine_demean:
+        print("  Demean: True")
+    if args.cosine_remove_pc1:
+        print("  Remove PC1: True")
     print(f"  Mean intra-basin cosine: {cosine_metrics['mean_intra_basin_cosine']:.4f}")
     print(f"  Mean inter-basin cosine: {cosine_metrics['mean_inter_basin_cosine']:.4f}")
     print(f"  Cosine separation score: {cosine_metrics['cosine_separation_score']:.4f}")
+    if args.cosine_only and args.threshold_sweep:
+        print("\nNote: --cosine_only set; skipping threshold sweep.")
 
-    if args.threshold_sweep:
+    if args.cosine_report_all:
+        print("\nCosine metrics by aggregation (raw):")
+        for agg in ("mean", "median", "mean_abs"):
+            metrics = compute_cosine_basin_similarity(
+                model, dataset, args.device, aggregation=agg
+            )
+            print(
+                f"  {agg:>8}: intra={metrics['mean_intra_basin_cosine']:.4f} "
+                f"inter={metrics['mean_inter_basin_cosine']:.4f} "
+                f"sep={metrics['cosine_separation_score']:.4f}"
+            )
+
+    if args.cosine_diag:
+        diagnostics = compute_cosine_diagnostics(model, dataset, args.device)
+        diag_path = output_dir / "cosine_diagnostics.json"
+        with open(diag_path, "w") as f:
+            json.dump(diagnostics, f, indent=2)
+        print(f"\nSaved cosine diagnostics to {diag_path}")
+
+    if args.threshold_sweep and not args.cosine_only:
         thresholds = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1]
         sweep_results = []
         print(f"\nThreshold sweep across {len(thresholds)} values:")
@@ -323,7 +505,7 @@ def main():
         with open(sweep_path, "w") as f:
             json.dump(sweep_results, f, indent=2)
         print(f"\nSaved threshold sweep to {sweep_path}")
-    else:
+    elif not args.cosine_only:
         results = compute_support_uniqueness(
             model, dataset, device=args.device,
             support_threshold=args.support_threshold,
@@ -345,6 +527,24 @@ def main():
         print(f"  Mean mode support size: {results.mean_mode_support_size:.1f}")
         print(f"  Mean pairwise Jaccard: {results.mean_pairwise_jaccard:.3f}")
         print(f"\nSaved results to {results_path}")
+
+    # Always save cosine metrics
+    cosine_path = output_dir / "cosine_metrics.json"
+    cosine_payload = {
+        "system_name": system,
+        "model_name": cfg.MODEL.MODEL_NAME,
+        "num_trajectories": args.num_trajectories,
+        "trajectory_length": args.trajectory_length,
+        "long_rollout_steps": args.long_rollout_steps,
+        "cosine_aggregation": args.cosine_aggregation,
+        "cosine_demean": args.cosine_demean,
+        "cosine_remove_pc1": args.cosine_remove_pc1,
+        "seed": args.seed,
+        **cosine_metrics,
+    }
+    with open(cosine_path, "w") as f:
+        json.dump(cosine_payload, f, indent=2)
+    print(f"\nSaved cosine metrics to {cosine_path}")
 
 
 if __name__ == "__main__":

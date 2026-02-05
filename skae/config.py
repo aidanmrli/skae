@@ -280,6 +280,23 @@ class StructuredLatentConfig:
 
 
 @dataclass
+class BlockLossConfig:
+    """Loss configuration for block activation behavior in block_diagonal K.
+
+    These losses encourage per-sample single-block activation and
+    balanced block usage across the batch without relying on basin labels.
+    """
+    ENABLED: bool = False
+    ONE_BLOCK_LOSS: str = "none"       # ["none", "low_entropy", "pairwise_overlap", "top1_margin"]
+    ONE_BLOCK_WEIGHT: float = 0.0
+    TOP1_MARGIN: float = 0.1
+    BALANCE_LOSS: str = "none"         # ["none", "usage_entropy", "kl_uniform"]
+    BALANCE_WEIGHT: float = 0.0
+    ENERGY_NORM: str = "l2"            # ["l1", "l2"]
+    EPS: float = 1e-8
+
+
+@dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
     LAYERS: List[int] = field(default_factory=lambda: [16, 16])  # hidden layer sizes
@@ -324,6 +341,7 @@ class ModelConfig:
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
     DECODER: DecoderConfig = field(default_factory=DecoderConfig)
     STRUCTURED: StructuredLatentConfig = field(default_factory=StructuredLatentConfig)
+    BLOCK_LOSS: BlockLossConfig = field(default_factory=BlockLossConfig)
 
 
 @dataclass
@@ -342,6 +360,7 @@ class TrainConfig:
     
     # Sequence training parameters
     USE_SEQUENCE_LOSS: bool = False  # default to single-step loss for parity with JAX
+    USE_MULTISTEP_LOSS: bool = False  # discrete multi-step rollout (z_{t+k} = K^k z_t)
     SEQUENCE_LENGTH: int = 10  # number of forward steps in each training sequence (T)
 
 @dataclass
@@ -387,10 +406,12 @@ class Config:
         decoder = DecoderConfig(**model_dict.get("DECODER", {}))
         
         structured = StructuredLatentConfig(**model_dict.get("STRUCTURED", {}))
-        model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER", "STRUCTURED"]})
+        block_loss = BlockLossConfig(**model_dict.get("BLOCK_LOSS", {}))
+        model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS"]})
         model.ENCODER = encoder
         model.DECODER = decoder
         model.STRUCTURED = structured
+        model.BLOCK_LOSS = block_loss
         
         train = TrainConfig(**config_dict.get("TRAIN", {}))
         
