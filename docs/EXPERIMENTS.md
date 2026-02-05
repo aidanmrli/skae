@@ -1,6 +1,6 @@
 # Experiments
 
-Date: February 3, 2026
+Date: February 5, 2026
 
 Goal: Achieve **unique support patterns for unique basins** (mechanistic interpretability), starting from the simplest setups and iterating on sparsity, target size, and Koopman structure.
 
@@ -13,17 +13,45 @@ What we found so far:
 - The apparent **uniqueness–consistency tradeoff** was a thresholding artefact. Cosine similarity shows high intra-basin consistency when using threshold-free metrics.
 - **Koopman structure is secondary** to the encoder for basin discrimination. Block-diagonal K improves parameter efficiency and can improve eval error.
 - **Spectral radius determines long-horizon fate.** Models with all eigenvalues inside the unit circle (SR < 1) converge to bounded MSE (~3.5); models with any eigenvalue outside (SR > 1) diverge catastrophically (MSE > 1e+10 at H1000). Periodic reencoding rescues divergent models but cannot improve beyond the bounded-MSE floor.
-- **Arrowhead with exclusivity is the only structure that maintains SR < 1 at all tested latent dimensions** (64–256 confirmed, 512–1024 in progress). It achieves the best no-reencode H1000 MSE (3.49 at ts=128).
+- **Arrowhead with exclusivity is stable at ts <= 256 under pairwise training** (best no-reencode H1000 MSE = 3.49 at ts=128), but it **loses stability at ts >= 512** (SR > 1).
+- **Sequence-length training does not stabilize K.** For L in {4, 8, 12, 16}, only diagonal K remains stable (SR < 1), and stability **degrades** as L grows; dense, block-diagonal, and arrowhead are unstable at all L.
 - **Basin-to-block correspondence is strongest at low capacity** (block_diagonal ts=64: concentration 0.87) but washes out at higher dimensions (~0.10 at ts=256). The encoder distributes activations across blocks rather than concentrating each basin into a single block.
+- **Block-usage balance losses improve cosine separation.** `usage_entropy` and `kl_uniform` raise separation vs control across ts={64,128,256,512}, while strict one-block penalties (`low_entropy`, `pairwise_overlap`) often collapse to degenerate supports (0 uniqueness, Jaccard=1 at tau=1e-3).
 
 Current solution direction:
-- Use **arrowhead K with exclusivity** for guaranteed spectral stability + basin discrimination at all dimensions.
-- Use **diagonal or block-diagonal K** at ts=256 as a stable, parameter-efficient alternative (both achieve SR < 1 and H1000 MSE ~3.57).
+- Use **arrowhead K with exclusivity** for pairwise training at ts <= 256 (best stable long-horizon results there), but do not assume stability at ts >= 512.
+- Use **diagonal K** as the only sequence-loss option that stays stable at short L (4–8), with explicit spectral constraints for larger L or higher ts.
+- Add **explicit spectral regularization or constrained parameterization** to keep SR < 1 at high ts and under sequence loss.
+- Use **block-usage balance losses** (`usage_entropy` / `kl_uniform`) as the baseline for block-diagonal K; follow with **combined one-block + balance** sweeps to avoid collapse while encouraging per-trajectory block selection.
+- Run a **sequence-loss weight sweep** to test whether loss-weight tuning can stabilize non-diagonal K under sequence training.
 - **Periodic reencoding at period 100** is the universal fallback: it equalizes all structures to H1000 MSE ~3.6–3.9.
 
 Outstanding problems (active):
 - **Basin-block alignment does not emerge naturally.** Even with block-diagonal K sized to match basins (d/13 per block), the encoder does not consistently assign one basin per block. This limits the ability to extract per-basin Koopman dynamics for LQR. Need to investigate explicit basin-block alignment losses or post-hoc block assignment.
-- **ts=512 and ts=1024 results still in progress** (job 8607640, 16/25 checkpoints evaluated so far).
+- **No structure is stably below SR < 1 at ts = 1024.** Need explicit spectral stabilization to scale latent size.
+- **Sequence training destabilizes non-diagonal K.** Need a spectral constraint or alternative training objective to keep SR < 1 under sequence loss.
+- **Loss-weight sensitivity is unknown.** Need evidence whether tuning residual/reconstruction/prediction/sparsity weights can recover stability under sequence loss.
+- **One-block losses can collapse.** The current per-sample exclusivity penalties (low-entropy/pairwise-overlap) often yield degenerate supports unless balanced; need combined one-block + usage-balance objectives with tuned weights.
+
+**LQR Readiness Blockers**
+1. Reliable, label-free basin identification. We do not know basin labels or how many basins exist in the real setting. We currently cannot reliably assign a trajectory to a specific block in a stable, unsupervised way. Without a trustworthy basin assignment, LQR has no “local system” to attach to.
+2. Stable, block-specific dynamics (SR < 1). LQR assumes the local linear dynamics are meaningful and stable (or at least stabilizable). We have seen spectral radius instability in many settings; long-horizon rollouts diverge if SR > 1. Until each block is spectrally controlled, LQR might optimize a system that explodes in practice.
+3. Basin-block alignment that persists with capacity. At low latent sizes, block alignment can appear, but it washes out at higher capacity. We need alignment to be stable across sizes, or at least stable in the regime we want to deploy.
+4. Local linearity actually captures local dynamics. We need evidence that within a basin, the block dynamics are predictive (not just “separable”). Right now, separation and stability are decoupled from actual predictive quality in some configs.
+
+## Result Reporting Protocol
+
+When a new experiment produces results, document updates in the following order:
+1. Report the concrete result(s) first (key metrics/tables/outcomes).
+2. Explain the result(s) in the context of the experiment question/design.
+3. Explain how to interpret the result(s) (what changed, what did not, uncertainty/caveats).
+4. Explain implications for the broader project direction.
+5. Suggest next steps.
+
+After reporting results, update the project state in this file:
+- Refresh **Current Status Summary** (problem, current solution direction, outstanding problem).
+- Update **Queue Status** (running/completed/planned labels and progress numbers).
+- Update the relevant experiment log entry with latest status and conclusions.
 
 ## Definitions (Support Metrics)
 
@@ -61,17 +89,177 @@ Completed (February 3, 2026):
 - Arrowhead (StructuredLISTAKM) sweep: job `8603753` (array 0-4, 5 total latent dims) -- **COMPLETED**
 - Arrowhead no-exclusivity sweep: job `8605505` (array 0-4, 5 total latent dims) -- **COMPLETED**
 
-Running (February 3, 2026):
-- Long-horizon prediction + eigenvalue analysis sweep: job `8607640` (sequential, 25 checkpoints) -- **RUNNING** (16/25 completed as of writing)
+Completed (February 4, 2026):
+- Long-horizon prediction + eigenvalue analysis sweep: job `8607640` (sequential, 25 checkpoints) -- **COMPLETED** (25/25)
+- Sequence length spectral-stability sweep: job `8613261` via `scripts/sweep_sequence_length_spectral.sh` (array 0-47; 4 sequence lengths × 4 K structures × 3 latent sizes) -- **COMPLETED** (48/48)
 
-Status check (February 3, 2026):
+Running (February 4, 2026):
+- Sequence-loss weight sweep: job `8613853` via `scripts/sweep_sequence_loss_weights.sh` (array 0-35; 36 weight configs) -- **RUNNING**
+
+Completed (February 5, 2026):
+- Block-loss ablation sweep: job `8615740` via `scripts/sweep_block_loss_ablation.sh` (array 0-23; 6 loss conditions × 4 target sizes) -- **COMPLETED**
+
+Running (February 5, 2026):
+- Block-loss balance sweep (Phase 1): job `8615817` via `scripts/sweep_block_loss_balance_phase1.sh` (array 0-71; 72 configs) -- **RUNNING**
+
+Status check (February 4, 2026):
 - All arrays for jobs `8602046`, `8602047`, `8603752`, `8603753`, and `8605505` produced logs and `support_eval/*.json` outputs in `/network/scratch/l/lia/skae/...`.
-- No missing result files for any target size or K-structure configuration.
-- Arrowhead `ts=128` completed but shows catastrophic eval divergence (very large/inf errors), consistent with the instability noted below.
+- Job `8607640` has evaluation + eigenvalue outputs for all 25 checkpoints.
+- Job `8613261` has evaluation + eigenvalue outputs for all 48 configurations (some configs have multiple timestamps; the latest run may be train-only but earlier runs contain the full outputs).
 
 ---
 
 ## Experiment Log (Newest First)
+
+### -4) Block-Loss Balance Sweep (Phase 1)
+Timestamp: 2026-02-05 (submitted; job `8615817`)
+
+Script: `scripts/sweep_block_loss_balance_phase1.sh`
+
+```bash
+sbatch scripts/sweep_block_loss_balance_phase1.sh
+```
+
+**Question:** Can we balance per-sample single-block activation (top-1 margin) with across-batch block usage (usage_entropy / kl_uniform) to improve separation without collapse?
+
+**Fixed settings:** Lyapunov-HD (dim=8), pairwise training, `lista_nonlinear`, `sparsity_coeff=1.0`, `target_size=256`, 10k steps.
+
+**Grid (72 jobs):**
+- `one_block_weight`: {0.1, 0.3, 1.0}
+- `balance_weight`: {0.1, 0.3, 1.0}
+- `top1_margin`: {0.05, 0.1}
+- `balance_loss`: {usage_entropy, kl_uniform}
+- `seed`: {0, 1}
+
+**Block structure:** `K=block_diagonal` with `NUM_BLOCKS=20` (independent of true basins), `K_BLOCK_SIZE = target_size // NUM_BLOCKS`.
+
+**Evaluation:**
+1. Cosine separation (threshold-free) via `support_eval/cosine_metrics.json` (primary metric).
+2. Threshold sweep (`support_eval/threshold_sweep.json`) for uniqueness/consistency/Jaccard (secondary diagnostics).
+
+**Output base:** `/network/scratch/l/lia/skae/lyapunov_block_loss_balance_phase1/`
+
+**Status:** RUNNING (array 0-71).
+
+### -3) Block-Loss Ablation Sweep (new)
+Timestamp: 2026-02-05 (submitted; job `8615740`)
+
+Script: `scripts/sweep_block_loss_ablation.sh`
+
+```bash
+sbatch scripts/sweep_block_loss_ablation.sh
+```
+
+**Question:** Do simple block-activation losses improve basin identifiability (cosine separation) for block-diagonal K without basin labels?
+
+**Fixed settings (default):** Lyapunov-HD (dim=8), pairwise training, `lista_nonlinear`, `sparsity_coeff=1.0`, 10k steps.
+
+**Grid (24 jobs):**
+- `target_size`: {64, 128, 256, 512}
+- `loss`: {control, low_entropy, pairwise_overlap, top1_margin, usage_entropy, kl_uniform}
+
+**Block structure:** `K=block_diagonal` with `NUM_BLOCKS=20` (independent of true basins), `K_BLOCK_SIZE = target_size // NUM_BLOCKS`.
+
+**Evaluation:**
+1. Cosine separation (threshold-free) via `support_eval/cosine_metrics.json` (primary metric).
+2. Threshold sweep (`support_eval/threshold_sweep.json`) for uniqueness/consistency/Jaccard (secondary diagnostics).
+
+**Output base:** `/network/scratch/l/lia/skae/lyapunov_block_loss_sweep/`
+
+**Status:** COMPLETED (array 0-23).
+
+**Results (primary metric = cosine separation; threshold metrics secondary):**
+
+Best cosine separation by target size (vs control, Δ shown):
+- **ts=64:** `usage_entropy` **0.786** (Δ +0.433 vs control 0.353)
+- **ts=128:** `kl_uniform` **0.852** (Δ +0.614 vs control 0.238)
+- **ts=256:** `kl_uniform` **0.884** (Δ +0.058 vs control 0.826)
+- **ts=512:** `usage_entropy` **0.791** (Δ +0.325 vs control 0.466)
+
+Notable patterns:
+- **Across-batch balance losses help separation.** `usage_entropy` and `kl_uniform` consistently improve cosine separation relative to control at all target sizes (sometimes large gains at ts=64/128).
+- **Per-sample one-block losses often collapse.** `low_entropy` and `pairwise_overlap` frequently yield near-zero cosine separation (intra and inter ~0 or ~1), with **0 uniqueness** and **Jaccard=1** at `tau=1e-3`—indicative of degenerate or near-zero supports.
+- **Top-1 margin is mixed.** It improves cosine separation over control at ts=64/512 but lags balance losses, and does not consistently improve threshold-based uniqueness/consistency.
+
+**Interpretation:**
+Balance losses increase separability but **do not guarantee single-block activation per sample**. The strict one-block penalties as implemented can drive collapse (near-zero or uninformative supports), suggesting they are too harsh without a stabilizing counter-term.
+
+**Implications:**
+For label-free basin identification, **block-usage balance is a safer first step** than aggressive per-sample exclusivity. To obtain *both* separation and one-block activation, we likely need **combined losses** (one-block + balance) with careful weighting or temperature schedules.
+
+**Next steps:**
+1. Run **combined loss** experiments (e.g., `top1_margin + kl_uniform`, `low_entropy + usage_entropy`) with weight sweeps.
+2. Add **monitoring of per-sample block entropy and top-1 gap** to catch collapse early.
+3. Test whether balance losses preserve separation under **sequence loss** or higher `target_size`.
+
+
+### -2) Sequence-Loss Weight Sweep (new)
+Timestamp: 2026-02-04 (submitted; job `8613853`)
+
+Script: `scripts/sweep_sequence_loss_weights.sh`
+
+```bash
+sbatch scripts/sweep_sequence_loss_weights.sh
+```
+
+**Question:** Can loss-weight tuning stabilize non-diagonal K under sequence training (SR < 1)?
+
+**Fixed settings (default):** L=8, target_size=128, K=block_diagonal (override with env vars).
+
+**Grid (36 jobs):**
+- `res_coeff`: {0.3, 1.0, 3.0}
+- `reconst_coeff`: {0.3, 1.0, 3.0}
+- `pred_coeff`: {0.0, 1.0}
+- `sparsity_coeff`: {0.1, 0.3}
+
+**Protocol:** Each job trains with `--sequence --sequence_length L`, then runs:
+1. `tools/evaluate_checkpoints.py`
+2. `tools/analyze_k_eigenvalues.py` (SR + basin correlation)
+
+**Output base:** `/network/scratch/l/lia/skae/sequence_loss_weight_sweep/`
+
+**Status:** RUNNING (array 0-35).
+
+### -1) Sequence-Length Spectral-Stability Sweep (new)
+Timestamp: 2026-02-04 (completed; job `8613261`)
+
+Script: `scripts/sweep_sequence_length_spectral.sh`
+
+```bash
+sbatch scripts/sweep_sequence_length_spectral.sh
+```
+
+**Question:** Does increasing sequence length during training push Koopman spectral radius below 1 (without explicit spectral regularization)?
+
+**Grid:** `L in {4, 8, 12, 16}` x `K in {dense, diagonal, block_diagonal, arrowhead}` x `target_size in {64, 128, 256}` = 48 jobs.
+
+**Protocol:** Each job trains with `--sequence --sequence_length L` using matched core loss weights, then runs:
+1. `tools/evaluate_checkpoints.py` (long-horizon prediction metrics)
+2. `tools/analyze_k_eigenvalues.py` (max SR + per-block spectra)
+
+**Output base:** `/network/scratch/l/lia/skae/sequence_length_spectral_sweep/`
+
+**Results (stable = max SR < 1; counts out of 3 target sizes):**
+
+| L | dense SR range (stable/3) | diagonal SR range (stable/3) | block-diagonal SR range (stable/3) | arrowhead SR range (stable/3) |
+|---|---------------------------|------------------------------|------------------------------------|-------------------------------|
+| 4 | 1.199–1.344 (0/3) | 0.955–0.994 (3/3) | 1.067–1.202 (0/3) | 1.122–1.215 (0/3) |
+| 8 | 1.178–1.320 (0/3) | 0.938–0.987 (3/3) | 1.089–1.219 (0/3) | 1.135–1.261 (0/3) |
+| 12 | 1.100–1.208 (0/3) | 0.934–1.047 (2/3) | 1.023–1.226 (0/3) | 1.174–1.330 (0/3) |
+| 16 | 1.110–1.260 (0/3) | 0.966–1.078 (1/3) | 1.063–1.264 (0/3) | 1.180–1.339 (0/3) |
+
+Stable diagonal runs have H1000 no-reencode MSE in the range **3.63–3.72** (similar to pairwise baselines). All SR > 1 runs diverge at H1000 (very large or inf MSE).
+
+**Context:** The sweep tests whether longer sequence loss (L in {4, 8, 12, 16}) provides enough multi-step gradient pressure to push SR <= 1 without explicit spectral regularization.
+
+**Interpretation:** Sequence-length training does **not** stabilize K. Only diagonal is stable at short L (4–8), and even that stability degrades at L=12 and L=16. Dense, block-diagonal, and arrowhead are unstable at all L (SR > 1 across all target sizes).
+
+**Implications:** Multi-step loss is not a substitute for spectral control. If we need sequence training, we must add explicit spectral regularization or constrained parameterizations; otherwise long-horizon rollouts will diverge for non-diagonal structures.
+
+**Next steps:**
+1. Add explicit SR regularization or spectral normalization for K, then rerun a reduced grid (e.g., L=4 vs L=16 at ts={64,128}).
+2. Test whether arrowhead stability can be recovered under sequence loss with adjusted exclusivity/sparsity weights.
+3. Compare sequence-loss vs pairwise training under the same spectral constraint to isolate the effect of L.
 
 ### 0) Long-Horizon Prediction + Per-Block Eigenvalue Analysis
 Timestamp: 2026-02-03 (evaluation sweep, job `8607640`)
@@ -86,7 +274,7 @@ sbatch scripts/sweep_eval_k_structure.sh
 1. `evaluate_checkpoints.py` -- 1000-step rollout MSE with 6 rollout modes (no-reencode, every-step, periodic at 10/25/50/100)
 2. `analyze_k_eigenvalues.py --correlate_basins` -- per-block eigenvalue extraction + basin-to-block activation heatmap
 
-**Status:** 16/25 completed. Results below cover ts={64, 128, 256} × all 5 structures + ts=512 × {dense, diagonal}. ts=512 remaining structures and all ts=1024 are pending.
+**Status:** **COMPLETED** (25/25). Results below cover ts={64, 128, 256, 512, 1024} × all 5 structures.
 
 #### Results: Spectral Radius and Long-Horizon Stability
 
@@ -110,15 +298,25 @@ The spectral radius (max |λ| across all K eigenvalues) is the key predictor of 
 | 256 | arrowhead | **0.9917** | **YES** | **3.59e+00** |
 | 256 | arrowhead_no_excl | 1.0215 | NO | 1.52e+13 |
 | 512 | dense | 1.0295 | NO | 7.88e+19 |
-| 512 | diagonal | -- | -- | 3.82e+00 |
+| 512 | diagonal | **0.9996** | **YES** | **3.82e+00** |
+| 512 | block_diagonal | 1.0072 | NO | 4.66e+00 |
+| 512 | arrowhead | 1.0169 | NO | 1.67e+09 |
+| 512 | arrowhead_no_excl | 1.0190 | NO | 2.95e+10 |
+| 1024 | dense | 1.0337 | NO | 4.02e+25 |
+| 1024 | diagonal | 1.0192 | NO | 1.22e+12 |
+| 1024 | block_diagonal | 1.0118 | NO | 4.71e+04 |
+| 1024 | arrowhead | 1.0113 | NO | 2.26e+05 |
+| 1024 | arrowhead_no_excl | 1.0411 | NO | 3.35e+29 |
+
+**Context:** This sweep links Koopman spectral radius to long-horizon prediction stability across K structures and latent sizes under pairwise training.
 
 **Key finding: spectral radius is a binary switch for long-horizon fate.** Every model with SR < 1 converges to H1000 MSE in the range 3.49–3.82. Every model with SR > 1 diverges, often catastrophically (orders of magnitude). There is no graceful degradation — even SR = 1.0006 (diagonal ts=64) causes slow drift to H1000 = 3.81, while SR = 1.0262 (dense ts=256) causes H1000 = 6.78e+17.
 
-**Arrowhead with exclusivity maintains SR < 1 at every tested dimension** (64, 128, 256). This makes it the only structure with *guaranteed* long-horizon stability across all sizes. The exclusivity loss appears to act as an implicit spectral regulariser.
+**Arrowhead with exclusivity maintains SR < 1 at ts <= 256 but not at higher dimensions.** At ts=512 and ts=1024, SR rises above 1 (1.0169 and 1.0113), so stability is not guaranteed at high capacity. The exclusivity loss is helpful but insufficient on its own at larger latent sizes.
 
-**Dense K becomes unstable at ts >= 128** (SR = 1.007 at ts=128, SR = 1.026 at ts=256, SR = 1.030 at ts=512). As the latent dimension grows, more eigenvalues drift outside the unit circle.
+**Dense K becomes unstable at ts >= 128** (SR = 1.007 at ts=128, SR = 1.026 at ts=256, SR = 1.030 at ts=512, SR = 1.034 at ts=1024). As the latent dimension grows, more eigenvalues drift outside the unit circle.
 
-**Diagonal and block-diagonal are marginally stable.** At ts=64, both have SR = 1.0006 (barely unstable). At ts=256, both have SR < 1 (stable). The stability depends on the specific training run.
+**Diagonal and block-diagonal are marginally stable.** At ts=64, both have SR = 1.0006 (barely unstable). At ts=256, both have SR < 1 (stable). At ts=512, diagonal remains stable (SR = 0.9996) while block-diagonal is unstable (SR = 1.0072). At ts=1024, both are unstable. Stability depends on the training outcome and degrades with higher capacity.
 
 #### Results: Best Periodic Reencoding
 
@@ -181,27 +379,33 @@ For each model, we encode 100 basin-labeled trajectories and compute the mean ac
 
 1. **Spectral stability is the dominant factor for long-horizon prediction quality.** The binary stable/unstable classification predicted by the spectral radius perfectly explains the 15+ orders-of-magnitude spread in H1000 MSE across configurations. All stable models converge to a narrow MSE band (3.49–3.82); all unstable models diverge. This means Koopman structure choice is primarily a question of *which structures reliably produce SR < 1*, not which produce the lowest MSE.
 
-2. **Arrowhead with exclusivity is the most robust choice.** It is the only structure that maintains SR < 1 at all tested dimensions (64, 128, 256), with the best no-reencode H1000 MSE (3.49 at ts=128). The exclusivity loss acts as an implicit spectral constraint by forcing basin-local dynamics to be decoupled, limiting the number of interacting eigenvalue modes. This comes at the cost of worse reconstruction accuracy (higher every-step reencoding error), reflecting the fundamental tradeoff between dynamical stability and reconstruction fidelity.
+2. **Arrowhead with exclusivity is robust up to ts=256 but not at higher capacity.** It achieves the best no-reencode H1000 MSE (3.49 at ts=128) and stays stable for ts <= 256, but SR exceeds 1 at ts=512 and ts=1024. The exclusivity loss provides an implicit spectral constraint, but it is insufficient alone at high latent sizes.
 
 3. **Dense K is spectrally unstable above ts=64.** The dense Koopman matrix's d² free parameters allow eigenvalues to drift outside the unit circle during training. At ts=512, the spectral radius reaches 1.03, causing H1000 divergence to 10^19. Dense K should not be used for long-horizon prediction without explicit spectral regularisation (e.g., eigenvalue penalty or spectral normalisation of K).
 
-4. **Block-diagonal and diagonal achieve stability at ts=256 but not reliably at lower dimensions.** Their stability depends on the training outcome: at ts=64, SR = 1.0006 (marginally unstable); at ts=256, SR < 1 (stable). This makes them less reliable than arrowhead for guaranteed stability but competitive when they happen to converge stably.
+4. **Block-diagonal and diagonal stability erodes at high capacity.** Both are unstable at ts=64, both are stable at ts=256, diagonal remains stable at ts=512, but both are unstable at ts=1024. This makes them competitive at moderate sizes but unreliable at high capacity without explicit spectral constraints.
 
 5. **Basin-block alignment does not emerge from K structure alone.** Despite using block sizes matching the number of ground-truth basins (d/13), the encoder does not learn a consistent one-basin-one-block mapping at moderate-to-large latent dimensions. At ts=64 there is strong alignment (concentration 0.87), but this is likely because the low capacity forces each block to specialize. At ts=256+, the encoder has enough capacity to distribute basin information across multiple blocks, and no training signal explicitly encourages concentration.
 
 6. **For LQR control, additional basin-block alignment losses are needed.** The original goal — isolate per-basin linear dynamics as blocks of K, then apply LQR per block — requires that each block maps to exactly one basin. The current results show this alignment exists at low capacity (ts=64) but breaks down at the capacity levels needed for accurate dynamics (ts=256+). An explicit basin-assignment loss during training (e.g., a classifier head predicting basin from block activations) would be needed to enforce this correspondence.
 
+#### Implications
+
+- Without explicit spectral control, high-capacity latents (ts >= 512) are unstable across all K structures.
+- Arrowhead structure alone is not enough to guarantee stability at high dimensions; stability constraints must be part of training or parameterization.
+- Long-horizon reliability should be treated as a first-class objective, not an emergent property of structure choice.
+
 #### Next Steps
 
-1. **Complete the sweep** for ts=512 and ts=1024 (9 checkpoints remaining, job `8607640` in progress).
+1. **Add spectral regularisation to K (dense + structured).** Penalise eigenvalues outside the unit circle during training (e.g., `lambda_spectral * max(0, SR - 1)^2`) or use spectral normalization. Re-run a small grid at ts={256,512} to check if stability persists at higher capacity.
 
-2. **Add spectral regularisation to dense K.** Penalise eigenvalues outside the unit circle during training (e.g., `lambda_spectral * max(0, SR - 1)^2`). This could make dense K competitive for long-horizon prediction while preserving its expressiveness.
+2. **Investigate why arrowhead loses stability at high ts.** Sweep exclusivity/sparsity weights and global/basin split to see if SR can be kept < 1 at ts >= 512.
 
-3. **Investigate basin-block alignment losses.** Add an auxiliary classifier head that predicts basin identity from per-block activation norms. This would explicitly encourage the encoder to route each basin's information to a specific K block, enabling per-basin dynamics extraction for LQR.
+3. **Investigate basin-block alignment losses.** Add an auxiliary classifier head that predicts basin identity from per-block activation norms to encourage consistent basin-to-block routing for LQR.
 
-4. **Test LQR on block-diagonal ts=64.** Despite its marginal spectral instability (SR = 1.0006), the ts=64 block-diagonal model has strong basin-block alignment (0.87). This is the best current candidate for per-basin LQR, since each block approximately corresponds to one basin. Test whether small eigenvalue corrections (clamping SR to < 1) combined with the block-aligned dynamics can produce effective per-basin controllers.
+4. **Test LQR on block-diagonal ts=64.** Despite marginal instability (SR = 1.0006), the ts=64 block-diagonal model has strong basin-block alignment (0.87). Test whether small eigenvalue corrections (clamping SR to < 1) yield effective per-basin controllers.
 
-5. **Validate on Duffing.** Duffing has only 2 basins, which should produce even cleaner basin-block alignment. Run the same evaluation suite on the Duffing checkpoints to confirm the spectral stability findings generalise.
+5. **Validate on Duffing.** Duffing has only 2 basins, which should produce cleaner basin-block alignment. Run the same evaluation suite on the Duffing checkpoints to confirm the spectral stability findings generalise.
 
 ---
 

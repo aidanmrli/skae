@@ -18,6 +18,16 @@ IMPORTANT NOTE: After any changes that we make to the framework or experiments t
 * make a descriptive git commit and push, and
 * update `docs/notes.tex` by describing the experiment that was ran, and the results of the experiment. Also, interpret the results of the experiment in context if possible. When writing, carefully discern what has been implemented and explain it to me thoroughly. Check all the math. The tone of your writing should be academic and appropriate for an audience specializing in mathematics and machine learning. The writing should be for an award-winning paper at NeurIPS or ICML. Do not make any explicit references to code or filenames. Focus on explaining well in a scientific manner so that a reader can understand and reproduce the results.
 
+## Documentation Updates
+- Keep `docs/EXPERIMENTS.md` with a short **Current Status Summary** at the very top that states the problem(s) being solved, the solution if found (or the current approach if not), and clearly labels the **outstanding problem**.
+- When new experiment results are produced, report and write them in this sequence:
+  1. Report the concrete result(s).
+  2. Explain the result(s) in the context of the experiment design/question.
+  3. State the interpretation of the result(s).
+  4. State implications for the overall project direction.
+  5. Propose next steps.
+- After reporting any results, update the project state in `docs/EXPERIMENTS.md` (including **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the corresponding experiment entry).
+
 ## Directory Structure
 
 ```
