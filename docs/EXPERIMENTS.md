@@ -8,6 +8,10 @@ Goal: Achieve **unique support patterns for unique basins** (mechanistic interpr
 
 Problem we are solving: learn basin-discriminative sparse latents that are both **unique across basins** and **stable for long-horizon prediction**, so basin structure can be extracted and used for downstream control (per-basin LQR).
 
+Assumption split:
+- **Training/deployment target:** basin count and basin labels are unknown.
+- **Benchmark evaluation:** using known basin counts/labels is acceptable for diagnostics.
+
 What we found so far:
 - **Uniqueness** is solved at sufficient capacity (ts >= 256). LISTA encoders reliably produce distinct basin supports.
 - The apparent **uniqueness–consistency tradeoff** was a thresholding artefact. Cosine similarity shows high intra-basin consistency when using threshold-free metrics.
@@ -15,29 +19,33 @@ What we found so far:
 - **Spectral radius determines long-horizon fate.** Models with all eigenvalues inside the unit circle (SR < 1) converge to bounded MSE (~3.5); models with any eigenvalue outside (SR > 1) diverge catastrophically (MSE > 1e+10 at H1000). Periodic reencoding rescues divergent models but cannot improve beyond the bounded-MSE floor.
 - **Arrowhead with exclusivity is stable at ts <= 256 under pairwise training** (best no-reencode H1000 MSE = 3.49 at ts=128), but it **loses stability at ts >= 512** (SR > 1).
 - **Sequence-length training does not stabilize K.** For L in {4, 8, 12, 16}, only diagonal K remains stable (SR < 1), and stability **degrades** as L grows; dense, block-diagonal, and arrowhead are unstable at all L.
-- **Basin-to-block correspondence is strongest at low capacity** (block_diagonal ts=64: concentration 0.87) but washes out at higher dimensions (~0.10 at ts=256). The encoder distributes activations across blocks rather than concentrating each basin into a single block.
+- **Sequence-loss weight tuning alone does not stabilize non-diagonal K.** In the L=8 block-diagonal weight sweep (36 configs), **0/36** reached SR < 1 (best SR = 1.0014), so coefficient tuning is insufficient without explicit spectral control.
+- **Basin-to-block concentration is a secondary diagnostic, not the objective.** It is strongest at low capacity (block_diagonal ts=64: concentration 0.87) and washes out at higher dimensions (~0.10 at ts=256), while basin-support uniqueness can still be strong.
 - **Block-usage balance losses improve cosine separation.** `usage_entropy` and `kl_uniform` raise separation vs control across ts={64,128,256,512}, while strict one-block penalties (`low_entropy`, `pairwise_overlap`) often collapse to degenerate supports (0 uniqueness, Jaccard=1 at tau=1e-3).
+- **Combined top-1 + balance losses can improve separability at ts=256, but are sensitive.** Phase 1 reached best CosSep **0.8826** (vs ts=256 control 0.8256, +0.057), but some weight settings still collapsed (worst CosSep 0.222, uniqueness 0.5 at tau=1e-3).
 
 Current solution direction:
-- Use **arrowhead K with exclusivity** for pairwise training at ts <= 256 (best stable long-horizon results there), but do not assume stability at ts >= 512.
+- Continue the **label-free LQR decision pipeline** (Stage 0-3 sweeps + `tools/evaluate_lqr_readiness.py`) and use its aggregated outputs as the architecture selection gate between block-diagonal and arrowhead once collection is complete.
+- Use **arrowhead K with exclusivity** as a strong pairwise candidate at low-to-mid size (best no-reencode stability at ts=64/128; near-tie with block-diagonal at ts=256), but do not assume stability at ts >= 512.
 - Use **diagonal K** as the only sequence-loss option that stays stable at short L (4–8), with explicit spectral constraints for larger L or higher ts.
 - Add **explicit spectral regularization or constrained parameterization** to keep SR < 1 at high ts and under sequence loss.
 - Use **block-usage balance losses** (`usage_entropy` / `kl_uniform`) as the baseline for block-diagonal K; follow with **combined one-block + balance** sweeps to avoid collapse while encouraging per-trajectory block selection.
-- Run a **sequence-loss weight sweep** to test whether loss-weight tuning can stabilize non-diagonal K under sequence training.
-- **Periodic reencoding at period 100** is the universal fallback: it equalizes all structures to H1000 MSE ~3.6–3.9.
+- Keep **combined one-block + balance** in the robust region (small top-1 margin, moderate one-block weight) and avoid aggressive settings that reduce uniqueness.
+- Treat **sequence-loss weight tuning as insufficient by itself**; move to explicit spectral constraints/parameterizations to enforce SR < 1 for non-diagonal K.
+- **Periodic reencoding** is the fallback: `periodic_100` is usually best for spectrally stable models, while unstable models often need shorter periods (`periodic_50`/`periodic_25`) to remain bounded.
 
 Outstanding problems (active):
-- **Basin-block alignment does not emerge naturally.** Even with block-diagonal K sized to match basins (d/13 per block), the encoder does not consistently assign one basin per block. This limits the ability to extract per-basin Koopman dynamics for LQR. Need to investigate explicit basin-block alignment losses or post-hoc block assignment.
+- **Reliable label-free regime assignment from sparse supports is still open.** We need a robust unsupervised mapping from support patterns to local control models when basin count/labels are unknown at training/deployment time.
 - **No structure is stably below SR < 1 at ts = 1024.** Need explicit spectral stabilization to scale latent size.
 - **Sequence training destabilizes non-diagonal K.** Need a spectral constraint or alternative training objective to keep SR < 1 under sequence loss.
-- **Loss-weight sensitivity is unknown.** Need evidence whether tuning residual/reconstruction/prediction/sparsity weights can recover stability under sequence loss.
-- **One-block losses can collapse.** The current per-sample exclusivity penalties (low-entropy/pairwise-overlap) often yield degenerate supports unless balanced; need combined one-block + usage-balance objectives with tuned weights.
+- **Loss-weight tuning alone fails to recover stability.** The completed 36-config sweep produced 0 stable runs (SR < 1), so explicit spectral control is now the key missing ingredient.
+- **Combined one-block + balance remains brittle.** Even with top1+balance, some settings lose uniqueness and separation; need a robust objective region that improves separability without collapse.
 
 **LQR Readiness Blockers**
-1. Reliable, label-free basin identification. We do not know basin labels or how many basins exist in the real setting. We currently cannot reliably assign a trajectory to a specific block in a stable, unsupervised way. Without a trustworthy basin assignment, LQR has no “local system” to attach to.
-2. Stable, block-specific dynamics (SR < 1). LQR assumes the local linear dynamics are meaningful and stable (or at least stabilizable). We have seen spectral radius instability in many settings; long-horizon rollouts diverge if SR > 1. Until each block is spectrally controlled, LQR might optimize a system that explodes in practice.
-3. Basin-block alignment that persists with capacity. At low latent sizes, block alignment can appear, but it washes out at higher capacity. We need alignment to be stable across sizes, or at least stable in the regime we want to deploy.
-4. Local linearity actually captures local dynamics. We need evidence that within a basin, the block dynamics are predictive (not just “separable”). Right now, separation and stability are decoupled from actual predictive quality in some configs.
+1. Reliable, label-free basin/regime identification. We do not know basin labels or how many basins exist in the real setting. We currently cannot reliably assign a trajectory to a support-defined regime in a stable, unsupervised way. Without a trustworthy assignment, LQR has no “local system” to attach to.
+2. Stable local dynamics (SR < 1). LQR assumes local linear dynamics are meaningful and stable (or at least stabilizable). We have seen spectral radius instability in many settings; long-horizon rollouts diverge if SR > 1.
+3. Local linearity actually captures local dynamics. We need evidence that support-conditioned local dynamics are predictive (not just “separable”). Right now, separation and stability are decoupled from predictive quality in some configs.
+4. Robustness across capacity/seeds. The selected regime-assignment and local-model pipeline must remain reliable across latent sizes and random seeds, not just in isolated checkpoints.
 
 ## Result Reporting Protocol
 
@@ -93,26 +101,83 @@ Completed (February 4, 2026):
 - Long-horizon prediction + eigenvalue analysis sweep: job `8607640` (sequential, 25 checkpoints) -- **COMPLETED** (25/25)
 - Sequence length spectral-stability sweep: job `8613261` via `scripts/sweep_sequence_length_spectral.sh` (array 0-47; 4 sequence lengths × 4 K structures × 3 latent sizes) -- **COMPLETED** (48/48)
 
-Running (February 4, 2026):
-- Sequence-loss weight sweep: job `8613853` via `scripts/sweep_sequence_loss_weights.sh` (array 0-35; 36 weight configs) -- **RUNNING**
-
 Completed (February 5, 2026):
 - Block-loss ablation sweep: job `8615740` via `scripts/sweep_block_loss_ablation.sh` (array 0-23; 6 loss conditions × 4 target sizes) -- **COMPLETED**
+- Sequence-loss weight sweep: job `8613853` via `scripts/sweep_sequence_loss_weights.sh` (array 0-35; 36 weight configs) -- **COMPLETED**
+- Block-loss balance sweep (Phase 1): job `8615817` via `scripts/sweep_block_loss_balance_phase1.sh` (array 0-71; 72 configs) -- **COMPLETED**
 
-Running (February 5, 2026):
-- Block-loss balance sweep (Phase 1): job `8615817` via `scripts/sweep_block_loss_balance_phase1.sh` (array 0-71; 72 configs) -- **RUNNING**
+Submitted (February 5, 2026):
+- LQR decision Stage 1 script: `scripts/sweep_lqr_decision_stage1.sh` -- job `8620569` (array 0-35; 36 jobs)
+- LQR decision Stage 0 script: `scripts/sweep_lqr_decision_stage0.sh` -- job `8620570` (array 0-3; 4 jobs)
+- LQR decision Stage 2 script: `scripts/sweep_lqr_decision_stage2.sh` -- job `8621121` (array 0-143; 144 jobs; `BD_STAR=bd_c2`)
+- LQR decision Stage 3 script: `scripts/sweep_lqr_decision_stage3.sh` -- job `8621236` (array 0-71; 72 jobs; dependency `afterany:8621121`)
+- LQR decision final collection: `scripts/collect_lqr_decision_after_stage3.sh` -- job `8621237` (dependency `afterany:8621236`)
 
-Status check (February 4, 2026):
+Ready to run next (February 5, 2026):
+- LQR decision Stage 0 script: `scripts/sweep_lqr_decision_stage0.sh` (4 jobs; 2 arms × 2 seeds)
+- LQR decision Stage 1 script: `scripts/sweep_lqr_decision_stage1.sh` (36 jobs; 3 arms × 3 B_proxy × 4 seeds)
+- LQR decision Stage 2 script: `scripts/sweep_lqr_decision_stage2.sh` (144 jobs; 2 arms × 3 target sizes × 3 B_proxy × 8 seeds)
+- LQR decision Stage 3 script: `scripts/sweep_lqr_decision_stage3.sh` (72 jobs; 2 arms × 2 target sizes × 3 B_proxy × 6 seeds)
+- Decision aggregation tool: `tools/collect_lqr_decision_results.py` -> writes `summary_decision_table.csv`, `lqr_readiness_summary.json`, `final_decision.md`
+
+Immediate next actions:
+1. Monitor Stage 0/1 completion and collect Stage 1 summaries.
+2. Select `BD*` (`bd_c1` or `bd_c2`) from Stage 1 primary metrics.
+3. Launch Stage 2 with selected baseline: `BD_STAR=<bd_c1_or_bd_c2> sbatch scripts/sweep_lqr_decision_stage2.sh`.
+4. After Stage 2, launch Stage 3 transfer check: `BD_STAR=<bd_c1_or_bd_c2> sbatch scripts/sweep_lqr_decision_stage3.sh`.
+5. Aggregate final decision artifacts with `uv run python tools/collect_lqr_decision_results.py --base_dir /network/scratch/l/lia/skae/lqr_decision --output_dir results/lqr_decision --decision_stage 2 --decision_system lyapunov --arms <bd_c1_or_bd_c2>,ah_prag`.
+
+Status check (February 5, 2026):
 - All arrays for jobs `8602046`, `8602047`, `8603752`, `8603753`, and `8605505` produced logs and `support_eval/*.json` outputs in `/network/scratch/l/lia/skae/...`.
 - Job `8607640` has evaluation + eigenvalue outputs for all 25 checkpoints.
 - Job `8613261` has evaluation + eigenvalue outputs for all 48 configurations (some configs have multiple timestamps; the latest run may be train-only but earlier runs contain the full outputs).
+- Job `8613853` has training + checkpoint evaluation + eigenvalue outputs for all 36 configs.
+- Job `8615817` has training + support-eval outputs (`cosine_metrics.json`, `threshold_sweep.json`) for all 72 configs.
 
 ---
 
 ## Experiment Log (Newest First)
 
+### -5) LQR Decision Pipeline Implementation (Stage 0/1 submitted)
+Timestamp: 2026-02-05
+
+Plan: `docs/planning/block_diagonal_vs_arrowhead_lqr_decision_plan.md`
+
+Implemented components:
+- Label-free LQR-readiness evaluator: `tools/evaluate_lqr_readiness.py`
+- Stage runner: `scripts/run_lqr_decision_trial.sh`
+- Stage sweeps: `scripts/sweep_lqr_decision_stage0.sh`, `scripts/sweep_lqr_decision_stage1.sh`, `scripts/sweep_lqr_decision_stage2.sh`, `scripts/sweep_lqr_decision_stage3.sh`
+- Aggregation and final decision tool: `tools/collect_lqr_decision_results.py`
+
+`AH-PRAG` lock for reproducibility:
+- `lambda_global = 1e-4`
+- `lambda_local = 1e-3`
+
+Suggested launch order:
+1. `sbatch scripts/sweep_lqr_decision_stage0.sh`
+2. `sbatch scripts/sweep_lqr_decision_stage1.sh`
+3. Pick `BD*` and run `sbatch scripts/sweep_lqr_decision_stage2.sh`
+4. Run `sbatch scripts/sweep_lqr_decision_stage3.sh`
+5. Aggregate with `uv run python tools/collect_lqr_decision_results.py --base_dir /network/scratch/l/lia/skae/lqr_decision --output_dir results/lqr_decision --decision_stage 2 --decision_system lyapunov --arms <BD_STAR>,ah_prag`.
+
+Submission status:
+- Stage 1 submitted: job `8620569` (`scripts/sweep_lqr_decision_stage1.sh`)
+- Stage 0 submitted: job `8620570` (`scripts/sweep_lqr_decision_stage0.sh`)
+
+What to do next:
+1. Wait for Stage 0/1 completion and review Stage 1 arm metrics to choose `BD*`.
+2. Launch Stage 2 with selected baseline using `BD_STAR=<bd_c1_or_bd_c2>`.
+3. Launch Stage 3 only after Stage 2.
+4. Run `tools/collect_lqr_decision_results.py` to produce final decision artifacts.
+
+Update (February 5, 2026, later):
+- Stage 1 decision completed from observed metrics: `BD* = bd_c2` (decided by M4).
+- Stage 2 submitted with `BD_STAR=bd_c2` as job `8621121`.
+- Stage 3 submitted as dependent job `8621236` (`afterany:8621121`).
+- Final collection submitted as dependent job `8621237` (`afterany:8621236`).
+
 ### -4) Block-Loss Balance Sweep (Phase 1)
-Timestamp: 2026-02-05 (submitted; job `8615817`)
+Timestamp: 2026-02-05 (completed; job `8615817`)
 
 Script: `scripts/sweep_block_loss_balance_phase1.sh`
 
@@ -139,7 +204,32 @@ sbatch scripts/sweep_block_loss_balance_phase1.sh
 
 **Output base:** `/network/scratch/l/lia/skae/lyapunov_block_loss_balance_phase1/`
 
-**Status:** RUNNING (array 0-71).
+**Status:** COMPLETED (72/72).
+
+**Results (primary metric = cosine separation; threshold metrics secondary):**
+
+- Best seed-averaged config: `kl_uniform`, `top1_margin=0.05`, `one_block_weight=0.3`, `balance_weight=1.0`
+  - **CosSep = 0.8826** (`intra=0.9676`, `inter=0.0851`)
+  - At `tau=1e-3`: `uniqueness=1.0`, `consistency=0.138`, `Jaccard=0.142`
+- Relative to the ts=256 control from the ablation sweep (`CosSep=0.8256`), the best Phase 1 config improves by **+0.0570**.
+- Robustness across the 36 seed-averaged configs:
+  - **23/36** configs beat the ts=256 control separation.
+  - **28/36** retain full uniqueness at `tau=1e-3`; **8/36** lose full uniqueness.
+  - Worst config (`usage_entropy`, `top1_margin=0.1`, `one_block_weight=0.3`, `balance_weight=0.1`) collapses to **CosSep=0.2225**, `uniqueness=0.5`.
+- Aggregate trends:
+  - `kl_uniform` is stronger on average than `usage_entropy` (mean CosSep **0.776** vs **0.700**).
+  - Smaller margin is safer (`top1_margin=0.05`: mean CosSep **0.776** vs **0.701** at `0.1`).
+
+**Context:** This sweep directly tests whether combining per-sample one-block pressure (`top1_margin`) with across-batch usage balancing can improve basin separability without the collapse seen in strict one-block-only losses.
+
+**Interpretation:** The combination can improve basin separability, but only in part of the weight space. A moderate one-block pressure plus balancing gives stronger intra-vs-inter basin separation, while aggressive settings still produce degenerate supports and lost uniqueness.
+
+**Implications for basin separability goal:** This is progress toward label-free basin discrimination: combined losses can push separation above control at ts=256. But separability is not yet robust enough across hyperparameters to treat basin assignment as reliable by default.
+
+**Next steps:**
+1. Center Phase 2 on the robust region (`top1_margin=0.05`, moderate `one_block_weight`, `kl_uniform`-heavy balancing) with more seeds.
+2. Add early-stop guards using cosine separation + uniqueness to terminate collapsing runs.
+3. Validate whether the robust region transfers to larger `target_size` and to sequence-training settings.
 
 ### -3) Block-Loss Ablation Sweep (new)
 Timestamp: 2026-02-05 (submitted; job `8615740`)
@@ -194,7 +284,7 @@ For label-free basin identification, **block-usage balance is a safer first step
 
 
 ### -2) Sequence-Loss Weight Sweep (new)
-Timestamp: 2026-02-04 (submitted; job `8613853`)
+Timestamp: 2026-02-04 (completed readout on 2026-02-05; job `8613853`)
 
 Script: `scripts/sweep_sequence_loss_weights.sh`
 
@@ -218,7 +308,31 @@ sbatch scripts/sweep_sequence_loss_weights.sh
 
 **Output base:** `/network/scratch/l/lia/skae/sequence_loss_weight_sweep/`
 
-**Status:** RUNNING (array 0-35).
+**Status:** COMPLETED (36/36).
+
+**Results (stability metric = max spectral radius):**
+
+- **0/36** configs reached SR < 1.0 (strict stability).
+- SR range across sweep: **1.0014 to 1.2540**.
+- Near-stable region exists but does not cross stability boundary:
+  - Best SR: `res=1.0, reconst=0.3, pred=1.0, sparsity=0.1` with **SR=1.0014** and `H1000 no-reencode=3.77`.
+  - Best H1000 among finite no-reencode runs: `res=3.0, reconst=0.3, pred=1.0, sparsity=0.3` with **H1000=3.05**, **SR=1.0017**.
+- Long-horizon no-reencode outcomes remain fragile:
+  - **22/36** runs produce non-finite (`nan/inf`) H1000 no-reencode.
+  - Among finite runs (14), median H1000 no-reencode is still very large (`~7.6e3`).
+- Coefficient pattern:
+  - `pred_coeff=1.0` substantially helps (mean SR **1.064** vs **1.176** when `pred_coeff=0.0`), but still not enough to get SR < 1.
+
+**Context:** This experiment isolates whether reweighting residual/reconstruction/prediction/sparsity terms can stabilize non-diagonal Koopman dynamics under sequence training, without adding explicit spectral constraints.
+
+**Interpretation:** Weight tuning can move models closer to stability (near-SR=1 region) but does not solve the core instability. The stabilizing signal from prediction loss is useful yet insufficient when unconstrained K dynamics remain slightly expansive.
+
+**Implications for basin separability goal:** Basin separability in latent space is not enough for usable basin-wise dynamics. If SR remains above 1, long-horizon rollouts are unreliable, so separable basins cannot be converted into dependable local linear models for downstream control.
+
+**Next steps:**
+1. Add explicit spectral control (e.g., SR penalty, projection, or constrained K parameterization) and rerun a reduced grid around the near-stable settings.
+2. Keep `pred_coeff=1.0` in the follow-up baseline since it consistently reduces SR.
+3. Re-check separability metrics (cosine separation + uniqueness) after adding spectral constraints to ensure stability gains do not erase basin discrimination.
 
 ### -1) Sequence-Length Spectral-Stability Sweep (new)
 Timestamp: 2026-02-04 (completed; job `8613261`)
@@ -352,9 +466,9 @@ For block-diagonal and arrowhead models, eigenvalues are computed per block. For
 
 The arrowhead blocks have more diverse spectral radii (std = 0.005 vs 0.001) and are more conservatively pushed inside the unit circle (mean 0.984 vs 0.999). This explains its superior long-horizon stability.
 
-#### Results: Basin-to-Block Activation Correlation
+#### Results: Secondary Diagnostic - Basin-to-Block Activation Correlation
 
-For each model, we encode 100 basin-labeled trajectories and compute the mean activation magnitude per latent dimension grouped by K block. The "basin-block concentration" metric measures how peaked each basin's activation is toward a single block (1.0 = perfect one-basin-one-block alignment, 0.0 = uniform spread).
+For each model, we encode 100 basin-labeled trajectories and compute the mean activation magnitude per latent dimension grouped by K block. The "basin-block concentration" metric measures how peaked each basin's activation is toward a single block (1.0 = perfect one-basin-one-block alignment, 0.0 = uniform spread). This is a benchmark-only diagnostic and not the primary objective.
 
 | ts | K structure | Basin-block concentration |
 |----|-------------|--------------------------|
@@ -371,9 +485,9 @@ For each model, we encode 100 basin-labeled trajectories and compute the mean ac
 | 256 | diagonal | 0.101 |
 | 256 | arrowhead | 0.061 |
 
-**At ts=64, diagonal and block-diagonal show strong basin-block alignment** (concentration 0.87–0.89). This means the encoder has learned to route each basin's activation to a specific block of the K matrix. However, this alignment **fades with increasing capacity**: at ts=256, all structures show concentration ~0.06–0.13, meaning the encoder distributes activations across many blocks.
+**At ts=64, diagonal and block-diagonal show strong basin-block alignment** (concentration 0.87–0.89), but this alignment **fades with increasing capacity**: at ts=256, all structures show concentration ~0.06–0.13, meaning activations are distributed across many blocks.
 
-**Counterintuitively, the arrowhead with exclusivity has the *lowest* basin-block concentration** at every dimension. The exclusivity loss encourages one-basin-at-a-time activation in latent space, but this does not produce alignment between *specific* basin blocks and *specific* ground-truth basins. Instead, the encoder appears to use different basins for different dynamical regimes without a fixed assignment.
+**Counterintuitively, the arrowhead with exclusivity has the *lowest* basin-block concentration** at every dimension. The exclusivity loss encourages one-basin-at-a-time activation in latent space, but this does not enforce alignment between specific basin blocks and specific ground-truth basins.
 
 #### Interpretation
 
@@ -385,9 +499,9 @@ For each model, we encode 100 basin-labeled trajectories and compute the mean ac
 
 4. **Block-diagonal and diagonal stability erodes at high capacity.** Both are unstable at ts=64, both are stable at ts=256, diagonal remains stable at ts=512, but both are unstable at ts=1024. This makes them competitive at moderate sizes but unreliable at high capacity without explicit spectral constraints.
 
-5. **Basin-block alignment does not emerge from K structure alone.** Despite using block sizes matching the number of ground-truth basins (d/13), the encoder does not learn a consistent one-basin-one-block mapping at moderate-to-large latent dimensions. At ts=64 there is strong alignment (concentration 0.87), but this is likely because the low capacity forces each block to specialize. At ts=256+, the encoder has enough capacity to distribute basin information across multiple blocks, and no training signal explicitly encourages concentration.
+5. **Basin-block alignment does not emerge from K structure alone.** Despite using block sizes matching the number of ground-truth basins (d/13), the encoder does not learn a consistent one-basin-one-block mapping at moderate-to-large latent dimensions.
 
-6. **For LQR control, additional basin-block alignment losses are needed.** The original goal — isolate per-basin linear dynamics as blocks of K, then apply LQR per block — requires that each block maps to exactly one basin. The current results show this alignment exists at low capacity (ts=64) but breaks down at the capacity levels needed for accurate dynamics (ts=256+). An explicit basin-assignment loss during training (e.g., a classifier head predicting basin from block activations) would be needed to enforce this correspondence.
+6. **For LQR control, the primary requirement is reliable support-conditioned regime models, not one-basin-one-block mapping.** Basin-support uniqueness can be strong even when basin-block concentration is low, so we should prioritize label-free support/regime assignment and local predictive/stability checks.
 
 #### Implications
 
@@ -401,11 +515,11 @@ For each model, we encode 100 basin-labeled trajectories and compute the mean ac
 
 2. **Investigate why arrowhead loses stability at high ts.** Sweep exclusivity/sparsity weights and global/basin split to see if SR can be kept < 1 at ts >= 512.
 
-3. **Investigate basin-block alignment losses.** Add an auxiliary classifier head that predicts basin identity from per-block activation norms to encourage consistent basin-to-block routing for LQR.
+3. **Develop label-free support-to-regime assignment diagnostics.** Evaluate clustering/merging of support signatures and latent trajectories under unknown basin count, and measure assignment robustness across seeds.
 
-4. **Test LQR on block-diagonal ts=64.** Despite marginal instability (SR = 1.0006), the ts=64 block-diagonal model has strong basin-block alignment (0.87). Test whether small eigenvalue corrections (clamping SR to < 1) yield effective per-basin controllers.
+4. **Test LQR on stable, high-separation checkpoints first.** Prioritize checkpoints with strong support separation and SR < 1, then evaluate local controller feasibility and closed-loop gains under the label-free regime assignments.
 
-5. **Validate on Duffing.** Duffing has only 2 basins, which should produce cleaner basin-block alignment. Run the same evaluation suite on the Duffing checkpoints to confirm the spectral stability findings generalise.
+5. **Validate on Duffing.** Keep known-basin evaluation for benchmarking, but report results in terms of basin-support uniqueness and local predictive/stability metrics.
 
 ---
 
@@ -676,9 +790,9 @@ Implication for the project: treat **exclusivity as a necessary inductive bias**
 
 1. ~~**Long-horizon prediction MSE with periodic reencoding** on all 25 checkpoints.~~ **DONE** (see Experiment 0 above). Block_diagonal at ts=256 is spectrally stable (SR < 1) with H1000 = 3.58. Dense K diverges at ts >= 128.
 
-2. ~~**Extract per-block dynamics from block_diagonal K.**~~ **DONE** (see Experiment 0 above). Per-block eigenvalues extracted. Basin-block alignment is strong at ts=64 (concentration 0.87) but fades at ts=256 (0.10).
+2. ~~**Extract per-block dynamics from block_diagonal K.**~~ **DONE** (see Experiment 0 above). Per-block eigenvalues extracted. Basin-block concentration is strong at ts=64 (0.87) but fades at ts=256 (0.10); this is a secondary diagnostic.
 
-3. **Test LQR on extracted basin dynamics.** Still pending. The ts=64 block-diagonal model is the best candidate due to its strong basin-block alignment, but has marginal spectral instability (SR = 1.0006).
+3. **Test LQR on extracted local dynamics.** Still pending. Prioritize stable, high-separation checkpoints and evaluate controllers with label-free regime assignment rather than requiring one-basin-one-block alignment.
 
 4. ~~**Stabilise arrowhead at ts=128.**~~ **RESOLVED.** The arrowhead with exclusivity at ts=128 is spectrally stable (SR = 0.996) and achieves the best H1000 no-reencode MSE (3.49). The previously reported divergence was in the *eval final error* metric (short-horizon), not in long-horizon rollout stability.
 

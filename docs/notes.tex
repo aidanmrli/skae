@@ -371,6 +371,43 @@ During early training, the encoder has not yet learned meaningful representation
 \end{equation}
 where $t$ is the training step and $T_{\text{warmup}}$ is the warmup horizon (typically 1,000--2,000 steps). This allows the model to first learn good reconstruction and dynamics prediction before the exclusivity constraints are fully enforced.
 
+\subsection{Block-Diagonal Activation Losses (Used in Ablations)}
+\label{sec:block-losses}
+
+Several experiments in Section~\ref{sec:experiments} use additional regularizers defined on block energies for the block-diagonal Koopman setting. Let $z \in \R^{d_z}$ and let the block partition induced by block size be $z = [z^{(1)},\dots,z^{(M)}]$. We define nonnegative block energies
+\begin{equation}
+e_k = \|z^{(k)}\|_p, \qquad p \in \{1,2\},
+\end{equation}
+and normalized per-sample block probabilities
+\begin{equation}
+\pi_k = \frac{e_k}{\sum_{j=1}^{M} e_j + \varepsilon}.
+\end{equation}
+Importantly, these blocks are a model partition, not ground-truth basins; in our intended setting we do not assume known basin count or labels.
+
+\paragraph{Per-sample one-block losses.}
+We use three one-block objectives:
+\begin{align}
+\mathcal{L}_{\text{low-ent}} &= -\sum_{k=1}^{M}\pi_k\log(\pi_k+\varepsilon), \\
+\mathcal{L}_{\text{pair-overlap}} &= \frac{\left(\sum_k e_k\right)^2-\sum_k e_k^2}{\left(\sum_k e_k+\varepsilon\right)^2}, \\
+\mathcal{L}_{\text{top1-margin}} &= \max\!\left(0,\ m-(e_{(1)}-e_{(2)})\right),
+\end{align}
+where $e_{(1)} \ge e_{(2)}$ are the top-2 block energies and $m$ is a margin hyperparameter.
+
+\paragraph{Batch-level usage-balance losses.}
+Let $q_k = \frac{1}{B}\sum_{b=1}^{B}\pi_{b,k}$ be the batch-mean block usage distribution. We use:
+\begin{align}
+\mathcal{L}_{\text{usage-ent}} &= -\sum_{k=1}^{M} q_k\log(q_k+\varepsilon), \\
+\mathcal{L}_{\text{KL-uniform}} &= \sum_{k=1}^{M} q_k\left(\log(q_k+\varepsilon)-\log\frac{1}{M}\right).
+\end{align}
+In optimization, we maximize usage entropy by minimizing $-\mathcal{L}_{\text{usage-ent}}$, and minimize $D_{\mathrm{KL}}(q\|\mathrm{Uniform})$ via $\mathcal{L}_{\text{KL-uniform}}$.
+
+\paragraph{Combined block loss.}
+When enabled, the training objective includes
+\begin{equation}
+\mathcal{L}_{\text{block}} = \lambda_{\text{one}}\mathcal{L}_{\text{one-block}} + \lambda_{\text{bal}}\mathcal{L}_{\text{balance}},
+\end{equation}
+with choices of one-block and balance terms from the sets above.
+
 \subsection{Learning Objective}
 \label{sec:learning-objective}
 
@@ -408,9 +445,78 @@ where the individual terms are:
     \item \textbf{Exclusivity Losses}: We employ three complementary regularizers to encourage mutual exclusivity among basin blocks: the pairwise exclusivity loss $\mathcal{L}_{\text{excl}}$ (Eq.~\ref{eq:exclusivity}), the entropy-based loss $\mathcal{L}_{\text{entropy}}$ (Eq.~\ref{eq:entropy-excl}), and the dominance loss $\mathcal{L}_{\text{dom}}$ (Eq.~\ref{eq:dominance}). All three are subject to the linear warmup schedule described in Section~\ref{sec:exclusivity}.
 \end{itemize}
 
-For the non-structured models (standard sparse autoencoder or LISTA without basin partitioning), we use a simpler objective with uniform $\ell_1$ sparsity: $\mathcal{L}_{\text{sparse}} = \lambda \|z\|_1$.
+For non-structured models (standard sparse autoencoder or LISTA without basin partitioning), we use a simpler objective with uniform $\ell_1$ sparsity: $\mathcal{L}_{\text{sparse}} = \lambda \|z\|_1$. For block-diagonal ablations with block losses (Section~\ref{sec:block-losses}), we augment the base objective with $\mathcal{L}_{\text{block}}$ and tune $(\lambda_{\text{one}}, \lambda_{\text{bal}})$.
 
 Spectral normalization and homogeneous coordinates (appending a constant 1 to the input to enable implicit bias learning) are optionally applied to stabilize training and improve the conditioning of the linear decoder.
+
+\subsection{Pairwise Optimization Procedure (Main Branch)}
+\label{sec:pairwise-procedure}
+
+The main experimental branch uses pairwise (single-step) training. For a minibatch
+$\mathcal{B}=\{(x_t^{(i)},x_{t+1}^{(i)})\}_{i=1}^{N}$, we optimize
+\begin{equation}
+\begin{aligned}
+\mathcal{L}_{\text{pair}} =
+&\ \lambda_{\text{res}}\mathcal{L}_{\text{align}}
++ \lambda_{\text{rec}}\mathcal{L}_{\text{recon}}
++ \lambda_{\text{pred}}\mathcal{L}_{\text{pred}}
++ \lambda_{\text{sp}}\mathcal{L}_{\text{sparse}} \\
+&+ \lambda_{\text{hom}}\mathcal{L}_{\text{hom}}
++ \mathbb{1}_{\text{block}}\,\mathcal{L}_{\text{block}}
++ \mathbb{1}_{\text{structured}}\,\mathcal{L}_{\text{struct}},
+\end{aligned}
+\end{equation}
+where the indicator terms activate only when block-loss or structured-latent training is enabled. In our implementation, reconstruction and sparsity terms are computed on both $x_t$ and $x_{t+1}$ and averaged.
+
+\begin{algorithm}[ht]
+\caption{Pairwise Training (Main Experimental Branch)}
+\label{alg:pairwise-training}
+\begin{algorithmic}[1]
+\REQUIRE Dataset of trajectories $\mathcal{D}$; model $(\phi,\psi,K)$; config with loss weights and structure flags
+\STATE Initialize model parameters and AdamW optimizer (separate LR for Koopman matrix parameters)
+\FOR{$s=1,\dots,S$}
+    \STATE Sample minibatch of one-step pairs $\{(x_t^{(i)},x_{t+1}^{(i)})\}_{i=1}^N$ from $\mathcal{D}$
+    \STATE Encode: $z_t^{(i)}=\phi(x_t^{(i)})$, $z_{t+1}^{(i)}=\phi(x_{t+1}^{(i)})$
+    \STATE Compute $\mathcal{L}_{\text{align}}, \mathcal{L}_{\text{recon}}, \mathcal{L}_{\text{pred}}, \mathcal{L}_{\text{sparse}}$
+    \IF{homogeneous coordinates enabled}
+        \STATE Compute $\mathcal{L}_{\text{hom}}$
+    \ENDIF
+    \IF{block loss enabled (block-diagonal $K$)}
+        \STATE Compute block energies and $\mathcal{L}_{\text{block}}$ (Section~\ref{sec:block-losses})
+    \ENDIF
+    \IF{structured latent enabled}
+        \STATE Compute $\mathcal{L}_{\text{struct}}$ (Section~\ref{sec:learning-objective})
+    \ENDIF
+    \STATE Form total loss $\mathcal{L}_{\text{pair}}$, backpropagate, and update parameters
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Defaults vs. overrides.}
+There is no single hyperparameter tuple used in all experiments. Table~\ref{tab:pairwise-defaults} reports (i) implementation defaults/base recipe and (ii) the common overrides used in the reported sweeps.
+
+\begin{table}[t]
+\centering
+\caption{Pairwise branch: base settings and common overrides in experiments.}
+\label{tab:pairwise-defaults}
+\begin{tabular}{p{0.33\linewidth}p{0.27\linewidth}p{0.34\linewidth}}
+\toprule
+\textbf{Component} & \textbf{Base setting} & \textbf{Common overrides in sweeps} \\
+\midrule
+Config preset & \texttt{lista\_nonlinear} & Kept fixed in most pairwise sweeps \\
+Encoder & MLP $[64,64,64]$ + LISTA (5 loops) & Kept fixed in most pairwise sweeps \\
+LISTA params & $\alpha=1.0$, $L=10^4$ & Rarely changed (specific ablations only) \\
+Loss weights & $(\lambda_{\text{res}},\lambda_{\text{rec}},\lambda_{\text{pred}},\lambda_{\text{sp}})=(1,1,0,1)$ & Sequence-weight sweep changes these; most pairwise sweeps keep them \\
+Homogeneous coords & enabled, $\lambda_{\text{hom}}=1.0$ & Kept enabled in reported sweeps \\
+Koopman structure & dense & Explicitly set to diagonal/block-diagonal/arrowhead in structure ablations \\
+Block losses & disabled & Enabled only in block-loss ablations and balance sweeps \\
+Optimizer & AdamW, LR $10^{-4}$, $K$-LR $10^{-5}$, WD $10^{-4}$ & LR mostly unchanged \\
+Batch size & 256 (code default) & 512 in major pairwise sweeps \\
+Train steps & 20k (CLI default) & Typically 8k--10k in target-size/block-loss sweeps \\
+Seed & 0 (default) & Multi-seed only in selected sweeps (e.g., Phase 1 balance) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \paragraph{[NOTE] Additional regularization.} We could also experiment with additional regularization. This could be something like a denoising penalty (see Total Variation Denoising) that is the sum of the differences between the two states across timesteps so as to encourage smoothness; this could also be (Slow Feature Analysis/Learning). 
 
@@ -433,385 +539,161 @@ This mechanism acts as a "correction" step, re-centering the latent state within
 \section{Experiments}
 \label{sec:experiments}
 
-We evaluate our method on a suite of dynamical systems exhibiting multiple basins of attraction and chaotic behavior. We compare three architectures: (1) a standard MLP-based Koopman Autoencoder with $\ell_1$ regularization (\textbf{GenericKM}), (2) the LISTA-based sparse autoencoder with a dense Koopman matrix (\textbf{LISTAKM}), and (3) the structured LISTA model with arrowhead Koopman dynamics and basin exclusivity (\textbf{StructuredLISTAKM}).
+Our experimental goal is to test whether sparse Koopman latents can produce basin-discriminative supports that are both (i) unique across basins and (ii) dynamically usable for long-horizon prediction and, ultimately, control. We focus on a progression of experiments that answers this question in stages: capacity, diagnostics, structure, stability, and objective design.
 
-\subsection{Environments}
+\subsection{Experimental Protocol}
 
-\paragraph{Duffing Oscillator (2D).}
-A classic nonlinear oscillator with a double-well potential energy function, governed by $\ddot{x} + \delta \dot{x} - \alpha x + \beta x^3 = 0$ with standard parameters $\alpha = 1$, $\beta = 1$, $\delta = 0.3$. The phase space contains two stable spirals located at $(x, \dot{x}) = (\pm 1, 0)$ and a saddle point at the origin. The separatrix dividing the two basins of attraction provides a canonical testbed for evaluating whether learned latent representations can distinguish between distinct dynamical regimes.
+\paragraph{Systems.}
+We evaluate primarily on two synthetic multi-attractor systems: (1) Duffing (2 basins), and (2) a Lyapunov multi-attractor system with 13 basins (embedded in dimension 8 for the main results). These two systems separate the low-basin and high-basin regimes.
 
-\paragraph{Lyapunov Multi-Attractor System (2D).}
-To stress-test the capacity of the sparse code, we construct a synthetic gradient field system with $B = 13$ exponentially stable fixed points arranged in a hexagonal lattice. The dynamics are governed by $\dot{x} = -\nabla V(x)$, where the potential $V : \R^2 \to \R$ is a superposition of Gaussian wells centered at the attractor locations:
-\begin{equation}
-    V(x) = -\sum_{k=1}^{B} \exp\!\left( -\frac{\|x - c_k\|^2}{2\sigma^2} \right),
-\end{equation}
-with $\sigma = 0.5$ controlling the basin width. This environment explicitly tests whether the model can isolate $B = 13$ distinct local linearizations using a single global model with $B$ basin blocks.
+\paragraph{Training setup.}
+Unless noted otherwise, models are trained with pairwise (single-step) objectives for 10k steps using the \texttt{lista\_nonlinear} encoder family and sparse latent regularization. Koopman structure is varied across dense, diagonal, block-diagonal, and arrowhead parameterizations.
 
-\paragraph{Higher-dimensional extension (Lyapunov-$d$).}
-The same construction extends to $x \in \R^d$ by defining
-\begin{equation}
-    V(x) = -\sum_{k=1}^{B} \exp\!\left( -\frac{\|x - c_k\|^2}{2\sigma^2} \right), \qquad c_k \in \R^d,
-\end{equation}
-with attractor centers $\{c_k\}$ chosen on a $d$-dimensional lattice or by sampling with a minimum separation constraint.
-To increase \emph{dimension} without increasing the number of basins, we can embed the original 2D system and add decoupled contracting dimensions:
-\begin{equation}
-    \dot{x}_{1:2} = -\nabla V(x_{1:2}), \qquad \dot{x}_{3:d} = -\gamma x_{3:d}.
-\end{equation}
-This preserves the original basins while making the ambient state dimension arbitrarily large; conversely, placing centers throughout $\R^d$ allows the number of basins to grow with dimension.
-
-\paragraph{Multi-Basin Chaotic Systems.}
-We extend our evaluation to a curated subset of systems from the \texttt{dysts} benchmark database \citep{gilpin_chaos_2021, gilpin_model_2023}, focusing on higher-dimensional chaotic systems that exhibit multi-scroll attractors or multiple coexisting attractors (e.g., Lorenz, Chen, Chua, and related multi-wing systems). These represent a significantly harder challenge due to their chaotic nature and complex attractor topology.
-
-\subsection{Experimental Setup}
-
-\paragraph{Training protocol.}
-Models are trained on transition pairs $(x_t, x_{t+1})$ sampled uniformly from trajectories originating at random initial conditions within the state space of interest. All models are trained for 5,000--20,000 gradient steps using the AdamW optimizer with learning rate $10^{-4}$ for the encoder/decoder and a reduced learning rate of $10^{-5}$ for the Koopman matrix parameters. The exclusivity warmup horizon is set to $T_{\text{warmup}} = 1,000$ steps.
-
-\paragraph{Evaluation metrics.}
-We evaluate forecasting performance using Mean Squared Error (MSE) over long-horizon rollouts. To rigorously test stability, we compare three inference modes: (1) \textit{Open-loop}, where the latent state evolves linearly indefinitely without correction; (2) \textit{Every-step re-encoding}, where the state is decoded and re-encoded at every step; and (3) \textit{Periodic re-encoding}, with periods $M \in \{10, 25, 50, 100, 200, 500, 1000\}$.
-
-\subsection{Basin Structure Correspondence}
-\label{sec:basin-experiment}
-
-The central hypothesis of the structured Koopman model is that the basin blocks in latent space should \emph{correspond} to ground-truth basins of attraction. We design a dedicated experiment to test this hypothesis on the Lyapunov multi-attractor system ($B = 13$ ground-truth basins).
-
-\paragraph{Ground-truth basin identification.}
-For each trajectory, we determine the ground-truth basin by simulating an extended rollout from the endpoint and identifying which of the 13 fixed points the trajectory converges to. Formally, for a trajectory $\{x_0, \ldots, x_T\}$, we compute the limiting state $x_\infty = \lim_{s \to \infty} f^s(x_T)$ and assign the trajectory to basin $k^* = \arg\min_k \|x_\infty - c_k\|$, where $\{c_k\}$ are the known attractor locations.
-
-\paragraph{Basin activation analysis.}
-Given a trained StructuredLISTAKM model with $B$ basin blocks, we encode each trajectory and analyze the activation patterns. For each encoded state $z = \phi(x)$, we partition it into the global block $z^{(g)}$ and basin blocks $\{z^{(k)}\}_{k=1}^B$. We define the \emph{active} model basin as $\hat{k} = \arg\max_k \|z^{(k)}\|_2$.
-
-To quantify the correspondence between model basins and ground-truth basins, we compute:
+\paragraph{Evaluation setup.}
+We report three classes of metrics:
 \begin{itemize}
-    \item \textbf{Basin Assignment Accuracy}: The fraction of timesteps where the active model basin matches the ground-truth basin (after finding the optimal permutation mapping).
-    \item \textbf{Temporal Consistency}: The fraction of timesteps within a trajectory where the active model basin equals the trajectory's mode (most frequent active basin).
-    \item \textbf{Activation Entropy}: For each timestep, we compute the entropy of the softmax-normalized basin norms: $H = -\sum_k p_k \log p_k$ where $p_k \propto \exp(\|z^{(k)}\|_2)$. Low entropy indicates that one basin block dominates.
-    \item \textbf{Confusion Matrix}: We build a $B_{\text{GT}} \times B_{\text{model}}$ matrix where entry $(i, j)$ is the fraction of timesteps from ground-truth basin $i$ where model basin $j$ was most active.
+    \item \textbf{Support uniqueness metrics} from thresholded supports (support mode \texttt{mean}, default $\tau=10^{-3}$): unique mode supports, mean consistency, and inter-basin Jaccard.
+    \item \textbf{Threshold-free representation metrics}: intra-basin cosine, inter-basin cosine, and cosine separation (intra minus inter).
+    \item \textbf{Dynamics metrics}: long-horizon rollout MSE (up to horizon 1000, with/without periodic re-encoding) and Koopman spectral radius (SR).
 \end{itemize}
+Ground-truth basin labels are used only for offline evaluation, not for training losses.
 
-\paragraph{Results on Lyapunov system.}
-We compare three architectures with matched latent dimension ($\approx$60--64):
+\subsection{Capacity Requirement for Basin-Unique Supports}
 
-\begin{table}[h]
+We first test when unique basin supports emerge as latent capacity grows.
+
+\begin{table}[t]
 \centering
-\caption{Latent space clustering and dynamics metrics on the Lyapunov 13-attractor system.}
-\label{tab:basin-results}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Metric} & \textbf{GenericKM} & \textbf{LISTAKM} & \textbf{StructuredLISTAKM} \\
-\midrule
-Prediction Error (MSE) & \textbf{0.149} & 0.522 & 0.298 \\
-Silhouette Score & 0.992 & 0.990 & 0.990 \\
-Adjusted Rand Index & 1.000 & 1.000 & 1.000 \\
-K-means Purity & 1.000 & 1.000 & 1.000 \\
-Linear Classifier Acc. & \textbf{88.0\%} & 82.0\% & 70.0\% \\
-Sparsity (frac. $< 0.01$) & 33.3\% & \textbf{72.4\%} & 69.3\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-All three architectures achieve near-perfect clustering metrics (Adjusted Rand Index = 1.0, K-means purity = 1.0), indicating that the Lyapunov system's basins are inherently separable in any sufficiently expressive latent space. However, the GenericKM achieves the lowest prediction error and highest linear classifier accuracy, while the LISTA-based models achieve substantially higher sparsity ratios.
-
-\paragraph{Basin block specialization analysis.}
-For the StructuredLISTAKM model specifically, we analyze whether the $B = 13$ model basin blocks specialize to the 13 ground-truth attractors. Initial experiments with small basin block dimensions ($d_b = 4$) and weak exclusivity ($\lambda_{\text{excl}} = 10^{-3}$) revealed a \emph{basin collapse} phenomenon:
-
-\begin{table}[h]
-\centering
-\caption{StructuredLISTAKM basin block analysis on Lyapunov system (initial configuration).}
-\label{tab:structured-basin}
+\caption{Support uniqueness versus target size at $\tau=10^{-3}$.}
+\label{tab:capacity-uniqueness}
 \begin{tabular}{lcc}
 \toprule
-\textbf{Metric} & \textbf{Value} & \textbf{Target} \\
+\textbf{System} & \textbf{Target size} & \textbf{Unique mode supports} \\
 \midrule
-Basin Assignment Accuracy & 37.9\% & $>$80\% \\
-Temporal Consistency & 99.7\% & $>$95\% \\
-Activation Entropy & 2.56 & $<$0.5 \\
-Active Model Basins & 8 / 13 & 13 / 13 \\
+Lyapunov (13 basins) & 64 & 5/13 \\
+Lyapunov (13 basins) & 128 & 8/13 \\
+Lyapunov (13 basins) & 256 & 13/13 \\
+Lyapunov (13 basins) & 512 & 13/13 \\
+Lyapunov (13 basins) & 1024 & 13/13 \\
+\midrule
+Duffing (2 basins) & 32 & 2/2 \\
+Duffing (2 basins) & 64 & 2/2 \\
+Duffing (2 basins) & 128 & 2/2 \\
+Duffing (2 basins) & 256 & 2/2 \\
+Duffing (2 basins) & 512 & 2/2 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-While temporal consistency within trajectories is near-perfect (99.7\%), the model learns to map multiple ground-truth basins to the same model basin block. Confusion matrix analysis shows that only 8 of the 13 model basins are actively used, with some model basins handling up to 5 different ground-truth attractors.
+\paragraph{Setup for Table~\ref{tab:capacity-uniqueness}.}
+All entries come from the dedicated target-size sweeps (\texttt{scripts/sweep\_target\_size\_lyapunov\_hd.sh} and \texttt{scripts/sweep\_target\_size\_duffing.sh}). We used the same base training recipe in both systems: \texttt{lista\_nonlinear}, pairwise (single-step) training, default dense Koopman parameterization, no block-loss terms, and sparsity coefficient 1.0. For Lyapunov we used dimension 8 and 13 basins with fixed attractor layout (\texttt{lyapunov\_extend\_mode=embed}, \texttt{lyapunov\_points\_mode=fixed}), batch size 512, and 10k training steps; target sizes were $\{64,128,256,512,1024\}$. For Duffing we used batch size 512 and 8k training steps; target sizes were $\{32,64,128,256,512\}$. After training, each checkpoint was evaluated with \texttt{tools/evaluate\_support\_uniqueness.py} using support mode \texttt{mean}, threshold $\tau=10^{-3}$, 100 trajectories, and trajectory length 500; the table reports \texttt{unique\_mode\_supports/num\_basins} from that evaluation.
 
-\paragraph{Hyperparameter sensitivity analysis.}
-We conducted a systematic sweep over key hyperparameters to understand the factors contributing to basin collapse:
+For the harder 13-basin system, full uniqueness appears at target size $\geq 256$; for the 2-basin Duffing system, uniqueness is saturated across all tested dimensions. This establishes a clear capacity threshold for high-basin-count separation.
 
-\begin{table}[h]
+\subsection{Diagnosing the Consistency Artefact}
+
+Early results suggested a uniqueness-consistency tradeoff (high uniqueness but low consistency). A threshold-free analysis resolved this: the low consistency at $\tau=10^{-3}$ was largely a hard-threshold artefact, not a failure of representation consistency.
+
+At target size 256, all Koopman structures achieve full support uniqueness (13/13), while intra-basin cosine remains high ($\approx 0.97$). For example, block-diagonal consistency improves from 0.138 at $\tau=10^{-3}$ to 0.553 at $\tau=5\times 10^{-2}$ with uniqueness unchanged (13/13). Thus, cosine separation is the primary diagnostic, with thresholded metrics treated as secondary.
+
+\subsection{Koopman Structure Ablation: Encoder vs. Dynamics Structure}
+
+To isolate what drives basin separability, we compared Koopman parameterizations at matched encoder family and target size.
+
+\begin{table}[t]
 \centering
-\caption{Effect of hyperparameters on basin assignment accuracy (Lyapunov system, 13 GT basins).}
-\label{tab:hyperparam-sweep}
-\begin{tabular}{lccccc}
+\caption{Cosine separation and uniqueness across Koopman structures.}
+\label{tab:k-structure-cosine}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Config} & $\lambda_{\text{excl}}$ & $d_b$ & $B$ & \textbf{Steps} & \textbf{Basin Acc.} \\
+\textbf{Target size} & \textbf{K structure} & \textbf{Cosine sep.} & \textbf{Unique supports} \\
 \midrule
-Baseline & 0.001 & 4 & 13 & 5,000 & 37.9\% \\
-Stronger excl. & 0.01 & 4 & 13 & 10,000 & 30.0\% \\
-Much stronger & 0.05 & 4 & 13 & 10,000 & 37.9\% \\
-Very strong & 0.1 & 4 & 13 & 10,000 & 42.9\% \\
-Larger $d_b$ & 0.05 & 8 & 13 & 10,000 & 47.4\% \\
-Longer training & 0.1 & 4 & 13 & 20,000 & 42.9\% \\
-\textbf{Over-specified} & \textbf{0.05} & \textbf{4} & \textbf{20} & \textbf{10,000} & \textbf{61.5\%} \\
+64 & dense & 0.789 & 13/13 \\
+64 & diagonal & 0.293 & 6/13 \\
+64 & block-diagonal & 0.352 & 6/13 \\
+64 & arrowhead & 0.747 & 13/13 \\
+\midrule
+256 & dense & 0.844 & 13/13 \\
+256 & diagonal & 0.852 & 13/13 \\
+256 & block-diagonal & 0.855 & 13/13 \\
+256 & arrowhead & 0.735 & 13/13 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The most significant finding is that \emph{over-specifying} the number of model basins ($B = 20$ for 13 ground-truth basins) substantially improves basin assignment accuracy from 37.9\% to 61.5\%. This suggests that providing excess capacity allows the model to avoid the degenerate solution of collapsing multiple basins together. Simply increasing the exclusivity penalty or training longer shows diminishing returns, while increasing basin block dimension $d_b$ provides modest improvements.
+At sufficient capacity (target size 256), separability is similar across dense/diagonal/block-diagonal settings, indicating the sparse encoder is the dominant source of basin discrimination. Koopman structure becomes more relevant for dynamics quality and stability than for separation itself.
 
-\paragraph{Theoretical considerations on latent dimension.}
-Koopman operator theory indicates that exact linearization of nonlinear dynamics requires an infinite-dimensional lifting. Our initial choice of small basin dimensions ($d_b = 4$, total latent dimension $\approx 60$) may be fundamentally insufficient to capture the local Koopman dynamics around each attractor. This capacity bottleneck could force the model to share basin blocks across multiple ground-truth basins.
+\subsection{Long-Horizon Dynamics: Spectral Radius as the Key Predictor}
 
-Furthermore, the LISTA encoder is designed for \emph{sparse overcomplete} representations, where the dictionary has many more atoms than the input dimension, but only a sparse subset is active for any given input. Our initial configuration contradicts this design principle by using small dense basin blocks. An alternative approach would use large sparse basin blocks ($d_b = 64$ or higher) where sparsity within each block, rather than across blocks, provides the desired structure.
+We evaluated 25 checkpoints (5 target sizes $\times$ 5 Koopman structures including arrowhead without exclusivity) with long-horizon rollouts and eigenvalue analysis. The main result is consistent and strong: SR predicts long-horizon fate.
 
-\paragraph{Entropy and dominance losses: negative results.}
-Initial experiments with the entropy-based exclusivity loss $\mathcal{L}_{\text{entropy}}$ (Eq.~\ref{eq:entropy-excl}) and dominance loss $\mathcal{L}_{\text{dom}}$ (Eq.~\ref{eq:dominance}) show that these regularizers \emph{harm} basin assignment accuracy. Adding $\lambda_{\text{entropy}} = 0.01$ or $\lambda_{\text{dom}} = 0.01$ to the best baseline configuration ($B=20$, $d_b=4$, $\lambda_{\text{excl}}=0.05$, achieving 61.5\% accuracy) causes accuracy to drop to approximately 20\%---worse than random assignment.
-
-The likely explanation is that these losses are too aggressive at enforcing single-basin activation per sample, without accounting for the need for \emph{different} samples to activate \emph{different} basins. Combined with the existing pairwise exclusivity loss, the model over-regularizes and collapses to a degenerate solution where nearly all points are assigned to the same few basins. We have disabled these losses in subsequent experiments.
-
-\note{These negative results were obtained when the base configuration was already underperforming ($\sim$61\% accuracy). Once a well-functioning configuration is found (e.g., with larger basin dimensions or better hyperparameters), the entropy and dominance losses should be revisited---they may prove beneficial when the model has sufficient capacity and the pairwise exclusivity alone is insufficient to achieve clean basin separation.}
-
-\paragraph{Large dimension sweep results.}
-To test the capacity hypothesis---that insufficient basin block dimensionality causes collapse---we conducted a comprehensive sweep over basin dimensions $d_b \in \{16, 32, 64\}$ and global dimensions $d_g \in \{16, 32\}$, with $B = 20$ model basins and exclusivity coefficients $\lambda_{\text{excl}} \in \{0.01, 0.05\}$. All experiments used 10,000 training steps with batch size 512, and the entropy and dominance losses were disabled based on the negative results described above. Each configuration was run with two random seeds to assess variance.
-
-\begin{table}[h]
+\begin{table}[t]
 \centering
-\caption{Basin assignment accuracy for StructuredLISTAKM with varying dimensions (Lyapunov system, $B=20$ model basins, 13 GT basins). Best result in bold; results averaged over configurations where both seeds completed.}
-\label{tab:large-dim-sweep}
-\begin{tabular}{ccccc}
+\caption{Representative SR--stability outcomes (no re-encoding, horizon 1000).}
+\label{tab:sr-stability}
+\begin{tabular}{lccc}
 \toprule
-$d_g$ & $d_b$ & $\lambda_{\text{excl}}$ & Total $d_z$ & Basin Acc. (\%) \\
+\textbf{Configuration} & \textbf{Max SR} & \textbf{H1000 MSE} & \textbf{Outcome} \\
 \midrule
-16 & 16 & 0.01 & 336 & 46.7 / \textbf{76.6} \\
-16 & 16 & 0.05 & 336 & 39.8 / 52.0 \\
-16 & 32 & 0.01 & 656 & 68.2 / 63.6 \\
-16 & 32 & 0.05 & 656 & 53.4 / 63.8 \\
-16 & 64 & 0.01 & 1,296 & 38.0 / 46.0 \\
-16 & 64 & 0.05 & 1,296 & 38.0 / 38.9 \\
-\midrule
-32 & 16 & 0.01 & 352 & 51.7 / 46.1 \\
-32 & 16 & 0.05 & 352 & 51.8 / 61.6 \\
-32 & 32 & 0.01 & 672 & 66.8 / 39.3 \\
-32 & 32 & 0.05 & 672 & 59.7 / 44.5 \\
-32 & 64 & 0.01 & 1,312 & 30.0 / 26.2 \\
-32 & 64 & 0.05 & 1,312 & 45.8 / 35.1 \\
+dense, ts=256 & 1.0262 & $6.78 \times 10^{17}$ & diverged \\
+block-diagonal, ts=256 & 0.9996 & $3.58$ & stable \\
+arrowhead (+excl), ts=128 & 0.9963 & $3.49$ & stable \\
+arrowhead (no excl), ts=256 & 1.0215 & $1.52 \times 10^{13}$ & diverged \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The best configuration achieves \textbf{76.6\% basin assignment accuracy} with $d_g = 16$, $d_b = 16$, and $\lambda_{\text{excl}} = 0.01$---a substantial improvement over the previous best of 61.5\%. However, several unexpected patterns emerge from this sweep.
+Periodic re-encoding remains an effective fallback, typically recovering bounded long-horizon error ($\sim 3.6$--$3.9$ on Lyapunov) even when open-loop rollouts diverge.
 
-\paragraph{The dimension paradox.}
-Contrary to the initial hypothesis that larger basin dimensions would improve performance by providing more capacity for local Koopman dynamics, we observe an \emph{inverse} relationship: moderate dimensions ($d_b = 16$) consistently outperform larger ones ($d_b = 32, 64$). The largest basin dimension tested ($d_b = 64$, yielding total latent dimension $\approx 1,300$) produces the \emph{worst} results, with accuracy dropping to 26--46\%.
+\subsection{Sequence Training Does Not Stabilize Non-Diagonal Koopman Dynamics}
 
-We hypothesize two complementary explanations for this counterintuitive finding:
+We tested two hypotheses under sequence training: (i) longer sequence length might stabilize $K$, and (ii) loss-weight tuning might recover stability.
 
+\paragraph{Sequence-length sweep (48 runs).}
+Across $L \in \{4,8,12,16\}$, target sizes $\{64,128,256\}$, and four Koopman structures, only diagonal $K$ is frequently stable, and even that degrades as $L$ increases. Dense, block-diagonal, and arrowhead are unstable in all tested settings.
+
+\paragraph{Sequence-loss weight sweep (36 runs, block-diagonal, $L=8$, ts=128).}
+No configuration achieved strict stability: \textbf{0/36} runs had SR $< 1$; SR ranged from 1.0014 to 1.2540. Setting prediction weight to 1.0 improved SR on average but did not cross the stability boundary. Therefore, weight tuning alone is insufficient; explicit spectral control is required.
+
+\subsection{Objective Design for Basin Separability}
+
+\paragraph{Single-loss ablation (24 runs).}
+For block-diagonal $K$, usage-balance losses (\texttt{usage\_entropy}, \texttt{kl\_uniform}) consistently improve cosine separation over control, while strict one-block penalties (\texttt{low\_entropy}, \texttt{pairwise\_overlap}) often collapse.
+
+\begin{table}[t]
+\centering
+\caption{Best cosine separation by target size in block-loss ablation.}
+\label{tab:block-loss-ablation}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Target size} & \textbf{Control sep.} & \textbf{Best loss (sep.)} & \textbf{Improvement} \\
+\midrule
+64 & 0.353 & \texttt{usage\_entropy} (0.786) & +0.433 \\
+128 & 0.238 & \texttt{kl\_uniform} (0.852) & +0.614 \\
+256 & 0.826 & \texttt{kl\_uniform} (0.884) & +0.058 \\
+512 & 0.466 & \texttt{usage\_entropy} (0.791) & +0.325 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Combined top-1 plus balance sweep (Phase 1, 72 runs, ts=256).}
+The best seed-averaged configuration (\texttt{kl\_uniform}, top1 margin 0.05, one-block weight 0.3, balance weight 1.0) reaches cosine separation 0.8826, improving over the ts=256 control (0.8256). Across 36 two-seed configurations, 23/36 beat control separation, but sensitivity remains: 8/36 configurations lose full uniqueness in at least one seed, and the worst settings collapse sharply. Thus, combined objectives can help, but the robust hyperparameter region is narrow.
+
+\subsection{Basin-to-Block Alignment vs. Basin-Unique Supports}
+
+A key distinction from earlier iterations is that our primary objective is basin-unique sparse supports, not necessarily one-basin-per-block Koopman assignment. In this framing, results are strong: at target size 256, uniqueness is frequently saturated (13/13), and separation is high.
+
+However, basin-to-block concentration from eigenvalue-correlation analyses remains highest at low capacity (e.g., concentration 0.87 at ts=64) and weak at higher capacity (around 0.10 at ts=256). This indicates that the model can achieve basin-discriminative sparse supports while distributing activity across multiple blocks. This behavior is compatible with our current objective, but it limits immediate extraction of one block per basin for controller assignment.
+
+\subsection{Takeaways and Current Status}
+
+The experiments establish a coherent trajectory toward the project goal:
 \begin{enumerate}
-    \item \textbf{Sparse signal dilution}: The exclusivity loss operates on basin block norms $\|z^{(k)}\|_2$. In high-dimensional blocks, sparse activations contribute less to the overall norm, making the exclusivity signal weaker. A single active component in a 64-dimensional block contributes $1/\sqrt{64} = 0.125$ to the normalized signal, versus $1/\sqrt{16} = 0.25$ for a 16-dimensional block. This dilution may prevent the exclusivity loss from effectively suppressing competing basins.
-
-    \item \textbf{Optimization landscape complexity}: Higher-dimensional parameter spaces create more complex loss landscapes with more local minima. The basin assignment task requires a combinatorial matching between model basins and ground-truth attractors; with more parameters per basin, the optimizer may struggle to find the correct assignment before settling into a suboptimal configuration.
+    \item \textbf{Achieved:} basin-unique sparse supports at realistic basin count (13 basins) with sufficient latent capacity.
+    \item \textbf{Achieved:} threshold-free evidence of strong within-basin consistency and between-basin separation.
+    \item \textbf{Achieved:} objective-level improvements in separability via block-usage balancing (and selective combined losses).
+    \item \textbf{Partially achieved:} stable long-horizon dynamics in selected pairwise regimes (SR $< 1$), with periodic re-encoding as a reliable fallback.
+    \item \textbf{Open:} robust label-free assignment from sparse supports to local control models. If sequence training is required, robust stability for non-diagonal Koopman dynamics is still open; if pairwise training is acceptable, this is not the immediate bottleneck.
 \end{enumerate}
 
-\paragraph{Exclusivity coefficient sensitivity.}
-The results reveal a subtle interaction between basin dimension and exclusivity strength. For small basins ($d_b = 16$), weaker exclusivity ($\lambda_{\text{excl}} = 0.01$) yields better results, while for larger basins, the pattern is less consistent. This suggests that the optimal exclusivity strength depends on the relative magnitude of basin activations, which in turn depends on the block dimensionality.
-
-\paragraph{High variance across seeds.}
-A striking feature of the results is the high variance between random seeds. For instance, the best configuration ($d_g = 16$, $d_b = 16$, $\lambda_{\text{excl}} = 0.01$) achieves 76.6\% with one seed but only 46.7\% with another---a 30 percentage point gap. Similarly, $d_g = 32$, $d_b = 32$ ranges from 39.3\% to 66.8\%. This variance indicates that basin assignment is highly sensitive to initialization and the stochastic trajectory of optimization. The loss landscape likely contains multiple distinct local minima corresponding to different basin-to-attractor mappings, and which minimum the optimizer finds depends strongly on the random seed.
-
-\paragraph{Comparison with unstructured baselines.}
-To contextualize the structured model's performance, we evaluated two baseline architectures on the same Lyapunov system: (1) unstructured LISTAKM with varying latent dimensions (256--2048), and (2) GenericKM (MLP encoder/decoder) with varying dimensions (64--512) and sparsity coefficients. For these unstructured models, we measure \emph{linear classifier accuracy}---the accuracy of a logistic regression classifier trained to predict ground-truth basin labels from latent codes---as a proxy for basin separability.
-
-\begin{table}[h]
-\centering
-\caption{Baseline model performance on Lyapunov system. Linear classifier accuracy measures how well ground-truth basins are linearly separable in the latent space.}
-\label{tab:baseline-comparison}
-\begin{tabular}{llcc}
-\toprule
-\textbf{Model} & \textbf{Configuration} & \textbf{Latent Dim} & \textbf{Linear Acc. (\%)}\\
-\midrule
-\multirow{4}{*}{GenericKM}
-& $\lambda_{\text{sparse}} = 0$ & 512 & \textbf{96.0} \\
-& $\lambda_{\text{sparse}} = 0.1$ & 256 & 92.0 \\
-& $\lambda_{\text{sparse}} = 0.1$ & 512 & 88.0 \\
-& $\lambda_{\text{sparse}} = 0$ & 256 & 87.0 \\
-\midrule
-\multirow{4}{*}{LISTAKM}
-& $\lambda_{\text{sparse}} = 2.0$, $\alpha = 0.35$ & 256 & 72.0 \\
-& $\lambda_{\text{sparse}} = 2.0$, $\alpha = 0.35$ & 512 & 65.0 \\
-& $\lambda_{\text{sparse}} = 1.0$, $\alpha = 0.35$ & 512 & 65.0 \\
-& $\lambda_{\text{sparse}} = 2.0$, $\alpha = 0.20$ & 1024 & 37.0 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The GenericKM baseline with a dense MLP encoder achieves 96\% linear classifier accuracy---near-perfect linear separability of basins in the latent space. This indicates that the 13-attractor Lyapunov system is intrinsically easy to separate with a sufficiently expressive encoder. The sparsity constraint on GenericKM slightly reduces this accuracy, suggesting a tradeoff between sparsity and basin separation for MLP encoders.
-
-For unstructured LISTAKM, we observe an interesting pattern: medium-sized latent dimensions (256--512) substantially outperform larger ones (1024--2048). The best LISTAKM configuration achieves 72\% accuracy with dimension 256 and high sparsity ($\lambda_{\text{sparse}} = 2.0$), while dimension 2048 drops to 24--40\%. This mirrors the finding for StructuredLISTAKM that very high-dimensional sparse representations harm basin separation.
-
-\paragraph{Interpretation of baseline results.}
-The baseline comparison reveals a fundamental insight: \emph{basin separability is not the bottleneck}. The 96\% linear classifier accuracy for GenericKM demonstrates that a simple MLP encoder can learn latent representations where ground-truth basins are almost perfectly linearly separable. The challenge for StructuredLISTAKM is not learning to separate basins, but learning to assign each basin to its own designated block in the structured latent space.
-
-This reframes the problem: the structured model must solve a \emph{correspondence problem} in addition to a representation learning problem. Even if the encoder learns features that distinguish all 13 basins, those features must be routed to the correct subset of the 20 available basin blocks. The exclusivity loss encourages one-hot-like basin activation but does not directly supervise which basin block should activate for which ground-truth attractor.
-
-\paragraph{Summary of findings.}
-The large-dimension sweep and baseline comparisons yield several key insights:
-
-\begin{enumerate}
-    \item \textbf{Moderate dimensions are optimal}: Basin block dimension $d_b = 16$ substantially outperforms both smaller ($d_b = 4, 8$) and larger ($d_b = 32, 64$) values. The best configuration achieves 76.6\% basin assignment accuracy, a 15 percentage point improvement over the previous best.
-
-    \item \textbf{Capacity alone is insufficient}: Simply increasing latent dimensionality does not improve basin correspondence and often degrades it. This contradicts the naive hypothesis that limited capacity causes basin collapse.
-
-    \item \textbf{High optimization variance}: Basin assignment accuracy varies by up to 30 percentage points across random seeds, indicating sensitivity to initialization and the presence of multiple local minima in the loss landscape.
-
-    \item \textbf{Unstructured sparse models underperform}: Standard LISTAKM with large dimensions (256--2048) achieves at most 72\% linear classifier accuracy, compared to 96\% for GenericKM. The sparse coding structure of LISTA does not automatically induce basin-aligned representations.
-
-    \item \textbf{The correspondence problem}: The gap between GenericKM's 96\% linear separability and StructuredLISTAKM's 76.6\% basin assignment accuracy highlights that the challenge is not separating basins but correctly routing them to designated blocks.
-\end{enumerate}
-
-\paragraph{Discussion and future directions.}
-The 76.6\% basin assignment accuracy, while substantially improved, remains below our target of 80\%. The high variance across seeds suggests that the current training objective does not reliably guide the model toward correct basin-block correspondences. Several directions may address this limitation:
-
-\begin{itemize}
-    \item \textbf{Temperature scheduling}: Apply a temperature parameter to the basin activation softmax, starting high (encouraging exploration of all basins) and annealing to low (encouraging commitment to single basins) over training.
-
-    \item \textbf{Initialization strategies}: Given the high seed sensitivity, specialized initialization schemes that pre-assign basin blocks to different regions of state space may improve convergence to correct correspondences.
-\end{itemize}
-
-The entropy and dominance losses, previously found to harm performance, may warrant reconsideration now that a better-performing base configuration exists. These losses were tested on configurations achieving only 61.5\% accuracy; with the improved 76.6\% baseline, they may provide additional benefit rather than causing collapse.
-
-\paragraph{Sequence training for improved basin correspondence.}
-A fundamental limitation of the pairwise training mode used in the experiments above is that it discards trajectory structure: each transition pair $(x_t, x_{t+1})$ is treated independently, erasing information about which samples belong to the same trajectory and hence the same basin. This may explain why basin correspondence is difficult---the model sees randomly shuffled pairs from all basins simultaneously, providing no signal about which pairs should route to the same basin block.
-
-We implement \textit{sequence training}, where the model receives contiguous trajectory windows $[x_0, x_1, \ldots, x_T]$ and computes losses over the entire sequence. The training objective integrates the latent dynamics via ODE integration from the initial encoded state $z_0 = \phi(x_0)$:
-\begin{align}
-    \mathcal{L}_{\text{align}}^{\text{seq}} &= \sum_{t=1}^{T} \| \hat{z}_t - \phi(x_t) \|_2^2, \\
-    \mathcal{L}_{\text{pred}}^{\text{seq}} &= \sum_{t=1}^{T} \| \psi(\hat{z}_t) - x_t \|_2^2,
-\end{align}
-where $\hat{z}_t$ is obtained by integrating the Koopman dynamics $\dot{z} = K z$ from $z_0$ over time $t \cdot \Delta t$. The exclusivity loss is computed over all encoded states in the sequence, providing multiple gradient signals for consistent basin activation.
-
-Preliminary tests confirm that sequence training for StructuredLISTAKM runs successfully and maintains high temporal consistency (99.5\% in a 500-step test). However, training is more computationally expensive due to ODE integration at each step, and hyperparameters (sequence length, exclusivity coefficients) may require re-tuning.
-
-\paragraph{Temporal consistency loss.}
-To further exploit trajectory structure, we introduce a \textit{temporal consistency loss} that explicitly penalizes changes in basin activation pattern within a trajectory window. The intuition is that points in the same trajectory are almost always in the same basin of attraction (basin transitions are rare except near separatrices), so the active basin block should remain consistent throughout the sequence.
-
-For a sequence of encoded states $z_0, \ldots, z_T$, we compute basin block norms at each timestep $n_t^{(k)} = \| z_t^{(k)} \|_2$ and penalize deviation from the initial activation pattern:
-\begin{equation}
-    \mathcal{L}_{\text{temporal}} = \frac{1}{T} \sum_{t=1}^{T} \sum_{k=1}^{B} \left( n_t^{(k)} - n_0^{(k)} \right)^2.
-\end{equation}
-This loss is minimized when the basin activation pattern at $t=0$ persists throughout the trajectory. Combined with the exclusivity loss (which encourages one basin to dominate at each timestep), the temporal consistency loss encourages the \emph{same} basin to dominate across all timesteps in the trajectory.
-
-The temporal consistency loss is subject to the same linear warmup schedule as other exclusivity-related terms, allowing the model to first learn useful dynamics before the consistency constraint is enforced. It is only computed in sequence training mode.
-
-We expect that sequence training with temporal consistency will provide stronger gradients for learning correct basin-block correspondences, as the model now receives explicit signal that samples within a trajectory should route to the same basin. This unsupervised signal exploits the trajectory structure of dynamical systems data without requiring ground-truth basin labels.
-
-\subsection{Support Uniqueness: Mechanistic Diagnostics for Basin--Support Correspondence}
-
-A central hypothesis of our approach is that the sparse support pattern of the LISTA encoding should serve as a mechanistic indicator of the dynamical regime: distinct basins of attraction should activate distinct subsets of dictionary atoms. We develop a suite of diagnostics to evaluate this hypothesis both during and after training.
-
-\paragraph{Evaluation methodology.}
-Given a trained model with latent dimension $d$, we generate trajectories from each basin of attraction and record the binary support pattern $s = \mathbf{1}[|\bar{z}| > \tau]$, where $\bar{z}$ is the mean encoding over the trajectory and $\tau = 10^{-3}$ is a fixed threshold. For each basin $b$, we identify the \emph{mode support}---the most frequently occurring binary pattern among trajectories converging to that basin. We then evaluate:
-\begin{itemize}
-    \item \textbf{Mode uniqueness}: The number of basins with a distinct mode support, normalized by total basins. A uniqueness of $B/B$ indicates perfect separation.
-    \item \textbf{Pairwise Jaccard distance}: For each pair of basins, we compute $1 - J(s_i, s_j)$ where $J$ is the Jaccard similarity between mode supports. Higher values indicate less overlap.
-    \item \textbf{Intra-basin consistency}: The fraction of trajectories within each basin whose support matches the mode support. This measures how reliably the encoder maps a given basin to a single support pattern.
-\end{itemize}
-
-\paragraph{Training-time monitoring.}
-To observe how basin--support correspondence emerges during optimization, we introduce a lightweight monitor that periodically (every 500 gradient steps) samples a small number of trajectories per basin, computes the above metrics, and logs them alongside standard training losses. This provides real-time visibility into whether support separation is progressing, stagnating, or collapsing.
-
-\paragraph{Results on the Lyapunov multi-attractor system.}
-We train the LISTA Koopman autoencoder on the 8-dimensional Lyapunov system with 13 basins of attraction, sweeping the latent dimension $d \in \{64, 128, 256, 512, 1024\}$ with sparsity coefficient $\lambda = 1.0$. Post-hoc evaluation uses 100 trajectories of length 500.
-
-\begin{table}[h]
-\centering
-\begin{tabular}{ccccc}
-\toprule
-$d$ & Unique supports & Separation & Consistency & Support size (\%) \\
-\midrule
-64 & 5/13 & 0.581 & 0.534 & 2.0\% \\
-128 & 8/13 & 0.801 & 0.361 & 1.3\% \\
-256 & \textbf{13/13} & \textbf{0.846} & 0.138 & 17.0\% \\
-512 & \textbf{13/13} & 0.790 & 0.184 & 2.6\% \\
-1024 & \textbf{13/13} & \textbf{0.852} & 0.138 & 13.5\% \\
-\bottomrule
-\end{tabular}
-\caption{Support uniqueness on the 13-basin Lyapunov system. Latent dimensions $d \geq 256$ achieve complete basin separation (13/13 unique mode supports).}
-\label{tab:lyapunov_support}
-\end{table}
-
-For the Duffing oscillator (2 basins), all latent dimensions $d \in \{32, 64, 128, 256, 512\}$ achieve perfect uniqueness (2/2), with $d = 64$ and $d = 512$ attaining perfect separation (Jaccard distance~$= 1.0$).
-
-\paragraph{Learning dynamics.}
-The training-time monitor reveals qualitatively different learning trajectories across latent dimensions. Smaller dimensions ($d = 64, 128$) achieve high separation scores ($> 0.75$) within the first 1000 gradient steps but plateau at that level. Larger dimensions ($d = 512, 1024$) exhibit a striking delayed onset: the separation score remains at or near zero for the first 1000--1500 steps before a rapid phase transition to high separation. By the end of training (10{,}000 steps), all configurations converge to similar separation scores ($\approx 0.84$--$0.86$).
-
-This delayed onset in larger latent spaces is consistent with the hypothesis that the encoder must first learn a good dictionary before the sparse coding mechanism can produce basin-discriminative supports. In higher dimensions, the dictionary has more degrees of freedom and requires more gradient updates to organize.
-
-\paragraph{The uniqueness--consistency tradeoff.}
-A notable finding is the inverse relationship between mode uniqueness and intra-basin consistency. Configurations with complete uniqueness ($d \geq 256$) exhibit low consistency ($\leq 0.19$), meaning that while each basin's mode support is unique, individual trajectories within a basin do not always produce exactly the same binary support. In contrast, smaller latent dimensions ($d = 64$) show higher consistency ($0.53$) but fail to produce unique supports for all basins.
-
-This tradeoff has several possible explanations. First, the binary thresholding operation amplifies small numerical differences: two activations of magnitude $9 \times 10^{-4}$ and $1.1 \times 10^{-3}$ are functionally similar but produce different binary supports. Second, trajectories near basin boundaries may genuinely straddle multiple support patterns, reflecting the continuous nature of the dynamical landscape. Third, the sparsity penalty encourages the encoder to distribute information across different atom subsets but does not explicitly enforce within-basin consistency.
-
-These findings motivate the development of \emph{soft} support metrics---for example, comparing the cosine similarity of continuous latent activations rather than binary support patterns---and the potential introduction of a within-basin consistency regularizer during training. The clean separation at the mode level nonetheless confirms our core hypothesis: the LISTA encoder learns support patterns that act as implicit basin identifiers.
-
-\subsection{Long-Horizon Forecasting with Periodic Re-encoding}
-
-We evaluate prediction accuracy on horizons from $T = 100$ to $T = 1000$ steps. Without periodic re-encoding, larger latent dimensions ($d \geq 128$) exhibit catastrophic divergence at long horizons due to eigenvalue drift in the Koopman matrix $K$. With periodic re-encoding---passing the decoded state back through the encoder at regular intervals---all configurations achieve comparable prediction error, with the optimal re-encoding period decreasing as latent dimension increases ($T_{\text{re}} = 100$ for $d = 64$, $T_{\text{re}} = 25$ for $d = 1024$).
-
-On the Duffing system, prediction accuracy improves monotonically with latent dimension (1-step MSE ranges from $1.08 \times 10^{-1}$ at $d = 32$ to $1.46 \times 10^{-3}$ at $d = 512$), suggesting that larger dictionaries enable more faithful reconstruction despite the stability challenges at long horizons.
-
-% TODO: Add MSE vs. horizon plots and phase portrait comparisons
-
-\subsection{Structured Koopman Dynamics and Refined Support Diagnostics}
-
-The previous support uniqueness analysis revealed a tension between mode uniqueness and intra-basin consistency: while each basin's most frequent binary support is distinct at latent dimensions $d \geq 256$, the consistency of individual trajectories matching that mode is low ($\leq 0.19$). We hypothesised that this low consistency may be partly an artefact of hard binary thresholding, since two activations of similar magnitude straddling the threshold produce different binary patterns despite being functionally identical. To disentangle genuine inconsistency from thresholding noise, and to investigate whether imposing structural constraints on the Koopman matrix $K$ improves basin--support correspondence, we conduct two complementary sets of experiments.
-
-\paragraph{Threshold-free cosine similarity metrics.}
-We introduce a soft evaluation metric that bypasses binary thresholding entirely. For each trajectory, we compute the mean latent code $\bar{z} = T^{-1} \sum_{t=1}^{T} z_t$ as a continuous representative vector. We then define two quantities: (i) the \emph{intra-basin cosine similarity}, the mean pairwise cosine similarity among all trajectory-mean vectors within the same basin, and (ii) the \emph{inter-basin cosine similarity}, the mean cosine similarity between basin centroids (the mean of the trajectory-mean vectors for each basin). Their difference, the \emph{cosine separation score}, measures how much more similar within-basin representations are compared to across-basin ones, without any dependence on an activation threshold.
-
-\paragraph{Threshold sweep.}
-In addition, we evaluate the binary support metrics at seven thresholds $\tau \in \{10^{-4}, 5 \times 10^{-4}, 10^{-3}, 5 \times 10^{-3}, 10^{-2}, 5 \times 10^{-2}, 10^{-1}\}$. This sweep directly tests whether the previously observed low consistency is an artefact of the threshold choice: if consistency rises substantially at a slightly different $\tau$ while uniqueness is preserved, the inconsistency is largely numerical rather than structural.
-
-\paragraph{Koopman matrix structure.}
-The previous experiments employed a full dense Koopman matrix $K \in \mathbb{R}^{d \times d}$, which has $d^2$ free parameters and places no inductive bias on the latent dynamics. We now consider three structured alternatives that trade expressiveness for parsimony and interpretability:
-
-\begin{enumerate}
-    \item \textbf{Diagonal:} $K = \operatorname{diag}(k_1, \ldots, k_d)$, with $d$ parameters. Each latent coordinate evolves independently as $z_i^{(t+1)} = k_i z_i^{(t)}$, enforcing a completely decoupled dynamical system in the latent space. This is the most parsimonious structure and tests whether independent coordinate-wise dynamics are sufficient.
-
-    \item \textbf{Block-diagonal:} $K = \operatorname{blkdiag}(K^{(1)}, \ldots, K^{(B)})$, where each block $K^{(b)} \in \mathbb{R}^{s \times s}$ with $s = \lfloor d / B \rfloor$. The latent space is partitioned into $B$ blocks that evolve independently but allow within-block coupling. The block size is set to $s = \lfloor d / 13 \rfloor$ to match the number of ground-truth basins ($B_{\mathrm{GT}} = 13$) in the Lyapunov multi-attractor system, testing whether the encoder naturally aligns one block per basin.
-
-    \item \textbf{Arrowhead:} Implemented via the structured latent space model, the Koopman operator is partitioned as
-    \[
-        K = \begin{pmatrix} K^{(g)} & 0 & \cdots & 0 \\
-        C^{(1)} & K^{(1)} & & 0 \\
-        \vdots & & \ddots & \\
-        C^{(B)} & 0 & \cdots & K^{(B)} \end{pmatrix},
-    \]
-    where $K^{(g)} \in \mathbb{R}^{d_g \times d_g}$ governs a global dynamics block, each $K^{(b)} \in \mathbb{R}^{d_b \times d_b}$ governs basin-local dynamics, and $C^{(b)} \in \mathbb{R}^{d_b \times d_g}$ couples global dynamics into each basin. The global block evolves autonomously while basin blocks receive global forcing, producing a one-directional information flow from shared dynamics to basin-specific ones. An exclusivity regulariser encourages only one basin block to be active at a time.
-\end{enumerate}
-
-\paragraph{Experimental setup.}
-We train all models on the 8-dimensional Lyapunov multi-attractor system (13 basins, embedded from 2D with decaying extra dimensions) using the LISTA nonlinear encoder configuration with pairwise training. For the dense, diagonal, and block-diagonal structures, we sweep across five latent dimensions $d \in \{64, 128, 256, 512, 1024\}$ using the same hyperparameters: sparsity coefficient $\lambda_1 = 1.0$, batch size 512, and 10{,}000 training steps. For the arrowhead structure, we set the total latent dimension to match by choosing $d_g$ and $d_b$ such that $d_g + B \cdot d_b = d$ (with $B = 13$ basin slots), and use exclusivity weight $\lambda_{\text{excl}} = 0.05$, sparsity weight $\lambda_s = 0.3$, and a 2{,}000-step warmup for the exclusivity penalty. After training, each model is evaluated with the threshold sweep and cosine similarity diagnostics.
-
-\paragraph{Results: the consistency artefact.}
-The cosine similarity metrics decisively resolve the uniqueness--consistency tension identified in the previous section. Across all 20 configurations, the mean intra-basin cosine similarity ranges from $0.77$ to $0.99$, indicating that trajectories within the same basin produce nearly identical continuous latent representations. The previously reported low binary consistency ($\leq 0.19$ at $\tau = 10^{-3}$) was entirely an artefact of hard thresholding: small numerical fluctuations near the threshold boundary produce different binary support patterns from functionally identical continuous codes.
-
-The threshold sweep confirms this interpretation quantitatively. For the block-diagonal model at $d = 256$, binary consistency rises from $0.138$ at $\tau = 10^{-3}$ to $0.553$ at $\tau = 5 \times 10^{-2}$, with full $13/13$ uniqueness preserved at all thresholds. At $d = 64$ with dense $K$, consistency reaches $0.773$ at $\tau = 10^{-1}$ while maintaining $13/13$ uniqueness. This demonstrates that a threshold exists at which binary consistency and uniqueness are simultaneously high---the tradeoff was an artefact of the evaluation metric, not a property of the learned representations.
-
-\paragraph{Results: Koopman structure comparison.}
-The cosine separation score (intra-basin minus inter-basin cosine similarity) provides the most informative structure comparison. At $d = 256$, the three LISTA-based structures perform nearly identically: dense ($0.844$), diagonal ($0.852$), and block-diagonal ($0.855$). This near-equivalence indicates that the LISTA encoder is the primary driver of basin-discriminative representations---the Koopman matrix structure plays a secondary role in determining support correspondence.
-
-The arrowhead model exhibits a qualitatively different profile. It achieves the highest intra-basin cosine ($\geq 0.988$) across all latent dimensions, and uniquely achieves $13/13$ mode uniqueness even at $d = 64$ and $d = 128$, where the other structures fail ($5$--$8$ out of $13$). This robustness at low capacity stems from the explicit exclusivity regulariser rather than the Koopman structure itself: the pairwise exclusivity penalty directly encourages one-basin-at-a-time activation, compensating for the encoder's limited ability to produce $13$ distinct sparse codes in low-dimensional spaces.
-
-At low capacity ($d = 64$), constraining the Koopman matrix is counterproductive for the non-arrowhead structures. Dense $K$ achieves $13/13$ uniqueness while diagonal and block-diagonal manage only $6/13$. With limited latent dimensions, the model requires the full $d^2$ coupling in $K$ to organise the latent dynamics---the encoder cannot produce sufficiently distinct sparse codes when dynamics parameters are too constrained. At $d \geq 256$, this capacity bottleneck disappears and all structures achieve full separation.
-
-\paragraph{Results: dynamics quality.}
-While the Koopman structure minimally affects support correspondence, it has a measurable impact on prediction accuracy. On the 200-step rollout evaluation, the block-diagonal model at $d = 512$ achieves the lowest evaluation error ($2.34$) across all 20 configurations, outperforming the dense model at the same dimension ($2.97$) by $21\%$ while using $13\times$ fewer Koopman parameters ($19{,}773$ vs.\ $262{,}144$). This suggests that at moderate-to-large latent dimensions, constraining off-diagonal coupling in $K$ acts as beneficial regularisation, preventing overfitting in the dynamics.
-
-The arrowhead model consistently achieves the lowest residual loss (latent-space alignment), reflecting tight $\|z_{t+1} - K z_t\|$ alignment. However, this does not translate to superior prediction accuracy. At $d = 128$, the arrowhead model diverges catastrophically (evaluation error $> 10^4$), indicating that the coupling matrices $C^{(b)}$ can create amplifying feedback loops during multi-step rollout despite excellent single-step latent alignment. At other dimensions, the arrowhead's reconstruction quality is the best (lowest reconstruction loss), but its prediction errors are comparable to or worse than the simpler structures.
-
-\paragraph{Implications.}
-These results reshape our understanding of the Sparse Koopman Autoencoder in several ways.
-
-First, the basin--support correspondence problem is effectively solved at the representation level. The LISTA encoder, driven purely by the $\ell_1$ sparsity penalty, learns latent codes that are highly discriminative across basins (cosine separation $> 0.84$ at $d \geq 256$) and highly consistent within basins (intra-basin cosine $> 0.97$). No explicit basin-awareness in the loss function or model architecture is required for this to emerge.
-
-Second, the Koopman matrix structure affects dynamics quality rather than representational quality. The block-diagonal structure, with one block per basin, provides a natural decomposition of the global dynamics into independent local linear systems---each block $K^{(b)} \in \mathbb{R}^{s \times s}$ is a candidate per-basin Koopman operator. At $d = 512$, this decomposition improves prediction accuracy over the unconstrained dense matrix, suggesting that the true latent dynamics are closer to block-diagonal than fully coupled.
-
-Third, the arrowhead structure with explicit exclusivity regularisation provides the most robust basin identification at low latent dimensions, but at the cost of training stability. The exclusivity penalty is a strong inductive bias that directly enforces one-basin-at-a-time activation, whereas the LISTA sparsity penalty achieves the same effect indirectly but more robustly at sufficient capacity.
+Overall, the representation side (basin-discriminative sparse coding) is now well supported empirically. The next bottleneck is dynamics-side stabilization under sequence objectives and a fully label-free gating mechanism suitable for downstream control.

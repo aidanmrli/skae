@@ -9,7 +9,9 @@
   4. Explain project implications.
   5. Suggest next steps.
 - After reporting results, update project state in `docs/EXPERIMENTS.md` (at minimum: **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the relevant experiment log entry).
-- Note: In our intended setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results.
+- Note: In our intended **training/deployment** setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results for training-time method design.
+- For **evaluation on benchmark systems**, it is acceptable to use known basin counts and basin labels to measure separability/performance.
+- Terminology/goal: prioritize **basin-support alignment** (each basin maps to a unique sparse support in latent `z`). Do not treat basin-block alignment as the primary objective unless explicitly required by a specific experiment.
 
 ## Project Structure & Module Organization
 This repository is a PyTorch-based research codebase for sparse Koopman autoencoders. The layout is organized around a core package plus CLI tooling.
