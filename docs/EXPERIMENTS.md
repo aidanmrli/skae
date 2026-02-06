@@ -246,12 +246,35 @@ This ablation directly isolates the effect of exclusivity regularization within 
 - **The prior `ah_prag` results in Stage 2 and Stage 3 likely underestimate arrowhead's potential.** The comparison against `bd_c2` was conducted with exclusivity enabled; without it, arrowhead would have stronger basin separation and recovery.
 - **Re-running the `bd_c2` vs arrowhead decision with `ah_prag_no_excl` may change the outcome**, since CosSep and M5 are substantially better without exclusivity.
 
-**5) Next steps**
+**5) Re-run: `bd_c2` vs `ah_prag_no_excl` pairwise decision**
 
-1. After recovery job `8622997` completes, re-aggregate with all 144 runs for completeness.
-2. Re-run the Stage 2 pairwise decision (`bd_c2` vs `ah_prag_no_excl`) using the updated arrowhead arm without exclusivity, to see if the decision changes.
-3. Consider adding explicit spectral regularization to `ah_prag_no_excl` to recover the modest stability advantage without the basin-separation penalty.
-4. Investigate why exclusivity raises inter-basin cosine — does it force the encoder to reuse similar activation patterns across basins?
+After recovery job `8622997` completed all 15 failed runs, we re-ran the Stage-2 pairwise decision tool comparing `bd_c2` (72 runs from original pipeline) vs `ah_prag_no_excl` (72 runs from this ablation, now all complete).
+
+Artifacts: `results/lqr_decision_no_excl_vs_bd/{final_decision.md,summary_decision_table.csv,lqr_readiness_summary.json}`
+
+| Metric (bd_c2 − ah_prag_no_excl) | Mean Diff | 95% CI | CI excludes 0 |
+|---|---:|---:|:---:|
+| M2 (feasibility) | 0.0000 | [0.0000, 0.0000] | no |
+| M3 (CL stability) | 0.0000 | [0.0000, 0.0000] | no |
+| M4 (cost reduction) | −11.585 | [−34.739, 0.009] | no |
+
+Arm-level M4 means: `ah_prag_no_excl = 0.823`, `bd_c2 = −10.764`.
+
+**Decision: no clear winner; fallback `bd_c2`** (unchanged from the prior `ah_prag` comparison).
+
+The result is nearly identical to the original `bd_c2 vs ah_prag` comparison (`diff = −11.593`, CI `[-34.750, 0.001]`). The formal decision does not change because `bd_c2`'s catastrophic M4 outliers (ts=512, bp=13: mean M4 = −116.8) dominate the bootstrap CI, making it impossible to exclude 0. The arrowhead arm (with or without exclusivity) is far more reliable on M4 (all runs in the 0.79–0.85 range), but the current CI-based decision rule cannot distinguish "arm B is much more reliable" from "no difference."
+
+**Implications:**
+- Removing exclusivity did not change the formal architecture decision because the bottleneck is the `bd_c2` outlier problem, not the arrowhead arm's quality.
+- The practical takeaway is that `ah_prag_no_excl` is strictly more reliable than `bd_c2` on M4 (no catastrophic failures, tight variance) and also has better CosSep and M5, but the pre-registered decision rule cannot express this.
+- The decision rule needs to be updated to handle heavy-tailed M4 (e.g., median-based comparison, trimmed means, or a tail-risk penalty) before it can make a decisive call.
+
+**6) Next steps**
+
+1. Update the decision rule to use robust M4 summaries (median or trimmed mean) and re-apply to the same data.
+2. Consider adding explicit spectral regularization to `ah_prag_no_excl` to recover the modest stability advantage without the basin-separation penalty.
+3. Investigate why exclusivity raises inter-basin cosine — does it force the encoder to reuse similar activation patterns across basins?
+4. Diagnose the `bd_c2` outlier regimes (ts=512, bp=13) to determine if they are fixable or should be excluded.
 
 ### -7) Diagonal Koopman Add-On for LQR Readiness (completed)
 Timestamp: 2026-02-06

@@ -128,7 +128,13 @@ def _load_json(path: Path) -> Dict[str, Any]:
 
 def collect_run_rows(base_dir: Path) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
-    for summary_path in sorted(base_dir.rglob("lqr_readiness_summary.json")):
+    # Use os.walk with followlinks=True so symlinked run directories are found.
+    import os
+    summary_paths: List[Path] = []
+    for root, _dirs, files in os.walk(base_dir, followlinks=True):
+        if "lqr_readiness_summary.json" in files:
+            summary_paths.append(Path(root) / "lqr_readiness_summary.json")
+    for summary_path in sorted(summary_paths):
         data = _load_json(summary_path)
         meta = dict(data.get("metadata", {}))
         agg = dict(data.get("aggregate_metrics", {}))
