@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Run one arm/system/seed trial for the block_diagonal vs arrowhead LQR decision plan.
+# Run one arm/system/seed trial for the LQR decision plan.
 #
 # Required env vars:
 #   STAGE ARM SYSTEM TARGET_SIZE B_PROXY SEED BASE_OUT DEVICE
@@ -56,6 +56,14 @@ fi
 ARM_ARGS=()
 
 case "${ARM}" in
+  diag_c1)
+    ARM_ARGS=(
+      --target_size "${TARGET_SIZE}"
+      --sparsity_coeff 1.0
+      --k_structure diagonal
+    )
+    ;;
+
   bd_c1)
     K_BLOCK_SIZE=$(( TARGET_SIZE / B_PROXY ))
     if [ "${K_BLOCK_SIZE}" -lt 1 ]; then
@@ -133,8 +141,30 @@ case "${ARM}" in
     )
     ;;
 
+  ah_prag_no_excl)
+    D_BASIN=$(( TARGET_SIZE / B_PROXY ))
+    if [ "${D_BASIN}" -lt 1 ]; then
+      D_BASIN=1
+    fi
+    D_GLOBAL=$(( TARGET_SIZE - B_PROXY * D_BASIN ))
+    if [ "${D_GLOBAL}" -lt 0 ]; then
+      D_GLOBAL=0
+    fi
+    ARM_ARGS=(
+      --structured
+      --d_global "${D_GLOBAL}"
+      --num_basins "${B_PROXY}"
+      --d_basin "${D_BASIN}"
+      --lambda_exclusivity 0.0
+      --lambda_sparsity 0.3
+      --lambda_global "${LAMBDA_GLOBAL_PRAG}"
+      --lambda_local "${LAMBDA_LOCAL_PRAG}"
+      --excl_warmup_steps 0
+    )
+    ;;
+
   *)
-    echo "Unknown ARM='${ARM}'. Expected: bd_c1, bd_c2, ah_iso, ah_prag"
+    echo "Unknown ARM='${ARM}'. Expected: diag_c1, bd_c1, bd_c2, ah_iso, ah_prag, ah_prag_no_excl"
     exit 1
     ;;
 esac
@@ -148,8 +178,8 @@ echo "Target size: ${TARGET_SIZE}"
 echo "B_proxy: ${B_PROXY}"
 echo "Seed: ${SEED}"
 echo "Log dir: ${LOG_DIR}"
-if [ "${ARM}" = "ah_prag" ]; then
-  echo "AH-PRAG lock: lambda_global=${LAMBDA_GLOBAL_PRAG}, lambda_local=${LAMBDA_LOCAL_PRAG}"
+if [ "${ARM}" = "ah_prag" ] || [ "${ARM}" = "ah_prag_no_excl" ]; then
+  echo "Arrowhead lock: lambda_global=${LAMBDA_GLOBAL_PRAG}, lambda_local=${LAMBDA_LOCAL_PRAG}"
 fi
 echo "============================================="
 
@@ -164,14 +194,14 @@ RUN_DIR=$(dirname "${CKPT}")
 
 echo "Run directory: ${RUN_DIR}"
 
-echo ">>> [1/5] checkpoint evaluation"
+echo "[1/5] checkpoint evaluation"
 uv run python tools/evaluate_checkpoints.py \
   --run_dir "${RUN_DIR}" \
   --system "${SYSTEM}" \
   --checkpoints checkpoint.pt \
   --device "${DEVICE}"
 
-echo ">>> [2/5] eigenvalue analysis"
+echo "[2/5] eigenvalue analysis"
 EIGEN_ARGS=(
   --checkpoint "${CKPT}"
   --system "${SYSTEM}"
@@ -185,7 +215,7 @@ if [ "${SYSTEM}" = "lyapunov" ]; then
 fi
 uv run python tools/analyze_k_eigenvalues.py "${EIGEN_ARGS[@]}"
 
-echo ">>> [3/5] support + cosine diagnostics"
+echo "[3/5] support + cosine diagnostics"
 uv run python tools/evaluate_support_uniqueness.py \
   --checkpoint "${CKPT}" \
   --system "${SYSTEM}" \
@@ -195,14 +225,14 @@ uv run python tools/evaluate_support_uniqueness.py \
   --output_dir "${RUN_DIR}/support_eval" \
   --device "${DEVICE}"
 
-echo ">>> [4/5] cosine sensitivity diagnostics"
+echo "[4/5] cosine sensitivity diagnostics"
 uv run python tools/diagnose_cosine_separation.py \
   --checkpoint "${CKPT}" \
   --system "${SYSTEM}" \
   --output_dir "${RUN_DIR}/cosine_diag" \
   --device "${DEVICE}"
 
-echo ">>> [5/5] LQR readiness evaluation"
+echo "[5/5] LQR readiness evaluation"
 uv run python tools/evaluate_lqr_readiness.py \
   --checkpoint "${CKPT}" \
   --system "${SYSTEM}" \

@@ -27,6 +27,9 @@ IMPORTANT NOTE: After any changes that we make to the framework or experiments t
   4. State implications for the overall project direction.
   5. Propose next steps.
 - After reporting any results, update the project state in `docs/EXPERIMENTS.md` (including **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the corresponding experiment entry).
+- Note: In our intended **training/deployment** setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results for training-time method design.
+- For **evaluation on benchmark systems**, it is acceptable to use known basin counts and basin labels to measure separability/performance.
+- Terminology/goal: prioritize **basin-support alignment** (each basin maps to a unique sparse support in latent `z`). Do not treat basin-block alignment as the primary objective unless explicitly required by a specific experiment.
 
 ## Directory Structure
 
@@ -40,13 +43,6 @@ skae/
 │   ├── evaluation.py      # Model evaluation utilities
 │   └── benchmarks/        # Benchmark system catalogs and adapters
 ├── tools/                 # CLI tools and scripts
-│   ├── train.py           # Training script
-│   ├── evaluate_checkpoints.py
-│   ├── evaluate_basin_structure.py
-│   ├── evaluate_latent_basin_clustering.py
-│   ├── collect_sweep_results.py
-│   ├── plot_training_metrics.py
-│   └── tune_hyperlista.py
 ├── scripts/               # Shell scripts for experiments (sbatch, etc.)
 ├── experiments/           # Experiment-specific code
 ├── tests/                 # Test suite
@@ -65,101 +61,6 @@ skae/
 uv sync
 # Add a package
 uv add <package_name>
-
-# Train a model (basic examples)
-uv run python tools/train.py \
-  --config generic_sparse \
-  --env lyapunov \
-  --num_steps 5000 \
-  --batch_size 256 \
-  --target_size 64 \
-  --reconst_coeff 0.02 \
-  --pred_coeff 1.0 \
-  --sparsity_coeff 0.001 \
-  --pairwise \
-  --seed 0 \
-  --device cuda
-
-uv run python tools/train.py \
-  --config lista_nonlinear \
-  --env lyapunov \
-  --num_steps 20000 \
-  --batch_size 256 \
-  --target_size 512 \
-  --reconst_coeff 1.0 \
-  --pred_coeff 10.0 \
-  --sparsity_coeff 1.5 \
-  --lista_alpha 0.3 \
-  --pairwise \
-  --seed 42 \
-  --device cuda
-
-# Example for one of the dysts systems
-uv run python tools/train.py \
-  --config lista_nonlinear \
-  --env "dysts:${SYSTEM}" \
-  --num_steps 5000 \
-  --batch_size 256 \
-  --target_size 128 \
-  --reconst_coeff 0.5 \
-  --pred_coeff 1.0 \
-  --sparsity_coeff 1.0 \
-  --lista_alpha 0.30 \
-  --lista_num_loops 5 \
-  --pairwise \
-  --standardize \
-  --dysts_ic_noise_scale 0.2 \
-  --dysts_native_cache \
-  --dysts_cache_warmup 2000 \
-  --seed 42 \
-  --device cuda \
-  --log_dir "/network/scratch/l/lia/skae/dysts_multi_basin_lista_nonlinear/dysts:${SYSTEM}"
-
-# Train StructuredLISTAKM with basin-aware dynamics
-# Note: Over-specifying basins (B > GT basins) improves accuracy
-# Note: Only use lambda_exclusivity; entropy/dominance losses harm performance
-uv run python tools/train.py \
-  --config lista_nonlinear \
-  --env lyapunov \
-  --structured \
-  --num_steps 10000 \
-  --batch_size 256 \
-  --d_global 16 \
-  --num_basins 20 \
-  --d_basin 16 \
-  --lambda_exclusivity 0.05 \
-  --lambda_sparsity 0.3 \
-  --pairwise \
-  --seed 42 \
-  --device cuda
-
-# Evaluate a trained checkpoint
-uv run python tools/evaluate_checkpoints.py --run_dir runs/lista/<timestamp> --system lyapunov --device cuda
-
-# Evaluate basin structure correspondence (for any model)
-uv run python tools/evaluate_latent_basin_clustering.py \
-  --checkpoint runs/<model>/<timestamp>/checkpoint.pt \
-  --num_trajectories 100 \
-  --output_dir results/latent_clustering/<model_name>
-
-# Evaluate basin block specialization (StructuredLISTAKM only)
-uv run python tools/evaluate_basin_structure.py \
-  --checkpoint runs/structured_lista/<timestamp>/checkpoint.pt \
-  --system lyapunov \
-  --num_trajectories 100 \
-  --output_dir results/basin_structure/<run_name>
-
-# Run sbatch sweep using lista_nonlinear config on dysts multi-basin environments
-sbatch scripts/dysts_multi_basin_lista_nonlinear_long.sh
-
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_model.py -v
-
-# List available dysts chaotic systems
-uv run python tools/train.py --list-dysts
 ```
 
 ## Architecture
@@ -171,105 +72,29 @@ uv run python tools/train.py --list-dysts
 - **`data.py`**: Dynamical systems environments (Duffing, Pendulum, Lorenz63, Lyapunov, etc.) with `Env` base class
 - **`evaluation.py`**: Comprehensive model evaluation with rollout strategies
 
-### Model Hierarchy
-
-```
-KoopmanMachine (ABC)
-├── GenericKM          # MLP encoder/decoder with learnable Koopman matrix
-├── LISTAKM            # LISTA sparse encoder + dictionary decoder
-├── HyperLISTAKM       # HyperLISTA (3 scalar hyperparams, gradient flow to dictionary)
-└── StructuredLISTAKM  # Basin-aware Koopman with structured latent space
-```
-
 ### Key Abstractions
 
 - **Encoder**: Maps observations x → latent z (sparse for LISTA variants)
 - **Decoder**: Maps latent z → reconstruction x̂ (dictionary-based for LISTA)
 - **Koopman Matrix K**: Linear dynamics in latent space: z_{t+1} = K @ z_t
-- **Loss Components**: residual (alignment), reconstruction, prediction, sparsity
 
-### Environment System
+## Coding Style & Naming Conventions
 
-Built-in environments: `duffing`, `pendulum`, `lotka_volterra`, `lorenz63`, `parabolic`, `lyapunov`, `blended`
+- Python, 4-space indentation, and PEP 8 style conventions.
+- Use `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants.
+- Keep module names short and descriptive (e.g., `evaluation.py`, `data.py`).
+- Prefer small, composable helpers and keep CLI argument names consistent with existing tools.
+- Configuration presets live in `skae/config.py`; prefer adding new presets over hard-coded arguments.
+- Training artifacts are written to `runs/` and are not versioned; capture important results in `docs/` or `notebooks/`.
 
-- `lyapunov`: Configurable multi-attractor system with Gaussian wells (tests basin separation)
-- `blended`: 3 basins with genuinely different local dynamics (spiral, slow-horizontal, fast-vertical eigenstructures). Better test for whether model learns dynamical regimes vs geometric features.
+## Testing Guidelines
 
-External dysts systems: Use `--env dysts:SystemName` (e.g., `dysts:Lorenz`, `dysts:Chua`)
+- Framework: `pytest`.
+- Naming: tests live in `tests/` and follow `test_*.py` / `test_*` function names.
+- Add tests alongside new model features or configuration options, especially for expected errors and shape checks.
 
-#### Lyapunov Environment Configuration
+## Commit & Pull Request Guidelines
 
-The Lyapunov environment supports configurable dimensions and basin layouts via CLI or config:
-
-```bash
-uv run python tools/train.py \
-  --env lyapunov \
-  --lyapunov_dim 4 \              # State dimension (default: 2)
-  --lyapunov_num_basins 8 \       # Number of attractor centers (default: 13)
-  --lyapunov_points_mode random \ # "fixed" (canonical 2D grid) or "random"
-  --lyapunov_center_scale 3.0 \   # Range for random centers (default: 2.0)
-  --lyapunov_min_separation 0.6 \ # Minimum separation for random centers
-  --lyapunov_init_range 2.5 \     # Reset range for initial states
-  --lyapunov_extend_mode embed \  # "embed" (2D + decay) or "full" (full-dim dynamics)
-  --lyapunov_extra_decay 1.0 \    # Decay rate for extra dims in embed mode
-  ...
-```
-
-Config paths:
-- `cfg.ENV.LYAPUNOV.DIM`: State dimension
-- `cfg.ENV.LYAPUNOV.NUM_BASINS`: Number of attractor centers
-- `cfg.ENV.LYAPUNOV.POINTS_MODE`: "fixed" or "random"
-- `cfg.ENV.LYAPUNOV.CENTER_SCALE`: Range for random centers
-- `cfg.ENV.LYAPUNOV.EXTEND_MODE`: "embed" or "full"
-
-## Configuration Patterns
-
-Get a preset config and modify:
-```python
-from skae.config import get_config
-cfg = get_config("lista")
-cfg.MODEL.TARGET_SIZE = 512
-cfg.TRAIN.NUM_STEPS = 10000
-```
-
-Key config paths:
-- `cfg.MODEL.TARGET_SIZE`: Latent dimension (zdim)
-- `cfg.MODEL.SPARSITY_COEFF`: L1 sparsity weight
-- `cfg.MODEL.ENCODER.LISTA.ALPHA`: LISTA soft-threshold
-- `cfg.MODEL.ENCODER.HYPERLISTA.C_THETA/C_BETA/C_SS`: HyperLISTA hyperparams
-- `cfg.TRAIN.USE_SEQUENCE_LOSS`: False for pairwise, True for sequence training
-- `cfg.MODEL.STRUCTURED.D_GLOBAL`: Dimension of global dynamics block (StructuredLISTAKM)
-- `cfg.MODEL.STRUCTURED.NUM_BASINS`: Number of basin blocks B (StructuredLISTAKM)
-- `cfg.MODEL.STRUCTURED.D_BASIN`: Dimension per basin block (StructuredLISTAKM)
-- `cfg.MODEL.STRUCTURED.LAMBDA_EXCLUSIVITY`: Mutual exclusivity penalty weight
-- `cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS`: Steps to ramp exclusivity from 0 to final
-
-## Model Factory
-
-```python
-from skae.model import make_model
-model = make_model(cfg, observation_size)  # Uses cfg.MODEL.MODEL_NAME
-```
-
-## Training Output Structure
-
-```
-runs/<model>/<timestamp>/
-├── config.json           # Full config for reproducibility
-├── checkpoint.pt         # Best model (lowest validation error)
-├── last.pt              # Latest checkpoint
-├── metrics_history.jsonl # Training metrics time series
-└── evaluation_*/        # Evaluation results and plots
-```
-
-## Important Implementation Details
-
-- Homogeneous coordinates (`cfg.MODEL.USE_HOMOGENEOUS=True`): Appends 1 to input for implicit bias learning in LISTA/HyperLISTA
-- Koopman matrix uses separate learning rate (`cfg.TRAIN.K_MATRIX_LR`, typically lower than encoder/decoder)
-- LISTA/HyperLISTA dictionaries are column-normalized during forward pass
-- StructuredLISTAKM uses block-wise Koopman parameters for basin-aware dynamics:
-  - Latent space partitioned into global block z^(g) and B basin blocks z^(k)
-  - Arrowhead Koopman structure: global evolves autonomously, basins receive global forcing
-  - Exclusivity loss encourages one basin block active at a time
-  - Linear warmup schedule for exclusivity/sparsity penalties
-  - **Important**: Only use `--lambda_exclusivity` (pairwise exclusivity). The entropy and dominance losses (`--lambda_entropy`, `--lambda_dominance`) cause severe performance degradation and should NOT be used.
+- Commit messages follow Conventional Commits as seen in history: `feat: ...`, `docs: ...`, `fix: ...`.
+- Keep the summary concise and in the imperative mood.
+- PRs should include a short summary, key config changes (if any), and links to relevant runs or results (e.g., `runs/<model>/<timestamp>` or plots).

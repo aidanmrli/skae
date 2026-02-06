@@ -495,7 +495,7 @@ where the indicator terms activate only when block-loss or structured-latent tra
 \paragraph{Defaults vs. overrides.}
 There is no single hyperparameter tuple used in all experiments. Table~\ref{tab:pairwise-defaults} reports (i) implementation defaults/base recipe and (ii) the common overrides used in the reported sweeps.
 
-\begin{table}[t]
+\begin{table}[ht]
 \centering
 \caption{Pairwise branch: base settings and common overrides in experiments.}
 \label{tab:pairwise-defaults}
@@ -562,7 +562,7 @@ Ground-truth basin labels are used only for offline evaluation, not for training
 
 We first test when unique basin supports emerge as latent capacity grows.
 
-\begin{table}[t]
+\begin{table}[ht]
 \centering
 \caption{Support uniqueness versus target size at $\tau=10^{-3}$.}
 \label{tab:capacity-uniqueness}
@@ -600,7 +600,7 @@ At target size 256, all Koopman structures achieve full support uniqueness (13/1
 
 To isolate what drives basin separability, we compared Koopman parameterizations at matched encoder family and target size.
 
-\begin{table}[t]
+\begin{table}[ht]
 \centering
 \caption{Cosine separation and uniqueness across Koopman structures.}
 \label{tab:k-structure-cosine}
@@ -627,7 +627,7 @@ At sufficient capacity (target size 256), separability is similar across dense/d
 
 We evaluated 25 checkpoints (5 target sizes $\times$ 5 Koopman structures including arrowhead without exclusivity) with long-horizon rollouts and eigenvalue analysis. The main result is consistent and strong: SR predicts long-horizon fate.
 
-\begin{table}[t]
+\begin{table}[ht]
 \centering
 \caption{Representative SR--stability outcomes (no re-encoding, horizon 1000).}
 \label{tab:sr-stability}
@@ -660,7 +660,7 @@ No configuration achieved strict stability: \textbf{0/36} runs had SR $< 1$; SR 
 \paragraph{Single-loss ablation (24 runs).}
 For block-diagonal $K$, usage-balance losses (\texttt{usage\_entropy}, \texttt{kl\_uniform}) consistently improve cosine separation over control, while strict one-block penalties (\texttt{low\_entropy}, \texttt{pairwise\_overlap}) often collapse.
 
-\begin{table}[t]
+\begin{table}[ht]
 \centering
 \caption{Best cosine separation by target size in block-loss ablation.}
 \label{tab:block-loss-ablation}
@@ -685,15 +685,86 @@ A key distinction from earlier iterations is that our primary objective is basin
 
 However, basin-to-block concentration from eigenvalue-correlation analyses remains highest at low capacity (e.g., concentration 0.87 at ts=64) and weak at higher capacity (around 0.10 at ts=256). This indicates that the model can achieve basin-discriminative sparse supports while distributing activity across multiple blocks. This behavior is compatible with our current objective, but it limits immediate extraction of one block per basin for controller assignment.
 
+\subsection{LQR-Readiness and Architecture Selection}
+
+The core control question is whether the learned latent regimes support \emph{reliable local LQR synthesis} under the intended label-free setting (unknown basin count/assignments at training and deployment). To test this directly, we ran a staged decision pipeline with pre-registered rules:
+\begin{itemize}
+    \item \textbf{Stage 1 (structure isolation):} compare a block-diagonal Koopman baseline against an arrowhead Koopman model \emph{without} exclusivity regularization on Lyapunov.
+    \item \textbf{Stage 2 (practical head-to-head):} compare the selected block-diagonal baseline against a practical arrowhead model \emph{with} exclusivity and structured sparsity on Lyapunov.
+    \item \textbf{Stage 3 (transfer):} repeat the Stage-2 comparison on Duffing.
+\end{itemize}
+All stages include basin-count misspecification through $B_{\text{proxy}}$ sweeps, so results do not rely on knowing the true number of basins at decision time.
+
+For clarity, the \emph{DARE feasibility rate} is the fraction of discovered regimes for which the discrete algebraic Riccati equation admits a stabilizing solution (hence an LQR gain can be computed). The \emph{closed-loop stability rate} is the fraction of discovered regimes with spectral radius $\rho(A-BK_{\text{LQR}})<1$. The \emph{closed-loop cost reduction} compares finite-horizon quadratic cost under LQR versus open loop, reported as relative improvement.
+
+\begin{table}[ht]
+\centering
+\caption{Staged LQR-readiness outcomes (label-free control metrics).}
+\label{tab:lqr-readiness}
+\begin{tabular}{p{0.24\linewidth}p{0.10\linewidth}c c c p{0.28\linewidth}}
+\toprule
+\textbf{Comparison} & \textbf{System} & \textbf{Runs} & \textbf{DARE feasibility} & \textbf{Closed-loop stability} & \textbf{Closed-loop cost reduction contrast} \\
+\midrule
+Stage 1: block-diagonal vs arrowhead (no exclusivity) & Lyapunov & 36 & 1.00 & 1.00 & Difference $= +0.0407$, 95\% CI $[-0.0888, 0.1650]$ (includes 0) \\
+Stage 2: block-diagonal vs arrowhead (with exclusivity) & Lyapunov & 144 & 1.00 & 1.00 & Difference $= -11.5930$, 95\% CI $[-34.7496, 0.0006]$ (includes 0) \\
+Stage 3: block-diagonal vs arrowhead (with exclusivity) & Duffing & 78 & 1.00 & 1.00 & Difference $= -0.0849$, 95\% CI $[-0.1100, -0.0632]$; magnitude $<0.10$ practical threshold \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These results address one key issue unambiguously: \emph{local-regime LQR is feasible and yields stable closed-loop dynamics in the discovered regimes}. We know this because both the DARE feasibility rate and the closed-loop stability rate are 1.0 across all compared arms in both systems, including misspecified $B_{\text{proxy}}$ settings.
+
+At the same time, the architecture-selection issue is only partially resolved. Under the pre-registered decision rule (lexicographic ordering of DARE feasibility, then closed-loop stability, then closed-loop cost reduction, with a practical threshold of $+0.10$ absolute gain on feasibility or stability), no arm achieved a practical winning margin; therefore the final choice remained the simpler block-diagonal fallback.
+
+Importantly, the arrowhead model shows a \emph{favorable trend} on the closed-loop control objective: in both Stage 2 (Lyapunov) and Stage 3 (Duffing), the cost-reduction contrast is in its favor, and in Stage 3 the confidence interval excludes zero. We therefore interpret arrowhead as the current cost-oriented contender, while block-diagonal remains the conservative default pending stronger, lower-variance confirmation.
+
+Implication for the basin-switching control objective: the local-control component is now empirically supported, but the \emph{switching/gating} component remains open. The next experiments should therefore target closed-loop trajectories that cross regime boundaries, with periodic re-encoding used both as drift correction and as the mechanism that refreshes the latent regime assignment before controller switching.
+
+\subsection{Exclusivity Ablation}
+
+The arrowhead architecture pairs structured sparsity with an exclusivity regularizer that penalizes simultaneous activation of multiple basin blocks on a single input. Exclusivity was originally motivated as a mechanism to enforce one-basin-at-a-time encoding, thereby sharpening support--basin correspondence. However, the preceding LQR-readiness pipeline always coupled exclusivity with the arrowhead structure, confounding the two effects. We therefore ran a controlled ablation isolating the contribution of exclusivity alone.
+
+The design holds all other hyperparameters fixed---structured layout, $\lambda_{\text{sparsity}} = 0.3$, $\lambda_{\text{global}} = 10^{-4}$, $\lambda_{\text{local}} = 10^{-3}$---and compares $\lambda_{\text{excl}} = 0.05$ (the value used in prior arrowhead runs) against $\lambda_{\text{excl}} = 0$ on the same Stage-2 Lyapunov grid: target size $\in \{128, 256, 512\}$, $B_{\text{proxy}} \in \{8, 13, 20\}$, eight seeds per cell (144 runs total, 129 completed).
+
+\begin{table}[ht]
+\centering
+\caption{Exclusivity ablation: per-arm means across the Stage-2 Lyapunov grid.}
+\label{tab:excl-ablation}
+\begin{tabular}{l c c c}
+\toprule
+\textbf{Metric} & \textbf{With exclusivity} & \textbf{Without exclusivity} & \textbf{Effect} \\
+\midrule
+DARE feasibility (M2) & 1.000 & 1.000 & --- \\
+CL stability (M3) & 1.000 & 1.000 & --- \\
+CL cost reduction (M4) & $0.826 \pm 0.027$ & $0.823 \pm 0.028$ & $d = 0.07$, n.s. \\
+Recovery success (M5) & $0.483 \pm 0.158$ & $0.549 \pm 0.159$ & $d = -0.82$, $p < 0.001$ \\
+Cosine separation & $0.740 \pm 0.064$ & $0.801 \pm 0.036$ & $d = -0.97$, $p < 0.001$ \\
+Intra-basin cosine & $0.990 \pm 0.005$ & $0.980 \pm 0.012$ & --- \\
+Inter-basin cosine & $0.250 \pm 0.062$ & $0.179 \pm 0.031$ & --- \\
+Max spectral radius (median) & 0.998 & 1.002 & --- \\
+Fraction SR $> 1$ & 45\% & 61\% & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The central finding is that exclusivity regularization has \emph{no significant effect on closed-loop cost reduction} (Cohen's $d = 0.07$, paired $t = 0.57$, $p > 0.05$; the arm without exclusivity wins 30 of 63 matched pairs) while it \emph{significantly worsens} both basin separation and state recovery. On cosine separation, the arm without exclusivity achieves a mean of 0.801 versus 0.740 with exclusivity, a large and highly significant difference (Cohen's $d = -0.97$, paired $t = -7.66$, $p < 0.001$; no-exclusivity wins 54 of 63 pairs). The separation gap is driven primarily by inter-basin cosine similarity: exclusivity raises the mean inter-basin cosine from 0.179 to 0.250, making latent representations of different basins \emph{less orthogonal}. Although the intra-basin cosine is marginally higher with exclusivity (0.990 vs.\ 0.980), this small gain in within-basin tightness is overwhelmed by the loss of between-basin discrimination.
+
+Recovery success (M5) likewise favors the no-exclusivity arm (mean 0.549 vs.\ 0.483, $d = -0.82$, $p < 0.001$), and this advantage is consistent across all $B_{\text{proxy}}$ values and target sizes.
+
+Exclusivity does confer a modest spectral-stability advantage: the median maximum spectral radius is 0.998 with exclusivity versus 1.002 without, and 45\% of exclusivity runs are spectrally unstable compared with 61\% without. This confirms the earlier observation that exclusivity provides an implicit spectral constraint. However, this stability advantage does not translate into any measurable downstream control benefit.
+
+These results have a direct implication for the architecture comparison: the arrowhead arm used in the prior Stage-2 and Stage-3 decisions (\texttt{ah\_prag}) included exclusivity, which \emph{handicapped} its basin separation and recovery relative to an otherwise identical configuration without exclusivity. Therefore, the previously reported near-ties between arrowhead and block-diagonal on control metrics likely understate arrowhead's representational quality. A re-evaluation of the architecture decision with exclusivity disabled is warranted.
+
 \subsection{Takeaways and Current Status}
 
 The experiments establish a coherent trajectory toward the project goal:
 \begin{enumerate}
-    \item \textbf{Achieved:} basin-unique sparse supports at realistic basin count (13 basins) with sufficient latent capacity.
-    \item \textbf{Achieved:} threshold-free evidence of strong within-basin consistency and between-basin separation.
-    \item \textbf{Achieved:} objective-level improvements in separability via block-usage balancing (and selective combined losses).
-    \item \textbf{Partially achieved:} stable long-horizon dynamics in selected pairwise regimes (SR $< 1$), with periodic re-encoding as a reliable fallback.
-    \item \textbf{Open:} robust label-free assignment from sparse supports to local control models. If sequence training is required, robust stability for non-diagonal Koopman dynamics is still open; if pairwise training is acceptable, this is not the immediate bottleneck.
+    \item \textbf{Achieved (representation identifiability):} basin-unique sparse supports at realistic basin count (13 basins) with sufficient latent capacity ($\text{ts}\geq256$), plus high threshold-free separation (intra-basin cosine $\approx 0.97$, strong intra--inter gap).
+    \item \textbf{Achieved (dynamics criterion for local modeling):} long-horizon behavior is now mechanistically explained by spectral radius; SR$<1$ consistently corresponds to bounded H1000 error, while SR$>1$ yields divergence.
+    \item \textbf{Achieved (local LQR readiness on benchmarks):} staged Lyapunov/Duffing evaluations show DARE feasibility rate $=1.0$ and closed-loop stability rate $=1.0$ for finalist arms, establishing that discovered local regimes admit feasible and stable local LQR controllers.
+    \item \textbf{Partially achieved (architecture selection):} arrowhead vs block-diagonal remains statistically/practically unresolved under the pre-registered decision rule; however, arrowhead currently shows the stronger trend on closed-loop cost reduction. The exclusivity ablation reveals that exclusivity regularization was a net negative (significantly worse basin separation and recovery, with no control benefit), so future arrowhead comparisons should disable it. The current default remains the simpler block-diagonal fallback until re-evaluated with the corrected arrowhead configuration.
+    \item \textbf{Open (deployment-critical):} robust label-free regime assignment and controller switching across basin transitions, where periodic re-encoding should mediate support updates and local-controller handoff.
+    \item \textbf{Open (evaluation bottleneck):} current feasibility/stability metrics saturate in benchmark settings and closed-loop cost reduction can be heavy-tailed, so stronger stress tests and robust effect summaries are needed for decisive model selection.
 \end{enumerate}
 
-Overall, the representation side (basin-discriminative sparse coding) is now well supported empirically. The next bottleneck is dynamics-side stabilization under sequence objectives and a fully label-free gating mechanism suitable for downstream control.
+Overall, the narrative has shifted from ``can we learn basin-discriminative sparse representations?'' to ``can we operationalize stable, label-free controller switching across regimes?'' The first question is now strongly supported; the second is the central next milestone.

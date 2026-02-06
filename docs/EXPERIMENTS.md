@@ -1,6 +1,6 @@
 # Experiments
 
-Date: February 5, 2026
+Date: February 7, 2026
 
 Goal: Achieve **unique support patterns for unique basins** (mechanistic interpretability), starting from the simplest setups and iterating on sparsity, target size, and Koopman structure.
 
@@ -19,14 +19,20 @@ What we found so far:
 - **Spectral radius determines long-horizon fate.** Models with all eigenvalues inside the unit circle (SR < 1) converge to bounded MSE (~3.5); models with any eigenvalue outside (SR > 1) diverge catastrophically (MSE > 1e+10 at H1000). Periodic reencoding rescues divergent models but cannot improve beyond the bounded-MSE floor.
 - **Arrowhead with exclusivity is stable at ts <= 256 under pairwise training** (best no-reencode H1000 MSE = 3.49 at ts=128), but it **loses stability at ts >= 512** (SR > 1).
 - **Sequence-length training does not stabilize K.** For L in {4, 8, 12, 16}, only diagonal K remains stable (SR < 1), and stability **degrades** as L grows; dense, block-diagonal, and arrowhead are unstable at all L.
+- **Diagonal K Stage-2 add-on is complete (72 runs).** `diag_c1` reached `M2=M3=1.0` and had highest mean `M4` (`0.8618`) vs `ah_prag` (`0.8285`) and `bd_c2` (`-10.7638`, heavy-tailed failures), but the pre-registered rule still returned **no clear winner** because `M2/M3` remained saturated and the practical threshold gate was not met.
 - **Sequence-loss weight tuning alone does not stabilize non-diagonal K.** In the L=8 block-diagonal weight sweep (36 configs), **0/36** reached SR < 1 (best SR = 1.0014), so coefficient tuning is insufficient without explicit spectral control.
 - **Basin-to-block concentration is a secondary diagnostic, not the objective.** It is strongest at low capacity (block_diagonal ts=64: concentration 0.87) and washes out at higher dimensions (~0.10 at ts=256), while basin-support uniqueness can still be strong.
 - **Block-usage balance losses improve cosine separation.** `usage_entropy` and `kl_uniform` raise separation vs control across ts={64,128,256,512}, while strict one-block penalties (`low_entropy`, `pairwise_overlap`) often collapse to degenerate supports (0 uniqueness, Jaccard=1 at tau=1e-3).
 - **Combined top-1 + balance losses can improve separability at ts=256, but are sensitive.** Phase 1 reached best CosSep **0.8826** (vs ts=256 control 0.8256, +0.057), but some weight settings still collapsed (worst CosSep 0.222, uniqueness 0.5 at tau=1e-3).
+- **LQR-readiness decision pipeline is now complete (Stages 0-3).** On the Lyapunov Stage 2 decision subset (144 runs), both finalists (`bd_c2`, `ah_prag`) achieved `M2=M3=1.0`; pairwise `M4` difference was not significant (`bd_c2-ah_prag=-11.593`, 95% CI `[-34.750, 0.001]`), so the pre-registered rule returned **no clear winner** and selected fallback `bd_c2`.
+- **Structure-only arrowhead vs block-diagonal (Stage 1) was also a tie on primary decision metrics.** `ah_iso`, `bd_c1`, and `bd_c2` all reached `M2=M3=1.0`; `M4` means were close (`ah_iso=0.728`, `bd_c2=0.735`) with overlapping CIs.
+- **Duffing transfer (Stage 3) favored arrowhead on `M4`, but below the practical threshold.** Pairwise `M4` difference (`bd_c2-ah_prag=-0.0849`, 95% CI `[-0.1100, -0.0632]`) favored `ah_prag`, but the absolute gain (<0.10) did not meet the pre-registered practical threshold, so the final decision remained fallback `bd_c2`.
+- **Exclusivity regularization does not improve LQR control metrics and significantly hurts basin separation.** In a 144-run ablation (129 completed), `ah_prag` vs `ah_prag_no_excl` showed no significant `M4` difference (Cohen's d = 0.07), while no-exclusivity achieved significantly better CosSep (0.80 vs 0.74, Cohen's d = −0.97, p < 0.001) and better recovery `M5` (0.55 vs 0.48, Cohen's d = −0.82, p < 0.001). Exclusivity's only advantage is a modest spectral-stability edge (45% vs 61% unstable runs).
 
 Current solution direction:
-- Continue the **label-free LQR decision pipeline** (Stage 0-3 sweeps + `tools/evaluate_lqr_readiness.py`) and use its aggregated outputs as the architecture selection gate between block-diagonal and arrowhead once collection is complete.
-- Use **arrowhead K with exclusivity** as a strong pairwise candidate at low-to-mid size (best no-reencode stability at ts=64/128; near-tie with block-diagonal at ts=256), but do not assume stability at ts >= 512.
+- Use **`bd_c2` as the default simpler arm** for downstream label-free control experiments (current fallback winner under the pre-registered rule), while keeping `ah_prag` as the primary comparator.
+- Keep **`diag_c1` as a stability-first comparator** in LQR-readiness studies; it is competitive and slightly stronger on Stage-2 `M4`, but not yet a pre-registered-rule winner.
+- Use **arrowhead K without exclusivity** as a strong pairwise candidate at low-to-mid size; the exclusivity ablation shows that exclusivity hurts CosSep and M5 without improving M4, so the default arrowhead arm should disable exclusivity (`ah_prag_no_excl`) unless spectral stability is the primary concern.
 - Use **diagonal K** as the only sequence-loss option that stays stable at short L (4–8), with explicit spectral constraints for larger L or higher ts.
 - Add **explicit spectral regularization or constrained parameterization** to keep SR < 1 at high ts and under sequence loss.
 - Use **block-usage balance losses** (`usage_entropy` / `kl_uniform`) as the baseline for block-diagonal K; follow with **combined one-block + balance** sweeps to avoid collapse while encouraging per-trajectory block selection.
@@ -36,16 +42,20 @@ Current solution direction:
 
 Outstanding problems (active):
 - **Reliable label-free regime assignment from sparse supports is still open.** We need a robust unsupervised mapping from support patterns to local control models when basin count/labels are unknown at training/deployment time.
+- **No clear LQR winner between arrowhead and block-diagonal under the pre-registered threshold.** Current decisions on Lyapunov and Duffing both fall back to the simpler arm (`bd_c2`) because metric gains do not pass the practical threshold gate.
+- **Metric/rule mismatch remains after adding diagonal.** Even when `diag_c1` improves `M4` vs `ah_prag`, `M2/M3` saturation plus practical-threshold gating still prevents a decisive rule-based winner.
+- **Closed-loop cost reduction (`M4`) is heavy-tailed for some block-diagonal settings.** Stage 2 includes catastrophic outlier regimes (notably `bd_c2`, `ts=512`, `B_proxy=13`), which widen CIs and prevent confident selection.
 - **No structure is stably below SR < 1 at ts = 1024.** Need explicit spectral stabilization to scale latent size.
 - **Sequence training destabilizes non-diagonal K.** Need a spectral constraint or alternative training objective to keep SR < 1 under sequence loss.
-- **Loss-weight tuning alone fails to recover stability.** The completed 36-config sweep produced 0 stable runs (SR < 1), so explicit spectral control is now the key missing ingredient.
 - **Combined one-block + balance remains brittle.** Even with top1+balance, some settings lose uniqueness and separation; need a robust objective region that improves separability without collapse.
+- **Exclusivity regularization is net-negative for arrowhead.** It worsens basin separation and recovery success without improving closed-loop control, suggesting the exclusivity loss interferes with the encoder's ability to produce orthogonal basin representations.
 
 **LQR Readiness Blockers**
 1. Reliable, label-free basin/regime identification. We do not know basin labels or how many basins exist in the real setting. We currently cannot reliably assign a trajectory to a support-defined regime in a stable, unsupervised way. Without a trustworthy assignment, LQR has no “local system” to attach to.
-2. Stable local dynamics (SR < 1). LQR assumes local linear dynamics are meaningful and stable (or at least stabilizable). We have seen spectral radius instability in many settings; long-horizon rollouts diverge if SR > 1.
-3. Local linearity actually captures local dynamics. We need evidence that support-conditioned local dynamics are predictive (not just “separable”). Right now, separation and stability are decoupled from predictive quality in some configs.
-4. Robustness across capacity/seeds. The selected regime-assignment and local-model pipeline must remain reliable across latent sizes and random seeds, not just in isolated checkpoints.
+2. Discriminative power of current control metrics. In completed Stage 1/2/3 runs, `M2` and `M3` saturated at 1.0 for all finalists, so they did not separate architectures; we need harder stress tests/perturbations.
+3. Local linearity actually captures local dynamics. We need evidence that support-conditioned local dynamics are predictive (not just “separable”), especially under misspecified `B_proxy`.
+4. Robustness across capacity/seeds. We still see large variance/outliers in `M4` for some settings, so the pipeline is not yet stable enough for a confident architecture call.
+5. Decision-rule discriminativeness after diagonal inclusion. We now have diagonal comparisons, but the current pre-registered gate still cannot make a decisive architecture call when `M2/M3` saturate.
 
 ## Result Reporting Protocol
 
@@ -106,39 +116,254 @@ Completed (February 5, 2026):
 - Sequence-loss weight sweep: job `8613853` via `scripts/sweep_sequence_loss_weights.sh` (array 0-35; 36 weight configs) -- **COMPLETED**
 - Block-loss balance sweep (Phase 1): job `8615817` via `scripts/sweep_block_loss_balance_phase1.sh` (array 0-71; 72 configs) -- **COMPLETED**
 
-Submitted (February 5, 2026):
-- LQR decision Stage 1 script: `scripts/sweep_lqr_decision_stage1.sh` -- job `8620569` (array 0-35; 36 jobs)
-- LQR decision Stage 0 script: `scripts/sweep_lqr_decision_stage0.sh` -- job `8620570` (array 0-3; 4 jobs)
-- LQR decision Stage 2 script: `scripts/sweep_lqr_decision_stage2.sh` -- job `8621121` (array 0-143; 144 jobs; `BD_STAR=bd_c2`)
-- LQR decision Stage 3 script: `scripts/sweep_lqr_decision_stage3.sh` -- job `8621236` (array 0-71; 72 jobs; dependency `afterany:8621121`)
-- LQR decision final collection: `scripts/collect_lqr_decision_after_stage3.sh` -- job `8621237` (dependency `afterany:8621236`)
+Completed (February 6, 2026):
+- LQR decision Stage 0 script: `scripts/sweep_lqr_decision_stage0.sh` -- job `8620570` (array 0-3; 4 jobs) -- **COMPLETED** (4/4)
+- LQR decision Stage 1 script: `scripts/sweep_lqr_decision_stage1.sh` -- job `8620569` (array 0-35; 36 jobs) -- **COMPLETED** (36/36)
+- LQR decision Stage 2 script: `scripts/sweep_lqr_decision_stage2.sh` -- job `8621121` (array 0-143; 144 jobs; `BD_STAR=bd_c2`) -- **COMPLETED** (144/144)
+- LQR decision Stage 3 script: `scripts/sweep_lqr_decision_stage3.sh` -- job `8621236` (array 0-71; 72 jobs; dependency `afterany:8621121`) -- **COMPLETED** (72/72)
+- LQR decision final collection: `scripts/collect_lqr_decision_after_stage3.sh` -- job `8621237` (dependency `afterany:8621236`) -- **COMPLETED**
+- LQR decision Stage 2 diagonal-only training sweep: `scripts/sweep_lqr_decision_stage2_diag_only.sh` -- job `8622447` (array 0-71; 72 jobs) -- **COMPLETED** (72/72 checkpoints; post-train eval interrupted by runner shell parse error)
+- LQR decision Stage 2 diagonal-only LQR eval recovery: `scripts/sweep_lqr_decision_stage2_diag_lqr_eval_only.sh` -- job `8622706` (array 0-71; 72 jobs) -- **COMPLETED** (72/72)
 
-Ready to run next (February 5, 2026):
-- LQR decision Stage 0 script: `scripts/sweep_lqr_decision_stage0.sh` (4 jobs; 2 arms × 2 seeds)
-- LQR decision Stage 1 script: `scripts/sweep_lqr_decision_stage1.sh` (36 jobs; 3 arms × 3 B_proxy × 4 seeds)
-- LQR decision Stage 2 script: `scripts/sweep_lqr_decision_stage2.sh` (144 jobs; 2 arms × 3 target sizes × 3 B_proxy × 8 seeds)
-- LQR decision Stage 3 script: `scripts/sweep_lqr_decision_stage3.sh` (72 jobs; 2 arms × 2 target sizes × 3 B_proxy × 6 seeds)
-- Decision aggregation tool: `tools/collect_lqr_decision_results.py` -> writes `summary_decision_table.csv`, `lqr_readiness_summary.json`, `final_decision.md`
+Completed (February 7, 2026):
+- Stage 2 arrowhead exclusivity attribution sweep: `scripts/sweep_lqr_decision_stage2_excl_ablation.sh` -- job `8622549` (array 0-143; 144 jobs; arms `{ah_prag, ah_prag_no_excl}`) -- **COMPLETED** (129/144; 15 failed due to shell parse error at LQR eval stage, training + eigenvalue analysis intact for all 144)
 
-Immediate next actions:
-1. Monitor Stage 0/1 completion and collect Stage 1 summaries.
-2. Select `BD*` (`bd_c1` or `bd_c2`) from Stage 1 primary metrics.
-3. Launch Stage 2 with selected baseline: `BD_STAR=<bd_c1_or_bd_c2> sbatch scripts/sweep_lqr_decision_stage2.sh`.
-4. After Stage 2, launch Stage 3 transfer check: `BD_STAR=<bd_c1_or_bd_c2> sbatch scripts/sweep_lqr_decision_stage3.sh`.
-5. Aggregate final decision artifacts with `uv run python tools/collect_lqr_decision_results.py --base_dir /network/scratch/l/lia/skae/lqr_decision --output_dir results/lqr_decision --decision_stage 2 --decision_system lyapunov --arms <bd_c1_or_bd_c2>,ah_prag`.
+Submitted (February 7, 2026):
+- Exclusivity ablation recovery (support_eval + cosine_diag + LQR eval for 15 failed runs): `scripts/sweep_lqr_decision_stage2_excl_ablation_recovery.sh` -- job `8622997` (array 0-14)
 
-Status check (February 5, 2026):
+Status check (February 6, 2026):
 - All arrays for jobs `8602046`, `8602047`, `8603752`, `8603753`, and `8605505` produced logs and `support_eval/*.json` outputs in `/network/scratch/l/lia/skae/...`.
 - Job `8607640` has evaluation + eigenvalue outputs for all 25 checkpoints.
 - Job `8613261` has evaluation + eigenvalue outputs for all 48 configurations (some configs have multiple timestamps; the latest run may be train-only but earlier runs contain the full outputs).
 - Job `8613853` has training + checkpoint evaluation + eigenvalue outputs for all 36 configs.
 - Job `8615817` has training + support-eval outputs (`cosine_metrics.json`, `threshold_sweep.json`) for all 72 configs.
+- LQR decision pipeline jobs `8620570`, `8620569`, `8621121`, `8621236`, and `8621237` are complete; collection produced:
+  - `results/lqr_decision/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}` (Stage 2 Lyapunov decision),
+  - `results/lqr_decision/stage1_lyapunov/*` (Stage 1 structure isolation),
+  - `results/lqr_decision/stage3_duffing/*` (Stage 3 Duffing transfer).
+- Diagonal Stage-2 add-on (`diag_c1`) is complete: job `8622447` produced 72 checkpoints and job `8622706` produced 72 LQR-readiness summaries under `/network/scratch/l/lia/skae/lqr_decision/stage2_lyapunov_diag_c1_*`.
+- Diagonal pairwise decision artifacts were generated at:
+  - `results/lqr_decision_stage2_diag_vs_bd/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}`
+  - `results/lqr_decision_stage2_diag_vs_ah/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}`
+- Exclusivity ablation sweep (job `8622549`) completed 129/144 runs. All 144 output directories populated with training artifacts. 15 runs missing post-train eval (support_eval, cosine_diag, lqr_readiness) due to shell parse error; recovery submitted as job `8622997`.
 
 ---
 
 ## Experiment Log (Newest First)
 
-### -5) LQR Decision Pipeline Implementation (Stage 0/1 submitted)
+### -8) Stage-2 Arrowhead Exclusivity Attribution Sweep (completed)
+Timestamp: 2026-02-06
+
+Scripts:
+- Main sweep: `scripts/sweep_lqr_decision_stage2_excl_ablation.sh` (job `8622549`, array 0-143)
+- Recovery (15 failed post-train evals): `scripts/sweep_lqr_decision_stage2_excl_ablation_recovery.sh` (job `8622997`, array 0-14)
+
+**Question**
+- In the practical Stage-2 grid, how much of arrowhead control-readiness behavior is due to exclusivity regularization versus structure+sparsity alone?
+
+**Design**
+- Arms: `ah_prag` (with exclusivity, `lambda_excl=0.05`) vs `ah_prag_no_excl` (same structured layout and sparsity settings, exclusivity disabled, `lambda_excl=0.0`).
+- System: Lyapunov.
+- Grid: `target_size in {128,256,512}` x `B_proxy in {8,13,20}` x `seed in {0..7}`.
+- Total runs: 144 (72 per arm).
+- Output base: `/network/scratch/l/lia/skae/lqr_decision_excl_ablation`.
+
+**Status**
+- 129/144 completed; 15 failed at LQR eval stage due to shell parse error (training + eigenvalue analysis intact for all 144). Recovery job `8622997` submitted for the 15 failed runs.
+- Failed indices concentrated in `ts=128, bp=8` (6 `ah_prag` seeds, all 8 `ah_prag_no_excl` seeds) plus `ah_prag ts=256 bp=8 seed=5`.
+
+**1) Concrete results (129 completed runs: 65 ah_prag, 64 ah_prag_no_excl)**
+
+Overall per-arm LQR readiness metrics:
+
+| Metric | ah_prag (excl) | ah_prag_no_excl | Diff (excl − no) | Significance |
+|--------|---------------|-----------------|-------------------|-------------|
+| M2 (feasibility) | 1.0000 | 1.0000 | 0.0000 | — |
+| M3 (CL stability) | 1.0000 | 1.0000 | 0.0000 | — |
+| M4 (CL cost reduction) | 0.8264 ± 0.027 | 0.8233 ± 0.028 | +0.0023 | n.s. (d = 0.07) |
+| M5 (recovery success) | 0.4826 ± 0.158 | 0.5493 ± 0.159 | −0.0657 | p < 0.001 (d = −0.82) |
+
+Overall cosine separation metrics:
+
+| Metric | ah_prag (excl) | ah_prag_no_excl | Diff |
+|--------|---------------|-----------------|------|
+| CosSep | 0.7404 ± 0.064 | 0.8011 ± 0.036 | −0.0564 (p < 0.001, d = −0.97) |
+| IntraCos | 0.9901 ± 0.005 | 0.9796 ± 0.012 | +0.0105 |
+| InterCos | 0.2497 ± 0.062 | 0.1785 ± 0.031 | +0.0712 |
+
+Spectral stability:
+
+| Metric | ah_prag (excl) | ah_prag_no_excl |
+|--------|---------------|-----------------|
+| Max SR (mean) | 1.0007 ± 0.010 | 1.0033 ± 0.008 |
+| Max SR (median) | 0.9982 | 1.0019 |
+| Runs with SR > 1 | 29/65 (45%) | 39/64 (61%) |
+
+M4 by target_size:
+
+| ts | ah_prag | ah_prag_no_excl |
+|----|---------|-----------------|
+| 128 | 0.8350 ± 0.027 (n=18) | 0.8165 ± 0.039 (n=16) |
+| 256 | 0.8231 ± 0.033 (n=23) | 0.8284 ± 0.024 (n=24) |
+| 512 | 0.8230 ± 0.020 (n=24) | 0.8226 ± 0.023 (n=24) |
+
+CosSep by target_size:
+
+| ts | ah_prag | ah_prag_no_excl |
+|----|---------|-----------------|
+| 128 | 0.6770 ± 0.068 (n=18) | 0.7858 ± 0.034 (n=16) |
+| 256 | 0.7358 ± 0.036 (n=23) | 0.7951 ± 0.044 (n=24) |
+| 512 | 0.7922 ± 0.028 (n=24) | 0.8172 ± 0.018 (n=24) |
+
+M5 by B_proxy:
+
+| bp | ah_prag | ah_prag_no_excl |
+|----|---------|-----------------|
+| 8 | 0.3457 ± 0.050 | 0.3732 ± 0.057 |
+| 13 | 0.3892 ± 0.072 | 0.4894 ± 0.083 |
+| 20 | 0.6728 ± 0.046 | 0.7268 ± 0.041 |
+
+Pairwise matched-pair tests (63 pairs):
+- **M4:** Paired t = 0.573 (p > 0.05), Cohen's d = 0.07, win rate 33/63 for excl. **No significant difference.**
+- **CosSep:** Paired t = −7.661 (p < 0.001), Cohen's d = −0.97, no-excl wins 54/63. **Large significant advantage for no-exclusivity.**
+- **M5:** Paired t = −6.498 (p < 0.001), Cohen's d = −0.82, no-excl wins 50/63. **Large significant advantage for no-exclusivity.**
+
+**2) Context in experiment design**
+
+This ablation directly isolates the effect of exclusivity regularization within the arrowhead architecture. Both arms share the same structured layout (B_proxy basin blocks), sparsity settings (`lambda_sparsity=0.3`, `lambda_global=1e-4`, `lambda_local=1e-3`), and training protocol. The only difference is `lambda_excl=0.05` (ah_prag) vs `lambda_excl=0.0` (ah_prag_no_excl).
+
+**3) Interpretation**
+
+- **Exclusivity does not help closed-loop control performance (M4).** Both arms achieve nearly identical cost reduction (~82–83%), with no statistically significant difference. This means exclusivity is not contributing to the quality of support-conditioned local linear models used by LQR.
+- **Exclusivity significantly hurts basin separation (CosSep).** The mechanism is increased inter-basin cosine similarity: exclusivity raises InterCos from 0.18 to 0.25, making basin representations less orthogonal. The intra-basin cohesion is slightly better with exclusivity (0.99 vs 0.98), but this small gain is overwhelmed by the loss of inter-basin separation.
+- **Exclusivity significantly hurts state recovery (M5).** The recovery success rate drops from 55% to 48% with exclusivity, consistent across all B_proxy values.
+- **Exclusivity provides a modest spectral stability advantage.** Fewer runs have SR > 1 (45% vs 61%), and the median spectral radius is just below 1.0 for exclusivity vs just above for no-exclusivity. However, this stability advantage does not translate to any downstream control benefit.
+- **B_proxy = 20 is the strongest operating point** for both arms across M4 and M5, suggesting that finer-grained block decomposition improves LQR outcomes.
+
+**4) Project implications**
+
+- **Exclusivity should be removed from the default arrowhead configuration.** It introduces a net cost (worse separation, worse recovery) with no control benefit. The arrowhead structure + sparsity alone is sufficient for competitive LQR performance.
+- **The prior `ah_prag` results in Stage 2 and Stage 3 likely underestimate arrowhead's potential.** The comparison against `bd_c2` was conducted with exclusivity enabled; without it, arrowhead would have stronger basin separation and recovery.
+- **Re-running the `bd_c2` vs arrowhead decision with `ah_prag_no_excl` may change the outcome**, since CosSep and M5 are substantially better without exclusivity.
+
+**5) Next steps**
+
+1. After recovery job `8622997` completes, re-aggregate with all 144 runs for completeness.
+2. Re-run the Stage 2 pairwise decision (`bd_c2` vs `ah_prag_no_excl`) using the updated arrowhead arm without exclusivity, to see if the decision changes.
+3. Consider adding explicit spectral regularization to `ah_prag_no_excl` to recover the modest stability advantage without the basin-separation penalty.
+4. Investigate why exclusivity raises inter-basin cosine — does it force the encoder to reuse similar activation patterns across basins?
+
+### -7) Diagonal Koopman Add-On for LQR Readiness (completed)
+Timestamp: 2026-02-06
+
+Scripts:
+- Training sweep: `scripts/sweep_lqr_decision_stage2_diag_only.sh` (job `8622447`, array 0-71)
+- LQR-only recovery sweep: `scripts/sweep_lqr_decision_stage2_diag_lqr_eval_only.sh` (job `8622706`, array 0-71)
+- Aggregation: `tools/collect_lqr_decision_results.py`
+
+Artifacts:
+- `results/lqr_decision_stage2_diag_vs_bd/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}`
+- `results/lqr_decision_stage2_diag_vs_ah/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}`
+
+**1) Concrete results**
+
+- Diagonal arm sweep (`diag_c1`) completed on the Stage-2 Lyapunov grid (72 runs: `target_size in {128,256,512}`, `B_proxy in {8,13,20}`, seeds `0..7`).
+- Arm-level means (Stage-2 subset):
+  - `diag_c1`: `M2=1.0`, `M3=1.0`, `M4=0.8618`
+  - `ah_prag`: `M2=1.0`, `M3=1.0`, `M4=0.8285`
+  - `bd_c2`: `M2=1.0`, `M3=1.0`, `M4=-10.7638` (heavy-tailed failures)
+- Pairwise (`diag_c1-ah_prag`):
+  - `M2` diff = `0.0000`, 95% CI `[0.0000, 0.0000]`
+  - `M3` diff = `0.0000`, 95% CI `[0.0000, 0.0000]`
+  - `M4` diff = `+0.0319`, 95% CI `[0.0077, 0.0542]` (favors `diag_c1`)
+  - Decision output: **no clear winner**, fallback `diag_c1` (no practical-threshold pass).
+- Pairwise (`diag_c1-bd_c2`):
+  - `M2` diff = `0.0000`, 95% CI `[0.0000, 0.0000]`
+  - `M3` diff = `0.0000`, 95% CI `[0.0000, 0.0000]`
+  - `M4` diff = `+13.1299`, 95% CI `[0.0303, 39.2959]` (favors `diag_c1`)
+  - Decision output: **no clear winner**, fallback `bd_c2` (current fallback rule prefers `bd*` arms when present).
+- Robustness metric `M5`: `0.0` for all compared arms in both pairwise summaries.
+- Robust `M4` snapshot from run-level aggregates:
+  - `diag_c1`: finite `63/72`, median `0.8788`, min `0.5169`, max `0.9698`
+  - `ah_prag`: finite `72/72`, median `0.8291`, min `0.7856`, max `0.8720`
+  - `bd_c2`: finite `61/72`, median `0.8285`, min `-704.9678`, max `0.9573`
+
+**2) Context in experiment design**
+
+- This add-on reused the same Stage-2 grid and label-free evaluator as the prior LQR decision pipeline so diagonal can be compared directly to existing finalists.
+- Training completed for all 72 runs under job `8622447`; post-training evaluation in that script failed due a runner shell parse issue, then was recovered by running LQR-readiness-only evaluation on existing checkpoints (job `8622706`).
+
+**3) Interpretation**
+
+- Diagonal is **not under-expressive in this evaluator regime**: it matched `M2/M3` saturation and improved `M4` relative to `ah_prag`.
+- The large `diag_c1-bd_c2` `M4` gap is strongly influenced by catastrophic `bd_c2` outliers; median `M4` for `bd_c2` is close to `ah_prag`.
+- The current pre-registered decision gate still cannot make a decisive call because `M2/M3` saturate and practical-threshold criteria are not met.
+
+**4) Project implications**
+
+- `diag_c1` is now a credible LQR-readiness baseline and should remain in architecture comparisons.
+- Heavy-tail handling for `M4` is now more urgent than before, since mean-based differences can be dominated by outlier regimes.
+- The existing fallback logic is biased toward `bd*` when present and is not suitable as a final architecture selector once diagonal is included.
+
+**5) Next steps**
+
+1. Add robust primary summaries for `M4` (median/trimmed mean/tail-risk) to the decision rule and re-run diagonal vs finalists under the same Stage-2 grid.
+2. Update fallback semantics for multi-architecture comparisons (`diag`, `bd`, `ah`) so the fallback is not hard-coded toward `bd*`.
+3. Carry the same diagonal comparison to Duffing transfer after robust-`M4` decision updates.
+
+### -6) LQR-Readiness + Arrowhead vs Block-Diagonal Koopman Decision (completed)
+Timestamp: 2026-02-06
+
+Plan: `docs/planning/block_diagonal_vs_arrowhead_lqr_decision_plan.md`
+
+Artifacts:
+- Stage 2 (Lyapunov decision): `results/lqr_decision/final_decision.md`, `results/lqr_decision/summary_decision_table.csv`, `results/lqr_decision/lqr_readiness_summary.json`
+- Stage 1 (Lyapunov structure isolation): `results/lqr_decision/stage1_lyapunov/final_decision.md`, `results/lqr_decision/stage1_lyapunov/summary_decision_table.csv`
+- Stage 3 (Duffing transfer): `results/lqr_decision/stage3_duffing/final_decision.md`, `results/lqr_decision/stage3_duffing/summary_decision_table.csv`
+
+**1) Concrete results**
+
+- Stage 1 structure isolation (`AH-ISO` vs `BD-C1`/`BD-C2`, 36 runs):
+  - All arms: `M2=1.0`, `M3=1.0`.
+  - Arm-level `M4` means: `ah_iso=0.7279`, `bd_c1=0.5939`, `bd_c2=0.7351`.
+  - Pairwise (`bd_c2-ah_iso`) `M4` diff = `+0.0407`, 95% CI `[-0.0888, 0.1650]` (CI includes 0).
+- Stage 2 practical head-to-head (`BD*=bd_c2` vs `AH-PRAG`, Lyapunov, 144 runs):
+  - Both arms: `M2=1.0`, `M3=1.0` across 72 runs/arm.
+  - Pairwise (`bd_c2-ah_prag`) `M4` diff = `-11.5930`, 95% CI `[-34.7496, 0.0006]` (CI includes 0).
+  - Arm-level summary: `ah_prag M4=0.8285`, `bd_c2 M4=-10.7638`.
+  - Decision output: **no clear winner**, fallback simpler arm `bd_c2`.
+- Stage 3 transfer (Duffing, 78 runs):
+  - Both arms: `M2=1.0`, `M3=1.0`.
+  - Pairwise (`bd_c2-ah_prag`) `M4` diff = `-0.0849`, 95% CI `[-0.1100, -0.0632]` (favors `ah_prag` on M4).
+  - Pre-registered practical threshold (`+0.10` on M2/M3) not met; decision remains fallback `bd_c2`.
+- Robustness metric `M5` (B_proxy sensitivity): `0.0` for both finalist arms in all decision summaries.
+
+**2) Context in experiment design**
+
+The staged design separated confounds:
+- Stage 1 tested **Koopman structure effect** directly (`AH-ISO` removes exclusivity regularization confound).
+- Stage 2 compared practical finalists under the main Lyapunov decision protocol.
+- Stage 3 tested transfer on Duffing with misspecified `B_proxy`.
+
+**3) Interpretation**
+
+- In this evaluator regime, `M2` and `M3` are saturated and do not discriminate architectures.
+- Arrowhead variants (`ah_iso`/`ah_prag`) tend to show stronger local-fit and/or `M4` behavior, but uncertainty and practical-threshold rules prevent a decisive win on primary criteria.
+- Block-diagonal (`bd_c2`) remains competitive on control-readiness rates and is selected by the pre-registered fallback rule because there is no clear practical winner.
+
+**4) Project implications**
+
+- For current downstream LQR workflow, keep `bd_c2` as the default baseline.
+- Treat `ah_prag` as the strongest alternative when optimizing cost reduction behavior.
+- Primary bottleneck shifts from feasibility/stability to **metric discriminativeness and robustness** (especially heavy-tailed `M4` cases).
+
+**5) Next steps**
+
+1. Make `M2/M3` harder to saturate (stronger perturbations, harder regimes, stricter feasibility/stability checks).
+2. Add robust `M4` summaries (median, trimmed mean, tail-risk metrics) and explicitly diagnose outlier settings (notably `bd_c2`, `ts=512`, `B_proxy=13` on Lyapunov Stage 2).
+3. Re-run a reduced head-to-head after adding explicit spectral constraints, then re-apply the same pre-registered decision rule.
+
+### -5) LQR Decision Pipeline Implementation (completed)
 Timestamp: 2026-02-05
 
 Plan: `docs/planning/block_diagonal_vs_arrowhead_lqr_decision_plan.md`
