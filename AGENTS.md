@@ -35,6 +35,11 @@ Use `uv` for reproducible environments.
 - `pytest tests/test_model.py -v`: run a focused test module.
 - `pytest --cov=skae --cov-report=html`: coverage report (optional).
 
+## SLURM Submission Rules
+- Launch SLURM job scripts with `sbatch` (for scripts with `#SBATCH` headers); do not run them directly with `bash`.
+- Prefer queue/launcher scripts that call `sbatch` to submit dependency chains (sweep -> collect -> compare).
+- If a script is intended for SLURM execution, submit it via `sbatch scripts/<name>.sh` to ensure cluster-side permissions and environment are applied.
+
 ## Coding Style & Naming Conventions
 - Python, 4-space indentation, and PEP 8 style conventions.
 - Use `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants.
