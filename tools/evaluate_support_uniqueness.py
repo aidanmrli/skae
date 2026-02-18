@@ -375,7 +375,7 @@ def main():
     parser.add_argument('--checkpoint', type=str, required=True,
                         help='Path to trained model checkpoint (last.pt or checkpoint.pt)')
     parser.add_argument('--system', type=str, default=None,
-                        help='System to evaluate (defaults to checkpoint env). Supported: duffing, lyapunov')
+                        help='System to evaluate (defaults to checkpoint env). Supported: duffing, lyapunov, multiwell*')
     parser.add_argument('--num_trajectories', type=int, default=100,
                         help='Number of test trajectories')
     parser.add_argument('--trajectory_length', type=int, default=500,
