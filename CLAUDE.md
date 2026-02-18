@@ -15,7 +15,6 @@ If this is true, we can isolate each basin and solve with LQR. Then, a nonlinear
 More detailed notes about the project are in `docs/notes.tex`, which contains the working draft of the research paper that we will publish and contains any annotated notes. This essentially contains the current state of the project.
 
 IMPORTANT NOTE: After any changes that we make to the framework or experiments that we run, we should ALWAYS
-* make a descriptive git commit and push, and
 * update `docs/notes.tex` by describing the experiment that was ran, and the results of the experiment. Also, interpret the results of the experiment in context if possible. When writing, carefully discern what has been implemented and explain it to me thoroughly. Check all the math. The tone of your writing should be academic and appropriate for an audience specializing in mathematics and machine learning. The writing should be for an award-winning paper at NeurIPS or ICML. Do not make any explicit references to code or filenames. Focus on explaining well in a scientific manner so that a reader can understand and reproduce the results.
 
 ## Documentation Updates
