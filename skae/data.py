@@ -806,6 +806,186 @@ class LyapunovMultiAttractor(Env):
         return integrate_rk4(state, None, self.dt, dynamics_fn)
 
 
+class MultiWellTransition(Env):
+    """Multi-well potential system with deterministic transition mechanisms.
+
+    Core 2D dynamics use smooth wells centered at configurable attractor points.
+    Four deterministic variants are supported:
+      - gradient: pure descent in the multi-well potential
+      - rotational: adds a 90-degree rotated gradient component
+      - energy: adds radial deterministic energy injection
+      - strong_transition: combines rotational and radial terms
+
+    For dim > 2:
+      - embed mode: evolve only the 2D core and linearly decay extra dimensions
+      - full mode: run multi-well dynamics in full dimension
+    """
+
+    _VALID_MODES = {"gradient", "rotational", "energy", "strong_transition"}
+
+    def __init__(
+        self,
+        cfg: Config,
+        dynamics_mode: Optional[str] = None,
+        force_dim: Optional[int] = None,
+        force_extend_mode: Optional[str] = None,
+    ):
+        super().__init__(cfg)
+        mw_cfg = cfg.ENV.MULTIWELL if hasattr(cfg.ENV, "MULTIWELL") else None
+
+        self.dt = mw_cfg.DT if mw_cfg is not None else 0.02
+        self.sigma = mw_cfg.SIGMA if mw_cfg is not None else 0.7
+        self.dim = mw_cfg.DIM if mw_cfg is not None else 2
+        self.num_basins = mw_cfg.NUM_BASINS if mw_cfg is not None else 5
+        self.points_mode = mw_cfg.POINTS_MODE if mw_cfg is not None else "fixed"
+        self.center_scale = mw_cfg.CENTER_SCALE if mw_cfg is not None else 2.0
+        self.min_separation = mw_cfg.MIN_SEPARATION if mw_cfg is not None else 0.6
+        self.init_range = mw_cfg.INIT_RANGE if mw_cfg is not None else 2.5
+        self.extend_mode = mw_cfg.EXTEND_MODE if mw_cfg is not None else "embed"
+        self.extra_decay = mw_cfg.EXTRA_DECAY if mw_cfg is not None else 1.0
+
+        base_mode = mw_cfg.DYNAMICS_MODE if mw_cfg is not None else "gradient"
+        self.dynamics_mode = (dynamics_mode or base_mode).lower()
+        self.alpha = mw_cfg.ALPHA if mw_cfg is not None else 0.6
+        self.beta = mw_cfg.BETA if mw_cfg is not None else 1.2
+        self.strong_alpha = mw_cfg.STRONG_ALPHA if mw_cfg is not None else 0.8
+        self.strong_beta = mw_cfg.STRONG_BETA if mw_cfg is not None else 1.0
+
+        if force_dim is not None:
+            self.dim = force_dim
+        if force_extend_mode is not None:
+            self.extend_mode = force_extend_mode
+
+        if self.dim < 2:
+            raise ValueError("MultiWellTransition requires DIM >= 2.")
+        if self.dynamics_mode not in self._VALID_MODES:
+            raise ValueError(
+                f"Unknown MULTIWELL.DYNAMICS_MODE '{self.dynamics_mode}'. "
+                f"Expected one of {sorted(self._VALID_MODES)}."
+            )
+
+        # Canonical 5-point layout matching the user-provided system sketch.
+        self._base_points_2d = torch.tensor([
+            [-1.0, -1.0],
+            [1.0, -1.0],
+            [-1.0, 1.0],
+            [1.0, 1.0],
+            [0.0, 0.0],
+        ], dtype=torch.float32)
+
+        self.points_2d, self.points = self._init_points()
+        self._sigma2 = float(self.sigma) * float(self.sigma)
+
+    def _sample_points(
+        self,
+        num_points: int,
+        dim: int,
+        rng: torch.Generator,
+    ) -> torch.Tensor:
+        points: List[torch.Tensor] = []
+        max_tries = max(1000, num_points * 500)
+        tries = 0
+        while len(points) < num_points and tries < max_tries:
+            candidate = (torch.rand(dim, generator=rng) * 2.0 - 1.0) * self.center_scale
+            if not points:
+                points.append(candidate)
+            else:
+                dists = torch.stack([torch.norm(candidate - p) for p in points])
+                if torch.all(dists >= self.min_separation):
+                    points.append(candidate)
+            tries += 1
+        if len(points) < num_points:
+            remaining = num_points - len(points)
+            extra = (torch.rand(remaining, dim, generator=rng) * 2.0 - 1.0) * self.center_scale
+            points.extend([p for p in extra])
+        return torch.stack(points, dim=0)
+
+    def _pad_points(self, points: torch.Tensor, dim: int) -> torch.Tensor:
+        if points.shape[1] == dim:
+            return points
+        padded = torch.zeros(points.shape[0], dim, dtype=points.dtype)
+        padded[:, :points.shape[1]] = points
+        return padded
+
+    def _init_points(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        seed = getattr(self.cfg, "SEED", 0)
+        rng = torch.Generator().manual_seed(seed)
+        point_dim = 2 if self.extend_mode == "embed" else self.dim
+
+        if self.points_mode == "fixed":
+            points = self._base_points_2d.clone()
+            if self.num_basins <= points.shape[0]:
+                points = points[:self.num_basins]
+            else:
+                extra = self._sample_points(self.num_basins - points.shape[0], 2, rng)
+                points = torch.cat([points, extra], dim=0)
+        elif self.points_mode == "random":
+            points = self._sample_points(self.num_basins, point_dim, rng)
+        else:
+            raise ValueError(
+                f"Unknown POINTS_MODE '{self.points_mode}' (expected 'fixed' or 'random')."
+            )
+
+        points_2d = points[:, :2] if points.shape[1] >= 2 else self._pad_points(points, 2)
+        points_full = self._pad_points(points, self.dim)
+        return points_2d, points_full
+
+    def _potential_gradient(self, state: torch.Tensor, points: torch.Tensor) -> torch.Tensor:
+        diff = state.unsqueeze(0) - points
+        r2 = (diff * diff).sum(dim=1)
+        weights = torch.exp(-r2 / self._sigma2)
+        return 2.0 * (diff * weights.unsqueeze(1)).sum(dim=0)
+
+    @staticmethod
+    def _rot90(vec: torch.Tensor) -> torch.Tensor:
+        rot = torch.zeros_like(vec)
+        if vec.shape[0] >= 2:
+            rot[0] = -vec[1]
+            rot[1] = vec[0]
+        return rot
+
+    def _velocity(self, state: torch.Tensor, grad: torch.Tensor) -> torch.Tensor:
+        if self.dynamics_mode == "gradient":
+            return -grad
+        if self.dynamics_mode == "rotational":
+            return -grad + self.alpha * self._rot90(grad)
+        if self.dynamics_mode == "energy":
+            r = torch.norm(state)
+            return -grad + self.beta * torch.sin(r) * state
+
+        # strong_transition
+        r = torch.norm(state)
+        return (
+            -grad
+            + self.strong_alpha * self._rot90(grad)
+            + self.strong_beta * torch.cos(2.0 * r) * state
+        )
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if rng is None:
+            rng = torch.Generator()
+        state = torch.empty(self.dim).uniform_(-self.init_range, self.init_range, generator=rng)
+        return state.to(dtype=torch.float32)
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        def dynamics_fn(state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+            if self.extend_mode == "embed" and self.dim > 2:
+                core_state = state[:2]
+                grad2 = self._potential_gradient(core_state, self.points_2d)
+                dx2 = self._velocity(core_state, grad2)
+                dx_extra = -self.extra_decay * state[2:]
+                return torch.cat([dx2, dx_extra], dim=0)
+
+            grad = self._potential_gradient(state, self.points)
+            return self._velocity(state, grad)
+
+        return integrate_rk4(state, None, self.dt, dynamics_fn)
+
+
 class BlendedLinearSystem(Env):
     """Synthetic 2D system with 3 basins having genuinely different local dynamics.
 
@@ -982,6 +1162,24 @@ _ENV_REGISTRY = {
     "parabolic": Parabolic,
     "lyapunov": LyapunovMultiAttractor,
     "blended": BlendedLinearSystem,
+    "multiwell": MultiWellTransition,
+    "multiwell_gradient": lambda cfg: MultiWellTransition(cfg, dynamics_mode="gradient"),
+    "multiwell_rotational": lambda cfg: MultiWellTransition(cfg, dynamics_mode="rotational"),
+    "multiwell_energy": lambda cfg: MultiWellTransition(cfg, dynamics_mode="energy"),
+    "multiwell_strong_transition": lambda cfg: MultiWellTransition(cfg, dynamics_mode="strong_transition"),
+    # Fixed 8D aliases for parity with existing Lyapunov-HD experiments.
+    "multiwell_gradient_hd": lambda cfg: MultiWellTransition(
+        cfg, dynamics_mode="gradient", force_dim=8, force_extend_mode="embed"
+    ),
+    "multiwell_rotational_hd": lambda cfg: MultiWellTransition(
+        cfg, dynamics_mode="rotational", force_dim=8, force_extend_mode="embed"
+    ),
+    "multiwell_energy_hd": lambda cfg: MultiWellTransition(
+        cfg, dynamics_mode="energy", force_dim=8, force_extend_mode="embed"
+    ),
+    "multiwell_strong_transition_hd": lambda cfg: MultiWellTransition(
+        cfg, dynamics_mode="strong_transition", force_dim=8, force_extend_mode="embed"
+    ),
 }
 
 
@@ -992,7 +1190,8 @@ def make_env(cfg: Config) -> Env:
     
     For built-in environments:
         cfg.ENV.ENV_NAME should be one of: "duffing", "pendulum", "lotka_volterra",
-        "lorenz63", "parabolic", "lyapunov"
+        "lorenz63", "parabolic", "lyapunov", "blended", "multiwell",
+        "multiwell_<variant>", "multiwell_<variant>_hd"
     
     For dysts systems:
         cfg.ENV.ENV_NAME should be "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")
@@ -1013,6 +1212,11 @@ def make_env(cfg: Config) -> Env:
     if env_name.startswith("dysts:"):
         system_name = env_name.split(":", 1)[1]
         return _make_dysts_env(system_name, cfg)
+
+    # Allow mode-specific multiwell syntax: "multiwell:<mode>"
+    if env_name.startswith("multiwell:"):
+        mode = env_name.split(":", 1)[1]
+        return MultiWellTransition(cfg, dynamics_mode=mode)
     
     # Check built-in registry first
     if env_name in _ENV_REGISTRY:
@@ -1044,7 +1248,7 @@ def _make_dysts_env(system_name: str, cfg: Config):
         DystsEnv instance
     """
     try:
-        from benchmarks.dysts_adapter import DystsEnv, is_dysts_available
+        from skae.benchmarks.dysts_adapter import DystsEnv, is_dysts_available
     except ImportError:
         raise ImportError(
             "benchmarks module not found. Make sure the benchmarks/ directory exists."
@@ -1081,7 +1285,7 @@ def get_available_environments() -> dict:
     }
     
     try:
-        from benchmarks.dysts_adapter import get_dysts_systems, is_dysts_available
+        from skae.benchmarks.dysts_adapter import get_dysts_systems, is_dysts_available
         if is_dysts_available():
             result["dysts"] = get_dysts_systems()
     except ImportError:
