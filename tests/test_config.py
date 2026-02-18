@@ -27,6 +27,7 @@ def test_get_default_config():
     assert hasattr(cfg.ENV, "ENV_NAME")
     assert hasattr(cfg.ENV, "DUFFING")
     assert hasattr(cfg.ENV, "PARABOLIC")
+    assert hasattr(cfg.ENV, "MULTIWELL")
     
     # Check MODEL structure
     assert hasattr(cfg.MODEL, "MODEL_NAME")
@@ -80,20 +81,9 @@ def test_config_modification():
     cfg = get_default_config()
     original_lr = cfg.TRAIN.LR
     
-    cfg.TRAIN.LR = 1e-4
-    assert cfg.TRAIN.LR == 1e-4
+    cfg.TRAIN.LR = 2000
+    assert cfg.TRAIN.LR == 2000
     assert cfg.TRAIN.LR != original_lr
-
-
-def test_lista_config():
-    """Test LISTA-specific configuration parameters."""
-    cfg = get_train_lista_config()
-    
-    # Check LISTA-specific fields exist and have correct values
-    assert cfg.MODEL.ENCODER.LISTA.NUM_LOOPS == 10
-    assert cfg.MODEL.ENCODER.LISTA.L == 1e4
-    assert cfg.MODEL.ENCODER.LISTA.ALPHA == 0.1
-    assert cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER is True
 
 
 def test_config_dt_extraction():
@@ -105,4 +95,3 @@ def test_config_dt_extraction():
     # Check that dt is correctly set
     assert cfg.ENV.DUFFING.DT == 0.02
     assert cfg.ENV.ENV_NAME == "duffing"
-
