@@ -230,7 +230,18 @@ def test_generate_trajectory_reproducibility():
 def test_make_env_registry():
     """Test make_env function with registered systems."""
     # Test all registered systems
-    systems = ["duffing", "pendulum", "lotka_volterra", "lorenz63", "parabolic"]
+    systems = [
+        "duffing",
+        "pendulum",
+        "lotka_volterra",
+        "lorenz63",
+        "parabolic",
+        "multiwell_gradient",
+        "multiwell_rotational",
+        "multiwell_energy",
+        "multiwell_strong_transition",
+        "multiwell_gradient_hd",
+    ]
     
     for name in systems:
         cfg = Config()
@@ -256,6 +267,22 @@ def test_make_env_registry():
         state = env.reset(rng)
         next_state = env.step(state)
         assert next_state.shape == state.shape
+
+
+def test_multiwell_hd_dimension():
+    """Test fixed-HD multiwell aliases produce 8D states."""
+    cfg = Config()
+    cfg.ENV.ENV_NAME = "multiwell_rotational_hd"
+    env = make_env(cfg)
+
+    rng = torch.Generator()
+    rng.manual_seed(42)
+    state = env.reset(rng)
+    next_state = env.step(state)
+
+    assert state.shape == (8,)
+    assert next_state.shape == (8,)
+    assert torch.all(torch.isfinite(next_state))
 
 
 def test_make_env_invalid_system():
@@ -316,4 +343,3 @@ def test_env_batch_consistency():
     
     # Results should match
     assert torch.allclose(next_single, next_batch[0], atol=1e-5)
-
