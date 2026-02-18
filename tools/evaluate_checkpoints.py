@@ -137,11 +137,9 @@ def evaluate_checkpoint(
     eval_cfg = Config.from_dict(model_cfg.to_dict())
     eval_cfg.ENV.ENV_NAME = system
     
-    # Get dt from evaluation config (uses the specified system)
-    dt = get_dt_from_config(eval_cfg)
-    
-    # Verify observation size compatibility
+    # Verify observation size compatibility and derive dt from instantiated env.
     eval_env = make_env(eval_cfg)
+    dt = getattr(eval_env.unwrapped, "dt", get_dt_from_config(eval_cfg))
     if eval_env.observation_size != eval_model.observation_size:
         print(
             f"  WARNING: System '{system}' has observation size {eval_env.observation_size} "
@@ -220,13 +218,15 @@ def main():
         help='Path to training run directory containing checkpoints'
     )
     
-    # Required arguments
+    # Optional system override
     parser.add_argument(
         '--system',
         type=str,
-        required=True,
-        choices=['duffing', 'pendulum', 'lotka_volterra', 'lorenz63', 'parabolic', 'lyapunov'],
-        help='System/environment to evaluate on'
+        default=None,
+        help=(
+            "System/environment to evaluate on. If omitted, uses the run config ENV_NAME "
+            "(supports built-in and dysts systems such as 'dysts:Lorenz')."
+        ),
     )
     
     # Optional arguments
@@ -295,7 +295,9 @@ def main():
                 f"Cannot determine model configuration."
             )
     
+    eval_system = args.system if args.system else cfg.ENV.ENV_NAME
     print(f"Configuration loaded: {cfg.ENV.ENV_NAME} system, {cfg.MODEL.MODEL_NAME} model")
+    print(f"Evaluation system: {eval_system}")
     print("-" * 80)
     
     # Set output directory
@@ -305,15 +307,20 @@ def main():
     all_results = {}
     for checkpoint_name in args.checkpoints:
         checkpoint_path = run_dir / checkpoint_name
-        # Extract name without extension for cleaner output
-        name_key = checkpoint_name.replace('.pt', '')
+        # Keep legacy naming for compatibility with collector tooling.
+        if checkpoint_name == "checkpoint.pt":
+            name_key = "best"
+        elif checkpoint_name == "last.pt":
+            name_key = "last"
+        else:
+            name_key = checkpoint_name.replace('.pt', '')
         
         results = evaluate_checkpoint(
             checkpoint_path=checkpoint_path,
             checkpoint_name=name_key,
             cfg=cfg,
             device=device,
-            system=args.system,
+            system=eval_system,
             output_dir=output_dir,
         )
         
@@ -325,7 +332,7 @@ def main():
         summary = {
             "run_dir": str(run_dir),
             "evaluated_checkpoints": list(all_results.keys()),
-            "system": args.system,
+            "system": eval_system,
         }
         summary_file = output_dir / "evaluation_summary.json"
         with open(summary_file, "w") as f:
@@ -340,4 +347,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
