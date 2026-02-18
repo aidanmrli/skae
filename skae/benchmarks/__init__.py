@@ -6,8 +6,8 @@ This module provides:
 - Benchmark runner: Large-scale benchmarking infrastructure
 """
 
-from benchmarks.dysts_adapter import DystsEnv, get_dysts_systems, is_dysts_available
-from benchmarks.system_catalog import (
+from skae.benchmarks.dysts_adapter import DystsEnv, get_dysts_systems, is_dysts_available
+from skae.benchmarks.system_catalog import (
     QUICK_TEST,
     STANDARD_BENCHMARK,
     MULTI_ATTRACTOR_SYSTEMS,
