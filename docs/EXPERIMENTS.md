@@ -1,6 +1,6 @@
 # Experiments
 
-Date: February 7, 2026
+Date: February 18, 2026
 
 Goal: Achieve **unique support patterns for unique basins** (mechanistic interpretability), starting from the simplest setups and iterating on sparsity, target size, and Koopman structure.
 
@@ -13,6 +13,22 @@ Assumption split:
 - **Benchmark evaluation:** using known basin counts/labels is acceptable for diagnostics.
 
 What we found so far:
+- **Multi-well transition benchmark scaffolding is now integrated in-code for both 2D and lifted 8D settings.** Added deterministic variants (`gradient`, `rotational`, `energy`, `strong_transition`) with shared center-based basin diagnostics, so these systems can now be run in the existing train/eval pipeline and basin-support tools.
+- **Multi-system forecasting retrospective (15 multi-basin dysts systems, latest run per system) is complete.** With periodic reencoding, `generic_sparse` achieved strong H1000 forecasting on all systems (`15/15` with H1000 best-periodic < `10`, median H1000 best-periodic `0.0208`), while older `lista_nonlinear` settings were less reliable (`9/15` systems < `10`, median `4.787`) with heavy-tail failures on `QiChen`, `LorenzCoupled`, and `Dadras`.
+- **Phase-1 LISTA ReLU + `sparsity_coeff=1.5` transfer is now complete at the queue level, but seed-collision artifacts still limit canonical seed accounting.** Latest-per-system metrics remained fragile (`12/15` good systems, median `1.3658`) with catastrophic tails on `Hadley` (`2.84e16`) and `Dadras` (`1.97e13`), plus a large failure on `LuChenCheng` (`60.79`).
+- **The new LISTA setting improved over old `lista_nonlinear` but still underperformed `generic_sparse`.** Phase-1 candidate beat old `lista_nonlinear` on `9/15` shared systems (median candidate/anchor ratio `0.3047`) yet lost to `generic_sparse` on `15/15` systems (median ratio `34.79`).
+- **Phase-1 periodic policy currently collapses to near-every-step refresh for LISTA.** For latest-per-system rows, best mode was `periodic_1` on `13/15` systems, indicating that local linear rollouts are still unstable without very frequent reencoding.
+- **Phase-1B rerun with expanded periodic grid is complete and recovered.** After fixing collector handling for seed-nested run paths, Phase-1B latest-per-system results were regenerated (`45` rows collected; compare + seed-all artifacts restored) and showed **worse** LISTA stability than the earlier backfilled snapshot (`10/15` good systems, `4/15` catastrophic, median best-periodic `1.5976`).
+- **Phase-1B full-seed gate recheck was rerun locally on February 18, 2026 and confirms no-go.** Latest-per-system comparisons remained unchanged (`10/15` good, `4/15` catastrophic; wins vs `generic_sparse`: `0/15`, vs `lista_nonlinear`: `7/15`), and seed robustness stayed weak (`all-seeds-good=9/15`, `any-seed-catastrophic=4/15`).
+- **Seed robustness is insufficient in the partially recovered Phase-1 set.** In the available `33` evaluated phase-1 runs, only `10/15` systems were good across all available seeds, and `3/15` had at least one catastrophic seed (`H1000 >= 1000`).
+- **Infrastructure blockers were identified and fixed for future runs.** `tools/train.py` had an indentation bug that skipped checkpoint evaluation (no `evaluation_results_best.json` outputs); this is fixed. `tools/evaluate_checkpoints.py` now supports dysts systems and writes collector-compatible `evaluation_results_best.json`. Phase-1 sweep logging now uses seed-specific subdirectories to avoid run-dir collisions.
+- **LISTA final-op Phase-3 follow-up (`sparsity_coeff=1.5`) is now recovered and fully collected (`96/96`).** The missing run (`duffing`, `arrowhead_no_excl`, `ts=256`, `relu`, `seed=3`) was backfilled on February 18, 2026, and consolidated artifacts were regenerated under `/network/scratch/l/lia/skae/lista_final_op_experiment/results/phase3_structured_transfer_sp15`.
+- **Queue scripts for forecasting recovery are now aligned but infra-blocked.** `scripts/sweep_dysts_forecast_tail_recovery_sp20_a020.sh` now covers all six intended systems (`LorenzCoupled`, `Dadras`, `SprottTorus`, `MultiChua`, `LuChenCheng`, `Hadley`), and `scripts/queue_dysts_forecast_phase1_seed_recovery.sh` is prepared for canonical Phase-1 seed recovery, but `sbatch` submission is still blocked by SLURM controller connect failures.
+- **Periodic reencoding is effective but model-dependent across systems.** In the same retrospective, best periodic improved over no-reencode on `15/15` (`generic_sparse`) and `11/15` (`lista_nonlinear`) systems; however, for `lista_nonlinear`, every-step reencoding still beat best periodic on most systems (`12/15`), indicating period selection and encoder setting remain sensitive.
+- **LISTA final-op ablation is complete (224/224 runs).** Replacing final shrinkage with final ReLU substantially reduced catastrophic long-horizon failures in dense LISTA baselines and lowered mean spectral radius (Phase 1 overall: mean SR `1.0068` for ReLU vs `1.0187` for shrink; finite H1000 no-reencode mean `6.57e16` vs `8.50e30`).
+- **On Lyapunov dense baselines, ReLU improved basin-support alignment at higher capacity.** In Phase 1 (dense K), ReLU increased CosSep at `ts=256` (`0.650` vs `0.474`) and `ts=512` (`0.700` vs `0.576`) while dramatically improving H1000 no-reencode (`20.48` vs `1.12e19` at `ts=256`; `160.96` vs `1.95e22` at `ts=512`).
+- **ReLU needs stronger sparsity for dense stability-quality tradeoff.** In Phase 2 (Lyapunov, ReLU-only), increasing `sparsity_coeff` from `1.0` to `1.5` reduced H1000 to the bounded regime (`3.86` at `ts=256`, `3.85` at `ts=512`) while keeping moderate CosSep (`0.531`, `0.627`), whereas `2.0` over-sparsified and sharply reduced CosSep (`0.269`, `0.204`).
+- **Structured-transfer effects are K-dependent.** In Phase 3 on Lyapunov (`sparsity_coeff=1.0`), ReLU improved diagonal/block-diagonal CosSep and H1000 (e.g., block-diagonal `ts=512`: `dCosSep=+0.378`, `dH1000=-28.54`), but harmed arrowhead-no-excl separation (`dCosSep=-0.099` at `ts=256`, `-0.075` at `ts=512`).
 - **Uniqueness** is solved at sufficient capacity (ts >= 256). LISTA encoders reliably produce distinct basin supports.
 - The apparent **uniqueness–consistency tradeoff** was a thresholding artefact. Cosine similarity shows high intra-basin consistency when using threshold-free metrics.
 - **Koopman structure is secondary** to the encoder for basin discrimination. Block-diagonal K improves parameter efficiency and can improve eval error.
@@ -30,8 +46,16 @@ What we found so far:
 - **Exclusivity regularization does not improve LQR control metrics and significantly hurts basin separation.** In a 144-run ablation (129 completed), `ah_prag` vs `ah_prag_no_excl` showed no significant `M4` difference (Cohen's d = 0.07), while no-exclusivity achieved significantly better CosSep (0.80 vs 0.74, Cohen's d = −0.97, p < 0.001) and better recovery `M5` (0.55 vs 0.48, Cohen's d = −0.82, p < 0.001). Exclusivity's only advantage is a modest spectral-stability edge (45% vs 61% unstable runs).
 
 Current solution direction:
-- Use **`bd_c2` as the default simpler arm** for downstream label-free control experiments (current fallback winner under the pre-registered rule), while keeping `ah_prag` as the primary comparator.
-- Keep **`diag_c1` as a stability-first comparator** in LQR-readiness studies; it is competitive and slightly stronger on Stage-2 `M4`, but not yet a pre-registered-rule winner.
+- Add a **multi-well transition bridge benchmark** between Lyapunov and dysts: run the same support/forecast diagnostics on 2D and 8D variants to stress deterministic basin leakage without requiring known basin labels at training time.
+- Use **`generic_sparse` + periodic reencoding** as the current cross-system forecasting anchor while sparse LISTA settings are being stabilized across the full multi-basin system set.
+- Treat **Phase-1 LISTA ReLU + `sparsity_coeff=1.5` as no-go for LQR progression today**: it is better than old sparse LISTA but still too fragile vs `generic_sparse`, with catastrophic tails and near-every-step reencoding dependence.
+- Run a **forecasting-recovery iteration before control stages**: focused stabilization on failing systems (`Hadley`, `Dadras`, `LuChenCheng`, plus seed-tail systems from the seed-all analysis), then repeat the same H1000 comparison gates.
+- Use the **completed Phase-1B expanded-period results** as the current forecasting gate: they indicate the current LISTA candidate is still no-go for control progression and should move to targeted tail-risk recovery before any LQR-stage advancement.
+- Keep **seed-isolated run outputs** (`.../${SYSTEM}/seed_${SEED}`) as standard for all multi-seed sweeps to avoid collisions and preserve uncertainty estimates.
+- Use **`diag_c1` as the default baseline** for all new features and experiments going forward because it is the simplest Koopman structure and is competitive on current readiness metrics.
+- For dense LISTA baselines, use **final ReLU with stronger sparsity (`sparsity_coeff≈1.5`)** as the current working point: it avoids catastrophic H1000 behavior while keeping usable Lyapunov CosSep.
+- For structured K, treat final-op choice as **structure-dependent**: ReLU is promising for diagonal/block-diagonal on Lyapunov, but arrowhead-no-excl currently favors shrink for basin-support alignment.
+- Apply a **simplicity-first escalation rule**: move from diagonal to more complex structures (`block_diagonal`, then arrowhead variants) only when diagonal clearly fails to learn or does not meet target performance/robustness.
 - Use **arrowhead K without exclusivity** as a strong pairwise candidate at low-to-mid size; the exclusivity ablation shows that exclusivity hurts CosSep and M5 without improving M4, so the default arrowhead arm should disable exclusivity (`ah_prag_no_excl`) unless spectral stability is the primary concern.
 - Use **diagonal K** as the only sequence-loss option that stays stable at short L (4–8), with explicit spectral constraints for larger L or higher ts.
 - Add **explicit spectral regularization or constrained parameterization** to keep SR < 1 at high ts and under sequence loss.
@@ -41,7 +65,15 @@ Current solution direction:
 - **Periodic reencoding** is the fallback: `periodic_100` is usually best for spectrally stable models, while unstable models often need shorter periods (`periodic_50`/`periodic_25`) to remain bounded.
 
 Outstanding problems (active):
+- **No baseline metrics are collected yet for the new multi-well transition family.** We still need first-pass 2D vs 8D support/forecasting runs to determine whether rotational/energy leakage improves benchmark discriminativeness and where sparse support alignment breaks.
+- **Phase-1 canonical seed accounting remains incomplete due run-dir collisions.** The original chain (`8675838` -> `8675839` -> `8675935`) still has only `33/45` canonical artifacts; a clean seed-isolated rebuild chain is prepared (`scripts/queue_dysts_forecast_phase1_seed_recovery.sh`) but currently blocked by SLURM controller connectivity.
+- **Phase-1B queue chain completed, but performance regressed under expanded-period evaluation.** Recovered Phase-1B artifacts show `10/15` good systems and `4/15` catastrophic latest-per-system outcomes, confirming persistent tail risk.
+- **Sparse LISTA remains unstable for long-horizon dysts transfer.** Even with ReLU + stronger sparsity, latest-per-system results include catastrophic H1000 failures on `Hadley`/`Dadras` and large error on `LuChenCheng`.
+- **Best periodic mode collapsing to `periodic_1` indicates weak autonomous rollout stability.** Forecast quality currently depends on very frequent reencoding for many systems.
+- **Sparse LISTA forecasting is not yet robust across multi-basin systems.** Retrospective latest-run results show only `9/15` systems with H1000 best-periodic < `10`, with severe outliers (`QiChen`, `LorenzCoupled`, `Dadras`) despite reencoding.
+- **Reencoding-period policy is not yet stable for sparse LISTA.** Best periodic often collapsed to very short periods (`periodic_10`) for hard systems and still underperformed every-step reencoding in most `lista_nonlinear` cases.
 - **Reliable label-free regime assignment from sparse supports is still open.** We need a robust unsupervised mapping from support patterns to local control models when basin count/labels are unknown at training/deployment time.
+- **Phase-3 transfer behavior at `sparsity_coeff=1.5` is now complete but still unresolved as a design rule.** With full `96/96` artifacts recovered, ReLU helps Lyapunov diagonal/block-diagonal separability but degrades Duffing across structures and worsens Lyapunov arrowhead-no-excl, so final-op policy remains structure/system dependent.
 - **No clear LQR winner between arrowhead and block-diagonal under the pre-registered threshold.** Current decisions on Lyapunov and Duffing both fall back to the simpler arm (`bd_c2`) because metric gains do not pass the practical threshold gate.
 - **Metric/rule mismatch remains after adding diagonal.** Even when `diag_c1` improves `M4` vs `ah_prag`, `M2/M3` saturation plus practical-threshold gating still prevents a decisive rule-based winner.
 - **Closed-loop cost reduction (`M4`) is heavy-tailed for some block-diagonal settings.** Stage 2 includes catastrophic outlier regimes (notably `bd_c2`, `ts=512`, `B_proxy=13`), which widen CIs and prevent confident selection.
@@ -128,8 +160,65 @@ Completed (February 6, 2026):
 Completed (February 7, 2026):
 - Stage 2 arrowhead exclusivity attribution sweep: `scripts/sweep_lqr_decision_stage2_excl_ablation.sh` -- job `8622549` (array 0-143; 144 jobs; arms `{ah_prag, ah_prag_no_excl}`) -- **COMPLETED** (129/144; 15 failed due to shell parse error at LQR eval stage, training + eigenvalue analysis intact for all 144)
 
-Submitted (February 7, 2026):
-- Exclusivity ablation recovery (support_eval + cosine_diag + LQR eval for 15 failed runs): `scripts/sweep_lqr_decision_stage2_excl_ablation_recovery.sh` -- job `8622997` (array 0-14)
+Completed (February 7, 2026):
+- Exclusivity ablation recovery (support_eval + cosine_diag + LQR eval for 15 failed runs): `scripts/sweep_lqr_decision_stage2_excl_ablation_recovery.sh` -- job `8622997` (array 0-14) -- **COMPLETED** (15/15)
+
+Completed (February 6, 2026; recovered February 18, 2026):
+- LISTA final-op Phase 3 follow-up (`sparsity_coeff=1.5`) sweep: `scripts/sweep_lista_final_op_phase3_structured_transfer.sh` -- job `8626246` (array 0-95; 96 jobs; `BASE_OUT=/network/scratch/l/lia/skae/lista_final_op_experiment/phase3_structured_transfer_sp15`) -- **RECOVERED TO COMPLETE** (`96/96` artifacts after local/manual backfill of failed task `71`: `duffing`, `arrowhead_no_excl`, `ts=256`, `relu`, `seed=3`)
+- LISTA final-op Phase 3 follow-up collection (dependency `afterany:8626246`): wrapped `tools/collect_lista_final_op_experiment.py --phase_dirs phase3_structured_transfer_sp15` -- job `8626247` -- **RECOVERED LOCALLY** on February 18, 2026 with consolidated outputs at:
+  - `/network/scratch/l/lia/skae/lista_final_op_experiment/results/phase3_structured_transfer_sp15/{lista_final_op_rows.json,lista_final_op_summary_by_arm.json,lista_final_op_summary_paired.json,lista_final_op_summary.md}`
+
+Completed (February 12, 2026):
+- Dysts forecasting Phase 1 sweep (LISTA ReLU + `sparsity_coeff=1.5`, `target_size=256`): `scripts/sweep_dysts_forecast_phase1_lista_relu_sp15.sh` -- job `8675838` (array 0-44; 15 systems x 3 seeds) -- **COMPLETED** (`45/45` tasks completed; one long-running task finished after delay)
+- Dysts forecasting Phase 1 collection (dependency `afterany:8675838`): `scripts/collect_dysts_forecast_phase1.sh` -- job `8675839` -- **COMPLETED**
+- Dysts forecasting Phase 1 comparison/post-processing (dependency `afterany:8675839`): `scripts/compare_dysts_forecast_phase1.sh` -- job `8675935` -- **COMPLETED**
+
+Completed (February 12, 2026; recovered February 18, 2026):
+- Dysts forecasting Phase 1B sweep (LISTA ReLU + `sparsity_coeff=1.5`, `target_size=256`, expanded dysts periodic eval grid): `scripts/sweep_dysts_forecast_phase1_lista_relu_sp15.sh` with `BASE_OUT=/network/scratch/l/lia/skae/dysts_forecast_phase1b_lista_relu_sp15_ts256_pgrid` -- job `8676803` (array 0-44; 15 systems x 3 seeds) -- **COMPLETED** (`45/45`)
+- Dysts forecasting Phase 1B collection (dependency `afterany:8676803`): `scripts/collect_dysts_forecast_phase1.sh` with `PHASE1_ROOT=/network/scratch/l/lia/skae/dysts_forecast_phase1b_lista_relu_sp15_ts256_pgrid`, `OUT_DIR=results/dysts_forecasting_phase1b_period_grid` -- job `8676804` -- **COMPLETED**
+- Dysts forecasting Phase 1B comparison/post-processing (dependency `afterany:8676804`): `scripts/compare_dysts_forecast_phase1.sh` with `OUT_DIR=results/dysts_forecasting_phase1b_period_grid`, `SEED_OUT_DIR=results/dysts_forecasting_phase1b_period_grid_seed_all` -- job `8676805` -- **FAILED** (candidate rows missing due collector path-layout mismatch); local/manual recovery on February 18, 2026 regenerated:
+  - `results/dysts_forecasting_phase1b_period_grid/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+  - `results/dysts_forecasting_phase1b_period_grid_seed_all/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+
+In Progress (February 18, 2026):
+- Tail-risk recovery forecasting (manual staged queue):
+  - First job queued: `sbatch scripts/sweep_dysts_forecast_tail_recovery_sp20_a020.sh` -- job `8735882`
+  - Wait for `8735882` to finish, then queue collector:
+    - `sbatch scripts/collect_dysts_forecast_tail_recovery.sh`
+  - After collector finishes, queue comparison:
+    - `sbatch --export=ALL,PHASE1_ROOT=/network/scratch/l/lia/skae/dysts_forecast_tail_recovery_sp20_a020_ts256,OUT_DIR=results/dysts_forecasting_tail_recovery,SEED_OUT_DIR=results/dysts_forecasting_tail_recovery_seed_all,CANDIDATE_ROOT=lista_relu_sp20_a020_ts256_tail scripts/compare_dysts_forecast_phase1.sh`
+  - Sweep scope: `LorenzCoupled`, `Dadras`, `SprottTorus`, `MultiChua`, `LuChenCheng`, `Hadley`.
+
+Planned (February 18, 2026):
+- Canonical Phase-1 seed accounting recovery chain prepared:
+  - `scripts/queue_dysts_forecast_phase1_seed_recovery.sh`
+  - `scripts/collect_dysts_forecast_phase1.sh` (with `CANDIDATE_ROOT_LABEL` override support)
+  - `scripts/compare_dysts_forecast_phase1.sh`
+  - Seed-deficit audit artifact: `results/dysts_forecasting_phase1_seed_recovery_audit/seed_accounting.csv` (`33/45` currently available; deficits concentrated in `Duffing`, `Sakarya`, `Chua`, plus single-seed gaps in `Dadras`, `QiChen`, `SprottTorus`, `DequanLi`, `LuChenCheng`, `Hadley`)
+  - Submission attempt on February 18, 2026 failed due the same SLURM controller connect error.
+
+Planned (February 18, 2026):
+- Multi-well transition benchmark pilot prepared (local code integration complete):
+  - Environments: `multiwell_gradient`, `multiwell_rotational`, `multiwell_energy`, `multiwell_strong_transition`
+  - Lifted aliases: `multiwell_*_hd` (8D embed mode)
+  - First-pass matrix: `{2D, 8D} × {4 dynamics variants} × {generic_sparse, lista_nonlinear}`
+  - Evaluation: `tools/evaluate_support_uniqueness.py` (benchmark-label diagnostics), plus periodic forecasting via `tools/evaluate_checkpoints.py`
+
+Completed (February 12, 2026):
+- Phase-1 evaluation backfill (local/manual; no SLURM job): `scripts/backfill_dysts_forecast_phase1_eval.sh` logic executed over current run dirs -- **COMPLETED** (`33/33` run dirs scanned, `32` newly evaluated, `1` already evaluated, `0` failures).
+- Phase-1 latest-per-system collection + comparison (local/manual): `tools/collect_dysts_forecasting.py` + `scripts/compare_dysts_forecast_phase1.sh` with `OUT_DIR=results/dysts_forecasting_phase1_backfilled` -- **COMPLETED**
+
+Completed (February 18, 2026):
+- Phase-1B full-seed post-recovery gate recheck (local/manual): `tools/collect_dysts_forecasting.py` + `tools/compare_dysts_forecasting_roots.py` rerun on `/network/scratch/l/lia/skae/dysts_forecast_phase1b_lista_relu_sp15_ts256_pgrid` -- **COMPLETED** with regenerated artifacts:
+  - `results/dysts_forecasting_phase1b_period_grid_recheck/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+  - `results/dysts_forecasting_phase1b_period_grid_recheck_seed_all/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+
+Completed (February 6, 2026):
+- LISTA final-op Phase 0 smoke sweep: `scripts/sweep_lista_final_op_phase0_smoke.sh` -- job `8624794` (array 0-7; 8 jobs) -- **COMPLETED** (8/8)
+- LISTA final-op Phase 1 core sweep: `scripts/sweep_lista_final_op_phase1_core.sh` -- job `8624795` (array 0-95; 96 jobs) -- **COMPLETED** (96/96)
+- LISTA final-op Phase 2 ReLU sparsity-match sweep: `scripts/sweep_lista_final_op_phase2_sparsity_match.sh` -- job `8624796` (array 0-23; 24 jobs) -- **COMPLETED** (24/24)
+- LISTA final-op Phase 3 structured-K transfer sweep: `scripts/sweep_lista_final_op_phase3_structured_transfer.sh` -- job `8624797` (array 0-95; 96 jobs) -- **COMPLETED** (96/96)
+- LISTA final-op result collection (dependency `afterany:8624794:8624795:8624796:8624797`): `scripts/collect_lista_final_op_results.sh` -- job `8624798` -- **COMPLETED**
 
 Status check (February 6, 2026):
 - All arrays for jobs `8602046`, `8602047`, `8603752`, `8603753`, and `8605505` produced logs and `support_eval/*.json` outputs in `/network/scratch/l/lia/skae/...`.
@@ -145,11 +234,301 @@ Status check (February 6, 2026):
 - Diagonal pairwise decision artifacts were generated at:
   - `results/lqr_decision_stage2_diag_vs_bd/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}`
   - `results/lqr_decision_stage2_diag_vs_ah/{summary_decision_table.csv,lqr_readiness_summary.json,final_decision.md}`
-- Exclusivity ablation sweep (job `8622549`) completed 129/144 runs. All 144 output directories populated with training artifacts. 15 runs missing post-train eval (support_eval, cosine_diag, lqr_readiness) due to shell parse error; recovery submitted as job `8622997`.
+- Exclusivity ablation sweep (job `8622549`) completed 129/144 runs initially; recovery job `8622997` later completed the remaining 15 post-train eval runs (15/15).
+- LISTA final-op sweep jobs `8624794`/`8624795`/`8624796`/`8624797` completed and collector job `8624798` produced:
+  - `/network/scratch/l/lia/skae/lista_final_op_experiment/results/lista_final_op_rows.json`
+  - `/network/scratch/l/lia/skae/lista_final_op_experiment/results/lista_final_op_summary_by_arm.json`
+  - `/network/scratch/l/lia/skae/lista_final_op_experiment/results/lista_final_op_summary_paired.json`
+  - `/network/scratch/l/lia/skae/lista_final_op_experiment/results/lista_final_op_summary.md`
+- Dysts forecasting retrospective artifacts were generated at:
+  - `results/dysts_forecasting_retrospective/dysts_forecasting_rows.csv`
+  - `results/dysts_forecasting_retrospective/dysts_forecasting_summary.json`
+  - `results/dysts_forecasting_retrospective/dysts_forecasting_summary.md`
+- Phase-1 backfilled forecasting artifacts were generated at:
+  - `results/dysts_forecasting_phase1_backfilled/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+  - `results/dysts_forecasting_phase1_backfilled_seed_all/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+- Phase-1B expanded-period recovery artifacts were generated at:
+  - `results/dysts_forecasting_phase1b_period_grid/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+  - `results/dysts_forecasting_phase1b_period_grid_seed_all/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
 
 ---
 
 ## Experiment Log (Newest First)
+
+### -12) Multi-Well Transition Benchmark Integration (scaffolding complete; runs pending)
+Timestamp: 2026-02-18
+
+Code integration scope:
+- `skae/config.py`: new `MULTIWELL` config block (mode, dimensionality, center layout, transition strengths).
+- `skae/data.py`: new `MultiWellTransition` env with variants:
+  - `gradient`, `rotational`, `energy`, `strong_transition`
+  - 8D lifted aliases: `multiwell_*_hd` (embed mode).
+- `skae/basin_utils.py`: basin-label dataset now supports `multiwell*` using nearest attractor after long rollout (benchmark-only labels).
+- `skae/support_monitor.py` and `tools/train.py`: support monitoring now accepts `multiwell*` systems.
+
+**Question**
+- Do deterministic transition terms (rotational and radial energy injection) create a better basin-support alignment stress test than pure Lyapunov wells, especially in lifted 8D settings?
+
+**Design (planned first pass)**
+- Systems: `{multiwell_gradient, multiwell_rotational, multiwell_energy, multiwell_strong_transition}` and corresponding `_hd` aliases.
+- Models: `{generic_sparse, lista_nonlinear}` with existing sparse-support diagnostics.
+- Metrics:
+  - basin-support alignment diagnostics (CosSep + support uniqueness) via `tools/evaluate_support_uniqueness.py`
+  - long-horizon forecasting (`H1000`, periodic reencode policy) via `tools/evaluate_checkpoints.py`
+
+**Status**
+- Environment/evaluation plumbing: **COMPLETED**.
+- Pilot training/evaluation runs: **PENDING**.
+
+### -11) Multi-Basin Dysts Forecasting Retrospective + Phase-1 ReLU Sweep (completed + recovered)
+Timestamp: 2026-02-12 (updated 2026-02-18)
+
+Scripts/artifacts:
+- Collector tool: `tools/collect_dysts_forecasting.py`
+- Comparison tool: `tools/compare_dysts_forecasting_roots.py`
+- Backfill helper: `scripts/backfill_dysts_forecast_phase1_eval.sh`
+- Retrospective collection output: `results/dysts_forecasting_retrospective/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md}`
+- Phase-1 sweep script: `scripts/sweep_dysts_forecast_phase1_lista_relu_sp15.sh` (job `8675838`, array 0-44)
+- Phase-1 dependency collector: `scripts/collect_dysts_forecast_phase1.sh` (job `8675839`, dependency `afterany:8675838`)
+- Phase-1 dependency comparison: `scripts/compare_dysts_forecast_phase1.sh` (job `8675935`, dependency `afterany:8675839`)
+- Queue helper: `scripts/queue_dysts_forecast_phase1.sh`
+- Phase-1B rerun chain (expanded periodic eval grid):
+  - sweep: `scripts/sweep_dysts_forecast_phase1_lista_relu_sp15.sh` (job `8676803`, array 0-44; `BASE_OUT=/network/scratch/l/lia/skae/dysts_forecast_phase1b_lista_relu_sp15_ts256_pgrid`)
+  - collector: `scripts/collect_dysts_forecast_phase1.sh` (job `8676804`, dependency `afterany:8676803`; `OUT_DIR=results/dysts_forecasting_phase1b_period_grid`)
+  - comparator: `scripts/compare_dysts_forecast_phase1.sh` (job `8676805`, dependency `afterany:8676804`; `SEED_OUT_DIR=results/dysts_forecasting_phase1b_period_grid_seed_all`)
+- Backfilled phase-1 artifacts:
+  - `results/dysts_forecasting_phase1_backfilled/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+  - `results/dysts_forecasting_phase1_backfilled_seed_all/{dysts_forecasting_rows.csv,dysts_forecasting_summary.json,dysts_forecasting_summary.md,dysts_forecasting_comparison.json,dysts_forecasting_comparison.md}`
+
+**Question**
+- With periodic reencoding as the required long-horizon mechanism, how strong is current forecasting across many multi-basin nonlinear systems, and does sparse LISTA need a new setting to reach robust cross-system performance?
+
+**Design**
+- **Retrospective benchmark (completed):** aggregate latest run per system from two existing 15-system multi-basin roots:
+  - `runs/dysts_multi_basin_generic_sparse`
+  - `runs/dysts_multi_basin_lista_nonlinear`
+- Metric focus: H1000 forecasting from `evaluation_results_best.json`:
+  - `no_reencode`, `every_step`, and `best_periodic` (best among periodic modes).
+  - Good-forecast threshold: H1000 best-periodic `< 10`.
+- **Prospective benchmark (completed):** launch new sparse LISTA sweep on the same 15 systems with 3 seeds (`45` runs total), using:
+  - `config=lista_nonlinear`, `target_size=256`, `sparsity_coeff=1.5`, `lista_final_op=relu`, pairwise training, dysts native cache.
+- **Prospective benchmark rerun (completed; comparator recovered):** same 15x3 LISTA setup, with dysts periodic eval candidates expanded to `{1,5,10,20,40,60,80,100,200,300,400,500,1000}` to test whether shorter mid-range refresh periods improve best-periodic behavior.
+
+**Status**
+- Retrospective collection: **COMPLETED**.
+- Phase-1 sweep/collector/comparator chain (`8675838` -> `8675839` -> `8675935`): **COMPLETED**.
+- Phase-1B sweep/collector chain (`8676803` -> `8676804`): **COMPLETED**.
+- Phase-1B comparator job (`8676805`): **FAILED** due missing candidate rows in collected CSV; **RECOVERED locally on 2026-02-18** after collector path-layout fix.
+- Local backfill + comparison pass for original Phase-1 artifacts (`33` run dirs): **COMPLETED**.
+
+**1) Concrete results**
+
+- Retrospective sample size: **30 rows** (`15 systems x 2 model roots`, latest run per system).
+- `generic_sparse` (15 systems):
+  - Median H1000 no-reencode: `0.1075`
+  - Median H1000 every-step: `1.5271`
+  - Median H1000 best-periodic: `0.0208`
+  - Good systems (H1000 best-periodic `< 10`): **15/15**
+  - Best-periodic improved vs no-reencode: **15/15**
+  - Best-periodic improved vs every-step: **15/15**
+- `lista_nonlinear` (15 systems):
+  - Median H1000 no-reencode: `42.0716`
+  - Median H1000 every-step: `0.8264`
+  - Median H1000 best-periodic: `4.7870`
+  - Good systems (H1000 best-periodic `< 10`): **9/15**
+  - Best-periodic improved vs no-reencode: **11/15**
+  - Best-periodic improved vs every-step: **3/15**
+  - Heavy-tail failures remained (e.g., `QiChen` H1000 best-periodic `1.56e10`, `LorenzCoupled` `4.19e5`, `Dadras` `7.81e3`).
+- **Phase-1 LISTA ReLU + `sparsity_coeff=1.5` (latest-per-system from backfilled artifacts; 15 systems):**
+  - Median H1000 no-reencode: `7.703e14`
+  - Median H1000 every-step: `1.3658`
+  - Median H1000 best-periodic: `1.3658`
+  - Good systems (H1000 best-periodic `< 10`): **12/15**
+  - Best-periodic improved vs no-reencode: **15/15**
+  - Best-periodic improved vs every-step: **2/15**
+  - Best periodic mode distribution: `periodic_1` on **13/15** systems, `periodic_100` on `2/15`.
+  - Tail failures (latest-per-system): `Hadley=2.84e16`, `Dadras=1.97e13`, `LuChenCheng=60.79`.
+- **Phase-1B LISTA ReLU + `sparsity_coeff=1.5` with expanded periodic grid (latest-per-system; 15 systems):**
+  - Median H1000 no-reencode: `3.482e10`
+  - Median H1000 every-step: `1.5976`
+  - Median H1000 best-periodic: `1.5976`
+  - Good systems (H1000 best-periodic `< 10`): **10/15**
+  - Best-periodic improved vs no-reencode: **14/15**
+  - Best-periodic improved vs every-step: **4/15**
+  - Best periodic mode distribution: `periodic_1` on **11/15** systems (others: `periodic_20`, `periodic_60`, `periodic_200`, `periodic_1000`).
+  - Catastrophic latest-per-system failures: `LorenzCoupled=1.03e13`, `Dadras=1.25e12`, `SprottTorus=1.41e6`, `MultiChua=4.75e5`; additional fail: `LuChenCheng=16.18`.
+- **Paired comparison vs anchors (latest-per-system):**
+  - Vs `generic_sparse`: candidate wins **0/15**, median candidate/anchor ratio `34.79`, good systems `12/15` vs `15/15`.
+  - Vs old `lista_nonlinear`: candidate wins **9/15**, median candidate/anchor ratio `0.3047`, good systems `12/15` vs `9/15`.
+- **Phase-1B paired comparison vs anchors (latest-per-system):**
+  - Vs `generic_sparse`: candidate wins **0/15**, median candidate/anchor ratio `206.28`, good systems `10/15` vs `15/15`.
+  - Vs old `lista_nonlinear`: candidate wins **7/15**, median candidate/anchor ratio `1.1330`, good systems `10/15` vs `9/15`.
+- **Seed-robustness snapshot from available phase-1 runs (`33` rows, uneven per-system counts):**
+  - `all_seeds_good_systems=10/15`
+  - `any_seed_bad_systems=5/15`
+  - `any_seed_catastrophic_systems=3/15`
+  - Worst-seed heavy tails on `Hadley`, `Dadras`, and `SprottTorus`.
+- **Seed-robustness for recovered Phase-1B seed-all artifacts (`45` rows):**
+  - `all_seeds_good_systems=9/15`
+  - `any_seed_bad_systems=6/15`
+  - `any_seed_catastrophic_systems=4/15`
+  - Worst systems by worst-seed H1000: `LorenzCoupled`, `Dadras`, `SprottTorus`, `MultiChua`.
+- **Infrastructure/debug concrete results:**
+  - `tools/train.py` evaluation indentation bug fixed (evaluation outputs were previously skipped).
+  - `tools/evaluate_checkpoints.py` updated to support dysts systems and emit `evaluation_results_best.json`.
+  - Phase-1 sweep script now writes seed-isolated run paths (`--log_dir .../${SYSTEM}/seed_${SEED}`) to prevent timestamp collisions.
+
+**2) Context in experiment design**
+
+- This retrospective uses a strict, non-cherry-picked selection rule (latest run per system per root) and directly targets long-horizon forecasting with reencoding, which is the current project priority.
+- The new Phase-1 sweep is designed to test whether the currently preferred LISTA setting (`relu` + stronger sparsity) transfers from Lyapunov findings to broad multi-basin dysts forecasting.
+- The original phase-1 run layout collided some seed outputs into shared timestamp folders, so canonical phase-1 seed accounting still relies on backfilled intermediate artifacts (`33` run dirs), while Phase-1B now has clean seed-isolated `45`-run accounting.
+
+**3) Interpretation**
+
+- Periodic reencoding already gives strong cross-system forecasting with the `generic_sparse` baseline on this 15-system set.
+- Sparse LISTA is currently less robust across systems under older settings: some systems are excellent, but a minority remain catastrophic and dominate tail risk.
+- For `lista_nonlinear`, best-periodic often selecting short periods (`periodic_10`) on hard systems indicates persistent local drift/instability that frequent refresh partially mitigates but does not always solve.
+- The new LISTA ReLU + `sp=1.5` setting improves over old sparse LISTA overall but still fails the forecasting-reliability bar required to advance to control: it remains far behind `generic_sparse` and keeps catastrophic tails.
+- Best periodic collapsing to `periodic_1` on most systems indicates that this candidate currently relies on effectively every-step reencoding, not stable autonomous local rollout.
+- Phase-1B confirms that expanded periodic choices did not solve LISTA tail risk and in this recovery actually exposed additional catastrophic systems relative to the earlier latest-per-system snapshot.
+- Current seed-robustness uncertainty remains mainly for the original Phase-1 chain due run-dir collisions, not for the recovered Phase-1B seed-isolated outputs.
+
+**4) Project implications**
+
+- Priority #1 (forecasting with reencoding) is now supported by broad multi-system evidence for at least one baseline (`generic_sparse`), so the immediate bottleneck shifts to obtaining the same reliability with sparse LISTA settings needed for basin-support goals.
+- The Phase-1 ReLU+sparsity sweep is the correct next discriminative test before proceeding deeper into LQR within-basin and transition-control work.
+- **Go/No-Go decision for LQR:** **NO-GO** on this phase-1 candidate. We should not advance to within-basin LQR using this LISTA setting until tail failures and seed robustness are fixed.
+- Forecasting iteration quality now depends on correcting sweep infrastructure (seed isolation already patched) and adding stabilization mechanisms that reduce dependence on `periodic_1`.
+
+**5) Next steps**
+
+1. Launch the prepared tail-risk recovery chain (`scripts/queue_dysts_forecast_tail_recovery.sh`) targeting `LorenzCoupled`, `Dadras`, `SprottTorus`, `MultiChua`, `LuChenCheng`, and `Hadley`.
+2. Apply explicit spectral stabilization and reencoding-policy controls in that recovery sweep, then re-collect with seed-isolated outputs.
+3. Re-apply the same H1000 gates (`good-count`, tail-risk, paired anchor wins, seed robustness) against `generic_sparse` and `lista_nonlinear`.
+4. Keep LQR progression blocked until sparse LISTA passes those forecasting gates on a full multi-seed estimate.
+
+### -10) LISTA Final-Op Phase-3 Follow-up (`sparsity_coeff=1.5`) (recovered + completed)
+Timestamp: 2026-02-06 (recovered 2026-02-18)
+
+Scripts:
+- Sweep: `scripts/sweep_lista_final_op_phase3_structured_transfer.sh` (job `8626246`, array 0-95)
+- Collection: wrapped `tools/collect_lista_final_op_experiment.py --phase_dirs phase3_structured_transfer_sp15` (job `8626247`, dependency `afterany:8626246`)
+
+**Question**
+- Do the Phase-2 ReLU sparsity-match gains (`sparsity_coeff=1.5`) transfer to Phase-3 structured settings (`diagonal`, `block_diagonal`, `arrowhead_no_excl`)?
+
+**Design**
+- Re-run the full Phase-3 grid with `SPARSITY_COEFF=1.5`:
+  - systems `{lyapunov, duffing}`
+  - target sizes `{256, 512}`
+  - K structures `{diagonal, block_diagonal, arrowhead_no_excl}`
+  - final ops `{shrink, relu}`
+  - seeds `{0,1,2,3}`.
+
+**Status**
+- Initial queue pass: sweep job `8626246` ended with **95/96** and dependency collector `8626247` failed (exit `127`).
+- Recovery on February 18, 2026: missing task `71` (`duffing`, `arrowhead_no_excl`, `ts=256`, `relu`, `seed=3`) was backfilled locally (checkpoint alias + eval/eigen/support), and consolidated collection was rerun.
+- Current status: **COMPLETED (96/96 collected)** with artifacts in `/network/scratch/l/lia/skae/lista_final_op_experiment/results/phase3_structured_transfer_sp15`.
+
+**1) Concrete results**
+
+- Consolidated collection now contains **96 runs** (`12` arms x `4` seeds) for `phase3_structured_transfer_sp15`.
+- Lyapunov diagonal/block-diagonal at `sp=1.5`: ReLU increased CosSep and slightly improved H1000 no-reencode:
+  - Diagonal `ts=256`: `dCosSep=+0.3556`, `dH1000=-0.0054`
+  - Diagonal `ts=512`: `dCosSep=+0.5323`, `dH1000=-0.0217`
+  - Block-diagonal `ts=256`: `dCosSep=+0.1959`, `dH1000=-0.0021`
+  - Block-diagonal `ts=512`: `dCosSep=+0.5341`, `dH1000=-0.0115`
+- Lyapunov arrowhead-no-excl degraded with ReLU:
+  - `ts=256`: `dCosSep=-0.0980`, `dH1000=+7.763e16`
+  - `ts=512`: `dCosSep=-0.0610`, `dH1000=+9.873e33`
+- Duffing at `sp=1.5`: ReLU underperformed shrink on CosSep across all structures and worsened no-reencode H1000 in diagonal/block-diagonal; all Duffing arms were unstable (`unstable_rate_sr_gt_1=1.0`).
+
+**2) Context in experiment design**
+
+- This follow-up directly tests whether Phase-2 ReLU gains at `sp=1.5` transfer to Phase-3 structured settings (`diagonal`, `block_diagonal`, `arrowhead_no_excl`) across both Lyapunov and Duffing.
+- Recovery preserved the original grid and only backfilled the missing failed run, so post-recovery summaries are directly comparable to the pre-recovery 95/96 set.
+
+**3) Interpretation**
+
+- ReLU transfer at `sp=1.5` is **not universal**: it helps Lyapunov diagonal/block-diagonal separation but harms arrowhead-no-excl and degrades Duffing structure transfer.
+- Stability remains fragile at this setting: many arms are at or above SR `1.0`, and Duffing remains fully unstable regardless of final-op.
+
+**4) Project implications**
+
+- Phase-3 `sp=1.5` now has complete evidence, removing artifact uncertainty as a blocker.
+- Final-op choice should remain **structure/system-specific**, not globally fixed to ReLU, for structured transfer work.
+
+**5) Next steps**
+
+1. Keep ReLU as a candidate for Lyapunov diagonal/block-diagonal transfer, but retain shrink as baseline for Duffing and arrowhead-no-excl.
+2. Add explicit spectral stabilization to structured runs before interpreting final-op effects as transferable.
+3. Use this completed Phase-3 summary as the reference for any further Phase-3 recovery decisions.
+
+### -9) LISTA Final-Op Ablation (`shrink` vs `relu`) (completed)
+Timestamp: 2026-02-06
+
+Scripts:
+- Trial runner: `scripts/run_lista_final_op_trial.sh`
+- Queue helper: `scripts/queue_lista_final_op_experiment.sh`
+- Phase 0 (smoke): `scripts/sweep_lista_final_op_phase0_smoke.sh` (job `8624794`, array 0-7)
+- Phase 1 (core): `scripts/sweep_lista_final_op_phase1_core.sh` (job `8624795`, array 0-95)
+- Phase 2 (ReLU sparsity match): `scripts/sweep_lista_final_op_phase2_sparsity_match.sh` (job `8624796`, array 0-23)
+- Phase 3 (structured transfer): `scripts/sweep_lista_final_op_phase3_structured_transfer.sh` (job `8624797`, array 0-95)
+- Final collection (dependency): `scripts/collect_lista_final_op_results.sh` (job `8624798`, dependency `afterany:8624794:8624795:8624796:8624797`)
+- Result collector: `tools/collect_lista_final_op_experiment.py`
+
+**Question**
+- Does replacing LISTA's final shrinkage step with ReLU improve basin-support alignment (CosSep/uniqueness) and/or long-horizon predictive performance on nonlinear systems?
+
+**Design**
+- **Phase 0 (8 runs):** smoke sanity on `{lyapunov,duffing} x {shrink,relu} x {seed 0,1}` at short training budget.
+- **Phase 1 (96 runs):** core encoder-isolation sweep on `{lyapunov,duffing} x ts={128,256,512} x {shrink,relu} x seed={0..7}` with dense K.
+- **Phase 2 (24 runs):** ReLU-only sparsity-matching sweep on Lyapunov `ts={256,512}`, `sparsity_coeff={1.0,1.5,2.0}`, `seed={0..3}`.
+- **Phase 3 (96 runs):** structured-transfer sweep on `{lyapunov,duffing} x ts={256,512} x K={diagonal,block_diagonal,arrowhead_no_excl} x {shrink,relu} x seed={0..3}`.
+- Per-run post-train eval pipeline: `evaluate_checkpoints.py`, `analyze_k_eigenvalues.py`, and `evaluate_support_uniqueness.py --threshold_sweep --cosine_diag`.
+
+**Status**
+- **COMPLETED**: 224/224 runs finished (`8 + 96 + 24 + 96`) and collection job completed.
+
+**1) Concrete results**
+
+- Total collected runs: **224**; all runs have `cosine_sep`, `h1000_no_reencode_mean`, and `max_spectral_radius` populated.
+- Phase 1 (dense K, paired by seed):
+  - **Lyapunov ts=256:** `dCosSep = +0.176` (ReLU − shrink), `dH1000 = -1.123e19`, `dSR = -0.0160`.
+  - **Lyapunov ts=512:** `dCosSep = +0.124`, `dH1000 = -1.950e22`, `dSR = -0.0186`.
+  - **Lyapunov ts=128:** `dCosSep = -0.086`, `dH1000 = -3.556e17`, `dSR = -0.0120`.
+  - **Duffing ts={128,256,512}:** `dCosSep` slightly negative (`-0.023`, `-0.023`, `-0.019`) but H1000 improved by orders of magnitude in all three settings.
+- Phase 2 (Lyapunov, ReLU-only sparsity match):
+  - `ts=256`: `sp=1.0 -> CosSep 0.626, H1000 36.54`; `sp=1.5 -> CosSep 0.531, H1000 3.858`; `sp=2.0 -> CosSep 0.269, H1000 3.876`.
+  - `ts=512`: `sp=1.0 -> CosSep 0.710, H1000 107.68`; `sp=1.5 -> CosSep 0.627, H1000 3.849`; `sp=2.0 -> CosSep 0.204, H1000 3.876`.
+- Phase 3 (structured transfer, `sp=1.0`, Lyapunov paired deltas):
+  - **Diagonal:** `ts=256 dCosSep=+0.109, dH1000=-0.335`; `ts=512 dCosSep=+0.535, dH1000=-0.153`.
+  - **Block-diagonal:** `ts=256 dCosSep=+0.155, dH1000=-0.039`; `ts=512 dCosSep=+0.378, dH1000=-28.54`.
+  - **Arrowhead-no-excl:** `ts=256 dCosSep=-0.099`; `ts=512 dCosSep=-0.075` (H1000 mixed/non-finite in some runs).
+
+**2) Context in experiment design**
+
+- The experiment isolated the encoder final operation by comparing `LISTA_FINAL_OP=shrink` vs `relu` under matched seeds and training budgets.
+- Phase 1 tested baseline dense LISTA behavior; Phase 2 tuned ReLU sparsity for stability/separation tradeoff; Phase 3 tested transfer into structured K parameterizations.
+
+**3) Interpretation**
+
+- **Dense baseline:** ReLU is substantially more robust for long-horizon prediction (much lower H1000, lower SR) and improves Lyapunov CosSep at medium/high capacity (`ts>=256`), but not at `ts=128`.
+- **Sparsity interaction matters:** ReLU at `sp=1.0` is too weakly sparse for dense stability; raising to `sp=1.5` recovers bounded H1000 near the stable floor while preserving moderate CosSep.
+- **Structure interaction is non-uniform:** ReLU helps Lyapunov diagonal/block-diagonal separability and H1000, but hurts arrowhead-no-excl separability.
+
+**4) Project implications**
+
+- ReLU is a strong candidate for dense/diagonal/block-diagonal LISTA regimes when paired with appropriate sparsity.
+- A single global final-op choice is likely suboptimal across all K structures; arrowhead-no-excl currently appears to prefer shrink for basin-support alignment.
+- The main deployment objective (label-free basin-support alignment with usable dynamics) benefits from ReLU in several settings, but structure-specific tuning remains necessary.
+
+**5) Next steps**
+
+1. Run a **Phase-3 follow-up** with ReLU `sparsity_coeff=1.5` (selected from Phase 2) for diagonal/block-diagonal/arrowhead-no-excl to test transfer of dense-phase stability gains.
+2. For Lyapunov structured settings, prioritize **block-diagonal + ReLU** as the first follow-up candidate (largest simultaneous CosSep and H1000 improvements).
+3. Add paired significance intervals (bootstrap CI) for Phase-3 deltas to finalize a structure-specific final-op policy.
 
 ### -8) Stage-2 Arrowhead Exclusivity Attribution Sweep (completed)
 Timestamp: 2026-02-06
