@@ -303,7 +303,7 @@ def train(
     # This often yields models that "look fine" on 1-step error but fail catastrophically
     # in long rollouts / phase portraits.
     try:
-        from benchmarks.dysts_adapter import DystsEnv
+        from skae.benchmarks.dysts_adapter import DystsEnv
         if isinstance(env.unwrapped, DystsEnv) and not cfg.ENV.DYSTS.USE_NATIVE_CACHE:
             print(
                 "[warn] Training on a dysts system without trajectory cache. "
@@ -366,7 +366,7 @@ def train(
     dysts_cache = None
     if cfg.ENV.DYSTS.USE_NATIVE_CACHE:
         try:
-            from benchmarks.dysts_adapter import DystsEnv
+            from skae.benchmarks.dysts_adapter import DystsEnv
             if isinstance(env.unwrapped, DystsEnv):
                 print(
                     "Initializing dysts native trajectory cache "
@@ -408,7 +408,7 @@ def train(
     support_monitor = None
     if monitor_support:
         system_name = cfg.ENV.ENV_NAME.lower()
-        if system_name in ['duffing', 'lyapunov', 'blended']:
+        if system_name in ['duffing', 'lyapunov', 'blended'] or system_name.startswith('multiwell'):
             from skae.support_monitor import SupportMonitor
             print(f"Initializing support monitor for {system_name}...")
             support_monitor = SupportMonitor(
@@ -555,96 +555,96 @@ def train(
         print("Loading evaluation module...")
         from skae.evaluation import EvaluationSettings, evaluate_model
     
-    def evaluate_checkpoint(checkpoint_path: Path, checkpoint_name: str):
-        """Load a checkpoint and evaluate it."""
-        if not checkpoint_path.exists():
-            print(f"  Skipping {checkpoint_name}: checkpoint not found at {checkpoint_path}")
-            return None
-        
-        print(f"\nEvaluating {checkpoint_name} checkpoint...", flush=True)
-        checkpoint = torch.load(checkpoint_path, map_location=device)
-        ckpt_step = checkpoint.get('step', 'unknown')
-        print(f"  Loaded checkpoint (step={ckpt_step}). Building eval env/model...", flush=True)
-        
-        # Load model from checkpoint (use unwrapped env for observation_size)
-        eval_env = make_env(cfg)
-        eval_model = make_model(cfg, eval_env.observation_size)
-        eval_model.load_state_dict(checkpoint['model_state_dict'])
-        eval_model = eval_model.to(device)
-        eval_model.eval()
-        eval_model.dt = dt
-        
-        # Create evaluation settings
-        eval_settings = EvaluationSettings()
-        eval_settings.systems = [cfg.ENV.ENV_NAME]
-        
-        # Evaluate
-        eval_dir = run_dir / f"evaluation_{checkpoint_name}"
-        print(f"  Calling evaluate_model() for systems={eval_settings.systems} ...", flush=True)
-        eval_results = evaluate_model(
-            model=eval_model,
-            cfg=cfg,
-            device=device,
-            settings=eval_settings,
-            output_dir=eval_dir,
-        )
-        print(f"  evaluate_model() finished for {checkpoint_name}.", flush=True)
-        
-        # Save results
-        results_file = run_dir / f"evaluation_results_{checkpoint_name}.json"
-        with open(results_file, "w") as f:
-            json.dump(eval_results, f, indent=2)
-        
-        # Print summary
-        primary_system = cfg.ENV.ENV_NAME
-        primary_metrics = eval_results.get(primary_system)
-        if primary_metrics is not None:
-            print(f"  {checkpoint_name.upper()} - Primary system ({primary_system}) MSE summary:")
-            is_dysts = primary_system.lower().startswith("dysts:")
-            for horizon in eval_settings.horizons:
-                if primary_system == "parabolic" and horizon > 100:
-                    continue
-                horizon_key = str(horizon)
-                no_re = primary_metrics["modes"]["no_reencode"]["horizons"].get(horizon_key)
-                every = primary_metrics["modes"]["every_step"]["horizons"].get(horizon_key)
-                best = primary_metrics["best_periodic"].get(horizon_key)
-                if no_re is None or every is None:
-                    continue
-                best_str = "best-PR=N/A" if best is None else f"best-PR={best['mean']:.4e} ({best['mode']})"
-                print(
-                    f"    Horizon {horizon}: "
-                    f"no-reencode={no_re['mean']:.4e}, "
-                    f"every-step={every['mean']:.4e}, "
-                    f"{best_str}"
-                )
-            
-            # For dysts systems, also print reencode @ 100, 200, 500, 1000 summary
-            if is_dysts:
-                print(f"  {checkpoint_name.upper()} - Periodic reencode summary (reencode @ 100, 200, 500, 1000):")
-                for period in [100, 200, 500, 1000]:
-                    mode_key = f"periodic_{period}"
-                    mode_data = primary_metrics["modes"].get(mode_key)
-                    if mode_data is None:
-                        print(f"    reencode @ {period}: N/A")
+        def evaluate_checkpoint(checkpoint_path: Path, checkpoint_name: str):
+            """Load a checkpoint and evaluate it."""
+            if not checkpoint_path.exists():
+                print(f"  Skipping {checkpoint_name}: checkpoint not found at {checkpoint_path}")
+                return None
+
+            print(f"\nEvaluating {checkpoint_name} checkpoint...", flush=True)
+            checkpoint = torch.load(checkpoint_path, map_location=device)
+            ckpt_step = checkpoint.get('step', 'unknown')
+            print(f"  Loaded checkpoint (step={ckpt_step}). Building eval env/model...", flush=True)
+
+            # Load model from checkpoint (use unwrapped env for observation_size)
+            eval_env = make_env(cfg)
+            eval_model = make_model(cfg, eval_env.observation_size)
+            eval_model.load_state_dict(checkpoint['model_state_dict'])
+            eval_model = eval_model.to(device)
+            eval_model.eval()
+            eval_model.dt = dt
+
+            # Create evaluation settings
+            eval_settings = EvaluationSettings()
+            eval_settings.systems = [cfg.ENV.ENV_NAME]
+
+            # Evaluate
+            eval_dir = run_dir / f"evaluation_{checkpoint_name}"
+            print(f"  Calling evaluate_model() for systems={eval_settings.systems} ...", flush=True)
+            eval_results = evaluate_model(
+                model=eval_model,
+                cfg=cfg,
+                device=device,
+                settings=eval_settings,
+                output_dir=eval_dir,
+            )
+            print(f"  evaluate_model() finished for {checkpoint_name}.", flush=True)
+
+            # Save results
+            results_file = run_dir / f"evaluation_results_{checkpoint_name}.json"
+            with open(results_file, "w") as f:
+                json.dump(eval_results, f, indent=2)
+
+            # Print summary
+            primary_system = cfg.ENV.ENV_NAME
+            primary_metrics = eval_results.get(primary_system)
+            if primary_metrics is not None:
+                print(f"  {checkpoint_name.upper()} - Primary system ({primary_system}) MSE summary:")
+                is_dysts = primary_system.lower().startswith("dysts:")
+                for horizon in eval_settings.horizons:
+                    if primary_system == "parabolic" and horizon > 100:
                         continue
-                    # Print horizon 100, 500, and 1000 MSE for each periodic mode
-                    print(f"    reencode @ {period}:")
-                    for horizon in [100, 500, 1000]:
-                        horizon_key = str(horizon)
-                        horizon_mse = mode_data["horizons"].get(horizon_key)
-                        if horizon_mse is not None:
-                            print(f"      H={horizon}: mean={horizon_mse['mean']:.4e}, std={horizon_mse['std']:.4e}")
-        
-        print(f"  Evaluation artifacts saved to {eval_dir}")
-        return eval_results
-    
+                    horizon_key = str(horizon)
+                    no_re = primary_metrics["modes"]["no_reencode"]["horizons"].get(horizon_key)
+                    every = primary_metrics["modes"]["every_step"]["horizons"].get(horizon_key)
+                    best = primary_metrics["best_periodic"].get(horizon_key)
+                    if no_re is None or every is None:
+                        continue
+                    best_str = "best-PR=N/A" if best is None else f"best-PR={best['mean']:.4e} ({best['mode']})"
+                    print(
+                        f"    Horizon {horizon}: "
+                        f"no-reencode={no_re['mean']:.4e}, "
+                        f"every-step={every['mean']:.4e}, "
+                        f"{best_str}"
+                    )
+
+                # For dysts systems, also print reencode @ 100, 200, 500, 1000 summary
+                if is_dysts:
+                    print(f"  {checkpoint_name.upper()} - Periodic reencode summary (reencode @ 100, 200, 500, 1000):")
+                    for period in [100, 200, 500, 1000]:
+                        mode_key = f"periodic_{period}"
+                        mode_data = primary_metrics["modes"].get(mode_key)
+                        if mode_data is None:
+                            print(f"    reencode @ {period}: N/A")
+                            continue
+                        # Print horizon 100, 500, and 1000 MSE for each periodic mode
+                        print(f"    reencode @ {period}:")
+                        for horizon in [100, 500, 1000]:
+                            horizon_key = str(horizon)
+                            horizon_mse = mode_data["horizons"].get(horizon_key)
+                            if horizon_mse is not None:
+                                print(f"      H={horizon}: mean={horizon_mse['mean']:.4e}, std={horizon_mse['std']:.4e}")
+
+            print(f"  Evaluation artifacts saved to {eval_dir}")
+            return eval_results
+
         # Evaluate both checkpoints
         last_checkpoint = run_dir / 'last.pt'
         best_checkpoint = run_dir / 'checkpoint.pt'
-        
+
         eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
         eval_results_best = evaluate_checkpoint(best_checkpoint, "best")
-        
+
         # Also save a combined summary
         if eval_results_last is not None or eval_results_best is not None:
             summary = {
@@ -873,7 +873,8 @@ Examples:
                         help='Training configuration preset')
     parser.add_argument('--env', type=str, default='duffing',
                         help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '
-                             'lorenz63, parabolic, lyapunov. '
+                             'lorenz63, parabolic, lyapunov, blended, '
+                             'multiwell, multiwell:<mode>, multiwell_*_hd. '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
     parser.add_argument('--lyapunov_dim', type=int, default=None,
                         help='Lyapunov state dimension (default: 2)')
@@ -936,6 +937,9 @@ Examples:
                         help='LISTA soft-threshold alpha (overrides config default)')
     parser.add_argument('--lista_num_loops', type=int, default=None,
                         help='Number of LISTA iterations (overrides config default)')
+    parser.add_argument('--lista_final_op', type=str, default=None,
+                        choices=['shrink', 'relu'],
+                        help='LISTA final nonlinearity: shrink (default) or relu')
 
     # Koopman matrix structure
     parser.add_argument('--k_structure', type=str, default=None,
@@ -1042,7 +1046,7 @@ Examples:
         print("AVAILABLE DYSTS SYSTEMS")
         print("=" * 60)
         try:
-            from data import get_available_environments
+            from skae.data import get_available_environments
             envs = get_available_environments()
             
             print(f"\nBuilt-in environments ({len(envs['builtin'])}):")
@@ -1110,6 +1114,8 @@ Examples:
         # Update both LISTA and HyperLISTA loop counts for convenience
         cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = args.lista_num_loops
         cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = args.lista_num_loops
+    if args.lista_final_op is not None:
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = args.lista_final_op
     if args.k_structure is not None:
         cfg.MODEL.K_STRUCTURE = args.k_structure
         print(f"Using Koopman matrix structure: {args.k_structure}")
