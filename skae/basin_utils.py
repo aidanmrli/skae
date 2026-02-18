@@ -14,7 +14,7 @@ from typing import List
 import torch
 
 from skae.config import Config
-from skae.data import make_env, generate_trajectory, Duffing, LyapunovMultiAttractor
+from skae.data import make_env, generate_trajectory, Duffing
 
 
 # ---------------------------------------------------------------------------
@@ -34,12 +34,12 @@ def identify_duffing_basin(
     return 0 if state[0].item() < 0 else 1
 
 
-def identify_lyapunov_basin(
-    env: LyapunovMultiAttractor,
+def identify_point_attractor_basin(
+    env,
     trajectory: torch.Tensor,
     long_rollout_steps: int = 5000,
 ) -> int:
-    """Identify Lyapunov basin by nearest attractor after convergence."""
+    """Identify basin by nearest attractor center after convergence."""
     state = trajectory[-1].clone()
     for _ in range(long_rollout_steps):
         state = env.step(state)
@@ -83,12 +83,12 @@ class BasinLabeledDataset:
         if system_lower == 'duffing':
             self.num_basins = 2
             self.basin_names = ['Left Well (x<0)', 'Right Well (x>0)']
-        elif system_lower == 'lyapunov':
+        elif system_lower == 'lyapunov' or system_lower.startswith('multiwell'):
             self.num_basins = int(self.env.points.shape[0])
             self.basin_names = [f'Attractor {i}' for i in range(self.num_basins)]
         else:
             raise ValueError(
-                f"Unknown system: {system}. Supported: duffing, lyapunov"
+                f"Unknown system: {system}. Supported: duffing, lyapunov, multiwell*"
             )
 
         self.trajectories: List[BasinLabeledTrajectory] = []
@@ -110,7 +110,7 @@ class BasinLabeledDataset:
             if self.system.lower() == 'duffing':
                 final_basin = identify_duffing_basin(self.env, traj, self.long_rollout_steps)
             else:
-                final_basin = identify_lyapunov_basin(self.env, traj, self.long_rollout_steps)
+                final_basin = identify_point_attractor_basin(self.env, traj, self.long_rollout_steps)
 
             self.trajectories.append(
                 BasinLabeledTrajectory(states=traj, final_basin=final_basin)
