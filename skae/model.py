@@ -167,6 +167,12 @@ class LISTA(nn.Module):
         self.alpha = cfg.MODEL.ENCODER.LISTA.ALPHA
         self.L = L_override if L_override is not None else cfg.MODEL.ENCODER.LISTA.L
         self.use_linear_encode = cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER
+        self.final_op = cfg.MODEL.ENCODER.LISTA.FINAL_OP.lower()
+        if self.final_op not in {"shrink", "relu"}:
+            raise ValueError(
+                f"Unknown LISTA FINAL_OP '{self.final_op}'. "
+                "Expected one of ['shrink', 'relu']."
+            )
         
         assert Wd_init.shape == (xdim, self.zdim), \
             f"Wd_init shape {Wd_init.shape} doesn't match expected ({xdim}, {self.zdim})"
@@ -203,13 +209,22 @@ class LISTA(nn.Module):
         """
         # Initial encoding
         nonsparse_code = self.We(x)
-        
-        # Initialize with soft-thresholding of initial encoding
-        z = shrink(nonsparse_code, self.alpha / self.L)
-        
+
+        threshold = self.alpha / self.L
+
+        def apply_step(pre_act: torch.Tensor, is_final_step: bool) -> torch.Tensor:
+            if is_final_step and self.final_op == "relu":
+                return F.relu(pre_act)
+            return shrink(pre_act, threshold)
+
+        # Initialize with LISTA nonlinearity.
+        # If no loops, this initialization is also the final step.
+        z = apply_step(nonsparse_code, is_final_step=(self.num_loops == 0))
+
         # Iterative refinement
-        for _ in range(self.num_loops):
-            z = shrink(z @ self.S + nonsparse_code, self.alpha / self.L)
+        for loop_idx in range(self.num_loops):
+            is_final_step = loop_idx == (self.num_loops - 1)
+            z = apply_step(z @ self.S + nonsparse_code, is_final_step=is_final_step)
         
         return z
 
