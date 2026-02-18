@@ -9,7 +9,7 @@ import torch
 from skae.config import Config
 from skae.data import (
     Env, Wrapper, VectorWrapper,
-    Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic,
+    Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic, MultiWellTransition,
     integrate_euler, integrate_rk4, generate_trajectory, make_env
 )
 
@@ -722,8 +722,24 @@ class TestFactory(unittest.TestCase):
 
     def test_make_env_all_systems(self):
         """Test that make_env creates all registered systems."""
-        systems = ["pendulum", "duffing", "lotka_volterra", "lorenz63", "parabolic"]
-        expected_classes = [Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic]
+        systems = [
+            "pendulum",
+            "duffing",
+            "lotka_volterra",
+            "lorenz63",
+            "parabolic",
+            "multiwell_gradient",
+            "multiwell_strong_transition_hd",
+        ]
+        expected_classes = [
+            Pendulum,
+            Duffing,
+            LotkaVolterra,
+            Lorenz63,
+            Parabolic,
+            MultiWellTransition,
+            MultiWellTransition,
+        ]
 
         for system, expected_cls in zip(systems, expected_classes):
             self.cfg.ENV.ENV_NAME = system
@@ -742,4 +758,3 @@ class TestFactory(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
