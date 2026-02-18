@@ -179,6 +179,26 @@ class LyapunovConfig:
 
 
 @dataclass
+class MultiWellConfig:
+    """Multi-well transition system parameters."""
+    DT: float = 0.02
+    SIGMA: float = 0.7
+    DIM: int = 2  # state dimension
+    NUM_BASINS: int = 5  # number of attractor centers
+    POINTS_MODE: str = "fixed"  # "fixed" (canonical 5-point layout) or "random"
+    CENTER_SCALE: float = 2.0  # range for random centers (uniform in [-scale, scale])
+    MIN_SEPARATION: float = 0.6  # minimum separation for random centers
+    INIT_RANGE: float = 2.5  # reset range for initial states (uniform in [-r, r])
+    EXTEND_MODE: str = "embed"  # "embed" (2D core + linear decay dims) or "full"
+    EXTRA_DECAY: float = 1.0  # decay for extra dims in embed mode
+    DYNAMICS_MODE: str = "gradient"  # ["gradient", "rotational", "energy", "strong_transition"]
+    ALPHA: float = 0.6  # rotational coupling for "rotational"
+    BETA: float = 1.2  # radial energy injection for "energy"
+    STRONG_ALPHA: float = 0.8  # rotational coupling for "strong_transition"
+    STRONG_BETA: float = 1.0  # radial coupling for "strong_transition"
+
+
+@dataclass
 class DystsConfig:
     """Configuration for dysts-based environments.
     
@@ -212,7 +232,10 @@ class EnvConfig:
     """Environment configuration.
     
     For built-in environments, set ENV_NAME to one of:
-        ["duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63", "lyapunov"]
+        [
+            "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
+            "lyapunov", "blended", "multiwell", "multiwell:<mode>"
+        ]
     
     For dysts systems, set ENV_NAME to "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
     The DYSTS config section can be used to customize dysts system behavior.
@@ -224,6 +247,7 @@ class EnvConfig:
     LOTKA_VOLTERRA: LotkaVolterraConfig = field(default_factory=LotkaVolterraConfig)
     LORENZ63: Lorenz63Config = field(default_factory=Lorenz63Config)
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
+    MULTIWELL: MultiWellConfig = field(default_factory=MultiWellConfig)
     DYSTS: DystsConfig = field(default_factory=DystsConfig)
 
 
@@ -234,6 +258,7 @@ class ListaConfig:
     L: float = 1e3  # Lipschitz constant estimate
     ALPHA: float = 0.1  # sparsity threshold
     LINEAR_ENCODER: bool = False  # use MLP vs linear encoder
+    FINAL_OP: str = "shrink"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
 
 
 @dataclass
@@ -393,6 +418,7 @@ class Config:
             LOTKA_VOLTERRA=LotkaVolterraConfig(**env_dict.get("LOTKA_VOLTERRA", {})),
             LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
             LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
+            MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
             DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
         )
         
