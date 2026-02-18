@@ -30,7 +30,7 @@ def get_all_systems(include_delay: bool = False) -> List[str]:
         Sorted list of system names.
     """
     try:
-        from benchmarks.dysts_adapter import get_dysts_systems
+        from skae.benchmarks.dysts_adapter import get_dysts_systems
         return get_dysts_systems(include_delay=include_delay)
     except ImportError:
         return []
@@ -46,7 +46,7 @@ def get_system_info(system_name: str) -> Dict[str, Any]:
         Dictionary with system metadata.
     """
     try:
-        from benchmarks.dysts_adapter import get_dysts_system_metadata
+        from skae.benchmarks.dysts_adapter import get_dysts_system_metadata
         return get_dysts_system_metadata(system_name)
     except ImportError:
         return {}
@@ -62,7 +62,7 @@ def get_all_system_metadata(include_delay: bool = False) -> Dict[str, Any]:
         Dictionary mapping system name to metadata.
     """
     try:
-        from benchmarks.dysts_adapter import get_dysts_system_data
+        from skae.benchmarks.dysts_adapter import get_dysts_system_data
         return get_dysts_system_data(include_delay=include_delay)
     except ImportError:
         return {}
