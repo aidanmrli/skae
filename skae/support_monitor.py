@@ -112,7 +112,7 @@ class SupportMonitor:
         # Determine number of basins
         if self.system == 'duffing':
             self.num_basins = 2
-        elif self.system == 'lyapunov':
+        elif self.system == 'lyapunov' or self.system.startswith('multiwell'):
             self.num_basins = int(self.env.points.shape[0])
         elif self.system == 'blended':
             self.num_basins = 3
@@ -133,7 +133,7 @@ class SupportMonitor:
 
         if self.system == 'duffing':
             return 0 if state[0].item() < 0 else 1
-        elif self.system == 'lyapunov':
+        elif self.system == 'lyapunov' or self.system.startswith('multiwell'):
             distances = torch.norm(state - self.env.points, dim=-1)
             return distances.argmin().item()
         elif self.system == 'blended':
