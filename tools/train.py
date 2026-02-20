@@ -27,6 +27,11 @@ print("Torch loaded.")
 
 print("Loading config...")
 from skae.config import Config, get_config
+from skae.dysts_cache_profiles import (
+    DYSTS_CACHE_PROFILES,
+    apply_dysts_cache_profile,
+    default_dysts_cache_dir,
+)
 print("Config loaded.")
 
 print("Loading data...")
@@ -256,6 +261,7 @@ def train(
     support_threshold: float = 1e-3,
     skip_eval: bool = False,
     skip_basin_eval: bool = False,
+    eval_profile: str = "full",
 ) -> nn.Module:
     """Main training function.
 
@@ -364,23 +370,36 @@ def train(
     # Generate fixed validation set for consistent evaluation
     # Optional dysts cache for faster data generation
     dysts_cache = None
+    val_dysts_cache = None
     if cfg.ENV.DYSTS.USE_NATIVE_CACHE:
         try:
             from skae.benchmarks.dysts_adapter import DystsEnv
             if isinstance(env.unwrapped, DystsEnv):
                 print(
                     "Initializing dysts native trajectory cache "
-                    f"(steps={cfg.ENV.DYSTS.CACHE_STEPS}, "
+                    f"(split={cfg.ENV.DYSTS.CACHE_SPLIT}, "
+                    f"steps={cfg.ENV.DYSTS.CACHE_STEPS}, "
                     f"trajectories={cfg.ENV.DYSTS.CACHE_TRAJECTORIES}, "
                     f"warmup={cfg.ENV.DYSTS.CACHE_WARMUP}) ...",
                     flush=True,
                 )
-                cache_rng = torch.Generator().manual_seed(cfg.SEED + 123456)
-                dysts_cache = DystsTrajectoryCache(env.unwrapped, cfg, cache_rng)
+                dysts_cache = DystsTrajectoryCache(env.unwrapped, cfg)
+                # Keep validation split separate from training split.
+                val_cache_cfg = Config.from_dict(cfg.to_dict())
+                val_cache_cfg.ENV.DYSTS.CACHE_SPLIT = "val"
+                print(
+                    "Initializing dysts validation cache "
+                    f"(split={val_cache_cfg.ENV.DYSTS.CACHE_SPLIT}, "
+                    f"steps={val_cache_cfg.ENV.DYSTS.CACHE_STEPS}, "
+                    f"trajectories={val_cache_cfg.ENV.DYSTS.CACHE_TRAJECTORIES}, "
+                    f"warmup={val_cache_cfg.ENV.DYSTS.CACHE_WARMUP}) ...",
+                    flush=True,
+                )
+                val_dysts_cache = DystsTrajectoryCache(env.unwrapped, val_cache_cfg)
                 print(
                     "Using dysts native trajectory cache "
-                    f"(steps={cfg.ENV.DYSTS.CACHE_STEPS}, "
-                    f"trajectories={cfg.ENV.DYSTS.CACHE_TRAJECTORIES})"
+                    f"(train_split={cfg.ENV.DYSTS.CACHE_SPLIT}, val_split={val_cache_cfg.ENV.DYSTS.CACHE_SPLIT}, "
+                    f"steps={cfg.ENV.DYSTS.CACHE_STEPS}, trajectories={cfg.ENV.DYSTS.CACHE_TRAJECTORIES})"
                 )
             else:
                 print("Warning: Dysts cache enabled but environment is not dysts.")
@@ -389,7 +408,16 @@ def train(
     
     print("Generating fixed validation set...")
     val_rng = torch.Generator().manual_seed(cfg.SEED + 999999) # Separate seed
-    if cfg.TRAIN.USE_SEQUENCE_LOSS:
+    if val_dysts_cache is not None:
+        val_window = max(1, cfg.TRAIN.SEQUENCE_LENGTH)
+        val_seq = val_dysts_cache.sample_sequence_batch(
+            val_rng,
+            batch_size=16,
+            window_length=val_window,
+            device=device,
+        )
+        val_x = val_seq[:, 0, :]
+    elif cfg.TRAIN.USE_SEQUENCE_LOSS:
         val_seq = env.generate_sequence_batch(val_rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
         val_x = val_seq[:16, 0, :].to(device) # Use 16 samples for better stability
     else:
@@ -552,6 +580,8 @@ def train(
     if not skip_eval:
         print("-" * 80)
         print("Running standardized evaluation suite...")
+        if eval_profile != "full":
+            print(f"Using evaluation profile: {eval_profile}")
         print("Loading evaluation module...")
         from skae.evaluation import EvaluationSettings, evaluate_model
     
@@ -566,9 +596,16 @@ def train(
             ckpt_step = checkpoint.get('step', 'unknown')
             print(f"  Loaded checkpoint (step={ckpt_step}). Building eval env/model...", flush=True)
 
+            eval_cfg = Config.from_dict(cfg.to_dict())
+            if eval_cfg.ENV.ENV_NAME.lower().startswith("dysts:") and eval_cfg.ENV.DYSTS.USE_NATIVE_CACHE:
+                eval_cfg.ENV.DYSTS.CACHE_SPLIT = "test"
+                if not eval_cfg.ENV.DYSTS.CACHE_DIR:
+                    eval_cfg.ENV.DYSTS.CACHE_DIR = default_dysts_cache_dir()
+                eval_cfg.ENV.DYSTS.CACHE_REUSE = True
+
             # Load model from checkpoint (use unwrapped env for observation_size)
-            eval_env = make_env(cfg)
-            eval_model = make_model(cfg, eval_env.observation_size)
+            eval_env = make_env(eval_cfg)
+            eval_model = make_model(eval_cfg, eval_env.observation_size)
             eval_model.load_state_dict(checkpoint['model_state_dict'])
             eval_model = eval_model.to(device)
             eval_model.eval()
@@ -577,13 +614,24 @@ def train(
             # Create evaluation settings
             eval_settings = EvaluationSettings()
             eval_settings.systems = [cfg.ENV.ENV_NAME]
+            if eval_profile == "smoke":
+                # Keep H1000 for compatibility checks, but reduce expensive eval breadth.
+                eval_settings.batch_size = 32
+                eval_settings.horizons = (100, 500, 1000)
+                eval_settings.periodic_reencode_periods = (10, 25)
+                eval_settings.dysts_periodic_reencode_periods = (10, 100, 500, 1000)
+                eval_settings.phase_portrait_samples = 8
+                eval_settings.phase_portrait_length = 100
+                eval_settings.phase_portrait_batch_size = 64
+                eval_settings.phase_portrait_reencode_periods = (0, 1, 10, 25)
+                eval_settings.dysts_phase_portrait_reencode_periods = (0, 1, 100, 500, 1000)
 
             # Evaluate
             eval_dir = run_dir / f"evaluation_{checkpoint_name}"
             print(f"  Calling evaluate_model() for systems={eval_settings.systems} ...", flush=True)
             eval_results = evaluate_model(
                 model=eval_model,
-                cfg=cfg,
+                cfg=eval_cfg,
                 device=device,
                 settings=eval_settings,
                 output_dir=eval_dir,
@@ -869,7 +917,8 @@ Examples:
     # Configuration
     parser.add_argument('--config', type=str, default='generic',
                         choices=['default', 'generic', 'generic_sparse', 
-                                'generic_prediction', 'lista', 'lista_nonlinear', 'hyperlista'],
+                                'generic_prediction', 'lista', 'lista_nonlinear',
+                                'lista_parity_generic_sparse', 'hyperlista'],
                         help='Training configuration preset')
     parser.add_argument('--env', type=str, default='duffing',
                         help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '
@@ -905,12 +954,26 @@ Examples:
                              'Smaller values keep trajectories near the canonical attractor.')
     parser.add_argument('--dysts_native_cache', action='store_true',
                         help='Use native dysts trajectory cache for training data')
+    parser.add_argument('--dysts_cache_profile', type=str, default=None,
+                        choices=['smoke', 'full'],
+                        help='Named dysts cache profile (smoke or full)')
     parser.add_argument('--dysts_cache_steps', type=int, default=None,
                         help='Length of each cached dysts trajectory')
     parser.add_argument('--dysts_cache_trajectories', type=int, default=None,
                         help='Number of cached dysts trajectories')
     parser.add_argument('--dysts_cache_warmup', type=int, default=None,
                         help='Warmup steps to discard from cached trajectories')
+    parser.add_argument('--dysts_cache_dir', type=str, default=None,
+                        help='Optional cache directory for reusing cached dysts trajectories')
+    parser.add_argument('--dysts_cache_reuse', action='store_true',
+                        help='Reuse/load/save on-disk dysts cache when cache dir is set')
+    parser.add_argument('--dysts_cache_split', type=str, default='train',
+                        choices=['train', 'val', 'test'],
+                        help='Cache split namespace to use')
+    parser.add_argument('--dysts_cache_num_workers', type=int, default=None,
+                        help='Parallel workers for dysts native cache construction')
+    parser.add_argument('--disable_dysts_auto_cache', action='store_true',
+                        help='Disable automatic cache defaults for dysts environments')
     
     # Training
     parser.add_argument('--num_steps', type=int, default=20000,
@@ -1018,6 +1081,8 @@ Examples:
                         help='Skip standardized evaluation suite after training')
     parser.add_argument('--skip_basin_eval', action='store_true',
                         help='Skip basin structure evaluation after training')
+    parser.add_argument('--eval_profile', type=str, default='full', choices=['full', 'smoke'],
+                        help='Evaluation profile for post-training standardized evaluation')
 
     # Support monitoring (for basin-support correspondence diagnostics)
     parser.add_argument('--monitor_support', action='store_true',
@@ -1152,12 +1217,49 @@ Examples:
         cfg.MODEL.ENCODER.HYPERLISTA.C_SS = args.hyperlista_c_ss
     
     # Dysts standardization
+    is_dysts_env = cfg.ENV.ENV_NAME.lower().startswith("dysts:")
     if args.standardize:
         cfg.ENV.DYSTS.STANDARDIZE = True
         print("Using standardized dysts data (zero mean, unit variance)")
     if args.dysts_ic_noise_scale is not None:
         cfg.ENV.DYSTS.IC_NOISE_SCALE = float(args.dysts_ic_noise_scale)
         print(f"Using dysts IC noise scale: {cfg.ENV.DYSTS.IC_NOISE_SCALE}")
+    cfg.ENV.DYSTS.CACHE_SPLIT = args.dysts_cache_split
+
+    # Auto-defaults for dysts runs: use shared cache by default unless disabled.
+    if is_dysts_env and not args.disable_dysts_auto_cache:
+        cfg.ENV.DYSTS.USE_NATIVE_CACHE = True
+        if not cfg.ENV.DYSTS.STANDARDIZE:
+            cfg.ENV.DYSTS.STANDARDIZE = True
+            print("Using standardized dysts data (zero mean, unit variance)")
+        if args.dysts_cache_profile is None:
+            no_manual_shape = (
+                args.dysts_cache_steps is None
+                and args.dysts_cache_trajectories is None
+                and args.dysts_cache_warmup is None
+            )
+            if no_manual_shape:
+                profile = apply_dysts_cache_profile(cfg, "full")
+                print(
+                    "Auto dysts cache profile 'full' "
+                    f"(steps={profile['steps']}, trajectories={profile['trajectories']}, "
+                    f"warmup={profile['warmup']})"
+                )
+        if args.dysts_cache_dir is None and not cfg.ENV.DYSTS.CACHE_DIR:
+            cfg.ENV.DYSTS.CACHE_DIR = default_dysts_cache_dir()
+        if not args.dysts_cache_reuse:
+            cfg.ENV.DYSTS.CACHE_REUSE = True
+        if args.dysts_cache_num_workers is None and cfg.ENV.DYSTS.CACHE_NUM_WORKERS < 2:
+            cfg.ENV.DYSTS.CACHE_NUM_WORKERS = 2
+
+    if args.dysts_cache_profile is not None:
+        cfg.ENV.DYSTS.USE_NATIVE_CACHE = True
+        profile = apply_dysts_cache_profile(cfg, args.dysts_cache_profile)
+        print(
+            f"Using dysts cache profile '{args.dysts_cache_profile}' "
+            f"(steps={profile['steps']}, trajectories={profile['trajectories']}, "
+            f"warmup={profile['warmup']})"
+        )
     if args.dysts_native_cache:
         cfg.ENV.DYSTS.USE_NATIVE_CACHE = True
         print("Using dysts native trajectory cache for training data")
@@ -1167,6 +1269,22 @@ Examples:
         cfg.ENV.DYSTS.CACHE_TRAJECTORIES = args.dysts_cache_trajectories
     if args.dysts_cache_warmup is not None:
         cfg.ENV.DYSTS.CACHE_WARMUP = args.dysts_cache_warmup
+    if args.dysts_cache_dir is not None:
+        cfg.ENV.DYSTS.CACHE_DIR = args.dysts_cache_dir
+    if args.dysts_cache_reuse:
+        cfg.ENV.DYSTS.CACHE_REUSE = True
+    if args.dysts_cache_num_workers is not None:
+        cfg.ENV.DYSTS.CACHE_NUM_WORKERS = int(args.dysts_cache_num_workers)
+    if is_dysts_env and cfg.ENV.DYSTS.USE_NATIVE_CACHE:
+        print(
+            "Dysts cache config: "
+            f"split={cfg.ENV.DYSTS.CACHE_SPLIT}, "
+            f"steps={cfg.ENV.DYSTS.CACHE_STEPS}, "
+            f"trajectories={cfg.ENV.DYSTS.CACHE_TRAJECTORIES}, "
+            f"warmup={cfg.ENV.DYSTS.CACHE_WARMUP}, "
+            f"reuse={cfg.ENV.DYSTS.CACHE_REUSE}, "
+            f"dir='{cfg.ENV.DYSTS.CACHE_DIR}'"
+        )
     
     # Training mode
     mode_flags = sum([args.pairwise, args.sequence, args.multistep])
@@ -1240,6 +1358,7 @@ Examples:
         support_threshold=args.support_threshold,
         skip_eval=args.skip_eval,
         skip_basin_eval=args.skip_basin_eval,
+        eval_profile=args.eval_profile,
     )
 
 

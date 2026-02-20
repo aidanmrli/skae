@@ -99,6 +99,7 @@ cfg.MODEL  # Shows all model settings
 - `"generic_prediction"`: Prediction-focused (no reconstruction)
 - `"lista"`: LISTA-based sparse autoencoder (2048-dim latent)
 - `"lista_nonlinear"`: LISTA with nonlinear MLP encoder
+- `"lista_parity_generic_sparse"`: LISTA preset aligned to `generic_sparse` non-depth settings
 
 ## Structure
 
@@ -225,6 +226,10 @@ class DystsConfig:
     CACHE_STEPS: int = 30000  # Length of each cached trajectory
     CACHE_TRAJECTORIES: int = 200  # Number of cached trajectories
     CACHE_WARMUP: int = 200  # Discard initial steps to skip transients
+    CACHE_DIR: str = ""  # Optional on-disk cache directory for trajectory reuse
+    CACHE_REUSE: bool = False  # Reuse/load/save on-disk cached trajectories
+    CACHE_SPLIT: str = "train"  # Cache namespace: train/val/test
+    CACHE_NUM_WORKERS: int = 1  # Parallel workers for cache construction
 
 
 @dataclass
@@ -550,6 +555,27 @@ def get_train_lista_nonlinear_config() -> Config:
     return cfg
 
 
+def get_train_lista_parity_generic_sparse_config() -> Config:
+    """LISTA preset aligned to generic_sparse settings for depth-parity sweeps."""
+    cfg = Config()
+    cfg.TRAIN.LR = 1e-4
+    cfg.MODEL.MODEL_NAME = "LISTAKM"
+    cfg.MODEL.TARGET_SIZE = 64
+    cfg.MODEL.NORM_FN = "id"
+    cfg.MODEL.RES_COEFF = 1.0
+    cfg.MODEL.RECONST_COEFF = 0.5
+    cfg.MODEL.PRED_COEFF = 0.0
+    cfg.MODEL.SPARSITY_COEFF = 0.01
+    cfg.MODEL.USE_HOMOGENEOUS = False
+    cfg.MODEL.DECODER.LAYERS = []
+    cfg.MODEL.ENCODER.LAYERS = [64, 64]
+    cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = False
+    cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+    cfg.MODEL.ENCODER.LISTA.ALPHA = 0.1
+    cfg.MODEL.ENCODER.USE_BIAS = True
+    return cfg
+
+
 def get_train_hyperlista_config() -> Config:
     """Configuration for HyperLISTA-based Sparse KM.
     
@@ -582,6 +608,7 @@ _TRAIN_CONFIG_REGISTRY = {
     "generic_prediction": get_train_generic_prediction_config,
     "lista": get_train_lista_config,
     "lista_nonlinear": get_train_lista_nonlinear_config,
+    "lista_parity_generic_sparse": get_train_lista_parity_generic_sparse_config,
     "hyperlista": get_train_hyperlista_config,
 }
 
@@ -597,6 +624,7 @@ def get_config(name: str = "default") -> Config:
             - "generic_prediction": Prediction-focused
             - "lista": LISTA-based KoopmanMachine
             - "lista_nonlinear": LISTA with MLP encoder
+            - "lista_parity_generic_sparse": LISTA parity preset for generic_sparse alignment
     
     Returns:
         Config for the specified configuration.

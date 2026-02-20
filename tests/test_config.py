@@ -10,6 +10,7 @@ from skae.config import (
     get_default_config,
     get_train_generic_km_config,
     get_train_lista_config,
+    get_train_lista_parity_generic_sparse_config,
 )
 
 
@@ -57,8 +58,14 @@ def test_get_named_configs():
     # Test LISTA config
     cfg_lista = get_train_lista_config()
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"
-    assert cfg_lista.MODEL.ENCODER.LISTA.NUM_LOOPS == 10
+    assert cfg_lista.MODEL.ENCODER.LISTA.NUM_LOOPS == 5
     assert cfg_lista.MODEL.TARGET_SIZE == 1024 * 2
+
+    cfg_parity = get_train_lista_parity_generic_sparse_config()
+    assert cfg_parity.MODEL.MODEL_NAME == "LISTAKM"
+    assert cfg_parity.MODEL.TARGET_SIZE == 64
+    assert cfg_parity.MODEL.SPARSITY_COEFF == 0.01
+    assert cfg_parity.MODEL.ENCODER.LISTA.FINAL_OP == "shrink"
 
 
 def test_config_registry():
@@ -71,7 +78,11 @@ def test_config_registry():
     
     cfg_lista = get_config("lista")
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"
-    
+
+    cfg_parity = get_config("lista_parity_generic_sparse")
+    assert cfg_parity.MODEL.MODEL_NAME == "LISTAKM"
+    assert cfg_parity.MODEL.TARGET_SIZE == 64
+
     with pytest.raises(ValueError):
         get_config("nonexistent")
 

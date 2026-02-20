@@ -16,7 +16,14 @@ from pathlib import Path
 from skae.config import get_config
 from skae.data import make_env, VectorWrapper
 from skae.model import make_model
-from tools.train import train_step, evaluate, train, build_optimizer
+from tools.train import (
+    DYSTS_CACHE_PROFILES,
+    apply_dysts_cache_profile,
+    train_step,
+    evaluate,
+    train,
+    build_optimizer,
+)
 
 
 class TestTrainStep:
@@ -265,7 +272,33 @@ class TestTrainIntegration:
             with tempfile.TemporaryDirectory() as tmpdir:
                 model = train(cfg, log_dir=tmpdir, device='cpu')
                 assert model is not None
-    
+
+
+class TestDystsCacheProfiles:
+    """Tests for named dysts cache profiles."""
+
+    def test_apply_smoke_profile(self):
+        cfg = get_config("generic")
+        profile = apply_dysts_cache_profile(cfg, "smoke")
+
+        assert profile == DYSTS_CACHE_PROFILES["smoke"]
+        assert cfg.ENV.DYSTS.CACHE_STEPS == DYSTS_CACHE_PROFILES["smoke"]["steps"]
+        assert cfg.ENV.DYSTS.CACHE_TRAJECTORIES == DYSTS_CACHE_PROFILES["smoke"]["trajectories"]
+        assert cfg.ENV.DYSTS.CACHE_WARMUP == DYSTS_CACHE_PROFILES["smoke"]["warmup"]
+
+    def test_apply_full_profile(self):
+        cfg = get_config("generic")
+        profile = apply_dysts_cache_profile(cfg, "full")
+
+        assert profile == DYSTS_CACHE_PROFILES["full"]
+        assert cfg.ENV.DYSTS.CACHE_STEPS == DYSTS_CACHE_PROFILES["full"]["steps"]
+        assert cfg.ENV.DYSTS.CACHE_TRAJECTORIES == DYSTS_CACHE_PROFILES["full"]["trajectories"]
+        assert cfg.ENV.DYSTS.CACHE_WARMUP == DYSTS_CACHE_PROFILES["full"]["warmup"]
+
+
+class TestTrainLearning:
+    """Learning behavior checks."""
+
     def test_train_decreases_loss(self):
         """Test that training actually reduces loss over time."""
         cfg = get_config("generic")
@@ -298,4 +331,3 @@ class TestTrainIntegration:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
-

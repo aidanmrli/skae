@@ -1013,6 +1013,9 @@ class KoopmanMachine(ABC, nn.Module):
             Tuple of (total_loss, metrics_dict)
         """
         batch_size, seq_len, obs_size = x_seq.shape
+        # Temporary calibration: downscale all sequence loss terms for seq-8 windows.
+        # Seq-8 uses T=8 forward steps => seq_len=9 states including initial x_t.
+        sequence_term_scale = 0.01 if seq_len == 9 else 1.0
         
         # 1. Encode each state in the sequence
         # Flatten for encoding: [batch_size * seq_len, obs_size]
@@ -1068,6 +1071,12 @@ class KoopmanMachine(ABC, nn.Module):
         # Sparsity loss: L1 on latents averaged over sequence
         sparsity_loss = torch.norm(z_seq, p=1, dim=-1).mean()
         
+        # Apply consistent term scaling for seq-8.
+        alignment_loss = alignment_loss * sequence_term_scale
+        reconst_loss = reconst_loss * sequence_term_scale
+        prediction_loss = prediction_loss * sequence_term_scale
+        sparsity_loss = sparsity_loss * sequence_term_scale
+        
         # Metrics for monitoring
         with torch.no_grad():
             kmat = self.kmatrix()
@@ -1099,6 +1108,7 @@ class KoopmanMachine(ABC, nn.Module):
             'reconst_loss': reconst_loss.item(),
             'prediction_loss': prediction_loss.item(),
             'sparsity_loss': sparsity_loss.item(),
+            'sequence_term_scale': sequence_term_scale,
             'A_max_eigenvalue': max_eigenvalue.item(),
             'sparsity_ratio': sparsity_ratio.item(),
         }
@@ -1466,7 +1476,7 @@ class LISTAKM(KoopmanMachine):
         return torch.norm(self.step_latent(y) - ny, dim=-1)
 
     def sparsity_loss(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute L1 sparsity loss weighted by LISTA alpha.
+        """Compute explicit L1 sparsity loss on latent codes.
 
         Args:
             x: Observations of shape [..., observation_size]
@@ -1475,7 +1485,7 @@ class LISTAKM(KoopmanMachine):
             Scalar sparsity loss
         """
         z = self.encode(x)
-        return self.cfg.MODEL.ENCODER.LISTA.ALPHA * torch.norm(z, p=1, dim=-1).mean()
+        return torch.norm(z, p=1, dim=-1).mean()
 
     def _block_energies(self, z: torch.Tensor) -> Optional[torch.Tensor]:
         """Compute per-block energies for block_diagonal K.
@@ -2134,14 +2144,13 @@ class StructuredLISTAKM(LISTAKM):
             Tuple of (global_sparsity_loss, local_sparsity_loss)
         """
         z_global, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
-        alpha = self.cfg.MODEL.ENCODER.LISTA.ALPHA
 
         # Global: near-zero penalty allows dense activation
-        global_loss = alpha * torch.norm(z_global, p=1, dim=-1).mean()
+        global_loss = torch.norm(z_global, p=1, dim=-1).mean()
 
         # Local: L1 norm over all basin dimensions (flatten B and d_b)
         # z_basins has shape [..., B, d_b], sum absolute values over last two dims
-        local_loss = alpha * z_basins.abs().sum(dim=(-2, -1)).mean()
+        local_loss = z_basins.abs().sum(dim=(-2, -1)).mean()
 
         return global_loss, local_loss
 
@@ -2430,9 +2439,8 @@ class StructuredLISTAKM(LISTAKM):
         dominance_loss = 0.5 * (self._dominance_loss_from_z(z) + self._dominance_loss_from_z(z_nx))
 
         # Explicit L1 sparsity loss on full z with warmup
-        alpha = self.cfg.MODEL.ENCODER.LISTA.ALPHA
         sparsity_weight = self.get_sparsity_weight(step)
-        sparsity_loss = 0.5 * alpha * (
+        sparsity_loss = 0.5 * (
             torch.norm(z, p=1, dim=-1).mean() + torch.norm(z_nx, p=1, dim=-1).mean()
         )
 
@@ -2524,6 +2532,9 @@ class StructuredLISTAKM(LISTAKM):
             Tuple of (total_loss, metrics_dict)
         """
         batch_size, seq_len, obs_size = x_seq.shape
+        # Temporary calibration: downscale all sequence loss terms for seq-8 windows.
+        # Seq-8 uses T=8 forward steps => seq_len=9 states including initial x_t.
+        sequence_term_scale = 0.01 if seq_len == 9 else 1.0
 
         # 1. Encode each state in the sequence (single batched call)
         x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
@@ -2566,13 +2577,22 @@ class StructuredLISTAKM(LISTAKM):
         excl_loss = self._exclusivity_from_z(z_flat)
 
         # Explicit L1 sparsity loss on full z with warmup
-        alpha = self.cfg.MODEL.ENCODER.LISTA.ALPHA
         sparsity_weight = self.get_sparsity_weight(step)
-        sparsity_loss = alpha * torch.norm(z_flat, p=1, dim=-1).mean()
+        sparsity_loss = torch.norm(z_flat, p=1, dim=-1).mean()
 
         # Temporal consistency loss: penalize basin activation changes within trajectory
         temporal_weight = self.get_temporal_weight(step)
         temporal_loss = self._temporal_consistency_from_z_seq(z_seq)
+        
+        # Apply consistent term scaling for seq-8.
+        alignment_loss = alignment_loss * sequence_term_scale
+        reconst_loss = reconst_loss * sequence_term_scale
+        prediction_loss = prediction_loss * sequence_term_scale
+        global_sparsity_loss = global_sparsity_loss * sequence_term_scale
+        local_sparsity_loss = local_sparsity_loss * sequence_term_scale
+        excl_loss = excl_loss * sequence_term_scale
+        sparsity_loss = sparsity_loss * sequence_term_scale
+        temporal_loss = temporal_loss * sequence_term_scale
 
         # Metrics for monitoring
         with torch.no_grad():
@@ -2609,6 +2629,7 @@ class StructuredLISTAKM(LISTAKM):
         if self.use_homogeneous:
             c_hat = self.get_homogeneous_coord(z_flat)
             homog_loss = torch.mean((c_hat - 1.0) ** 2)
+            homog_loss = homog_loss * sequence_term_scale
             total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
 
         metrics = {
@@ -2624,6 +2645,7 @@ class StructuredLISTAKM(LISTAKM):
             'sparsity_weight': sparsity_weight,
             'temporal_loss': temporal_loss.item(),
             'temporal_weight': temporal_weight,
+            'sequence_term_scale': sequence_term_scale,
             'A_max_eigenvalue': max_eigenvalue.item(),
             'sparsity_ratio': sparsity_ratio.item(),
             'active_basins': active_basins,

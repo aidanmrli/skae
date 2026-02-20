@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# Prebuild dysts caches over (system x profile x split).
+#
+# Submit:
+#   sbatch scripts/prebuild_dysts_cache_matrix.sh
+#
+# Optional overrides:
+#   SYSTEMS_FILE=scripts/dysts_cache_systems.txt
+#   CACHE_DIR=/network/scratch/l/lia/skae/dysts_native_cache
+#   CACHE_NUM_WORKERS=2
+#   PROFILES="smoke full"
+#   SPLITS="train val test"
+#
+#SBATCH --job-name=prebuild_dysts_cache
+#SBATCH --ntasks=1
+#SBATCH --partition=long
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=24:00:00
+#SBATCH -o /network/scratch/l/lia/skae/prebuild-dysts-cache-%A_%a.out
+#SBATCH --requeue
+#SBATCH --array=0-95
+
+set -euo pipefail
+
+module load cuda/12.6.0
+source .venv/bin/activate
+
+SYSTEMS_FILE="${SYSTEMS_FILE:-scripts/dysts_cache_systems.txt}"
+CACHE_DIR="${CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cache}"
+CACHE_NUM_WORKERS="${CACHE_NUM_WORKERS:-2}"
+PROFILES_STR="${PROFILES:-smoke full}"
+SPLITS_STR="${SPLITS:-train val test}"
+
+if [[ ! -f "${SYSTEMS_FILE}" ]]; then
+  echo "Missing SYSTEMS_FILE=${SYSTEMS_FILE}"
+  exit 1
+fi
+
+mapfile -t SYSTEMS < <(sed -e 's/#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "${SYSTEMS_FILE}" | awk 'NF')
+read -r -a PROFILES <<< "${PROFILES_STR}"
+read -r -a SPLITS <<< "${SPLITS_STR}"
+
+NUM_SYSTEMS=${#SYSTEMS[@]}
+NUM_PROFILES=${#PROFILES[@]}
+NUM_SPLITS=${#SPLITS[@]}
+TOTAL=$((NUM_SYSTEMS * NUM_PROFILES * NUM_SPLITS))
+
+TASK_ID=${SLURM_ARRAY_TASK_ID:-0}
+if (( TASK_ID < 0 || TASK_ID >= TOTAL )); then
+  echo "Task ${TASK_ID} out of range for TOTAL=${TOTAL}. Exiting."
+  exit 0
+fi
+
+PROFILE_SPLIT_STRIDE=$((NUM_PROFILES * NUM_SPLITS))
+SYSTEM_IDX=$((TASK_ID / PROFILE_SPLIT_STRIDE))
+REM=$((TASK_ID % PROFILE_SPLIT_STRIDE))
+PROFILE_IDX=$((REM / NUM_SPLITS))
+SPLIT_IDX=$((REM % NUM_SPLITS))
+
+SYSTEM=${SYSTEMS[$SYSTEM_IDX]}
+PROFILE=${PROFILES[$PROFILE_IDX]}
+SPLIT=${SPLITS[$SPLIT_IDX]}
+
+echo "============================================="
+echo "Prebuild Dysts Cache Matrix"
+echo "Job ID: ${SLURM_JOB_ID:-local}"
+echo "Task ID: ${TASK_ID}/${TOTAL}"
+echo "System: ${SYSTEM}"
+echo "Profile: ${PROFILE}"
+echo "Split: ${SPLIT}"
+echo "CACHE_DIR: ${CACHE_DIR}"
+echo "CACHE_NUM_WORKERS: ${CACHE_NUM_WORKERS}"
+echo "Start Time: $(date)"
+echo "============================================="
+
+uv run python tools/prebuild_dysts_cache.py \
+  --systems "dysts:${SYSTEM}" \
+  --profiles "${PROFILE}" \
+  --splits "${SPLIT}" \
+  --cache_dir "${CACHE_DIR}" \
+  --cache_num_workers "${CACHE_NUM_WORKERS}" \
+  --standardize
+
+EXIT_CODE=$?
+echo "============================================="
+echo "End Time: $(date)"
+echo "Exit Code: ${EXIT_CODE}"
+echo "============================================="
+exit ${EXIT_CODE}
+

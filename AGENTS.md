@@ -39,6 +39,7 @@ Use `uv` for reproducible environments.
 - Launch SLURM job scripts with `sbatch` (for scripts with `#SBATCH` headers); do not run them directly with `bash`.
 - Prefer queue/launcher scripts that call `sbatch` to submit dependency chains (sweep -> collect -> compare).
 - If a script is intended for SLURM execution, submit it via `sbatch scripts/<name>.sh` to ensure cluster-side permissions and environment are applied.
+- In Codex/sandboxed sessions, `sbatch` submission requires out-of-sandbox escalation, so always run `sbatch` command with escalated permissions.
 
 ## Coding Style & Naming Conventions
 - Python, 4-space indentation, and PEP 8 style conventions.

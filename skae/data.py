@@ -7,6 +7,11 @@ structured as environments.
 
 from abc import ABC, abstractmethod
 from typing import Optional, Callable, List, Tuple
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import hashlib
+import json
+import os
+from pathlib import Path
 import time
 import numpy as np
 import torch
@@ -198,8 +203,53 @@ class VectorWrapper(Wrapper):
 # Dysts trajectory cache for training
 # ---------------------------------------------------------------------------
 
+def _build_dysts_native_trajectory(
+    system_name: str,
+    dt: float,
+    ic: np.ndarray,
+    n_steps: int,
+    resample: bool,
+    pts_per_period: int,
+    standardize: bool,
+) -> torch.Tensor:
+    """Worker helper for parallel dysts trajectory generation."""
+    from skae.benchmarks.dysts_adapter import DystsEnv
+
+    worker_env = DystsEnv(
+        system_name=system_name,
+        dt_override=float(dt),
+        ic_noise_scale=0.0,
+        standardize=standardize,
+    )
+    if hasattr(worker_env.system, "ic"):
+        worker_env.system.ic = np.array(ic, dtype=np.float32)
+    return worker_env.make_trajectory_native(
+        n=n_steps,
+        resample=resample,
+        pts_per_period=pts_per_period,
+        standardize=standardize,
+    ).float()
+
+
 class DystsTrajectoryCache:
     """In-memory cache of dysts trajectories for fast batch sampling."""
+
+    # Cache IC construction is intentionally deterministic and independent of model seed
+    # so cache files can be reused across runs with different training seeds.
+    _CACHE_BUILD_SEED = 0
+
+    @staticmethod
+    def _split_seed_offset(split: str) -> int:
+        """Deterministic offset per cache split namespace."""
+        normalized = (split or "train").strip().lower()
+        if normalized == "train":
+            return 0
+        if normalized == "val":
+            return 1
+        if normalized == "test":
+            return 2
+        digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()
+        return int(digest[:8], 16) % 1_000_000
     
     def __init__(
         self,
@@ -215,60 +265,219 @@ class DystsTrajectoryCache:
         self.standardize = cfg.ENV.DYSTS.STANDARDIZE
         self.resample = cfg.ENV.DYSTS.RESAMPLE
         self.pts_per_period = cfg.ENV.DYSTS.PTS_PER_PERIOD
+        self.cache_dir = str(getattr(cfg.ENV.DYSTS, "CACHE_DIR", "")).strip()
+        self.cache_reuse = bool(getattr(cfg.ENV.DYSTS, "CACHE_REUSE", False))
+        self.cache_split = str(getattr(cfg.ENV.DYSTS, "CACHE_SPLIT", "train")).strip().lower() or "train"
+        self.cache_num_workers = max(1, int(getattr(cfg.ENV.DYSTS, "CACHE_NUM_WORKERS", 1)))
         
         if self.cache_steps < 2:
             raise ValueError("Dysts cache requires CACHE_STEPS >= 2")
-        
-        if rng is None:
-            rng = torch.Generator().manual_seed(0)
-        self._rng = rng
+
+        # Keep constructor arg for backward compatibility; cache generation itself
+        # is intentionally seed-free from the training run perspective.
+        _ = rng
+        split_seed = self._CACHE_BUILD_SEED + self._split_seed_offset(self.cache_split)
+        self._cache_build_rng = torch.Generator().manual_seed(split_seed)
         self._trajectories = self._build_cache()
+
+    def _cache_path(self, base_ic: np.ndarray, base_std: np.ndarray) -> Optional[Path]:
+        if not self.cache_dir or not self.cache_reuse:
+            return None
+        os.makedirs(self.cache_dir, exist_ok=True)
+        payload = {
+            "version": 1,
+            "system": str(getattr(self.env, "system_name", "unknown")),
+            "dt": float(getattr(self.env, "dt", 0.0)),
+            "cache_split": self.cache_split,
+            "cache_steps": int(self.cache_steps),
+            "cache_trajectories": int(self.cache_trajectories),
+            "cache_warmup": int(self.cache_warmup),
+            "standardize": bool(self.standardize),
+            "resample": bool(self.resample),
+            "pts_per_period": int(self.pts_per_period),
+            "ic_noise_scale": float(getattr(self.env, "ic_noise_scale", 0.0)),
+            "base_ic": np.asarray(base_ic, dtype=np.float32).round(6).tolist(),
+            "base_std": np.asarray(base_std, dtype=np.float32).round(6).tolist(),
+        }
+        digest = hashlib.sha1(
+            json.dumps(payload, sort_keys=True).encode("utf-8")
+        ).hexdigest()[:16]
+        safe_system = str(payload["system"]).replace(":", "_")
+        safe_split = str(payload["cache_split"]).replace(":", "_")
+        return Path(self.cache_dir) / f"{safe_system}_{safe_split}_{digest}.pt"
+
+    def _load_cached_trajectories(self, cache_path: Optional[Path]) -> Optional[torch.Tensor]:
+        if cache_path is None or not cache_path.exists():
+            return None
+        try:
+            payload = torch.load(cache_path, map_location="cpu")
+            trajectories = payload["trajectories"] if isinstance(payload, dict) else payload
+            if not isinstance(trajectories, torch.Tensor):
+                print(f"[dysts cache] invalid tensor payload at {cache_path}; rebuilding.")
+                return None
+            if trajectories.dim() != 3:
+                print(f"[dysts cache] invalid tensor shape at {cache_path}; rebuilding.")
+                return None
+            if trajectories.shape[1] < self.cache_steps:
+                print(f"[dysts cache] cached trajectories too short at {cache_path}; rebuilding.")
+                return None
+            print(
+                f"[dysts cache] cache hit: loaded {trajectories.shape[0]} trajectories "
+                f"from {cache_path}",
+                flush=True,
+            )
+            return trajectories.float()
+        except Exception as e:
+            print(f"[dysts cache] failed loading {cache_path}: {e}. Rebuilding.")
+            return None
+
+    def _save_cached_trajectories(
+        self,
+        cache_path: Optional[Path],
+        trajectories: torch.Tensor,
+    ) -> None:
+        if cache_path is None:
+            return
+        tmp_path = cache_path.with_suffix(cache_path.suffix + f".tmp-{os.getpid()}")
+        try:
+            torch.save(
+                {
+                    "trajectories": trajectories.cpu(),
+                    "meta": {
+                        "system": str(getattr(self.env, "system_name", "unknown")),
+                        "cache_split": self.cache_split,
+                        "cache_steps": int(self.cache_steps),
+                        "cache_trajectories": int(self.cache_trajectories),
+                        "cache_warmup": int(self.cache_warmup),
+                    },
+                },
+                tmp_path,
+            )
+            os.replace(tmp_path, cache_path)
+            print(f"[dysts cache] saved cache to {cache_path}", flush=True)
+        except Exception as e:
+            print(f"[dysts cache] warning: failed to save cache at {cache_path}: {e}")
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
+
+    def _initial_conditions(self, base_ic: np.ndarray, base_std: np.ndarray) -> List[np.ndarray]:
+        ic_list: List[np.ndarray] = []
+        for i in range(self.cache_trajectories):
+            if i == 0:
+                ic = base_ic
+            else:
+                noise = torch.randn(self.env._dim, generator=self._cache_build_rng).numpy()
+                ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
+            ic_list.append(np.array(ic, dtype=np.float32))
+        return ic_list
+
+    def _build_cache_parallel(
+        self,
+        ic_list: List[np.ndarray],
+        t0: float,
+    ) -> List[torch.Tensor]:
+        total_steps = self.cache_steps + self.cache_warmup
+        trajectories: List[Optional[torch.Tensor]] = [None] * len(ic_list)
+        completed = 0
+        print(
+            f"[dysts cache] using parallel workers={self.cache_num_workers} "
+            f"for {len(ic_list)} trajectories",
+            flush=True,
+        )
+        with ProcessPoolExecutor(max_workers=self.cache_num_workers) as executor:
+            futures = {}
+            for idx, ic in enumerate(ic_list):
+                futures[executor.submit(
+                    _build_dysts_native_trajectory,
+                    str(getattr(self.env, "system_name", "")),
+                    float(getattr(self.env, "dt", 0.0)),
+                    ic,
+                    total_steps,
+                    bool(self.resample),
+                    int(self.pts_per_period),
+                    bool(self.standardize),
+                )] = idx
+            for future in as_completed(futures):
+                idx = futures[future]
+                completed += 1
+                try:
+                    traj = future.result()
+                    if self.cache_warmup > 0:
+                        traj = traj[self.cache_warmup:]
+                    trajectories[idx] = traj.float()
+                except Exception as e:
+                    if idx == 0:
+                        raise
+                    print(
+                        f"Warning: Failed to build dysts trajectory {idx + 1}/"
+                        f"{len(ic_list)}: {e}.",
+                        flush=True,
+                    )
+                if completed == 1 or completed % 10 == 0 or completed == len(ic_list):
+                    elapsed = time.perf_counter() - t0
+                    print(
+                        f"[dysts cache] completed {completed}/{len(ic_list)} "
+                        f"(elapsed={elapsed:.1f}s)",
+                        flush=True,
+                    )
+        return [traj for traj in trajectories if traj is not None]
     
     def _build_cache(self) -> torch.Tensor:
         """Generate cached trajectories using dysts native integrator."""
         base_ic = self.env._ic.detach().cpu().numpy()
         base_std = self.env._std.detach().cpu().numpy()
+        cache_path = self._cache_path(base_ic, base_std)
+        cached = self._load_cached_trajectories(cache_path)
+        if cached is not None:
+            return cached
+
+        ic_list = self._initial_conditions(base_ic, base_std)
         original_ic = None
         if hasattr(self.env.system, "ic"):
             original_ic = np.array(self.env.system.ic, copy=True)
         
         trajectories: List[torch.Tensor] = []
         t0 = time.perf_counter()
-        for i in range(self.cache_trajectories):
-            if i == 0 or (i + 1) % 10 == 0:
-                elapsed = time.perf_counter() - t0
-                print(
-                    f"[dysts cache] building trajectory {i + 1}/{self.cache_trajectories} "
-                    f"(elapsed={elapsed:.1f}s)",
-                    flush=True,
-                )
-            if i == 0:
-                ic = base_ic
-            else:
-                noise = torch.randn(self.env._dim, generator=self._rng).numpy()
-                ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
-            if hasattr(self.env.system, "ic"):
-                self.env.system.ic = np.array(ic, dtype=np.float32)
-            
-            try:
-                traj = self.env.make_trajectory_native(
-                    n=self.cache_steps + self.cache_warmup,
-                    resample=self.resample,
-                    pts_per_period=self.pts_per_period,
-                    standardize=self.standardize,
-                )
-            except Exception as e:
-                if i == 0:
-                    raise
-                print(
-                    f"Warning: Failed to build dysts trajectory {i + 1}/"
-                    f"{self.cache_trajectories}: {e}. Using fewer trajectories."
-                )
-                break
-            if self.cache_warmup > 0:
-                traj = traj[self.cache_warmup:]
-            traj = traj.float()
-            trajectories.append(traj)
+
+        can_parallel = (
+            self.cache_num_workers > 1
+            and self.cache_trajectories > 1
+            and hasattr(self.env, "system_name")
+        )
+        if can_parallel:
+            trajectories = self._build_cache_parallel(ic_list, t0)
+        else:
+            for i, ic in enumerate(ic_list):
+                if i == 0 or (i + 1) % 10 == 0:
+                    elapsed = time.perf_counter() - t0
+                    print(
+                        f"[dysts cache] building trajectory {i + 1}/{self.cache_trajectories} "
+                        f"(elapsed={elapsed:.1f}s)",
+                        flush=True,
+                    )
+                if hasattr(self.env.system, "ic"):
+                    self.env.system.ic = np.array(ic, dtype=np.float32)
+                try:
+                    traj = self.env.make_trajectory_native(
+                        n=self.cache_steps + self.cache_warmup,
+                        resample=self.resample,
+                        pts_per_period=self.pts_per_period,
+                        standardize=self.standardize,
+                    )
+                except Exception as e:
+                    if i == 0:
+                        raise
+                    print(
+                        f"Warning: Failed to build dysts trajectory {i + 1}/"
+                        f"{self.cache_trajectories}: {e}. Using fewer trajectories."
+                    )
+                    break
+                if self.cache_warmup > 0:
+                    traj = traj[self.cache_warmup:]
+                trajectories.append(traj.float())
         
         if original_ic is not None:
             self.env.system.ic = original_ic
@@ -282,9 +491,12 @@ class DystsTrajectoryCache:
         )
         
         if len(trajectories) == 1:
-            return trajectories[0].unsqueeze(0)
-        
-        return torch.stack(trajectories, dim=0)
+            stacked = trajectories[0].unsqueeze(0)
+        else:
+            stacked = torch.stack(trajectories, dim=0)
+
+        self._save_cached_trajectories(cache_path, stacked)
+        return stacked
     
     @property
     def trajectories(self) -> torch.Tensor:
