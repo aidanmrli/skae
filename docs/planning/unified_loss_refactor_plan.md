@@ -1,5 +1,15 @@
 # Refactor Plan: Pure Aggregation Loss API with External Rollout
 
+## Closure Status (March 3, 2026)
+
+Status: complete.
+
+Completed closure tasks:
+- Unified horizon-only CLI/documentation examples now use `--sequence_length` (with `H=1` for former pairwise behavior).
+- Unified loss tests now include explicit `H=8` inverse-horizon scaling coverage.
+- Structured unified-loss weighting has direct test coverage for explicit `loss_weights` and structured terms.
+- Training tests now cover both `H=1` and `H=8` metric behavior plus CLI rejection of legacy `--pairwise`.
+
 ## Summary
 Refactor training so rollout/trajectory construction happens outside the loss function, and the model loss only aggregates precomputed tensors.
 
@@ -12,7 +22,12 @@ Canonical loss interface:
   - `z0` `[B, ...]` (encoded `z_t`)
   - `z_pred` `[B, H, Dz]`
   - `z_true` `[B, H, Dz]`
-  - `extras` `dict[str, Tensor]` for structured terms
+  - `reconstruction_error`, `sparsity_error` (optional scalar terms)
+  - `sparsity_latent` (optional latent tensor)
+  - `homogeneous_loss` (optional scalar term)
+  - `loss_weights` `dict[str, float]` (structured-loss weights)
+  - `block_losses` `dict[str, Tensor]` (block-loss terms/diagnostics)
+  - `structured_latent`, `temporal_latent_sequence` (structured-only tensors)
 
 Loss remains: prediction + alignment + reconstruction + sparsity.
 Loss function is pure aggregator (no encode/decode/rollout inside).
@@ -20,7 +35,7 @@ Loss function is pure aggregator (no encode/decode/rollout inside).
 ## Final API and Contracts
 
 ### 1. Unified loss signature (model-level)
-`loss(x_pred, x_true, x0=None, z0=None, z_pred=None, z_true=None, extras=None, step=0)`
+`loss(x_pred, x_true, x0=None, z0=None, z_pred=None, z_true=None, reconstruction_error=None, sparsity_error=None, sparsity_latent=None, homogeneous_loss=None, loss_weights=None, block_losses=None, structured_latent=None, temporal_latent_sequence=None, step=0)`
 
 Behavior:
 1. Validate shapes and horizon consistency (`H >= 1`).
@@ -38,7 +53,7 @@ Training step prepares:
 1. `x_pred`, `z_pred` from rollout engine (discrete K application only).
 2. `x_true`, `z_true` sliced/encoded from data windows.
 3. `x0`, `z0` from initial state.
-4. Structured extras (if model uses them), e.g. per-step basin tensors or precomputed penalties.
+4. Structured tensors/weights (if model uses them), e.g. per-step basin tensors and `loss_weights`.
 
 ### 3. Scaling rule (locked)
 For all horizon-dependent terms:
@@ -64,7 +79,7 @@ Initial-state-only terms (if any) are not horizon-scaled unless explicitly defin
 3. Remove ODE-specific methods and dependency usage.
 4. Remove seq-8 hardcoded scaling.
 5. For Structured model:
-   - keep structured term math but consume `extras`/precomputed tensors instead of recomputing rollouts inside loss.
+   - keep structured term math but consume explicit precomputed tensors/weights instead of recomputing rollouts inside loss.
 6. Keep discrete rollout utilities outside `loss` (model helper methods are okay if called from train step, not from loss).
 
 ### B. `tools/train.py`
@@ -101,9 +116,9 @@ Given inputs:
 Compute:
 1. `prediction_loss`: mean over batch/time of `||x_pred - x_true||` (existing norm convention preserved).
 2. `alignment_loss`: mean over batch/time of `||z_pred - z_true||` (requires both latents).
-3. `reconst_loss`: from precomputed recon tensors in `extras` (pure rule), or explicitly passed as `extras["reconst_error"]`.
-4. `sparsity_loss`: from precomputed latent tensors (`extras["z_for_sparsity"]`), default to `z_pred` and optionally include `z0`.
-5. structured losses (if any): read from `extras` tensors, then apply configured warmup/weights.
+3. `reconst_loss`: from `reconstruction_error` (if provided).
+4. `sparsity_loss`: from `sparsity_error` (if provided) else from `sparsity_latent` (fallback `z_pred`).
+5. structured losses (if any): read from explicit structured tensors and `loss_weights`.
 
 Then multiply horizon-based terms by `1/H`, combine with configured coefficients, return metrics.
 
@@ -116,8 +131,8 @@ Then multiply horizon-based terms by `1/H`, combine with configured coefficients
    - `H=1,2,8` verifies exact `1/H` behavior.
 3. Pure-loss test:
    - monkeypatch encode/decode/rollout to fail; loss still works from provided tensors.
-4. Structured extras:
-   - verify extras-driven structured terms included and weighted correctly.
+4. Structured terms:
+   - verify structured tensors + `loss_weights` are included and weighted correctly.
 
 ### 2. Training tests (`tests/test_train.py`)
 1. End-to-end with `sequence_length=1` (former pairwise).
@@ -131,7 +146,7 @@ Then multiply horizon-based terms by `1/H`, combine with configured coefficients
 3. Smoke run of one generic and one structured config.
 
 ## Acceptance Criteria
-1. One canonical loss API (`loss(x_pred, x_true, x0=None, z0=None, z_pred=None, z_true=None, extras=None)`).
+1. One canonical loss API with explicit named loss inputs plus `loss_weights` and `block_losses` dictionaries.
 2. Loss is pure aggregator: no rollout/encode/decode calls inside.
 3. Pairwise behavior achieved by horizon `H=1`.
 4. All horizon-dependent terms scaled by `1/H`.
@@ -140,5 +155,5 @@ Then multiply horizon-based terms by `1/H`, combine with configured coefficients
 
 ## Assumptions and Defaults
 1. Alignment is required for the standard objective; if `z_pred/z_true` absent, alignment term is skipped only when coefficient is zero.
-2. Reconstruction and structured-specific inputs are passed via `extras` to keep loss pure.
+2. Reconstruction and structured-specific inputs are passed as explicit named arguments to keep loss pure.
 3. Existing norm forms are preserved unless explicitly changed during implementation.

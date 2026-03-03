@@ -8,8 +8,7 @@ This repository implements several variants of Koopman autoencoders:
 
 - **GenericKM**: Standard Koopman autoencoder with MLP encoder
 - **SparseKM**: Koopman autoencoder with L1 sparsity regularization
-- **LISTAKM**: Learned Iterative Soft-Thresholding Algorithm (LISTA) based sparse encoder
-- **HyperLISTAKM**: HyperLISTA with 3 scalar hyperparameters and gradient flow to dictionary
+- **LISTAKM**: Learned Iterative Soft-Thresholding Algorithm (LISTA) based sparse encoder, with configurable encoder mode (`lista` or `hyperlista`)
 - **StructuredLISTAKM**: Basin-aware Koopman with structured latent space for multi-basin systems
 
 ## Quick Start
@@ -44,8 +43,8 @@ uv pip install -e .
 ### Train a Model
 
 ```bash
-# Train with defaults on the Duffing Oscillator
-uv run python tools/train.py --config generic_sparse --env duffing --pairwise --num_steps 20000
+# Train with defaults on the Duffing Oscillator (H=1, former pairwise behavior)
+uv run python tools/train.py --config generic_sparse --env duffing --sequence_length 1 --num_steps 20000
 
 # Custom learning rate and latent dimension
 uv run python tools/train.py \
@@ -57,7 +56,7 @@ uv run python tools/train.py \
   --reconst_coeff 0.02 \
   --pred_coeff 1.0 \
   --sparsity_coeff 0.001 \
-  --pairwise \
+  --sequence_length 1 \
   --seed 0 \
   --device cuda
 
@@ -72,7 +71,7 @@ uv run python tools/train.py \
   --pred_coeff 10.0 \
   --sparsity_coeff 1.5 \
   --lista_alpha 0.3 \
-  --pairwise \
+  --sequence_length 1 \
   --seed 42 \
   --device cuda
 
@@ -89,7 +88,7 @@ uv run python tools/train.py \
   --hyperlista_c_theta 0.01 \
   --hyperlista_c_beta 0.0 \
   --hyperlista_c_ss 0.5 \
-  --pairwise \
+  --sequence_length 1 \
   --lr 5e-5 \
   --seed 42 \
   --device cuda
@@ -106,7 +105,7 @@ uv run python tools/train.py \
   --d_basin 16 \
   --lambda_exclusivity 0.05 \
   --lambda_sparsity 0.3 \
-  --pairwise \
+  --sequence_length 1 \
   --seed 42 \
   --device cuda
 ```
@@ -150,7 +149,6 @@ skae/
 │   ├── evaluate_checkpoints.py
 │   ├── evaluate_basin_structure.py
 │   ├── evaluate_latent_basin_clustering.py
-│   ├── tune_hyperlista.py
 │   ├── plot_training_metrics.py
 │   └── collect_sweep_results.py
 ├── scripts/               # Shell scripts for experiments (sbatch, sweeps)

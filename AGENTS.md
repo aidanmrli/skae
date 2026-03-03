@@ -26,10 +26,11 @@ Common paths:
 
 ## Build, Test, and Development Commands
 Use `uv` for reproducible environments.
+- Always run Python entry points via `uv run`; do not invoke `python` or `python3` directly.
 
 - `uv sync`: install dependencies from `uv.lock`.
 - `uv pip install -e .`: editable install (alternative without lockfile).
-- `uv run python tools/train.py --config generic_sparse --env duffing --pairwise --num_steps 20000`: example training run.
+- `uv run python tools/train.py --config generic_sparse --env duffing --sequence_length 1 --num_steps 20000`: example training run.
 - `uv run python tools/evaluate_checkpoints.py --run_dir runs/<model>/<timestamp> --system lyapunov`: evaluate checkpoints.
 - `pytest`: run the full test suite.
 - `pytest tests/test_model.py -v`: run a focused test module.

@@ -119,7 +119,7 @@ Timestamp: 2026-02-20
 Timestamp: 2026-02-20
 
 1. Concrete results:
-- Protocol: `duffing`, `--sequence --sequence_length 8`, short runs (`<=3000` steps), single GPU (RTX 8000), iterative hyperparameter tuning.
+- Protocol: `duffing`, `--sequence_length 8`, short runs (`<=3000` steps), single GPU (RTX 8000), iterative hyperparameter tuning.
 - Generic sparse success run:
   - Run: `runs/iter_generic_sparse/20260219-231856`
   - Config highlights: `config=generic_sparse`, `target_size=256`, `res_coeff=1.0`, `reconst_coeff=0.03`, `pred_coeff=1.0`, `sparsity_coeff=0.0025`, `eval_num_steps=3`, `seed=4`.
@@ -210,7 +210,7 @@ Timestamp: 2026-02-20
 Timestamp: 2026-02-20
 
 1. Concrete results:
-- Environment and protocol: `duffing`, sequence training (`--sequence --sequence_length 8`), short runs (`<=3000` steps), single GPU, no normalization flags.
+- Environment and protocol: `duffing`, unified horizon training (`--sequence_length 8`), short runs (`<=3000` steps), single GPU, no normalization flags.
 - Final `generic_sparse` pick:
   - Run: `runs/iterative_seq8/generic_sparse/duffing/trial05/20260219-210119`
   - Config highlights: `target_size=256`, `reconst_coeff=0.03`, `pred_coeff=1.0`, `sparsity_coeff=0.0025`.
