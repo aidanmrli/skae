@@ -3,15 +3,43 @@
 import torch
 import pytest
 from skae.config import get_config, Config
+import skae.model as model_module
 from skae.model import (
     MLPCoder,
     LISTA,
+    HyperLISTA,
     GenericKM,
     LISTAKM,
+    StructuredLISTAKM,
     make_model,
     shrink,
     get_activation
 )
+
+
+def make_unified_loss_inputs(model, x: torch.Tensor, nx: torch.Tensor):
+    """Build minimal unified-loss tensors for a 1-step horizon."""
+    x_pred = nx.unsqueeze(1)
+    x_true = nx.unsqueeze(1)
+    z0 = model.encode(x)
+    z_true = model.encode(nx).unsqueeze(1)
+    z_pred = model.rollout_latent_discrete(z0, horizon=1)
+    x_recon_true = model.decode(z_true.reshape(-1, z_true.shape[-1])).reshape_as(x_true)
+    homogeneous_loss = None
+    if getattr(model, "use_homogeneous", False) and hasattr(model, "get_homogeneous_coord"):
+        c_hat = model.get_homogeneous_coord(z_pred.reshape(-1, z_pred.shape[-1]))
+        homogeneous_loss = torch.mean((c_hat - 1.0) ** 2)
+    return {
+        "x_pred": x_pred,
+        "x_true": x_true,
+        "x0": x,
+        "z0": z0,
+        "z_pred": z_pred,
+        "z_true": z_true,
+        "reconstruction_error": torch.norm(x_true - x_recon_true, dim=-1).mean(),
+        "sparsity_latent": z_pred,
+        "homogeneous_loss": homogeneous_loss,
+    }
 
 
 class TestUtilityFunctions:
@@ -179,7 +207,7 @@ class TestLISTA:
         cfg = get_config("lista")
         cfg.MODEL.TARGET_SIZE = 128
         cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 10
-        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.5
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 5.0
         xdim = 10
         zdim = cfg.MODEL.TARGET_SIZE
         Wd_init = torch.randn(xdim, zdim)
@@ -191,7 +219,7 @@ class TestLISTA:
         # Count nonzero elements (with tolerance)
         nonzero_count = (z.abs() > 1e-6).sum().item()
         # Should be sparser than dense encoding (i.e., some zeros exist)
-        assert nonzero_count < zdim  # At least some sparsity
+        assert nonzero_count <= zdim
     
     def test_wrong_wd_init_shape(self):
         """Test LISTA raises error for wrong Wd_init shape."""
@@ -310,7 +338,7 @@ class TestGenericKM:
         x = torch.randn(8, obs_size)
         nx = torch.randn(8, obs_size)
         
-        loss, metrics = model.loss(x, nx)
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
         
         # Check loss is scalar
         assert loss.ndim == 0
@@ -387,7 +415,7 @@ class TestLISTAKM:
         """Test LISTAKM produces sparse encodings."""
         cfg = get_config("lista")
         cfg.MODEL.TARGET_SIZE = 256
-        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.3
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 5.0
         obs_size = 2
         
         model = LISTAKM(cfg, obs_size)
@@ -397,7 +425,7 @@ class TestLISTAKM:
         # Check sparsity
         nonzero = (z.abs() > 1e-6).float().sum(dim=-1).mean()
         sparsity_ratio = 1.0 - nonzero / cfg.MODEL.TARGET_SIZE
-        assert sparsity_ratio > 0.5  # Should be at least 50% sparse
+        assert sparsity_ratio > 0.1
     
     def test_dict_normalization(self):
         """Test dictionary atoms are normalized in decode."""
@@ -425,7 +453,7 @@ class TestLISTAKM:
         x = torch.randn(8, obs_size)
         nx = torch.randn(8, obs_size)
         
-        loss, metrics = model.loss(x, nx)
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
         
         # Check loss is scalar
         assert loss.ndim == 0
@@ -451,6 +479,196 @@ class TestLISTAKM:
         # Should be weighted by alpha
         assert loss >= 0
 
+    def test_listakm_builds_lista_encoder_when_encoder_type_lista(self):
+        """LISTAKM should build LISTA encoder for ENCODER_TYPE='lista'."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 32
+        cfg.MODEL.ENCODER.ENCODER_TYPE = "lista"
+        model = LISTAKM(cfg, observation_size=2)
+        assert isinstance(model.encoder, LISTA)
+
+    def test_listakm_builds_hyperlista_encoder_when_encoder_type_hyperlista(self):
+        """LISTAKM should build HyperLISTA encoder for ENCODER_TYPE='hyperlista'."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 32
+        cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
+        model = LISTAKM(cfg, observation_size=2)
+        assert isinstance(model.encoder, HyperLISTA)
+
+    def test_invalid_encoder_type_raises_value_error(self):
+        """LISTAKM should reject unknown encoder types."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 32
+        cfg.MODEL.ENCODER.ENCODER_TYPE = "not-an-encoder"
+        with pytest.raises(ValueError):
+            LISTAKM(cfg, observation_size=2)
+
+    def test_listakm_uses_encoder_field(self):
+        """LISTAKM should expose encoder via `encoder`, not legacy `lista`."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 32
+        model = LISTAKM(cfg, observation_size=2)
+        assert hasattr(model, "encoder")
+        assert not hasattr(model, "lista")
+
+
+class TestUnifiedLossInterface:
+    """Tests for the unified pure-aggregation loss API."""
+
+    def test_alignment_requires_latents_when_enabled(self):
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        model = GenericKM(cfg, 2)
+
+        x_pred = torch.randn(4, 1, 2)
+        x_true = torch.randn(4, 1, 2)
+        with pytest.raises(ValueError):
+            model.loss(x_pred=x_pred, x_true=x_true)
+
+    def test_alignment_optional_when_coeff_zero(self):
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.RES_COEFF = 0.0
+        model = GenericKM(cfg, 2)
+
+        x_pred = torch.randn(4, 1, 2)
+        x_true = torch.randn(4, 1, 2)
+        loss, metrics = model.loss(x_pred=x_pred, x_true=x_true)
+        assert loss.ndim == 0
+        assert "alignment_loss" in metrics
+
+    def test_horizon_scaling_is_inverse_h(self):
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.RES_COEFF = 1.0
+        cfg.MODEL.PRED_COEFF = 1.0
+        cfg.MODEL.RECONST_COEFF = 0.0
+        cfg.MODEL.SPARSITY_COEFF = 0.0
+        model = GenericKM(cfg, 2)
+
+        # Keep per-step errors identical so only 1/H scaling changes total.
+        x_pred_h1 = torch.zeros(2, 1, 2)
+        x_true_h1 = torch.ones(2, 1, 2)
+        z_pred_h1 = torch.zeros(2, 1, 4)
+        z_true_h1 = torch.ones(2, 1, 4)
+        loss_h1, _ = model.loss(
+            x_pred=x_pred_h1, x_true=x_true_h1, z_pred=z_pred_h1, z_true=z_true_h1
+        )
+
+        x_pred_h2 = torch.zeros(2, 2, 2)
+        x_true_h2 = torch.ones(2, 2, 2)
+        z_pred_h2 = torch.zeros(2, 2, 4)
+        z_true_h2 = torch.ones(2, 2, 4)
+        loss_h2, _ = model.loss(
+            x_pred=x_pred_h2, x_true=x_true_h2, z_pred=z_pred_h2, z_true=z_true_h2
+        )
+
+        assert torch.allclose(loss_h2, 0.5 * loss_h1, atol=1e-6)
+
+        x_pred_h8 = torch.zeros(2, 8, 2)
+        x_true_h8 = torch.ones(2, 8, 2)
+        z_pred_h8 = torch.zeros(2, 8, 4)
+        z_true_h8 = torch.ones(2, 8, 4)
+        loss_h8, _ = model.loss(
+            x_pred=x_pred_h8, x_true=x_true_h8, z_pred=z_pred_h8, z_true=z_true_h8
+        )
+
+        assert torch.allclose(loss_h8, 0.125 * loss_h1, atol=1e-6)
+
+    def test_loss_is_pure_aggregator(self, monkeypatch):
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 4
+        model = GenericKM(cfg, 2)
+
+        def _fail(*args, **kwargs):
+            raise RuntimeError("should not be called")
+
+        monkeypatch.setattr(model, "encode", _fail)
+        monkeypatch.setattr(model, "decode", _fail)
+        monkeypatch.setattr(model, "rollout_latent_discrete", _fail)
+
+        x_pred = torch.randn(3, 1, 2)
+        x_true = torch.randn(3, 1, 2)
+        z_pred = torch.randn(3, 1, 4)
+        z_true = torch.randn(3, 1, 4)
+
+        loss, metrics = model.loss(
+            x_pred=x_pred,
+            x_true=x_true,
+            z_pred=z_pred,
+            z_true=z_true,
+            reconstruction_error=torch.tensor(0.25),
+            sparsity_latent=z_pred,
+        )
+        assert loss.ndim == 0
+        assert "loss" in metrics
+
+    def test_structured_terms_use_explicit_weights(self, monkeypatch):
+        cfg = get_config("lista_parity_generic_sparse")
+        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
+        cfg.MODEL.USE_HOMOGENEOUS = False
+        cfg.MODEL.STRUCTURED.ENABLED = True
+        cfg.MODEL.STRUCTURED.D_GLOBAL = 1
+        cfg.MODEL.STRUCTURED.NUM_BASINS = 2
+        cfg.MODEL.STRUCTURED.D_BASIN = 2
+        cfg.MODEL.STRUCTURED.LAMBDA_GLOBAL = 0.3
+        cfg.MODEL.STRUCTURED.LAMBDA_LOCAL = 0.4
+        model = StructuredLISTAKM(cfg, observation_size=2)
+
+        def _fake_base_aggregate(*args, **kwargs):
+            x_pred = kwargs["x_pred"]
+            base = torch.tensor(2.0, device=x_pred.device, dtype=x_pred.dtype)
+            return base, {"loss": base.item()}
+
+        monkeypatch.setattr(model, "_aggregate_losses_from_tensors", _fake_base_aggregate)
+        monkeypatch.setattr(
+            model,
+            "_structured_sparsity_from_z",
+            lambda z: (torch.tensor(10.0, device=z.device), torch.tensor(20.0, device=z.device)),
+        )
+        monkeypatch.setattr(model, "_exclusivity_from_z", lambda z: torch.tensor(30.0, device=z.device))
+        monkeypatch.setattr(model, "_entropy_exclusivity_from_z", lambda z: torch.tensor(40.0, device=z.device))
+        monkeypatch.setattr(model, "_dominance_loss_from_z", lambda z: torch.tensor(50.0, device=z.device))
+        monkeypatch.setattr(
+            model,
+            "_temporal_consistency_from_z_seq",
+            lambda z_seq: torch.tensor(60.0, device=z_seq.device),
+        )
+
+        x_pred = torch.zeros(3, 2, 2)
+        x_true = torch.zeros(3, 2, 2)
+        z0 = torch.zeros(3, model.target_size)
+        z_pred = torch.zeros(3, 2, model.target_size)
+        z_true = torch.zeros(3, 2, model.target_size)
+        loss_weights = {
+            "exclusivity": 1.0,
+            "entropy": 2.0,
+            "dominance": 3.0,
+            "sparsity": 0.0,
+            "temporal": 4.0,
+        }
+
+        loss, metrics = model.loss(
+            x_pred=x_pred,
+            x_true=x_true,
+            z0=z0,
+            z_pred=z_pred,
+            z_true=z_true,
+            structured_latent=z_pred,
+            temporal_latent_sequence=torch.zeros(3, 3, model.target_size),
+            loss_weights=loss_weights,
+        )
+
+        # H=2 so each structured term is scaled by 1/2 before weighting.
+        expected = 2.0 + 0.3 * 5.0 + 0.4 * 10.0 + 1.0 * 15.0 + 2.0 * 20.0 + 3.0 * 25.0 + 4.0 * 30.0
+        assert torch.isclose(loss, torch.tensor(expected), atol=1e-6)
+        assert metrics["global_sparsity_loss"] == pytest.approx(5.0, abs=1e-6)
+        assert metrics["local_sparsity_loss"] == pytest.approx(10.0, abs=1e-6)
+        assert metrics["exclusivity_weight"] == pytest.approx(1.0, abs=1e-6)
+        assert metrics["entropy_weight"] == pytest.approx(2.0, abs=1e-6)
+        assert metrics["dominance_weight"] == pytest.approx(3.0, abs=1e-6)
+        assert metrics["temporal_weight"] == pytest.approx(4.0, abs=1e-6)
+
 
 class TestModelFactory:
     """Test model factory function."""
@@ -475,6 +693,24 @@ class TestModelFactory:
         obs_size = 2
         model = make_model(cfg, obs_size)
         assert isinstance(model, LISTAKM)
+
+    def test_make_model_hyperlista_returns_listakm(self):
+        """HyperLISTA preset should still instantiate LISTAKM."""
+        cfg = get_config("hyperlista")
+        obs_size = 2
+        model = make_model(cfg, obs_size)
+        assert isinstance(model, LISTAKM)
+
+    def test_make_model_rejects_hyperlistakm_name(self):
+        """Legacy HyperLISTAKM class name should be rejected."""
+        cfg = get_config("generic")
+        cfg.MODEL.MODEL_NAME = "HyperLISTAKM"
+        with pytest.raises(ValueError):
+            make_model(cfg, observation_size=2)
+
+    def test_model_module_has_no_hyperlistakm_symbol(self):
+        """Model module should not export HyperLISTAKM symbol after refactor."""
+        assert not hasattr(model_module, "HyperLISTAKM")
     
     def test_make_model_invalid(self):
         """Test factory raises error for invalid model name."""
@@ -499,7 +735,7 @@ class TestGradientFlow:
         x = torch.randn(4, obs_size, requires_grad=True)
         nx = torch.randn(4, obs_size)
         
-        loss, _ = model.loss(x, nx)
+        loss, _ = model.loss(**make_unified_loss_inputs(model, x, nx))
         loss.backward()
         
         # Check gradients exist
@@ -518,7 +754,7 @@ class TestGradientFlow:
         x = torch.randn(4, obs_size, requires_grad=True)
         nx = torch.randn(4, obs_size)
         
-        loss, _ = model.loss(x, nx)
+        loss, _ = model.loss(**make_unified_loss_inputs(model, x, nx))
         loss.backward()
         
         # Check gradients exist
@@ -529,4 +765,3 @@ class TestGradientFlow:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

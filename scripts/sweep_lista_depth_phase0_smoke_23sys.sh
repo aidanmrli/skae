@@ -102,7 +102,7 @@ TRAIN_ARGS=(
   --lista_alpha "${LISTA_ALPHA}"
   --lista_num_loops "${DEPTH}"
   --lista_final_op relu
-  --pairwise
+  --sequence_length 1
   --eval_every 250
   --eval_num_steps 100
   --eval_profile "${EVAL_PROFILE}"

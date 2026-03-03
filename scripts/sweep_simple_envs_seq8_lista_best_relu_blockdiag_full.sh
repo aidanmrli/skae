@@ -104,7 +104,6 @@ TRAIN_ARGS=(
   --lista_num_loops "${LISTA_NUM_LOOPS}"
   --lista_final_op "${LISTA_FINAL_OP}"
   --k_structure "${K_STRUCTURE}"
-  --sequence
   --sequence_length "${SEQUENCE_LENGTH}"
   --eval_profile "${EVAL_PROFILE}"
   --seed "${SEED}"

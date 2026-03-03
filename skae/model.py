@@ -6,22 +6,16 @@ This module provides:
 - LISTA: Learned Iterative Soft-Thresholding Algorithm for sparse coding
 - KoopmanMachine: Abstract base class for Koopman operator learning
 - GenericKM: Standard Koopman autoencoder with MLP encoder
-- LISTAKM: Koopman machine with LISTA sparse encoder
+- LISTAKM: Koopman machine with pluggable LISTA-family sparse encoder
 """
 
 import math
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Any
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from skae.config import Config
-
-try:
-    from torchdiffeq import odeint
-    HAS_TORCHDIFFEQ = True
-except ImportError:
-    HAS_TORCHDIFFEQ = False
 
 
 # ---------------------------------------------------------------------------
@@ -582,538 +576,242 @@ class KoopmanMachine(ABC, nn.Module):
         nx = self.decode(ny)
         return nx
     
-    def koopman_ode_func(self, t: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
-        """ODE function for continuous-time Koopman dynamics: dz/dt = K @ z.
-        
-        Args:
-            t: Time (scalar, unused but required by odeint)
-            z: Latent state of shape [..., target_size]
-            
-        Returns:
-            Time derivative dz/dt of shape [..., target_size]
-        """
-        kmat = self.kmatrix()
-        # For linear dynamics: dz/dt = K @ z
-        return z @ kmat
-    
-    def integrate_latent_ode(
-        self, 
-        z0: torch.Tensor, 
-        t_span: torch.Tensor,
-        method: str = 'dopri5'
+    def rollout_latent_discrete(
+        self,
+        z0: torch.Tensor,
+        horizon: int,
     ) -> torch.Tensor:
-        """Integrate Koopman dynamics from z0 over time points in t_span.
-        
-        Args:
-            z0: Initial latent state of shape [batch_size, target_size]
-            t_span: Time points of shape [num_steps+1] starting from 0
-            method: Integration method ('dopri5' for adaptive RK, 'rk4' for fixed-step RK4)
-            
-        Returns:
-            Latent trajectory of shape [num_steps+1, batch_size, target_size]
-        """
-        # Print integration method on first call
-        if not hasattr(self, '_printed_ode_method'):
-            if HAS_TORCHDIFFEQ:
-                print(f"Using torchdiffeq with method '{method}' for ODE integration")
-            else:
-                print("Using manual RK4 for ODE integration (torchdiffeq not available)")
-            self._printed_ode_method = True
-        
-        if HAS_TORCHDIFFEQ:
-            # Use torchdiffeq for adaptive integration
-            z_traj = odeint(
-                self.koopman_ode_func,
-                z0,
-                t_span,
-                method=method,
-                rtol=1e-5,
-                atol=1e-7,
-            )
-            return z_traj
-        else:
-            # Fallback: fixed-step RK4 (more accurate than Euler)
-            return self._integrate_rk4_fallback(z0, t_span)
-    
-    def _integrate_rk4_fallback(
-        self, 
-        z0: torch.Tensor, 
-        t_span: torch.Tensor
-    ) -> torch.Tensor:
-        """Fallback RK4 integration when torchdiffeq is not available.
-        
-        Implements classic 4th-order Runge-Kutta method.
-        
-        Args:
-            z0: Initial latent state [batch_size, target_size]
-            t_span: Time points [num_steps+1]
-            
-        Returns:
-            Latent trajectory [num_steps+1, batch_size, target_size]
-        """
-        z_list = [z0]
-        z = z0
-        for i in range(len(t_span) - 1):
-            t = t_span[i]
-            dt = t_span[i+1] - t_span[i]
-            
-            # RK4 stages
-            k1 = self.koopman_ode_func(t, z)
-            k2 = self.koopman_ode_func(t + 0.5 * dt, z + 0.5 * dt * k1)
-            k3 = self.koopman_ode_func(t + 0.5 * dt, z + 0.5 * dt * k2)
-            k4 = self.koopman_ode_func(t + dt, z + dt * k3)
-            
-            # Update state
-            z = z + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
-            z_list.append(z)
-        
-        return torch.stack(z_list, dim=0)
-    
-    def rollout_sequence_ode(
+        """Roll out latent states with repeated discrete Koopman applications."""
+        if horizon < 1:
+            raise ValueError(f"horizon must be >= 1, got {horizon}")
+        z_hat = []
+        z_cur = z0
+        for _ in range(horizon):
+            z_cur = self.step_latent(z_cur)
+            z_hat.append(z_cur)
+        return torch.stack(z_hat, dim=1)
+
+    def rollout_observation_discrete(
         self,
         x0: torch.Tensor,
-        num_steps: int,
-        dt: float,
+        horizon: int,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Roll out latents and decoded observations from initial observation."""
+        z0 = self.encode(x0)
+        z_pred = self.rollout_latent_discrete(z0, horizon=horizon)
+        batch_size = z_pred.shape[0]
+        x_pred = self.decode(z_pred.reshape(batch_size * horizon, self.target_size))
+        x_pred = x_pred.reshape(batch_size, horizon, self.observation_size)
+        return z_pred, x_pred
+
+    @staticmethod
+    def _to_scalar_tensor(value: Any, *, device: torch.device, dtype: torch.dtype, name: str) -> torch.Tensor:
+        """Normalize scalar-like loss inputs into a scalar tensor."""
+        if isinstance(value, torch.Tensor):
+            out = value.to(device=device, dtype=dtype)
+            if out.ndim == 0:
+                return out
+            return out.mean()
+        if isinstance(value, (float, int)):
+            return torch.tensor(float(value), device=device, dtype=dtype)
+        raise ValueError(f"Expected scalar-like value for '{name}', got {type(value).__name__}")
+
+    def _prediction_loss_from_tensors(self, x_pred: torch.Tensor, x_true: torch.Tensor) -> torch.Tensor:
+        """Prediction loss: ||x_pred - x_true|| averaged over batch/time."""
+        return torch.norm(x_pred - x_true, dim=-1).mean()
+
+    def _alignment_loss_from_tensors(
+        self,
+        z_pred: Optional[torch.Tensor],
+        z_true: Optional[torch.Tensor],
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
     ) -> torch.Tensor:
-        """Rollout a sequence using ODE integration of Koopman dynamics.
-        
-        Args:
-            x0: Initial observations of shape [batch_size, observation_size]
-            num_steps: Number of steps to roll out
-            dt: Time step between observations
-            
-        Returns:
-            Predicted trajectory of shape [num_steps+1, batch_size, observation_size]
-            Includes x0 at index 0
-        """
-        # Encode initial state
-        z0 = self.encode(x0)  # [batch_size, target_size]
-        
-        # Create time span
-        t_span = torch.arange(num_steps + 1, dtype=torch.float32, device=x0.device) * dt
-        
-        # Integrate latent dynamics
-        z_traj = self.integrate_latent_ode(z0, t_span)  # [num_steps+1, batch_size, target_size]
-        
-        # Decode all latent states
-        # Need to reshape for decoding: [num_steps+1 * batch_size, target_size]
-        num_times, batch_size, target_size = z_traj.shape
-        z_flat = z_traj.reshape(num_times * batch_size, target_size)
-        x_flat = self.decode(z_flat)  # [num_times * batch_size, observation_size]
-        x_traj = x_flat.reshape(num_times, batch_size, self.observation_size)
-        
-        return x_traj
-    
-    def loss(
+        """Alignment loss: ||z_pred - z_true|| averaged over batch/time."""
+        if z_pred is None or z_true is None:
+            if self.cfg.MODEL.RES_COEFF != 0.0:
+                raise ValueError("Alignment is enabled (RES_COEFF != 0) but z_pred/z_true were not provided.")
+            return torch.zeros((), device=device, dtype=dtype)
+        return torch.norm(z_pred - z_true, dim=-1).mean()
+
+    def _reconstruction_loss(
         self,
-        x: torch.Tensor,
-        nx: torch.Tensor
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute total loss and metrics (single-step version, for backward compatibility).
-        
-        Args:
-            x: Current states of shape [batch_size, observation_size]
-            nx: Next states of shape [batch_size, observation_size]
-            
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        # Linear prediction loss
+        reconstruction_error: Optional[Any],
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        """Reconstruction loss from a precomputed scalar term."""
+        if reconstruction_error is None:
+            return torch.zeros((), device=device, dtype=dtype)
+        return self._to_scalar_tensor(
+            reconstruction_error, device=device, dtype=dtype, name="reconstruction_error"
+        )
+
+    def _sparsity_loss_from_inputs(
+        self,
+        sparsity_error: Optional[Any],
+        sparsity_latent: Optional[torch.Tensor],
+        z_pred: Optional[torch.Tensor],
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        """Sparsity loss from an explicit scalar term or latent tensor."""
+        if sparsity_error is not None:
+            return self._to_scalar_tensor(
+                sparsity_error, device=device, dtype=dtype, name="sparsity_error"
+            )
+
+        if sparsity_latent is None:
+            sparsity_latent = z_pred
+        if sparsity_latent is None:
+            return torch.zeros((), device=device, dtype=dtype)
+
+        sparsity_latent = sparsity_latent.to(device=device, dtype=dtype)
+        return torch.norm(sparsity_latent, p=1, dim=-1).mean()
+
+    def _sparsity_ratio_from_latent(
+        self,
+        z_pred: Optional[torch.Tensor],
+        z_true: Optional[torch.Tensor],
+        z0: Optional[torch.Tensor],
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        """Monitoring metric: ratio of inactive latent dimensions."""
+        z_for_monitor = z_true if z_true is not None else z_pred
+        if z_for_monitor is None:
+            z_for_monitor = z0
+        if z_for_monitor is None:
+            return torch.tensor(0.0, device=device, dtype=dtype)
+
+        z_for_monitor = z_for_monitor.to(device=device, dtype=dtype)
+        num_nonzero_codes = (z_for_monitor.abs() > 1e-6).float().sum(dim=-1).mean()
+        return 1.0 - num_nonzero_codes / self.target_size
+
+    def _k_eigen_metrics(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return (max_real_eigenvalue, spectral_radius) for monitoring."""
         kmat = self.kmatrix()
-        prediction = self.decode(self.encode(x) @ kmat)
-        prediction_loss = torch.norm(prediction - nx, dim=-1).mean()
-        
-        # Linear dynamics alignment loss
-        residual_loss = self.residual(x, nx).mean()
-        
-        # Reconstruction loss
-        reconst_loss = torch.norm(x - self.reconstruction(x), dim=-1).mean()
-        reconst_loss += torch.norm(nx - self.reconstruction(nx), dim=-1).mean()
-        
-        # Sparsity loss
-        sparsity_loss = self.sparsity_loss(x)
-        sparsity_loss += self.sparsity_loss(nx)
-        sparsity_loss *= 0.5
-        
-        # Koopman matrix eigenvalues
-        # MPS doesn't support eigvals, so move to CPU if needed
-        with torch.no_grad():
-            kmat_device = kmat.device
-            if kmat_device.type == 'mps':
-                kmat_cpu = kmat.cpu()
-                eigvals = torch.linalg.eigvals(kmat_cpu)
-            else:
-                eigvals = torch.linalg.eigvals(kmat)
-            max_eigenvalue = torch.max(eigvals.real)
-        
-        # Nonzero codes
-        with torch.no_grad():
-            z = self.encode(x)
-            # Use epsilon threshold to count near-zero values as zero
-            # (important for LISTA which can produce tiny non-zero values)
-            num_nonzero_codes = (z.abs() > 1e-6).float().sum(dim=-1).mean()
-            sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
-        
-        # Total weighted loss
-        total_loss = (
-            self.cfg.MODEL.RES_COEFF * residual_loss +
-            self.cfg.MODEL.RECONST_COEFF * reconst_loss +
-            self.cfg.MODEL.PRED_COEFF * prediction_loss +
-            self.cfg.MODEL.SPARSITY_COEFF * sparsity_loss
-        )
-        
-        metrics = {
-            'loss': total_loss.item(),
-            'residual_loss': residual_loss.item(),
-            'reconst_loss': reconst_loss.item(),
-            'prediction_loss': prediction_loss.item(),
-            'sparsity_loss': sparsity_loss.item(),
-            'A_max_eigenvalue': max_eigenvalue.item(),
-            'sparsity_ratio': sparsity_ratio.item(),
-        }
-        
-        return total_loss, metrics
+        kmat_for_eig = kmat.cpu() if kmat.device.type == 'mps' else kmat
+        eigvals = torch.linalg.eigvals(kmat_for_eig)
+        return torch.max(eigvals.real), torch.max(eigvals.abs())
 
-    def loss_multistep(
+    def _aggregate_losses_from_tensors(
         self,
-        x_seq: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Discrete multi-step loss with optional block activation losses."""
-        total_loss, metrics = super().loss_multistep(x_seq)
-        if self._block_loss_cfg.ENABLED:
-            batch_size, seq_len, obs_size = x_seq.shape
-            x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
-            z_flat = self.encode(x_flat)
-            one_block_loss, balance_loss, block_metrics = self._block_losses_from_z(z_flat)
-            total_loss = (
-                total_loss +
-                self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
-                self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
-            )
-            metrics.update({
-                'block_one_block_loss': one_block_loss.item(),
-                'block_balance_loss': balance_loss.item(),
-                'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
-                'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
-                'block_entropy': block_metrics['block_entropy'].item(),
-                'block_usage_entropy': block_metrics['block_usage_entropy'].item(),
-                'block_top1_gap': block_metrics['block_top1_gap'].item(),
-            })
-            metrics['loss'] = total_loss.item()
-        return total_loss, metrics
+        x_pred: torch.Tensor,
+        x_true: torch.Tensor,
+        x0: Optional[torch.Tensor] = None,
+        z0: Optional[torch.Tensor] = None,
+        z_pred: Optional[torch.Tensor] = None,
+        z_true: Optional[torch.Tensor] = None,
+        reconstruction_error: Optional[Any] = None,
+        sparsity_error: Optional[Any] = None,
+        sparsity_latent: Optional[torch.Tensor] = None,
+        homogeneous_loss: Optional[Any] = None,
+        block_losses: Optional[Dict[str, Any]] = None,
+        structured_latent: Optional[torch.Tensor] = None,
+        temporal_latent_sequence: Optional[torch.Tensor] = None,
+        loss_weights: Optional[Dict[str, Any]] = None,
+        step: int = 0,
+    ) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Pure tensor aggregation for unified loss."""
+        del x0, step, homogeneous_loss, block_losses, structured_latent, temporal_latent_sequence, loss_weights
+        # Base aggregation intentionally ignores structured-specific inputs.
+        if x_pred.ndim < 3 or x_true.ndim < 3:
+            raise ValueError("x_pred/x_true must have shape [B, H, ...]")
+        if x_pred.shape != x_true.shape:
+            raise ValueError(f"x_pred shape {tuple(x_pred.shape)} must match x_true shape {tuple(x_true.shape)}")
+        horizon = x_pred.shape[1]
+        if horizon < 1:
+            raise ValueError(f"Horizon must be >= 1, got {horizon}")
 
-    def loss_sequence(
-        self,
-        x_seq: torch.Tensor,
-        dt: float,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Sequence-based loss with optional block activation losses."""
-        total_loss, metrics = super().loss_sequence(x_seq, dt)
-        if self._block_loss_cfg.ENABLED:
-            batch_size, seq_len, obs_size = x_seq.shape
-            x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
-            z_flat = self.encode(x_flat)
-            one_block_loss, balance_loss, block_metrics = self._block_losses_from_z(z_flat)
-            total_loss = (
-                total_loss +
-                self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
-                self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
-            )
-            metrics.update({
-                'block_one_block_loss': one_block_loss.item(),
-                'block_balance_loss': balance_loss.item(),
-                'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
-                'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
-                'block_entropy': block_metrics['block_entropy'].item(),
-                'block_usage_entropy': block_metrics['block_usage_entropy'].item(),
-                'block_top1_gap': block_metrics['block_top1_gap'].item(),
-            })
-            metrics['loss'] = total_loss.item()
-        return total_loss, metrics
-    
-    def loss_multistep(
-        self,
-        x_seq: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Discrete multi-step loss. Dispatches to sequential rollout (default).
+        if z_pred is not None and z_pred.shape[:2] != x_pred.shape[:2]:
+            raise ValueError("z_pred must match [B, H] of x_pred")
+        if z_true is not None and z_true.shape[:2] != x_true.shape[:2]:
+            raise ValueError("z_true must match [B, H] of x_true")
 
-        For large L, use loss_multistep_scan which has O(log L) depth.
-        """
-        batch_size, seq_len, obs_size = x_seq.shape
-        kmat = self.kmatrix()  # [d, d]
-        L = seq_len - 1
+        device = x_pred.device
+        dtype = x_pred.dtype
 
-        # Encode all ground-truth states
-        x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
-        z_flat = self.encode(x_flat)
-        z_seq = z_flat.reshape(batch_size, seq_len, self.target_size)
-        z0 = z_seq[:, 0, :]  # [batch, d]
-
-        # Sequential rollout: z_{k+1} = z_k @ K
-        z_hat_list = [z0]
-        z_cur = z0
-        for _ in range(L):
-            z_cur = z_cur @ kmat
-            z_hat_list.append(z_cur)
-        z_hat_seq = torch.stack(z_hat_list, dim=1)  # [batch, seq_len, d]
-
-        # Decode
-        z_hat_flat = z_hat_seq.reshape(batch_size * seq_len, self.target_size)
-        x_hat_seq = self.decode(z_hat_flat).reshape(batch_size, seq_len, obs_size)
-        x_tilde = self.decode(z_flat).reshape(batch_size, seq_len, obs_size)
-
-        # Eigenvalues for monitoring
-        with torch.no_grad():
-            kmat_for_eig = kmat.cpu() if kmat.device.type == 'mps' else kmat
-            eigvals = torch.linalg.eigvals(kmat_for_eig)
-
-        return self._multistep_losses(
-            x_seq, z_seq, z_hat_seq, x_hat_seq, x_tilde, eigvals
+        prediction_loss = self._prediction_loss_from_tensors(x_pred, x_true)
+        alignment_loss = self._alignment_loss_from_tensors(z_pred, z_true, device=device, dtype=dtype)
+        reconst_loss = self._reconstruction_loss(reconstruction_error, device=device, dtype=dtype)
+        sparsity_loss = self._sparsity_loss_from_inputs(
+            sparsity_error, sparsity_latent, z_pred, device=device, dtype=dtype
         )
 
-    def _multistep_losses(
-        self,
-        x_seq: torch.Tensor,
-        z_seq: torch.Tensor,
-        z_hat_seq: torch.Tensor,
-        x_hat_seq: torch.Tensor,
-        x_tilde: torch.Tensor,
-        eigvals: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Shared loss computation for both multistep backends.
-
-        Alignment and prediction are averaged over time (multi-step signal).
-        Reconstruction and sparsity match pairwise scale (anchor the encoder).
-        """
-        # Alignment: predicted latent vs encoded latent (skip t=0)
-        alignment_loss = torch.norm(
-            z_hat_seq[:, 1:, :] - z_seq[:, 1:, :],
-            dim=-1
-        ).mean()
-
-        # Prediction: decoded rollout vs ground truth (skip t=0)
-        prediction_loss = torch.norm(
-            x_seq[:, 1:, :] - x_hat_seq[:, 1:, :],
-            dim=-1
-        ).mean()
-
-        # Reconstruction: SUM of first + last state (matches pairwise scale)
-        reconst_loss = torch.norm(
-            x_seq[:, 0, :] - x_tilde[:, 0, :], dim=-1
-        ).mean()
-        reconst_loss += torch.norm(
-            x_seq[:, -1, :] - x_tilde[:, -1, :], dim=-1
-        ).mean()
-
-        # Sparsity: same as pairwise (first + last, halved)
-        sparsity_loss = self.sparsity_loss(x_seq[:, 0, :])
-        sparsity_loss += self.sparsity_loss(x_seq[:, -1, :])
-        sparsity_loss *= 0.5
-
-        # Monitoring
-        with torch.no_grad():
-            spectral_radius = torch.max(eigvals.abs())
-            max_eigenvalue = torch.max(eigvals.real)
-            num_nonzero_codes = (z_seq.abs() > 1e-6).float().sum(dim=-1).mean()
-            sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
-
-        total_loss = (
-            self.cfg.MODEL.RES_COEFF * alignment_loss +
-            self.cfg.MODEL.RECONST_COEFF * reconst_loss +
-            self.cfg.MODEL.PRED_COEFF * prediction_loss +
-            self.cfg.MODEL.SPARSITY_COEFF * sparsity_loss
-        )
-
-        metrics = {
-            'loss': total_loss.item(),
-            'alignment_loss': alignment_loss.item(),
-            'reconst_loss': reconst_loss.item(),
-            'prediction_loss': prediction_loss.item(),
-            'sparsity_loss': sparsity_loss.item(),
-            'A_max_eigenvalue': max_eigenvalue.item(),
-            'spectral_radius': spectral_radius.item(),
-            'sparsity_ratio': sparsity_ratio.item(),
-        }
-
-        return total_loss, metrics
-
-    def loss_multistep_scan(
-        self,
-        x_seq: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Discrete multi-step loss via parallel prefix scan.
-
-        Computes K^1, K^2, ..., K^L using an associative scan on matrix
-        multiplication in O(log L) sequential batched matmuls, then applies
-        all powers to z_0 in a single einsum.
-
-        Args:
-            x_seq: Sequence of states [batch_size, seq_len, observation_size]
-
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        batch_size, seq_len, obs_size = x_seq.shape
-        kmat = self.kmatrix()  # [d, d]
-        L = seq_len - 1
-
-        # Encode all ground-truth states
-        x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
-        z_flat = self.encode(x_flat)
-        z_seq = z_flat.reshape(batch_size, seq_len, self.target_size)
-
-        # Parallel prefix scan for K^1, K^2, ..., K^L
-        K_powers = kmat.unsqueeze(0).expand(L, -1, -1)  # [L, d, d] all K
-        stride = 1
-        while stride < L:
-            left = K_powers[:-stride]
-            right = K_powers[stride:]
-            combined = right @ left
-            K_powers = torch.cat([K_powers[:stride], combined], dim=0)
-            stride *= 2
-
-        # Apply all powers to z_0 in parallel
-        z0 = z_seq[:, 0, :]
-        z_hat_future = torch.einsum('bd,lde->ble', z0, K_powers)  # [batch, L, d]
-        z_hat_seq = torch.cat([z0.unsqueeze(1), z_hat_future], dim=1)
-
-        # Decode
-        z_hat_flat = z_hat_seq.reshape(batch_size * seq_len, self.target_size)
-        x_hat_seq = self.decode(z_hat_flat).reshape(batch_size, seq_len, obs_size)
-        x_tilde = self.decode(z_flat).reshape(batch_size, seq_len, obs_size)
-
-        # Eigenvalues for monitoring only
-        with torch.no_grad():
-            kmat_for_eig = kmat.cpu() if kmat.device.type == 'mps' else kmat
-            eigvals = torch.linalg.eigvals(kmat_for_eig)
-
-        return self._multistep_losses(
-            x_seq, z_seq, z_hat_seq, x_hat_seq, x_tilde, eigvals
-        )
-
-    def loss_sequence(
-        self,
-        x_seq: torch.Tensor,
-        dt: float,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute sequence-based loss using ODE integration.
-        
-        This implements the continuous-time training scheme:
-        1. Encode all states in sequence: z_i = φ(x_i)
-        2. Integrate dz/dt = Kz from z_0 to get predicted latents ẑ_i
-        3. Decode both: x̃_i = ψ(z_i), x̂_i = ψ(ẑ_i)
-        4. Compute alignment, reconstruction, and prediction losses
-        
-        Args:
-            x_seq: Sequence of states with shape [batch_size, seq_len, observation_size]
-                   Includes x_t, x_{t+1}, ..., x_{t+T}
-            dt: Time step between consecutive observations
-            
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        batch_size, seq_len, obs_size = x_seq.shape
-        # Temporary calibration: downscale all sequence loss terms for seq-8 windows.
-        # Seq-8 uses T=8 forward steps => seq_len=9 states including initial x_t.
-        sequence_term_scale = 0.01 if seq_len == 9 else 1.0
-        
-        # 1. Encode each state in the sequence
-        # Flatten for encoding: [batch_size * seq_len, obs_size]
-        x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
-        z_flat = self.encode(x_flat)  # [batch_size * seq_len, target_size]
-        z_seq = z_flat.reshape(batch_size, seq_len, self.target_size)
-        
-        # 2. Integrate Koopman dynamics from initial state
-        x0 = x_seq[:, 0, :]  # [batch_size, obs_size]
-        z0 = z_seq[:, 0, :]  # [batch_size, target_size]
-        
-        # Create time span for integration
-        t_span = torch.arange(seq_len, dtype=torch.float32, device=x_seq.device) * dt
-        
-        # Integrate: z_hat has shape [seq_len, batch_size, target_size]
-        z_hat_traj = self.integrate_latent_ode(z0, t_span)
-        
-        # Transpose to [batch_size, seq_len, target_size]
-        z_hat_seq = z_hat_traj.transpose(0, 1)
-        
-        # 3. Decode both encoded and advanced latents
-        # Reconstruction from encoded latents
-        x_tilde = self.decode(z_flat).reshape(batch_size, seq_len, obs_size)
-        
-        # Prediction from ODE-advanced latents
-        z_hat_flat = z_hat_seq.reshape(batch_size * seq_len, self.target_size)
-        x_hat_flat = self.decode(z_hat_flat)
-        x_hat_seq = x_hat_flat.reshape(batch_size, seq_len, obs_size)
-        
-        # 4. Compute losses
-        
-        # Alignment loss: sum over sequence (excluding initial state)
-        # |ẑ_{t+i} - z_{t+i}|^2 for i = 1..T
-        alignment_loss = torch.norm(
-            z_hat_seq[:, 1:, :] - z_seq[:, 1:, :], 
-            dim=-1
-        ).pow(2).sum(dim=1).mean()
-        
-        # Reconstruction loss: sum over entire sequence including initial
-        # |x_{t+i} - x̃_{t+i}|^2 for i = 0..T
-        reconst_loss = torch.norm(
-            x_seq - x_tilde,
-            dim=-1
-        ).pow(2).sum(dim=1).mean()
-        
-        # Prediction loss: sum over sequence (excluding initial state)
-        # |x_{t+i} - x̂_{t+i}|^2 for i = 1..T
-        prediction_loss = torch.norm(
-            x_seq[:, 1:, :] - x_hat_seq[:, 1:, :],
-            dim=-1
-        ).pow(2).sum(dim=1).mean()
-        
-        # Sparsity loss: L1 on latents averaged over sequence
-        sparsity_loss = torch.norm(z_seq, p=1, dim=-1).mean()
-        
-        # Apply consistent term scaling for seq-8.
+        sequence_term_scale = 1.0 / float(horizon)
+        prediction_loss = prediction_loss * sequence_term_scale
         alignment_loss = alignment_loss * sequence_term_scale
         reconst_loss = reconst_loss * sequence_term_scale
-        prediction_loss = prediction_loss * sequence_term_scale
         sparsity_loss = sparsity_loss * sequence_term_scale
-        
-        # Metrics for monitoring
-        with torch.no_grad():
-            kmat = self.kmatrix()
-            # MPS doesn't support eigvals, so move to CPU if needed
-            kmat_device = kmat.device
-            if kmat_device.type == 'mps':
-                kmat_cpu = kmat.cpu()
-                eigvals = torch.linalg.eigvals(kmat_cpu)
-            else:
-                eigvals = torch.linalg.eigvals(kmat)
-            max_eigenvalue = torch.max(eigvals.real)
-            
-            # Use epsilon threshold to count near-zero values as zero
-            # (important for LISTA which can produce tiny non-zero values)
-            num_nonzero_codes = (z_seq.abs() > 1e-4).float().sum(dim=-1).mean()
-            sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
-        
-        # Total weighted loss
+
         total_loss = (
             self.cfg.MODEL.RES_COEFF * alignment_loss +
             self.cfg.MODEL.RECONST_COEFF * reconst_loss +
             self.cfg.MODEL.PRED_COEFF * prediction_loss +
             self.cfg.MODEL.SPARSITY_COEFF * sparsity_loss
         )
-        
+
+        with torch.no_grad():
+            max_eigenvalue, spectral_radius = self._k_eigen_metrics()
+            sparsity_ratio = self._sparsity_ratio_from_latent(
+                z_pred, z_true, z0, device=device, dtype=dtype
+            )
+
         metrics = {
             'loss': total_loss.item(),
             'alignment_loss': alignment_loss.item(),
+            'residual_loss': alignment_loss.item(),
             'reconst_loss': reconst_loss.item(),
             'prediction_loss': prediction_loss.item(),
             'sparsity_loss': sparsity_loss.item(),
             'sequence_term_scale': sequence_term_scale,
             'A_max_eigenvalue': max_eigenvalue.item(),
+            'spectral_radius': spectral_radius.item(),
             'sparsity_ratio': sparsity_ratio.item(),
         }
-        
         return total_loss, metrics
+
+    def loss(
+        self,
+        x_pred: torch.Tensor,
+        x_true: torch.Tensor,
+        x0: Optional[torch.Tensor] = None,
+        z0: Optional[torch.Tensor] = None,
+        z_pred: Optional[torch.Tensor] = None,
+        z_true: Optional[torch.Tensor] = None,
+        reconstruction_error: Optional[Any] = None,
+        sparsity_error: Optional[Any] = None,
+        sparsity_latent: Optional[torch.Tensor] = None,
+        homogeneous_loss: Optional[Any] = None,
+        block_losses: Optional[Dict[str, Any]] = None,
+        structured_latent: Optional[torch.Tensor] = None,
+        temporal_latent_sequence: Optional[torch.Tensor] = None,
+        loss_weights: Optional[Dict[str, Any]] = None,
+        step: int = 0,
+    ) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Canonical unified loss API (pure aggregation)."""
+        return self._aggregate_losses_from_tensors(
+            x_pred=x_pred,
+            x_true=x_true,
+            x0=x0,
+            z0=z0,
+            z_pred=z_pred,
+            z_true=z_true,
+            reconstruction_error=reconstruction_error,
+            sparsity_error=sparsity_error,
+            sparsity_latent=sparsity_latent,
+            homogeneous_loss=homogeneous_loss,
+            block_losses=block_losses,
+            structured_latent=structured_latent,
+            temporal_latent_sequence=temporal_latent_sequence,
+            loss_weights=loss_weights,
+            step=step,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1222,10 +920,10 @@ class GenericKM(KoopmanMachine):
 # TODO: test this class with experiments. Sweep over the sparsity coefficient values.
 # TODO: test this on the Lyapunov environment
 class LISTAKM(KoopmanMachine):
-    """Koopman Machine with LISTA sparse encoder.
+    """Koopman Machine with a sparse LISTA-family encoder.
     
-    Uses the Learned Iterative Soft-Thresholding Algorithm (LISTA) for sparse
-    encoding. The decoder uses a normalized dictionary.
+    Supports both LISTA and HyperLISTA encoders through
+    ``cfg.MODEL.ENCODER.ENCODER_TYPE``. The decoder uses a normalized dictionary.
     
     Supports homogeneous coordinates: when enabled, input x is augmented to [x, 1],
     allowing the dictionary to learn an implicit bias through an extra dimension.
@@ -1242,50 +940,10 @@ class LISTAKM(KoopmanMachine):
         # Homogeneous coordinates: augment input with constant 1
         self.use_homogeneous = cfg.MODEL.USE_HOMOGENEOUS
         self._internal_obs_size = observation_size + 1 if self.use_homogeneous else observation_size
-        
-        # Initialize dictionary with unit-norm columns, using orthogonal initialization
-        # Shape [internal_obs_size, zdim]
-        # Since zdim > internal_obs_size (overcomplete), we create a union of orthogonal bases
-        Wd_init = torch.empty(self._internal_obs_size, cfg.MODEL.TARGET_SIZE)
-        
-        # Fill Wd_init with chunks of orthogonal matrices
-        # We perform QR decomposition on random matrices to get orthogonal bases
-        curr_idx = 0
-        while curr_idx < cfg.MODEL.TARGET_SIZE:
-            remaining = cfg.MODEL.TARGET_SIZE - curr_idx
-            # Generate a square matrix of size max(dim, dim) to get a full basis
-            dim = max(self._internal_obs_size, remaining)
-            # Create random matrix
-            mat = torch.randn(dim, dim)
-            # QR decomposition gives orthogonal Q
-            q, r = torch.linalg.qr(mat)
-            # Take the first 'remaining' columns, or as many as we can fit
-            chunk_size = min(remaining, self._internal_obs_size)
-            
-            # If internal_obs_size < remaining, we take the top internal_obs_size rows of Q
-            # which are still orthogonal-ish but we need to select carefully.
-            # Actually, standard practice for overcomplete dictionary:
-            # Just fill with independent random vectors and normalize is 'ok',
-            # BUT to be 'orthogonal', we want blocks of orthogonal bases.
-            
-            # Let's generate a random orthogonal matrix of size [internal_obs_size, internal_obs_size]
-            # and append it. Repeat until full.
-            if self._internal_obs_size <= remaining:
-                # We can fit a full orthogonal basis
-                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
-                q, _ = torch.linalg.qr(mat)
-                Wd_init[:, curr_idx:curr_idx+self._internal_obs_size] = q
-                curr_idx += self._internal_obs_size
-            else:
-                # Fill the rest with part of an orthogonal basis
-                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
-                q, _ = torch.linalg.qr(mat)
-                Wd_init[:, curr_idx:] = q[:, :remaining]
-                curr_idx += remaining
 
-        # Ensure unit norm (QR produces unit norm columns, but let's be safe)
-        Wd_init = Wd_init / torch.norm(Wd_init, dim=0, keepdim=True)
-        
+        # Initialize dictionary with unit-norm columns.
+        Wd_init = self._init_dictionary(cfg.MODEL.TARGET_SIZE)
+
         # Register as buffer so it's saved/loaded but not updated by optimizer
         self.register_buffer('dict_init', Wd_init.clone())
         
@@ -1301,27 +959,11 @@ class LISTAKM(KoopmanMachine):
             self.decoder_bias = nn.Parameter(bias_init)
         else:
             self.register_buffer('decoder_bias', torch.zeros(observation_size))
-        
-        # Compute Lipschitz constant L for this dictionary
-        # L >= max eigenvalue of (Wd^T @ Wd)
-        with torch.no_grad():
-            gram = Wd_init.T @ Wd_init
-            # Power iteration to estimate spectral norm (largest eigenvalue)
-            v = torch.randn(cfg.MODEL.TARGET_SIZE, 1)
-            v = v / torch.norm(v)
-            for _ in range(10):
-                v = gram @ v
-                v = v / torch.norm(v)
-            L_computed = torch.norm(gram @ v) / torch.norm(v)
-            # Add a small safety margin
-            L = L_computed.item() * 1.05
-            
-        print(f"Initialized LISTA with computed Lipschitz constant L={L:.4f}")
+
+        # Encoder (LISTA / HyperLISTA)
+        self.encoder = self._build_encoder(cfg, self._internal_obs_size, Wd_init)
         if self.use_homogeneous:
             print(f"  Using homogeneous coordinates: input {observation_size} -> internal {self._internal_obs_size}")
-        
-        # LISTA encoder (uses internal_obs_size)
-        self.lista = LISTA(cfg, self._internal_obs_size, Wd_init, L_override=L)
 
         # Koopman matrix (learnable) — structure depends on cfg.MODEL.K_STRUCTURE
         self._k_structure = cfg.MODEL.K_STRUCTURE
@@ -1362,6 +1004,57 @@ class LISTAKM(KoopmanMachine):
             if self._block_loss_cfg.ONE_BLOCK_LOSS == "top1_margin":
                 print(f"    top1_margin={self._block_loss_cfg.TOP1_MARGIN}")
             print(f"    energy_norm={self._block_loss_cfg.ENERGY_NORM}")
+
+    def _init_dictionary(self, zdim: int) -> torch.Tensor:
+        """Initialize dictionary as a union of orthogonal bases."""
+        wd = torch.empty(self._internal_obs_size, zdim)
+        curr = 0
+        while curr < zdim:
+            remaining = zdim - curr
+            if self._internal_obs_size <= remaining:
+                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
+                q, _ = torch.linalg.qr(mat)
+                wd[:, curr:curr + self._internal_obs_size] = q
+                curr += self._internal_obs_size
+            else:
+                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
+                q, _ = torch.linalg.qr(mat)
+                wd[:, curr:] = q[:, :remaining]
+                curr += remaining
+        return wd / torch.norm(wd, dim=0, keepdim=True).clamp(min=1e-8)
+
+    def _compute_lipschitz_constant(self, wd_init: torch.Tensor) -> float:
+        """Estimate L >= spectral_norm(WdᵀWd) with power iteration."""
+        with torch.no_grad():
+            gram = wd_init.T @ wd_init
+            v = torch.randn(gram.shape[0], 1, device=gram.device, dtype=gram.dtype)
+            v = v / torch.norm(v).clamp(min=1e-8)
+            for _ in range(10):
+                v = gram @ v
+                v = v / torch.norm(v).clamp(min=1e-8)
+            l_computed = torch.norm(gram @ v) / torch.norm(v).clamp(min=1e-8)
+            return float(l_computed.item() * 1.05)
+
+    def _build_encoder(self, cfg: Config, internal_obs_size: int, wd_init: torch.Tensor) -> nn.Module:
+        """Create encoder according to cfg.MODEL.ENCODER.ENCODER_TYPE."""
+        encoder_type = cfg.MODEL.ENCODER.ENCODER_TYPE.lower()
+        if encoder_type == "lista":
+            l_const = self._compute_lipschitz_constant(wd_init)
+            print(f"Initialized LISTA encoder with computed Lipschitz constant L={l_const:.4f}")
+            return LISTA(cfg, internal_obs_size, wd_init, L_override=l_const)
+
+        if encoder_type == "hyperlista":
+            print(f"Initialized HyperLISTA encoder with {cfg.MODEL.TARGET_SIZE} latent dims")
+            print(f"  HyperLISTA hyperparameters: c_theta={cfg.MODEL.ENCODER.HYPERLISTA.C_THETA:.4f}, "
+                  f"c_beta={cfg.MODEL.ENCODER.HYPERLISTA.C_BETA:.4f}, "
+                  f"c_ss={cfg.MODEL.ENCODER.HYPERLISTA.C_SS:.4f}")
+            print(f"  Learnable hyperparams: {cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS}")
+            return HyperLISTA(cfg, internal_obs_size, self.dict)
+
+        raise ValueError(
+            f"Unknown ENCODER_TYPE '{cfg.MODEL.ENCODER.ENCODER_TYPE}'. "
+            "Expected one of ['lista', 'hyperlista']."
+        )
     
     def _augment_homogeneous(self, x: torch.Tensor) -> torch.Tensor:
         """Augment input with homogeneous coordinate [x, 1]."""
@@ -1369,7 +1062,7 @@ class LISTAKM(KoopmanMachine):
         return torch.cat([x, ones], dim=-1)
     
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """Encode observations using LISTA.
+        """Encode observations using the configured sparse encoder.
         
         Args:
             x: Observations of shape [..., observation_size]
@@ -1379,7 +1072,7 @@ class LISTAKM(KoopmanMachine):
         """
         if self.use_homogeneous:
             x = self._augment_homogeneous(x)
-        return self.lista(x)
+        return self.encoder(x)
     
     def _decode_full(self, y: torch.Tensor) -> torch.Tensor:
         """Decode to full internal representation (includes homogeneous coord if enabled).
@@ -1597,255 +1290,102 @@ class LISTAKM(KoopmanMachine):
     
     def loss(
         self,
-        x: torch.Tensor,
-        nx: torch.Tensor
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute total loss and metrics, including homogeneous consistency.
-        
-        Args:
-            x: Current states of shape [batch_size, observation_size]
-            nx: Next states of shape [batch_size, observation_size]
-            
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        # Get base loss and metrics from parent class
-        total_loss, metrics = super().loss(x, nx)
-        
-        # Add block activation losses (block_diagonal K only)
+        x_pred: torch.Tensor,
+        x_true: torch.Tensor,
+        x0: Optional[torch.Tensor] = None,
+        z0: Optional[torch.Tensor] = None,
+        z_pred: Optional[torch.Tensor] = None,
+        z_true: Optional[torch.Tensor] = None,
+        reconstruction_error: Optional[Any] = None,
+        sparsity_error: Optional[Any] = None,
+        sparsity_latent: Optional[torch.Tensor] = None,
+        homogeneous_loss: Optional[Any] = None,
+        block_losses: Optional[Dict[str, Any]] = None,
+        structured_latent: Optional[torch.Tensor] = None,
+        temporal_latent_sequence: Optional[torch.Tensor] = None,
+        loss_weights: Optional[Dict[str, Any]] = None,
+        step: int = 0,
+    ) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Unified loss with LISTA-specific homogeneous/block additions."""
+        del structured_latent, temporal_latent_sequence, loss_weights
+        total_loss, metrics = super().loss(
+            x_pred=x_pred,
+            x_true=x_true,
+            x0=x0,
+            z0=z0,
+            z_pred=z_pred,
+            z_true=z_true,
+            reconstruction_error=reconstruction_error,
+            sparsity_error=sparsity_error,
+            sparsity_latent=sparsity_latent,
+            step=step,
+        )
+        block_losses = block_losses or {}
+
+        device = x_pred.device
+        dtype = x_pred.dtype
+        horizon = x_pred.shape[1]
+        sequence_term_scale = 1.0 / float(horizon)
+
         if self._block_loss_cfg.ENABLED:
-            z = self.encode(x)
-            z_nx = self.encode(nx)
-            one_a, bal_a, metrics_a = self._block_losses_from_z(z)
-            one_b, bal_b, metrics_b = self._block_losses_from_z(z_nx)
-
-            one_block_loss = 0.5 * (one_a + one_b)
-            balance_loss = 0.5 * (bal_a + bal_b)
-
+            one_block_loss = self._to_scalar_tensor(
+                block_losses.get("one_block_loss", 0.0),
+                device=device,
+                dtype=dtype,
+                name="block_losses.one_block_loss",
+            )
+            balance_loss = self._to_scalar_tensor(
+                block_losses.get("balance_loss", 0.0),
+                device=device,
+                dtype=dtype,
+                name="block_losses.balance_loss",
+            )
+            one_block_loss = one_block_loss * sequence_term_scale
+            balance_loss = balance_loss * sequence_term_scale
             total_loss = (
                 total_loss +
                 self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
                 self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
             )
-
             metrics.update({
                 'block_one_block_loss': one_block_loss.item(),
                 'block_balance_loss': balance_loss.item(),
                 'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
                 'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
-                'block_entropy': 0.5 * (metrics_a['block_entropy'] + metrics_b['block_entropy']).item(),
-                'block_usage_entropy': 0.5 * (metrics_a['block_usage_entropy'] + metrics_b['block_usage_entropy']).item(),
-                'block_top1_gap': 0.5 * (metrics_a['block_top1_gap'] + metrics_b['block_top1_gap']).item(),
+                'block_entropy': self._to_scalar_tensor(
+                    block_losses.get("entropy", 0.0),
+                    device=device,
+                    dtype=dtype,
+                    name="block_losses.entropy",
+                ).item(),
+                'block_usage_entropy': self._to_scalar_tensor(
+                    block_losses.get("usage_entropy", 0.0),
+                    device=device,
+                    dtype=dtype,
+                    name="block_losses.usage_entropy",
+                ).item(),
+                'block_top1_gap': self._to_scalar_tensor(
+                    block_losses.get("top1_gap", 0.0),
+                    device=device,
+                    dtype=dtype,
+                    name="block_losses.top1_gap",
+                ).item(),
             })
 
-        # Add homogeneous consistency loss if enabled
         if self.use_homogeneous:
-            homog_loss = self.homogeneous_loss(x) + self.homogeneous_loss(nx)
-            homog_loss *= 0.5  # Average over x and nx
-            
-            total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
-            metrics['homogeneous_loss'] = homog_loss.item()
-            metrics['loss'] = total_loss.item()
+            if homogeneous_loss is not None:
+                homog_loss = self._to_scalar_tensor(
+                    homogeneous_loss,
+                    device=device,
+                    dtype=dtype,
+                    name="homogeneous_loss",
+                ) * sequence_term_scale
+                total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
+                metrics['homogeneous_loss'] = homog_loss.item()
+            elif self.cfg.MODEL.HOMOGENEOUS_COEFF != 0.0:
+                raise ValueError("homogeneous_loss must be provided when homogeneous coordinates are enabled.")
 
-        # Update loss metric if modified
         metrics['loss'] = total_loss.item()
-        
-        return total_loss, metrics
-
-
-class HyperLISTAKM(KoopmanMachine):
-    """Koopman Machine with HyperLISTA sparse encoder.
-    
-    Key differences from LISTAKM:
-    1. Encoder weights are analytically derived from decoder dictionary
-    2. Only 3 learnable hyperparameters (c_theta, c_beta, c_ss)
-    3. Instance-adaptive threshold, momentum, and support selection
-    4. Gradients flow from Koopman loss through encoder to dictionary
-    
-    This enables learning a dictionary that is jointly optimized for both
-    sparse coding quality and Koopman dynamics prediction.
-    
-    Args:
-        cfg: Configuration object
-        observation_size: Dimension of the observation space (physical, without homogeneous)
-    """
-    
-    def __init__(self, cfg: Config, observation_size: int):
-        super().__init__(cfg, observation_size)
-        
-        # Homogeneous coordinates support
-        self.use_homogeneous = cfg.MODEL.USE_HOMOGENEOUS
-        self._internal_obs_size = observation_size + 1 if self.use_homogeneous else observation_size
-        
-        # Initialize dictionary with orthogonal columns
-        Wd_init = self._init_dictionary(cfg.MODEL.TARGET_SIZE)
-        
-        # Dictionary parameter [zdim, internal_obs_size] - shared with encoder
-        self.dict = nn.Parameter(Wd_init.T)
-        
-        # HyperLISTA encoder (references self.dict)
-        self.hyperlista = HyperLISTA(cfg, self._internal_obs_size, self.dict)
-        
-        # Koopman matrix
-        self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
-        
-        print(f"Initialized HyperLISTAKM with {cfg.MODEL.TARGET_SIZE} latent dims")
-        print(f"  HyperLISTA hyperparameters: c_theta={cfg.MODEL.ENCODER.HYPERLISTA.C_THETA:.4f}, "
-              f"c_beta={cfg.MODEL.ENCODER.HYPERLISTA.C_BETA:.4f}, c_ss={cfg.MODEL.ENCODER.HYPERLISTA.C_SS:.4f}")
-        print(f"  Learnable hyperparams: {cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS}")
-        if self.use_homogeneous:
-            print(f"  Using homogeneous coordinates: input {observation_size} -> internal {self._internal_obs_size}")
-    
-    def _init_dictionary(self, zdim: int) -> torch.Tensor:
-        """Initialize dictionary with union of orthogonal bases.
-        
-        Since zdim > internal_obs_size (overcomplete), we create a dictionary
-        by concatenating multiple orthogonal bases.
-        
-        Args:
-            zdim: Target latent dimension
-            
-        Returns:
-            Initialized dictionary [internal_obs_size, zdim] with unit-norm columns
-        """
-        Wd = torch.empty(self._internal_obs_size, zdim)
-        curr = 0
-        while curr < zdim:
-            remaining = zdim - curr
-            if self._internal_obs_size <= remaining:
-                # We can fit a full orthogonal basis
-                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
-                q, _ = torch.linalg.qr(mat)
-                Wd[:, curr:curr+self._internal_obs_size] = q
-                curr += self._internal_obs_size
-            else:
-                # Fill the rest with part of an orthogonal basis
-                mat = torch.randn(self._internal_obs_size, self._internal_obs_size)
-                q, _ = torch.linalg.qr(mat)
-                Wd[:, curr:] = q[:, :remaining]
-                curr += remaining
-        return Wd / torch.norm(Wd, dim=0, keepdim=True)
-    
-    def _augment_homogeneous(self, x: torch.Tensor) -> torch.Tensor:
-        """Augment input with homogeneous coordinate [x, 1]."""
-        ones = torch.ones(*x.shape[:-1], 1, device=x.device, dtype=x.dtype)
-        return torch.cat([x, ones], dim=-1)
-    
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """Encode observations using HyperLISTA.
-        
-        Args:
-            x: Observations of shape [..., observation_size]
-            
-        Returns:
-            Sparse latent codes of shape [..., target_size]
-        """
-        if self.use_homogeneous:
-            x = self._augment_homogeneous(x)
-        return self.hyperlista(x)
-    
-    def decode(self, z: torch.Tensor) -> torch.Tensor:
-        """Decode using normalized dictionary.
-        
-        Args:
-            z: Latent codes of shape [..., target_size]
-            
-        Returns:
-            Reconstructed observations of shape [..., observation_size]
-        """
-        D = self.dict / torch.norm(self.dict, dim=1, keepdim=True).clamp(min=1e-6)
-        full_output = z @ D
-        if self.use_homogeneous:
-            return full_output[..., :-1]
-        return full_output
-    
-    def _decode_full(self, z: torch.Tensor) -> torch.Tensor:
-        """Decode to full internal representation (includes homogeneous coord if enabled).
-        
-        Args:
-            z: Latent codes of shape [..., target_size]
-            
-        Returns:
-            Full decoded output of shape [..., internal_obs_size]
-        """
-        D = self.dict / torch.norm(self.dict, dim=1, keepdim=True).clamp(min=1e-6)
-        return z @ D
-    
-    def get_homogeneous_coord(self, z: torch.Tensor) -> torch.Tensor:
-        """Get the reconstructed homogeneous coordinate ĉ (should be close to 1).
-        
-        Args:
-            z: Latent codes of shape [..., target_size]
-            
-        Returns:
-            Homogeneous coordinate of shape [...] (scalar per sample)
-        """
-        if not self.use_homogeneous:
-            raise ValueError("Model not using homogeneous coordinates")
-        full_output = self._decode_full(z)
-        return full_output[..., -1]
-    
-    def kmatrix(self) -> torch.Tensor:
-        """Get the Koopman matrix.
-        
-        Returns:
-            Koopman matrix of shape [target_size, target_size]
-        """
-        return self.kmat
-    
-    def sparsity_loss(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute L1 sparsity loss on latent codes.
-        
-        Args:
-            x: Observations of shape [..., observation_size]
-            
-        Returns:
-            Scalar sparsity loss
-        """
-        z = self.encode(x)
-        return torch.norm(z, p=1, dim=-1).mean()
-    
-    def homogeneous_loss(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute homogeneous coordinate consistency loss: penalize ĉ ≠ 1.
-        
-        Args:
-            x: Observations of shape [..., observation_size]
-            
-        Returns:
-            Scalar loss (mean squared deviation of ĉ from 1)
-        """
-        if not self.use_homogeneous:
-            return torch.tensor(0.0, device=x.device)
-        z = self.encode(x)
-        c_hat = self.get_homogeneous_coord(z)
-        return torch.mean((c_hat - 1.0) ** 2)
-    
-    def loss(
-        self,
-        x: torch.Tensor,
-        nx: torch.Tensor
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute total loss and metrics, including homogeneous consistency.
-        
-        Args:
-            x: Current states of shape [batch_size, observation_size]
-            nx: Next states of shape [batch_size, observation_size]
-            
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        # Get base loss and metrics from parent class
-        total_loss, metrics = super().loss(x, nx)
-        
-        # Add homogeneous consistency loss if enabled
-        if self.use_homogeneous:
-            homog_loss = self.homogeneous_loss(x) + self.homogeneous_loss(nx)
-            homog_loss *= 0.5  # Average over x and nx
-            
-            total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
-            metrics['homogeneous_loss'] = homog_loss.item()
-            metrics['loss'] = total_loss.item()
-        
         return total_loss, metrics
 
 
@@ -1892,7 +1432,7 @@ class StructuredLISTAKM(LISTAKM):
                   f"(d_g={self.d_global} + {self.num_basins}*d_b={self.d_basin})")
             cfg.MODEL.TARGET_SIZE = expected_target_size
 
-        # Initialize parent (creates self.lista, self.dict, self.kmat)
+        # Initialize parent (creates self.encoder, self.dict, and K parameters)
         super().__init__(cfg, observation_size)
 
         # Replace single kmat with block-wise parameters
@@ -2022,102 +1562,6 @@ class StructuredLISTAKM(LISTAKM):
         """
         K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
         return self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
-
-    def koopman_ode_func(self, t: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
-        """ODE function for continuous-time Koopman dynamics: dz/dt = K @ z.
-
-        Uses block-wise computation. Note: For ODE integration, prefer
-        integrate_latent_ode() which stacks blocks once for efficiency.
-
-        Args:
-            t: Time (scalar, unused but required by odeint)
-            z: Latent state of shape [..., target_size]
-
-        Returns:
-            Time derivative dz/dt of shape [..., target_size]
-        """
-        return self.step_latent(z)
-
-    def integrate_latent_ode(
-        self,
-        z0: torch.Tensor,
-        t_span: torch.Tensor,
-        method: str = 'dopri5'
-    ) -> torch.Tensor:
-        """Integrate Koopman dynamics using efficient block-wise computation.
-
-        Stacks block parameters once at the start of integration, avoiding
-        repeated stacking during ODE solver iterations.
-
-        Args:
-            z0: Initial latent state [batch_size, target_size]
-            t_span: Time points [num_steps+1] starting from 0
-            method: Integration method ('dopri5' for adaptive, 'rk4' for fixed-step)
-
-        Returns:
-            Latent trajectory [num_steps+1, batch_size, target_size]
-        """
-        # Print integration method on first call
-        if not hasattr(self, '_printed_ode_method'):
-            if HAS_TORCHDIFFEQ:
-                print(f"Using torchdiffeq with method '{method}' for ODE integration")
-            else:
-                print("Using manual RK4 for ODE integration (torchdiffeq not available)")
-            self._printed_ode_method = True
-
-        # Stack blocks once for the entire integration
-        K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
-
-        # Create closure with pre-stacked blocks
-        def block_ode_func(t: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
-            return self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
-
-        if HAS_TORCHDIFFEQ:
-            z_traj = odeint(
-                block_ode_func,
-                z0,
-                t_span,
-                method=method,
-                rtol=1e-5,
-                atol=1e-7,
-            )
-            return z_traj
-        else:
-            # Fallback: fixed-step RK4 with block-wise computation
-            return self._integrate_rk4_with_blocks(z0, t_span, block_ode_func)
-
-    def _integrate_rk4_with_blocks(
-        self,
-        z0: torch.Tensor,
-        t_span: torch.Tensor,
-        ode_func,
-    ) -> torch.Tensor:
-        """RK4 integration using pre-stacked block ODE function.
-
-        Args:
-            z0: Initial latent state [batch_size, target_size]
-            t_span: Time points [num_steps+1]
-            ode_func: ODE function that uses pre-stacked blocks
-
-        Returns:
-            Latent trajectory [num_steps+1, batch_size, target_size]
-        """
-        z_list = [z0]
-        z = z0
-        for i in range(len(t_span) - 1):
-            t = t_span[i]
-            dt = t_span[i+1] - t_span[i]
-
-            # RK4 stages using block-wise ode_func
-            k1 = ode_func(t, z)
-            k2 = ode_func(t + 0.5 * dt, z + 0.5 * dt * k1)
-            k3 = ode_func(t + 0.5 * dt, z + 0.5 * dt * k2)
-            k4 = ode_func(t + dt, z + dt * k3)
-
-            z = z + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
-            z_list.append(z)
-
-        return torch.stack(z_list, dim=0)
 
     def _partition_latent(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Partition latent codes into global and basin blocks (vectorized).
@@ -2379,117 +1823,113 @@ class StructuredLISTAKM(LISTAKM):
 
     def loss(
         self,
-        x: torch.Tensor,
-        nx: torch.Tensor,
+        x_pred: torch.Tensor,
+        x_true: torch.Tensor,
+        x0: Optional[torch.Tensor] = None,
+        z0: Optional[torch.Tensor] = None,
+        z_pred: Optional[torch.Tensor] = None,
+        z_true: Optional[torch.Tensor] = None,
+        reconstruction_error: Optional[Any] = None,
+        sparsity_error: Optional[Any] = None,
+        sparsity_latent: Optional[torch.Tensor] = None,
+        homogeneous_loss: Optional[Any] = None,
+        block_losses: Optional[Dict[str, Any]] = None,
+        structured_latent: Optional[torch.Tensor] = None,
+        temporal_latent_sequence: Optional[torch.Tensor] = None,
+        loss_weights: Optional[Dict[str, Any]] = None,
         step: int = 0,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute total loss with structured sparsity and exclusivity.
+    ) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Unified structured loss consuming explicit precomputed tensors only."""
+        del block_losses
+        if sparsity_error is None:
+            sparsity_error = torch.zeros((), device=x_pred.device, dtype=x_pred.dtype)
+        device = x_pred.device
+        dtype = x_pred.dtype
+        horizon = x_pred.shape[1]
+        sequence_term_scale = 1.0 / float(horizon)
 
-        Uses block-wise Koopman computation to avoid assembling the full N×N matrix.
-
-        Args:
-            x: Current states of shape [batch_size, observation_size]
-            nx: Next states of shape [batch_size, observation_size]
-            step: Current training step (for exclusivity warmup)
-
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        # Encode once for efficiency (LISTA forward pass is expensive)
-        z = self.encode(x)
-        z_nx = self.encode(nx)
-
-        # Stack Koopman blocks once for this forward pass
-        K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
-
-        # Compute z_next = z @ K using block-wise operation (no dense matrix)
-        z_next = self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
-
-        # Decode for reconstruction and prediction
-        x_recon = self.decode(z)
-        nx_recon = self.decode(z_nx)
-        prediction = self.decode(z_next)
-
-        # Linear prediction loss
-        prediction_loss = torch.norm(prediction - nx, dim=-1).mean()
-
-        # Linear dynamics alignment loss: ||z @ K - z_nx||
-        residual_loss = torch.norm(z_next - z_nx, dim=-1).mean()
-
-        # Reconstruction loss
-        reconst_loss = torch.norm(x - x_recon, dim=-1).mean()
-        reconst_loss += torch.norm(nx - nx_recon, dim=-1).mean()
-
-        # Structured sparsity from pre-encoded z (no redundant encoding)
-        global_sparse, local_sparse = self._structured_sparsity_from_z(z)
-        global_sparse_nx, local_sparse_nx = self._structured_sparsity_from_z(z_nx)
-        global_sparsity_loss = 0.5 * (global_sparse + global_sparse_nx)
-        local_sparsity_loss = 0.5 * (local_sparse + local_sparse_nx)
-
-        # Exclusivity loss with warmup (from pre-encoded z)
-        excl_weight = self.get_exclusivity_weight(step)
-        excl_loss = 0.5 * (self._exclusivity_from_z(z) + self._exclusivity_from_z(z_nx))
-
-        # Entropy-based exclusivity loss with warmup (encourages single dominant basin)
-        entropy_weight = self.get_entropy_weight(step)
-        entropy_loss = 0.5 * (self._entropy_exclusivity_from_z(z) + self._entropy_exclusivity_from_z(z_nx))
-
-        # Top-1 dominance loss with warmup (penalizes non-max basins)
-        dominance_weight = self.get_dominance_weight(step)
-        dominance_loss = 0.5 * (self._dominance_loss_from_z(z) + self._dominance_loss_from_z(z_nx))
-
-        # Explicit L1 sparsity loss on full z with warmup
-        sparsity_weight = self.get_sparsity_weight(step)
-        sparsity_loss = 0.5 * (
-            torch.norm(z, p=1, dim=-1).mean() + torch.norm(z_nx, p=1, dim=-1).mean()
+        total_loss, metrics = self._aggregate_losses_from_tensors(
+            x_pred=x_pred,
+            x_true=x_true,
+            x0=x0,
+            z0=z0,
+            z_pred=z_pred,
+            z_true=z_true,
+            reconstruction_error=reconstruction_error,
+            sparsity_error=sparsity_error,
+            sparsity_latent=sparsity_latent,
+            step=step,
         )
 
-        # Koopman matrix eigenvalues (for monitoring only - assembles dense matrix in no_grad)
-        with torch.no_grad():
-            kmat = self.kmatrix()
-            kmat_device = kmat.device
-            if kmat_device.type == 'mps':
-                kmat_cpu = kmat.cpu()
-                eigvals = torch.linalg.eigvals(kmat_cpu)
-            else:
-                eigvals = torch.linalg.eigvals(kmat)
-            max_eigenvalue = torch.max(eigvals.real)
+        z_for_structured = structured_latent if structured_latent is not None else z_pred
+        if z_for_structured is None:
+            raise ValueError("StructuredLISTAKM.loss requires structured_latent (or z_pred).")
+        if z_for_structured.ndim == 3:
+            z_for_structured_flat = z_for_structured.reshape(-1, z_for_structured.shape[-1])
+        elif z_for_structured.ndim == 2:
+            z_for_structured_flat = z_for_structured
+        else:
+            raise ValueError("structured_latent must have shape [B, H, Dz] or [N, Dz]")
 
-        # Nonzero codes and per-basin activity (reuse z, no extra encoding)
-        with torch.no_grad():
-            num_nonzero_codes = (z.abs() > 1e-6).float().sum(dim=-1).mean()
-            sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
+        global_sparsity_loss, local_sparsity_loss = self._structured_sparsity_from_z(z_for_structured_flat)
+        excl_loss = self._exclusivity_from_z(z_for_structured_flat)
+        entropy_loss = self._entropy_exclusivity_from_z(z_for_structured_flat)
+        dominance_loss = self._dominance_loss_from_z(z_for_structured_flat)
+        sparsity_loss = torch.norm(z_for_structured_flat, p=1, dim=-1).mean()
 
-            # Per-basin norms (for monitoring exclusivity) - vectorized
-            _, z_basins = self._partition_latent(z)  # [batch, B, d_b]
-            basin_norms = torch.norm(z_basins, p=2, dim=-1).mean(dim=0)  # [B]
-            active_basins = (basin_norms > 1e-4).sum().item()
+        z_for_temporal = temporal_latent_sequence
+        if z_for_temporal is None and z0 is not None and z_pred is not None:
+            z_for_temporal = torch.cat([z0.unsqueeze(1), z_pred], dim=1)
+        if z_for_temporal is None:
+            temporal_loss = torch.zeros((), device=device, dtype=dtype)
+        else:
+            temporal_loss = self._temporal_consistency_from_z_seq(z_for_temporal)
 
-        # Total weighted loss
+        global_sparsity_loss = global_sparsity_loss * sequence_term_scale
+        local_sparsity_loss = local_sparsity_loss * sequence_term_scale
+        excl_loss = excl_loss * sequence_term_scale
+        entropy_loss = entropy_loss * sequence_term_scale
+        dominance_loss = dominance_loss * sequence_term_scale
+        sparsity_loss = sparsity_loss * sequence_term_scale
+        temporal_loss = temporal_loss * sequence_term_scale
+
+        loss_weights = loss_weights or {}
+        excl_weight = float(loss_weights.get("exclusivity", self.get_exclusivity_weight(step)))
+        entropy_weight = float(loss_weights.get("entropy", self.get_entropy_weight(step)))
+        dominance_weight = float(loss_weights.get("dominance", self.get_dominance_weight(step)))
+        sparsity_weight = float(loss_weights.get("sparsity", self.get_sparsity_weight(step)))
+        temporal_weight = float(loss_weights.get("temporal", self.get_temporal_weight(step)))
+
         total_loss = (
-            self.cfg.MODEL.RES_COEFF * residual_loss +
-            self.cfg.MODEL.RECONST_COEFF * reconst_loss +
-            self.cfg.MODEL.PRED_COEFF * prediction_loss +
+            total_loss +
             self.lambda_global * global_sparsity_loss +
             self.lambda_local * local_sparsity_loss +
             excl_weight * excl_loss +
             entropy_weight * entropy_loss +
             dominance_weight * dominance_loss +
-            sparsity_weight * sparsity_loss
+            sparsity_weight * sparsity_loss +
+            temporal_weight * temporal_loss
         )
 
-        # Homogeneous loss if enabled (reuse z, z_nx)
         if self.use_homogeneous:
-            c_hat = self.get_homogeneous_coord(z)
-            c_hat_nx = self.get_homogeneous_coord(z_nx)
-            homog_loss = 0.5 * (torch.mean((c_hat - 1.0) ** 2) + torch.mean((c_hat_nx - 1.0) ** 2))
-            total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
+            if homogeneous_loss is None and self.cfg.MODEL.HOMOGENEOUS_COEFF != 0.0:
+                raise ValueError("homogeneous_loss must be provided when homogeneous coordinates are enabled.")
+            if homogeneous_loss is not None:
+                homog_loss = self._to_scalar_tensor(
+                    homogeneous_loss,
+                    device=device,
+                    dtype=dtype,
+                    name="homogeneous_loss",
+                ) * sequence_term_scale
+                total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
+                metrics['homogeneous_loss'] = homog_loss.item()
 
-        metrics = {
-            'loss': total_loss.item(),
-            'residual_loss': residual_loss.item(),
-            'reconst_loss': reconst_loss.item(),
-            'prediction_loss': prediction_loss.item(),
+        with torch.no_grad():
+            _, z_basins = self._partition_latent(z_for_structured_flat)
+            basin_norms = torch.norm(z_basins, p=2, dim=-1).mean(dim=0)
+            active_basins = (basin_norms > 1e-4).sum().item()
+
+        metrics.update({
             'global_sparsity_loss': global_sparsity_loss.item(),
             'local_sparsity_loss': local_sparsity_loss.item(),
             'exclusivity_loss': excl_loss.item(),
@@ -2500,160 +1940,11 @@ class StructuredLISTAKM(LISTAKM):
             'dominance_weight': dominance_weight,
             'sparsity_loss': sparsity_loss.item(),
             'sparsity_weight': sparsity_weight,
-            'A_max_eigenvalue': max_eigenvalue.item(),
-            'sparsity_ratio': sparsity_ratio.item(),
-            'active_basins': active_basins,
-        }
-
-        if self.use_homogeneous:
-            metrics['homogeneous_loss'] = homog_loss.item()
-
-        return total_loss, metrics
-
-    def loss_sequence(
-        self,
-        x_seq: torch.Tensor,
-        dt: float,
-        step: int = 0,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute sequence-based loss with structured sparsity and exclusivity.
-
-        This implements sequence training for StructuredLISTAKM:
-        1. Encode all states in sequence: z_i = φ(x_i)
-        2. Integrate dz/dt = Kz from z_0 to get predicted latents ẑ_i
-        3. Compute alignment, reconstruction, prediction, structured sparsity, exclusivity
-
-        Args:
-            x_seq: Sequence of states [batch_size, seq_len, observation_size]
-            dt: Time step between consecutive observations
-            step: Current training step (for exclusivity warmup)
-
-        Returns:
-            Tuple of (total_loss, metrics_dict)
-        """
-        batch_size, seq_len, obs_size = x_seq.shape
-        # Temporary calibration: downscale all sequence loss terms for seq-8 windows.
-        # Seq-8 uses T=8 forward steps => seq_len=9 states including initial x_t.
-        sequence_term_scale = 0.01 if seq_len == 9 else 1.0
-
-        # 1. Encode each state in the sequence (single batched call)
-        x_flat = x_seq.reshape(batch_size * seq_len, obs_size)
-        z_flat = self.encode(x_flat)  # [batch_size * seq_len, target_size]
-        z_seq = z_flat.reshape(batch_size, seq_len, self.target_size)
-
-        # 2. Integrate Koopman dynamics from initial state
-        z0 = z_seq[:, 0, :]  # [batch_size, target_size]
-        t_span = torch.arange(seq_len, dtype=torch.float32, device=x_seq.device) * dt
-        z_hat_traj = self.integrate_latent_ode(z0, t_span)  # [seq_len, batch_size, target_size]
-        z_hat_seq = z_hat_traj.transpose(0, 1)  # [batch_size, seq_len, target_size]
-
-        # 3. Decode both encoded and advanced latents
-        x_tilde = self.decode(z_flat).reshape(batch_size, seq_len, obs_size)
-        z_hat_flat = z_hat_seq.reshape(batch_size * seq_len, self.target_size)
-        x_hat_seq = self.decode(z_hat_flat).reshape(batch_size, seq_len, obs_size)
-
-        # 4. Compute losses
-
-        # Alignment loss: |ẑ_{t+i} - z_{t+i}|^2 for i = 1..T
-        alignment_loss = torch.norm(
-            z_hat_seq[:, 1:, :] - z_seq[:, 1:, :],
-            dim=-1
-        ).pow(2).sum(dim=1).mean()
-
-        # Reconstruction loss: |x_{t+i} - x̃_{t+i}|^2 for i = 0..T
-        reconst_loss = torch.norm(x_seq - x_tilde, dim=-1).pow(2).sum(dim=1).mean()
-
-        # Prediction loss: |x_{t+i} - x̂_{t+i}|^2 for i = 1..T
-        prediction_loss = torch.norm(
-            x_seq[:, 1:, :] - x_hat_seq[:, 1:, :],
-            dim=-1
-        ).pow(2).sum(dim=1).mean()
-
-        # Structured sparsity: average over sequence
-        global_sparsity_loss, local_sparsity_loss = self._structured_sparsity_from_z(z_flat)
-
-        # Exclusivity loss with warmup: average over sequence
-        excl_weight = self.get_exclusivity_weight(step)
-        excl_loss = self._exclusivity_from_z(z_flat)
-
-        # Explicit L1 sparsity loss on full z with warmup
-        sparsity_weight = self.get_sparsity_weight(step)
-        sparsity_loss = torch.norm(z_flat, p=1, dim=-1).mean()
-
-        # Temporal consistency loss: penalize basin activation changes within trajectory
-        temporal_weight = self.get_temporal_weight(step)
-        temporal_loss = self._temporal_consistency_from_z_seq(z_seq)
-        
-        # Apply consistent term scaling for seq-8.
-        alignment_loss = alignment_loss * sequence_term_scale
-        reconst_loss = reconst_loss * sequence_term_scale
-        prediction_loss = prediction_loss * sequence_term_scale
-        global_sparsity_loss = global_sparsity_loss * sequence_term_scale
-        local_sparsity_loss = local_sparsity_loss * sequence_term_scale
-        excl_loss = excl_loss * sequence_term_scale
-        sparsity_loss = sparsity_loss * sequence_term_scale
-        temporal_loss = temporal_loss * sequence_term_scale
-
-        # Metrics for monitoring
-        with torch.no_grad():
-            kmat = self.kmatrix()
-            kmat_device = kmat.device
-            if kmat_device.type == 'mps':
-                kmat_cpu = kmat.cpu()
-                eigvals = torch.linalg.eigvals(kmat_cpu)
-            else:
-                eigvals = torch.linalg.eigvals(kmat)
-            max_eigenvalue = torch.max(eigvals.real)
-
-            num_nonzero_codes = (z_seq.abs() > 1e-6).float().sum(dim=-1).mean()
-            sparsity_ratio = 1.0 - num_nonzero_codes / self.target_size
-
-            # Per-basin activity (from first timestep for efficiency) - vectorized
-            _, z_basins = self._partition_latent(z_seq[:, 0, :])  # [batch, B, d_b]
-            basin_norms = torch.norm(z_basins, p=2, dim=-1).mean(dim=0)  # [B]
-            active_basins = (basin_norms > 1e-4).sum().item()
-
-        # Total weighted loss
-        total_loss = (
-            self.cfg.MODEL.RES_COEFF * alignment_loss +
-            self.cfg.MODEL.RECONST_COEFF * reconst_loss +
-            self.cfg.MODEL.PRED_COEFF * prediction_loss +
-            self.lambda_global * global_sparsity_loss +
-            self.lambda_local * local_sparsity_loss +
-            excl_weight * excl_loss +
-            sparsity_weight * sparsity_loss +
-            temporal_weight * temporal_loss
-        )
-
-        # Homogeneous loss if enabled
-        if self.use_homogeneous:
-            c_hat = self.get_homogeneous_coord(z_flat)
-            homog_loss = torch.mean((c_hat - 1.0) ** 2)
-            homog_loss = homog_loss * sequence_term_scale
-            total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
-
-        metrics = {
-            'loss': total_loss.item(),
-            'alignment_loss': alignment_loss.item(),
-            'reconst_loss': reconst_loss.item(),
-            'prediction_loss': prediction_loss.item(),
-            'global_sparsity_loss': global_sparsity_loss.item(),
-            'local_sparsity_loss': local_sparsity_loss.item(),
-            'exclusivity_loss': excl_loss.item(),
-            'exclusivity_weight': excl_weight,
-            'sparsity_loss': sparsity_loss.item(),
-            'sparsity_weight': sparsity_weight,
             'temporal_loss': temporal_loss.item(),
             'temporal_weight': temporal_weight,
-            'sequence_term_scale': sequence_term_scale,
-            'A_max_eigenvalue': max_eigenvalue.item(),
-            'sparsity_ratio': sparsity_ratio.item(),
             'active_basins': active_basins,
-        }
-
-        if self.use_homogeneous:
-            metrics['homogeneous_loss'] = homog_loss.item()
-
+        })
+        metrics['loss'] = total_loss.item()
         return total_loss, metrics
 
 
@@ -2666,7 +1957,6 @@ _MODEL_REGISTRY = {
     "GenericKM": GenericKM,
     "SparseKM": GenericKM,  # Same as GenericKM, configured via sparsity coeff
     "LISTAKM": LISTAKM,
-    "HyperLISTAKM": HyperLISTAKM,
     "StructuredLISTAKM": StructuredLISTAKM,
 }
 

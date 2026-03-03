@@ -76,7 +76,7 @@ uv run python tools/train.py \
   --sparsity_coeff "$SPARSITY" \
   --lr "$LR" \
   $K_ARGS \
-  --pairwise \
+  --sequence_length 1 \
   --monitor_support \
   --support_monitor_every 500 \
   --support_threshold "$SUPPORT_THRESHOLD" \

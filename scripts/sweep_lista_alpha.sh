@@ -44,7 +44,7 @@ uv run python tools/train.py \
     --sparsity_coeff 0.5 \
     --lista_alpha $ALPHA \
     --lista_num_loops 5 \
-    --pairwise \
+    --sequence_length 1 \
     --seed 42 \
     --device cuda \
     --log_dir "${BASE_OUT}/alpha_${ALPHA}"

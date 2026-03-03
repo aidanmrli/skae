@@ -62,7 +62,7 @@ uv run python tools/train.py \
     --batch_size $BATCH_SIZE \
     --reconst_coeff 0.5 \
     --pred_coeff 1.0 \
-    --pairwise \
+    --sequence_length 1 \
     --seed $SEED \
     --device cuda \
     --log_dir "$LOG_DIR"

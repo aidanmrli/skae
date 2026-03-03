@@ -92,7 +92,7 @@ def train_on_system(
     reconst_coeff: Optional[float] = None,
     pred_coeff: Optional[float] = None,
     lista_alpha: Optional[float] = None,
-    pairwise: bool = False,
+    sequence_length: int = 1,
     standardize: bool = False,
     use_native_cache: bool = False,
     cache_steps: Optional[int] = None,
@@ -114,7 +114,7 @@ def train_on_system(
         reconst_coeff: Reconstruction loss coefficient (optional override)
         pred_coeff: Prediction loss coefficient (optional override)
         lista_alpha: LISTA soft-threshold alpha (optional override)
-        pairwise: Use pairwise (single-step) training
+        sequence_length: Unified rollout horizon (H=1 matches former pairwise mode)
         standardize: Standardize dysts data (zero mean, unit variance)
         use_native_cache: Enable native dysts trajectory cache
         cache_steps: Cached trajectory length (optional override)
@@ -144,8 +144,7 @@ def train_on_system(
         cfg.MODEL.PRED_COEFF = pred_coeff
     if lista_alpha is not None:
         cfg.MODEL.ENCODER.LISTA.ALPHA = lista_alpha
-    if pairwise:
-        cfg.TRAIN.USE_SEQUENCE_LOSS = False
+    cfg.TRAIN.SEQUENCE_LENGTH = int(sequence_length)
     if standardize:
         cfg.ENV.DYSTS.STANDARDIZE = True
     if use_native_cache:
@@ -209,7 +208,7 @@ def _train_worker(
     reconst_coeff: Optional[float],
     pred_coeff: Optional[float],
     lista_alpha: Optional[float],
-    pairwise: bool,
+    sequence_length: int,
     standardize: bool,
     use_native_cache: bool,
     cache_steps: Optional[int],
@@ -233,7 +232,7 @@ def _train_worker(
         reconst_coeff=reconst_coeff,
         pred_coeff=pred_coeff,
         lista_alpha=lista_alpha,
-        pairwise=pairwise,
+        sequence_length=sequence_length,
         standardize=standardize,
         use_native_cache=use_native_cache,
         cache_steps=cache_steps,
@@ -255,7 +254,7 @@ def run_sweep(
     reconst_coeff: Optional[float] = None,
     pred_coeff: Optional[float] = None,
     lista_alpha: Optional[float] = None,
-    pairwise: bool = False,
+    sequence_length: int = 1,
     standardize: bool = False,
     use_native_cache: bool = False,
     cache_steps: Optional[int] = None,
@@ -278,7 +277,7 @@ def run_sweep(
         reconst_coeff: Reconstruction loss coefficient (optional override)
         pred_coeff: Prediction loss coefficient (optional override)
         lista_alpha: LISTA soft-threshold alpha (optional override)
-        pairwise: Use pairwise (single-step) training
+        sequence_length: Unified rollout horizon (H=1 matches former pairwise mode)
         standardize: Standardize dysts data
         use_native_cache: Enable native dysts trajectory cache
         cache_steps: Cached trajectory length (optional override)
@@ -330,7 +329,7 @@ def run_sweep(
                 reconst_coeff=reconst_coeff,
                 pred_coeff=pred_coeff,
                 lista_alpha=lista_alpha,
-                pairwise=pairwise,
+                sequence_length=sequence_length,
                 standardize=standardize,
                 use_native_cache=use_native_cache,
                 cache_steps=cache_steps,
@@ -361,7 +360,7 @@ def run_sweep(
                     reconst_coeff,
                     pred_coeff,
                     lista_alpha,
-                    pairwise,
+                    sequence_length,
                     standardize,
                     use_native_cache,
                     cache_steps,
@@ -454,8 +453,8 @@ Examples:
                         help='Prediction loss coefficient (optional override)')
     parser.add_argument('--lista_alpha', type=float, default=None,
                         help='LISTA soft-threshold alpha (optional override)')
-    parser.add_argument('--pairwise', action='store_true',
-                        help='Use pairwise (single-step) training instead of sequence training')
+    parser.add_argument('--sequence_length', type=int, default=1,
+                        help='Unified rollout horizon H (H=1 matches former pairwise mode)')
     parser.add_argument('--standardize', action='store_true',
                         help='Standardize dysts data (zero mean, unit variance). Recommended.')
     parser.add_argument('--dysts_native_cache', action='store_true',
@@ -530,7 +529,7 @@ Examples:
         "reconst_coeff": args.reconst_coeff,
         "pred_coeff": args.pred_coeff,
         "lista_alpha": args.lista_alpha,
-        "pairwise": args.pairwise,
+        "sequence_length": args.sequence_length,
         "standardize": args.standardize,
         "dysts_native_cache": args.dysts_native_cache,
         "dysts_cache_steps": args.dysts_cache_steps,
@@ -556,7 +555,7 @@ Examples:
         reconst_coeff=args.reconst_coeff,
         pred_coeff=args.pred_coeff,
         lista_alpha=args.lista_alpha,
-        pairwise=args.pairwise,
+        sequence_length=args.sequence_length,
         standardize=args.standardize,
         use_native_cache=args.dysts_native_cache,
         cache_steps=args.dysts_cache_steps,

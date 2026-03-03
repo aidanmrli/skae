@@ -92,7 +92,6 @@ TRAIN_ARGS=(
   --reconst_coeff "${RECONST_COEFF}"
   --pred_coeff "${PRED_COEFF}"
   --sparsity_coeff "${SPARSITY_COEFF}"
-  --sequence
   --sequence_length "${SEQUENCE_LENGTH}"
   --eval_profile "${EVAL_PROFILE}"
   --seed "${SEED}"

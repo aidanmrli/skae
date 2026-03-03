@@ -6,6 +6,7 @@ Tests configuration loading, modification, and registry functionality.
 import pytest
 
 from skae.config import (
+    Config,
     get_config,
     get_default_config,
     get_train_generic_km_config,
@@ -106,3 +107,36 @@ def test_config_dt_extraction():
     # Check that dt is correctly set
     assert cfg.ENV.DUFFING.DT == 0.02
     assert cfg.ENV.ENV_NAME == "duffing"
+
+
+def test_unknown_train_key_raises():
+    """Unknown TRAIN keys should fail fast (strict config parsing)."""
+    cfg_dict = get_default_config().to_dict()
+    cfg_dict["TRAIN"]["USE_SEQUENCE_LOSS"] = True
+
+    with pytest.raises(TypeError):
+        Config.from_dict(cfg_dict)
+
+
+def test_hyperlista_preset_uses_listakm():
+    """HyperLISTA preset should select LISTAKM with hyperlista encoder mode."""
+    cfg = get_config("hyperlista")
+    assert cfg.MODEL.MODEL_NAME == "LISTAKM"
+    assert cfg.MODEL.ENCODER.ENCODER_TYPE == "hyperlista"
+
+
+def test_encoder_type_default():
+    """Encoder type defaults to standard LISTA mode."""
+    cfg = get_default_config()
+    assert cfg.MODEL.ENCODER.ENCODER_TYPE == "lista"
+
+
+def test_encoder_type_roundtrip_json(tmp_path):
+    """Encoder type should persist through JSON serialization."""
+    cfg = get_default_config()
+    cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
+    path = tmp_path / "config.json"
+    cfg.to_json(str(path))
+
+    loaded = Config.from_json(str(path))
+    assert loaded.MODEL.ENCODER.ENCODER_TYPE == "hyperlista"

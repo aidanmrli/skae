@@ -99,6 +99,7 @@ cfg.MODEL  # Shows all model settings
 - `"generic_prediction"`: Prediction-focused (no reconstruction)
 - `"lista"`: LISTA-based sparse autoencoder (2048-dim latent)
 - `"lista_nonlinear"`: LISTA with nonlinear MLP encoder
+- `"hyperlista"`: LISTAKM with HyperLISTA encoder mode
 - `"lista_parity_generic_sparse"`: LISTA preset aligned to `generic_sparse` non-depth settings
 
 ## Structure
@@ -329,6 +330,7 @@ class BlockLossConfig:
 @dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
+    ENCODER_TYPE: str = "lista"  # from ["lista", "hyperlista"]
     LAYERS: List[int] = field(default_factory=lambda: [16, 16])  # hidden layer sizes
     LAST_RELU: bool = False
     USE_BIAS: bool = False
@@ -349,7 +351,7 @@ class DecoderConfig:
 @dataclass
 class ModelConfig:
     """Model architecture and loss configuration."""
-    MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM"]
+    MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM", "StructuredLISTAKM"]
     NORM_FN: str = "id"  # from ["id", "ball"]
     TARGET_SIZE: int = 16  # latent_dim i.e. zdim
     
@@ -388,10 +390,9 @@ class TrainConfig:
     EVAL_EVERY: int = 500  # evaluation interval in training steps
     EVAL_NUM_STEPS: int = 200  # rollout horizon for the quick eval() helper
     
-    # Sequence training parameters
-    USE_SEQUENCE_LOSS: bool = False  # default to single-step loss for parity with JAX
-    USE_MULTISTEP_LOSS: bool = False  # discrete multi-step rollout (z_{t+k} = K^k z_t)
-    SEQUENCE_LENGTH: int = 10  # number of forward steps in each training sequence (T)
+    # Unified horizon-based training parameter.
+    # H=1 matches former pairwise behavior.
+    SEQUENCE_LENGTH: int = 1
 
 @dataclass
 class Config:
@@ -444,7 +445,8 @@ class Config:
         model.STRUCTURED = structured
         model.BLOCK_LOSS = block_loss
         
-        train = TrainConfig(**config_dict.get("TRAIN", {}))
+        train_dict = config_dict.get("TRAIN", {})
+        train = TrainConfig(**train_dict)
         
         return cls(
             SEED=config_dict.get("SEED", 0),
@@ -584,7 +586,8 @@ def get_train_hyperlista_config() -> Config:
     This enables gradient flow from the Koopman loss back through the encoder to the dictionary.
     """
     cfg = Config()
-    cfg.MODEL.MODEL_NAME = "HyperLISTAKM"
+    cfg.MODEL.MODEL_NAME = "LISTAKM"
+    cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
     cfg.MODEL.TARGET_SIZE = 1024 * 2
     cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 5
     cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 1e-2
@@ -624,6 +627,7 @@ def get_config(name: str = "default") -> Config:
             - "generic_prediction": Prediction-focused
             - "lista": LISTA-based KoopmanMachine
             - "lista_nonlinear": LISTA with MLP encoder
+            - "hyperlista": LISTAKM with HyperLISTA encoder mode
             - "lista_parity_generic_sparse": LISTA parity preset for generic_sparse alignment
     
     Returns:

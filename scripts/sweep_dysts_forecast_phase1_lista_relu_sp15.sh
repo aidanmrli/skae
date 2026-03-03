@@ -71,7 +71,7 @@ uv run python tools/train.py \
   --lista_alpha 0.35 \
   --lista_num_loops 5 \
   --lista_final_op relu \
-  --pairwise \
+  --sequence_length 1 \
   --standardize \
   --dysts_ic_noise_scale 0.2 \
   --dysts_native_cache \

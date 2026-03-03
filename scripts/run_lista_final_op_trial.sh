@@ -47,7 +47,7 @@ COMMON_ARGS=(
   --batch_size "${BATCH_SIZE}"
   --target_size "${TARGET_SIZE}"
   --seed "${SEED}"
-  --pairwise
+  --sequence_length 1
   --sparsity_coeff "${SPARSITY_COEFF}"
   --lista_final_op "${FINAL_OP}"
   --monitor_support

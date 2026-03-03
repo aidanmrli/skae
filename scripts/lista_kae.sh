@@ -37,7 +37,7 @@ uv run python tools/train.py \
   --sparsity_coeff 1.0 \
   --lista_alpha 0.30 \
   --lista_num_loops 5 \
-  --pairwise \
+  --sequence_length 1 \
   --seed 42 \
   --device cuda
 

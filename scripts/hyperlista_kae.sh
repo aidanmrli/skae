@@ -44,7 +44,7 @@ uv run python tools/train.py \
   --hyperlista_c_theta 1e-2 \
   --hyperlista_c_beta 1e-4 \
   --hyperlista_c_ss 0.5 \
-  --pairwise \
+  --sequence_length 1 \
   --lr 5e-5 \
   --seed 42 \
   --device cuda

@@ -201,6 +201,7 @@ def _extract_row(
     model_cfg = cfg_data.get("MODEL", {})
     train_cfg = cfg_data.get("TRAIN", {})
     lista_cfg = model_cfg.get("ENCODER", {}).get("LISTA", {})
+    sequence_length = train_cfg.get("SEQUENCE_LENGTH", 1)
 
     canonical_seed_name = _infer_seed_name(seed_name=seed_name, run_dir=run_dir)
     row: Dict[str, object] = {
@@ -221,7 +222,7 @@ def _extract_row(
         "lista_alpha": lista_cfg.get("ALPHA"),
         "lista_num_loops": lista_cfg.get("NUM_LOOPS"),
         "lista_final_op": lista_cfg.get("FINAL_OP"),
-        "use_sequence_loss": train_cfg.get("USE_SEQUENCE_LOSS"),
+        "sequence_length": sequence_length,
         "num_steps": train_cfg.get("NUM_STEPS"),
         f"h{horizon}_no_reencode_mean": no_re,
         f"h{horizon}_every_step_mean": every_step,

@@ -91,7 +91,7 @@ TRAIN_ARGS=(
   --env "${SYSTEM}"
   --num_steps "${NUM_STEPS}"
   --batch_size "${BATCH_SIZE}"
-  --pairwise
+  --sequence_length 1
   --eval_profile "${EVAL_PROFILE}"
   --seed "${SEED}"
   --device cuda

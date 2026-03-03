@@ -551,6 +551,12 @@ def _estimate_learned_attractors(
         with torch.no_grad():
             for _ in range(num_steps):
                 state = model.step_env(state.unsqueeze(0)).squeeze(0)
+            # Refinement pass: run additional steps so convergent systems land
+            # close to their fixed-point/limit attractor before clustering.
+            for _ in range(num_steps):
+                state = model.step_env(state.unsqueeze(0)).squeeze(0)
+                if not torch.isfinite(state).all():
+                    break
         final_state = state.cpu().numpy()
 
         # Skip if final state is not finite or has extreme values

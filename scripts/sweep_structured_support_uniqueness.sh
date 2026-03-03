@@ -95,7 +95,7 @@ python tools/train.py \
     --pred_coeff $PRED_COEFF \
     --lista_alpha $LISTA_ALPHA \
     --lista_num_loops $LISTA_NUM_LOOPS \
-    --pairwise \
+    --sequence_length 1 \
     --monitor_support \
     --support_monitor_every 500 \
     --support_threshold 1e-3 \

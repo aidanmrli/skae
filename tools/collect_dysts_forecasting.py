@@ -104,6 +104,7 @@ def _extract_row(
     model_cfg = cfg_data.get("MODEL", {})
     train_cfg = cfg_data.get("TRAIN", {})
     lista_cfg = model_cfg.get("ENCODER", {}).get("LISTA", {})
+    sequence_length = train_cfg.get("SEQUENCE_LENGTH", 1)
 
     row: Dict[str, object] = {
         "root_label": root_label,
@@ -118,7 +119,7 @@ def _extract_row(
         "reconst_coeff": model_cfg.get("RECONST_COEFF"),
         "pred_coeff": model_cfg.get("PRED_COEFF"),
         "lista_final_op": lista_cfg.get("FINAL_OP"),
-        "use_sequence_loss": train_cfg.get("USE_SEQUENCE_LOSS"),
+        "sequence_length": sequence_length,
         "num_steps": train_cfg.get("NUM_STEPS"),
         f"h{horizon}_no_reencode_mean": no_re,
         f"h{horizon}_every_step_mean": every_step,

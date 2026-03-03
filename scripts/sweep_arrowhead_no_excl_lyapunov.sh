@@ -90,7 +90,7 @@ uv run python tools/train.py \
   --excl_warmup_steps 0 \
   --num_steps "$NUM_STEPS" \
   --batch_size "$BATCH_SIZE" \
-  --pairwise \
+  --sequence_length 1 \
   --monitor_support \
   --support_monitor_every 500 \
   --device cuda \

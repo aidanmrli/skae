@@ -188,7 +188,7 @@ TRAIN_ARGS=(
   --lista_alpha "${LISTA_ALPHA}"
   --lista_num_loops "${DEPTH_STAR}"
   --lista_final_op relu
-  --pairwise
+  --sequence_length 1
   --seed "${SEED}"
   --device cuda
   --log_dir "${LOG_DIR}"

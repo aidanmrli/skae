@@ -97,7 +97,7 @@ TRAIN_ARGS=(
   --env "${SYSTEM}"
   --num_steps "${NUM_STEPS}"
   --batch_size "${BATCH_SIZE}"
-  --pairwise
+  --sequence_length 1
   --lista_num_loops "${DEPTH}"
   --eval_profile "${EVAL_PROFILE}"
   --seed "${SEED}"

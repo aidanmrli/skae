@@ -122,10 +122,7 @@ class MetricsLogger:
 def train_step(
     model: nn.Module,
     optimizer: torch.optim.Optimizer,
-    x: torch.Tensor,
-    nx: torch.Tensor,
-    cfg: Config,
-    dt: float,
+    x_seq: torch.Tensor,
     step: int = 0,
 ) -> Dict[str, float]:
     """Perform one training step.
@@ -133,11 +130,7 @@ def train_step(
     Args:
         model: Koopman machine model
         optimizer: PyTorch optimizer
-        x: Current states [batch_size, observation_size] OR
-           sequence [batch_size, seq_len, observation_size] if USE_SEQUENCE_LOSS=True
-        nx: Next states [batch_size, observation_size] (unused if USE_SEQUENCE_LOSS=True)
-        cfg: Configuration object
-        dt: Time step for ODE integration
+        x_seq: Sequence window [batch_size, horizon+1, observation_size]
         step: Current training step (for StructuredLISTAKM exclusivity warmup)
         
     Returns:
@@ -145,28 +138,79 @@ def train_step(
     """
     model.train()
     optimizer.zero_grad()
-    
-    # Compute loss
-    if cfg.TRAIN.USE_SEQUENCE_LOSS:
-        # x is a sequence: [batch_size, seq_len, observation_size]
-        # StructuredLISTAKM needs step for exclusivity warmup
-        if hasattr(model, 'get_exclusivity_weight'):
-            loss, metrics = model.loss_sequence(x, dt, step=step)
-        else:
-            loss, metrics = model.loss_sequence(x, dt)
-    elif cfg.TRAIN.USE_MULTISTEP_LOSS:
-        # x is a sequence: [batch_size, seq_len, observation_size]
-        # Discrete multi-step rollout (K applied repeatedly as discrete map)
-        if hasattr(model, 'loss_multistep'):
-            loss, metrics = model.loss_multistep(x)
-        else:
-            raise ValueError(f"Model {type(model).__name__} does not support loss_multistep")
-    else:
-        # Standard single-step loss (StructuredLISTAKM needs step for warmup)
-        if hasattr(model, 'get_exclusivity_weight'):
-            loss, metrics = model.loss(x, nx, step=step)
-        else:
-            loss, metrics = model.loss(x, nx)
+
+    if x_seq.ndim != 3 or x_seq.shape[1] < 2:
+        raise ValueError("x_seq must have shape [batch, horizon+1, obs] with horizon >= 1")
+
+    batch_size, seq_len, obs_size = x_seq.shape
+    horizon = seq_len - 1
+
+    x0 = x_seq[:, 0, :]
+    x_true = x_seq[:, 1:, :]
+
+    # Encode all states once, then rollout K-discrete dynamics from z0.
+    z_all = model.encode(x_seq.reshape(batch_size * seq_len, obs_size)).reshape(batch_size, seq_len, -1)
+    z0 = z_all[:, 0, :]
+    z_true = z_all[:, 1:, :]
+    z_pred = model.rollout_latent_discrete(z0, horizon=horizon)
+
+    x_pred = model.decode(z_pred.reshape(batch_size * horizon, -1)).reshape(batch_size, horizon, obs_size)
+    x_recon_true = model.decode(z_true.reshape(batch_size * horizon, -1)).reshape(batch_size, horizon, obs_size)
+
+    block_losses: Optional[Dict[str, Any]] = None
+    loss_weights: Optional[Dict[str, float]] = None
+    structured_latent: Optional[torch.Tensor] = None
+    temporal_latent_sequence: Optional[torch.Tensor] = None
+    homogeneous_loss: Optional[torch.Tensor] = None
+
+    if hasattr(model, "_block_loss_cfg") and getattr(model._block_loss_cfg, "ENABLED", False):
+        z_block = torch.cat([z0.unsqueeze(1), z_true], dim=1).reshape(batch_size * seq_len, -1)
+        one_block_loss, balance_loss, block_metrics = model._block_losses_from_z(z_block)
+        block_losses = {
+            "one_block_loss": one_block_loss,
+            "balance_loss": balance_loss,
+            "entropy": block_metrics["block_entropy"],
+            "usage_entropy": block_metrics["block_usage_entropy"],
+            "top1_gap": block_metrics["block_top1_gap"],
+        }
+
+    if hasattr(model, "_structured_sparsity_from_z"):
+        structured_latent = z_pred
+        temporal_latent_sequence = torch.cat([z0.unsqueeze(1), z_pred], dim=1)
+        weight_overrides: Dict[str, float] = {}
+        if hasattr(model, "get_exclusivity_weight"):
+            weight_overrides["exclusivity"] = model.get_exclusivity_weight(step)
+        if hasattr(model, "get_entropy_weight"):
+            weight_overrides["entropy"] = model.get_entropy_weight(step)
+        if hasattr(model, "get_dominance_weight"):
+            weight_overrides["dominance"] = model.get_dominance_weight(step)
+        if hasattr(model, "get_sparsity_weight"):
+            weight_overrides["sparsity"] = model.get_sparsity_weight(step)
+        if hasattr(model, "get_temporal_weight"):
+            weight_overrides["temporal"] = model.get_temporal_weight(step)
+        if weight_overrides:
+            loss_weights = weight_overrides
+
+    if getattr(model, "use_homogeneous", False) and hasattr(model, "get_homogeneous_coord"):
+        c_hat = model.get_homogeneous_coord(z_pred.reshape(batch_size * horizon, -1))
+        homogeneous_loss = torch.mean((c_hat - 1.0) ** 2)
+
+    loss, metrics = model.loss(
+        x_pred=x_pred,
+        x_true=x_true,
+        x0=x0,
+        z0=z0,
+        z_pred=z_pred,
+        z_true=z_true,
+        reconstruction_error=torch.norm(x_true - x_recon_true, dim=-1).mean(),
+        sparsity_latent=z_pred,
+        homogeneous_loss=homogeneous_loss,
+        block_losses=block_losses,
+        structured_latent=structured_latent,
+        temporal_latent_sequence=temporal_latent_sequence,
+        loss_weights=loss_weights,
+        step=step,
+    )
     
     # Backward pass
     loss.backward()
@@ -178,7 +222,7 @@ def train_step(
 def build_optimizer(model: nn.Module, cfg: Config) -> torch.optim.Optimizer:
     """Create optimizer with a specific learning rate for the Koopman matrix.
     
-    This constructs parameter groups so that parameters named with 'kmat' use
+    This constructs parameter groups so that Koopman dynamics parameters use
     cfg.TRAIN.K_MATRIX_LR while all other parameters use cfg.TRAIN.LR.
     """
     kmat_params = []
@@ -186,7 +230,7 @@ def build_optimizer(model: nn.Module, cfg: Config) -> torch.optim.Optimizer:
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
-        if 'kmat' in name:
+        if 'kmat' in name or name.startswith('K_'):
             kmat_params.append(param)
         else:
             other_params.append(param)
@@ -282,9 +326,11 @@ def train(
     # Setup logging directory and save config
     if log_dir is None:
         if cfg.MODEL.MODEL_NAME == 'LISTAKM':
-            log_dir = './runs/lista'
-        elif cfg.MODEL.MODEL_NAME == 'HyperLISTAKM':
-            log_dir = './runs/hyperlista'
+            encoder_type = cfg.MODEL.ENCODER.ENCODER_TYPE.lower()
+            if encoder_type == 'hyperlista':
+                log_dir = './runs/hyperlista'
+            else:
+                log_dir = './runs/lista'
         else:
             log_dir = './runs/kae'
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -322,33 +368,9 @@ def train(
     except Exception:
         pass
     
-    # Get dt from environment config for ODE integration
-    env_name = cfg.ENV.ENV_NAME.lower()
-    
-    # Check if it's a dysts environment
-    if env_name.startswith('dysts:') or hasattr(env.unwrapped, 'dt'):
-        # For dysts environments, get dt from the unwrapped environment
-        dt = getattr(env.unwrapped, 'dt', 0.01)
-    elif env_name == 'duffing':
-        dt = cfg.ENV.DUFFING.DT
-    elif env_name == 'pendulum':
-        dt = cfg.ENV.PENDULUM.DT
-    elif env_name == 'lotka_volterra':
-        dt = cfg.ENV.LOTKA_VOLTERRA.DT
-    elif env_name == 'lorenz63':
-        dt = cfg.ENV.LORENZ63.DT
-    elif env_name == 'parabolic':
-        dt = cfg.ENV.PARABOLIC.DT
-    elif env_name == 'lyapunov':
-        dt = cfg.ENV.LYAPUNOV.DT
-    else:
-        # Try to get dt from the unwrapped environment
-        dt = getattr(env.unwrapped, 'dt', 0.01)
-    
     print("Creating model...")
     model = make_model(cfg, env.observation_size)
     model = model.to(device)
-    model.dt = dt  # Store dt in model for use in ODE integration
     
     print("Building optimizer...")
     optimizer = build_optimizer(model, cfg)
@@ -408,20 +430,17 @@ def train(
     
     print("Generating fixed validation set...")
     val_rng = torch.Generator().manual_seed(cfg.SEED + 999999) # Separate seed
+    val_window = max(1, cfg.TRAIN.SEQUENCE_LENGTH)
     if val_dysts_cache is not None:
-        val_window = max(1, cfg.TRAIN.SEQUENCE_LENGTH)
         val_seq = val_dysts_cache.sample_sequence_batch(
             val_rng,
             batch_size=16,
             window_length=val_window,
             device=device,
         )
-        val_x = val_seq[:, 0, :]
-    elif cfg.TRAIN.USE_SEQUENCE_LOSS:
-        val_seq = env.generate_sequence_batch(val_rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
-        val_x = val_seq[:16, 0, :].to(device) # Use 16 samples for better stability
     else:
-        val_x = env.reset(val_rng)[:16].to(device)
+        val_seq = env.generate_sequence_batch(val_rng, window_length=val_window).to(device)
+    val_x = val_seq[:16, 0, :]
     
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
     print(f"Device: {device}")
@@ -456,61 +475,35 @@ def train(
     for step in range(start_step, cfg.TRAIN.NUM_STEPS):
         # Generate batch
         rng = rngs[step % num_batches]
-        
-        if cfg.TRAIN.USE_SEQUENCE_LOSS or cfg.TRAIN.USE_MULTISTEP_LOSS:
-            if dysts_cache is not None:
-                x_seq = dysts_cache.sample_sequence_batch(
-                    rng,
-                    batch_size=cfg.TRAIN.BATCH_SIZE,
-                    window_length=cfg.TRAIN.SEQUENCE_LENGTH,
-                    device=device,
-                )
-            else:
-                # Generate sequence windows
-                x_seq = env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH)
-                # x_seq has shape [batch_size, seq_len+1, obs_size]
-                x_seq = x_seq.to(device)
-            nx = None  # Not used for sequence/multistep loss
-            metrics = train_step(model, optimizer, x_seq, nx, cfg, dt, step=step)
+
+        if dysts_cache is not None:
+            x_seq = dysts_cache.sample_sequence_batch(
+                rng,
+                batch_size=cfg.TRAIN.BATCH_SIZE,
+                window_length=cfg.TRAIN.SEQUENCE_LENGTH,
+                device=device,
+            )
         else:
-            if dysts_cache is not None:
-                x, nx = dysts_cache.sample_pair_batch(
-                    rng,
-                    batch_size=cfg.TRAIN.BATCH_SIZE,
-                    device=device,
-                )
-            else:
-                # Generate single transitions (backward compatibility)
-                x = env.reset(rng)
-                nx = env.step(x)
-                x = x.to(device)
-                nx = nx.to(device)
-            metrics = train_step(model, optimizer, x, nx, cfg, dt, step=step)
+            x_seq = env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH).to(device)
+
+        metrics = train_step(model, optimizer, x_seq, step=step)
         
         logger.log_dict(metrics, step, prefix='train')
         
         if step % 100 == 0:
-            if cfg.TRAIN.USE_SEQUENCE_LOSS or cfg.TRAIN.USE_MULTISTEP_LOSS:
-                sr_str = ""
-                if 'spectral_radius' in metrics:
-                    sr_str = f" | SR: {metrics['spectral_radius']:.4f}"
-                print(f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
-                      f"Loss: {metrics['loss']:.4f} | "
-                      f"Align: {metrics['alignment_loss']:.4f} | "
-                      f"Recon: {metrics['reconst_loss']:.4f} | "
-                      f"Pred: {metrics['prediction_loss']:.4f} | "
-                      f"Sparsity: {metrics['sparsity_ratio']:.3f}"
-                      f"{sr_str}")
-            else:
-                log_str = (f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
-                           f"Loss: {metrics['loss']:.4f} | "
-                           f"Res: {metrics['residual_loss']:.4f} | "
-                           f"Recon: {metrics['reconst_loss']:.4f} | "
-                           f"Pred: {metrics['prediction_loss']:.4f} | "
-                           f"Sparsity: {metrics['sparsity_ratio']:.3f}")
-                if 'homogeneous_loss' in metrics:
-                    log_str += f" | Homog: {metrics['homogeneous_loss']:.4f}"
-                print(log_str)
+            sr_str = ""
+            if 'spectral_radius' in metrics:
+                sr_str = f" | SR: {metrics['spectral_radius']:.4f}"
+            log_str = (f"Step {step}/{cfg.TRAIN.NUM_STEPS} | "
+                       f"Loss: {metrics['loss']:.4f} | "
+                       f"Align: {metrics['alignment_loss']:.4f} | "
+                       f"Recon: {metrics['reconst_loss']:.4f} | "
+                       f"Pred: {metrics['prediction_loss']:.4f} | "
+                       f"Sparsity: {metrics['sparsity_ratio']:.3f}"
+                       f"{sr_str}")
+            if 'homogeneous_loss' in metrics:
+                log_str += f" | Homog: {metrics['homogeneous_loss']:.4f}"
+            print(log_str)
         
         # Support monitoring for basin correspondence (if enabled)
         if support_monitor is not None and step > 0 and step % support_monitor_every == 0:
@@ -565,7 +558,10 @@ def train(
     # Plot training metrics
     print("-" * 80)
     print("Plotting training metrics...")
-    from plot_training_metrics import plot_metrics
+    try:
+        from tools.plot_training_metrics import plot_metrics
+    except ImportError:
+        from plot_training_metrics import plot_metrics
     try:
         plot_metrics(
             log_dir=run_dir,
@@ -609,7 +605,6 @@ def train(
             eval_model.load_state_dict(checkpoint['model_state_dict'])
             eval_model = eval_model.to(device)
             eval_model.eval()
-            eval_model.dt = dt
 
             # Create evaluation settings
             eval_settings = EvaluationSettings()
@@ -717,7 +712,7 @@ def train(
                 plot_basin_norm_timeseries,
                 plot_activation_distributions,
             )
-            from model import StructuredLISTAKM
+            from skae.model import StructuredLISTAKM
             from dataclasses import asdict
 
             # Load best checkpoint for basin analysis
@@ -1030,7 +1025,7 @@ Examples:
                         choices=['l1', 'l2'],
                         help='Energy norm for block activations (default: l2)')
 
-    # HyperLISTA (HyperLISTAKM) hyperparameters
+    # HyperLISTA hyperparameters (for LISTAKM with ENCODER_TYPE=hyperlista)
     parser.add_argument('--hyperlista_c_theta', type=float, default=None,
                         help='HyperLISTA threshold scaling C_THETA (overrides config default)')
     parser.add_argument('--hyperlista_c_beta', type=float, default=None,
@@ -1064,15 +1059,8 @@ Examples:
     parser.add_argument('--excl_warmup_steps', type=int, default=None,
                         help='Steps to ramp exclusivity/sparsity from 0 to final (default: 1000)')
     
-    # Training mode
-    parser.add_argument('--pairwise', action='store_true',
-                        help='Use pairwise (single-step) training instead of sequence training')
-    parser.add_argument('--sequence', action='store_true',
-                        help='Use sequence (multi-step ODE) training instead of pairwise')
-    parser.add_argument('--multistep', action='store_true',
-                        help='Use discrete multi-step rollout training (z_{t+k} = K^k z_t)')
-    parser.add_argument('--sequence_length', type=int, default=10,
-                        help='Sequence length for sequence/multistep training (overrides config default)')
+    parser.add_argument('--sequence_length', type=int, default=1,
+                        help='Unified rollout horizon H (H=1 matches former pairwise training)')
     parser.add_argument('--eval_every', type=int, default=None,
                         help='Evaluate every N steps during training (overrides config default)')
     parser.add_argument('--eval_num_steps', type=int, default=None,
@@ -1094,7 +1082,7 @@ Examples:
     
     # Logging
     parser.add_argument('--log_dir', type=str, default=None,
-                        help='Directory for logs and checkpoints (defaults to ./runs/kae, or ./runs/lista for LISTA configs)')
+                        help='Directory for logs and checkpoints (defaults: ./runs/hyperlista for LISTAKM+hyperlista, ./runs/lista for other LISTAKM, ./runs/kae otherwise)')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='Path to checkpoint to resume from')
     
@@ -1286,24 +1274,10 @@ Examples:
             f"dir='{cfg.ENV.DYSTS.CACHE_DIR}'"
         )
     
-    # Training mode
-    mode_flags = sum([args.pairwise, args.sequence, args.multistep])
-    if mode_flags > 1:
-        raise ValueError("Cannot specify more than one of --pairwise, --sequence, --multistep")
-    if args.pairwise:
-        cfg.TRAIN.USE_SEQUENCE_LOSS = False
-        cfg.TRAIN.USE_MULTISTEP_LOSS = False
-        print("Using pairwise (single-step) training mode")
-    if args.sequence:
-        cfg.TRAIN.USE_SEQUENCE_LOSS = True
-        cfg.TRAIN.USE_MULTISTEP_LOSS = False
-        print("Using sequence (multi-step ODE) training mode")
-    if args.multistep:
-        cfg.TRAIN.USE_SEQUENCE_LOSS = False
-        cfg.TRAIN.USE_MULTISTEP_LOSS = True
-        print(f"Using discrete multi-step rollout training (L={args.sequence_length})")
-    if args.sequence_length is not None:
-        cfg.TRAIN.SEQUENCE_LENGTH = args.sequence_length
+    cfg.TRAIN.SEQUENCE_LENGTH = int(args.sequence_length)
+    if cfg.TRAIN.SEQUENCE_LENGTH < 1:
+        raise ValueError("--sequence_length must be >= 1")
+    print(f"Using unified horizon-based training with sequence_length={cfg.TRAIN.SEQUENCE_LENGTH}")
     if args.eval_every is not None:
         cfg.TRAIN.EVAL_EVERY = int(args.eval_every)
     if args.eval_num_steps is not None:

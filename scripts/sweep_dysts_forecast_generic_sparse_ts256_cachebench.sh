@@ -96,7 +96,7 @@ TRAIN_ARGS=(
   --reconst_coeff "${RECONST_COEFF}"
   --pred_coeff "${PRED_COEFF}"
   --sparsity_coeff "${SPARSITY_COEFF}"
-  --pairwise
+  --sequence_length 1
   --standardize
   --dysts_ic_noise_scale 0.2
   --dysts_native_cache
