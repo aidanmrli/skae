@@ -65,7 +65,7 @@ uv run python tools/train.py \
   --reconst_coeff 0.02 \
   --pred_coeff 1.0 \
   --sparsity_coeff 0.001 \
-  --pairwise \
+  --sequence_length 1 \
   --standardize \
   --dysts_ic_noise_scale 0.2 \
   --dysts_native_cache \

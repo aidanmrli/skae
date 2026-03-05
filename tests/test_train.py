@@ -11,12 +11,41 @@ Tests cover:
 import pytest
 import torch
 import tempfile
+import sys
 from pathlib import Path
 
 from skae.config import get_config
 from skae.data import make_env, VectorWrapper
 from skae.model import make_model
-from tools.train import train_step, evaluate, train, build_optimizer
+import tools.train as train_module
+from tools.train import (
+    DYSTS_CACHE_PROFILES,
+    apply_dysts_cache_profile,
+    train_step,
+    evaluate,
+    train,
+    build_optimizer,
+)
+
+
+def make_unified_loss_inputs(model, x: torch.Tensor, nx: torch.Tensor):
+    """Build minimal unified-loss tensors for a 1-step horizon."""
+    x_pred = nx.unsqueeze(1)
+    x_true = nx.unsqueeze(1)
+    z0 = model.encode(x)
+    z_true = model.encode(nx).unsqueeze(1)
+    z_pred = model.rollout_latent_discrete(z0, horizon=1)
+    x_recon_true = model.decode(z_true.reshape(-1, z_true.shape[-1])).reshape_as(x_true)
+    return {
+        "x_pred": x_pred,
+        "x_true": x_true,
+        "x0": x,
+        "z0": z0,
+        "z_pred": z_pred,
+        "z_true": z_true,
+        "reconstruction_error": torch.norm(x_true - x_recon_true, dim=-1).mean(),
+        "sparsity_latent": z_pred,
+    }
 
 
 class TestTrainStep:
@@ -35,18 +64,17 @@ class TestTrainStep:
         
         # Generate batch
         rng = torch.Generator().manual_seed(42)
-        x = torch.randn(4, env.observation_size)
-        nx = torch.randn(4, env.observation_size)
+        x_seq = torch.randn(4, 2, env.observation_size)
         
         # Store initial parameters
         initial_params = [p.clone() for p in model.parameters()]
         
         # Training step
-        metrics = train_step(model, optimizer, x, nx)
+        metrics = train_step(model, optimizer, x_seq)
         
         # Check metrics are computed
         assert 'loss' in metrics
-        assert 'residual_loss' in metrics
+        assert 'alignment_loss' in metrics
         assert 'reconst_loss' in metrics
         assert 'sparsity_loss' in metrics
         assert isinstance(metrics['loss'], float)
@@ -65,11 +93,10 @@ class TestTrainStep:
         model = make_model(cfg, env.observation_size)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
         
-        x = torch.randn(4, env.observation_size)
-        nx = torch.randn(4, env.observation_size)
+        x_seq = torch.randn(4, 2, env.observation_size)
         
         # Training step
-        metrics = train_step(model, optimizer, x, nx)
+        metrics = train_step(model, optimizer, x_seq)
         
         # Check that at least some parameters have been updated
         has_update = False
@@ -80,6 +107,25 @@ class TestTrainStep:
                 has_update = True
         
         assert has_update, "At least some parameters should require gradients"
+
+    @pytest.mark.parametrize("horizon", [1, 8])
+    def test_train_step_metrics_across_horizons(self, horizon):
+        """Unified train_step should report consistent metrics for H=1 and H=8."""
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LAYERS = [8]
+
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+        x_seq = torch.randn(4, horizon + 1, env.observation_size)
+        metrics = train_step(model, optimizer, x_seq)
+
+        assert metrics["sequence_term_scale"] == pytest.approx(1.0 / horizon, abs=1e-8)
+        for key in ("loss", "alignment_loss", "reconst_loss", "prediction_loss", "sparsity_loss"):
+            assert key in metrics
+            assert isinstance(metrics[key], float)
 
 
 class TestEvaluate:
@@ -183,12 +229,79 @@ class TestTrain:
             assert 'config' in checkpoint
             assert 'metrics' in checkpoint
 
+    def test_train_short_run_sequence_length_8(self):
+        """End-to-end smoke run for unified horizon training at H=8."""
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LAYERS = [8]
+        cfg.TRAIN.NUM_STEPS = 2
+        cfg.TRAIN.BATCH_SIZE = 4
+        cfg.TRAIN.DATA_SIZE = 16
+        cfg.TRAIN.SEQUENCE_LENGTH = 8
+        cfg.TRAIN.EVAL_EVERY = 1000
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True, skip_basin_eval=True)
+            assert model is not None
+
+
+class TestTrainCli:
+    """CLI-level behavior for unified horizon controls."""
+
+    def test_cli_rejects_legacy_pairwise_flag(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["train.py", "--pairwise"])
+        with pytest.raises(SystemExit) as exc:
+            train_module.main()
+        assert exc.value.code == 2
+
+    def test_cli_accepts_sequence_length_without_mode_flags(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["sequence_length"] = cfg.TRAIN.SEQUENCE_LENGTH
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "generic",
+                "--env",
+                "duffing",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--sequence_length",
+                "8",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["sequence_length"] == 8
+
+    def test_basin_eval_import_uses_package_model_path(self):
+        import inspect
+
+        source = inspect.getsource(train_module.train)
+        assert "from skae.model import StructuredLISTAKM" in source
+        assert "from model import StructuredLISTAKM" not in source
+
 
 class TestOptimizer:
     """Tests for optimizer construction and parameter groups."""
 
     def test_optimizer_uses_k_lr(self):
-        """Koopman matrix should use cfg.TRAIN.K_LR learning rate."""
+        """Koopman matrix should use cfg.TRAIN.K_MATRIX_LR learning rate."""
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 8
         cfg.MODEL.ENCODER.LAYERS = [8]
@@ -206,7 +319,30 @@ class TestOptimizer:
                 break
 
         assert found_group is not None, "kmat parameter group not found in optimizer"
-        assert found_group['lr'] == cfg.TRAIN.K_LR
+        assert found_group['lr'] == cfg.TRAIN.K_MATRIX_LR
+
+    def test_optimizer_uses_k_lr_for_structured_koopman_params(self):
+        cfg = get_config("lista")
+        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
+        cfg.MODEL.STRUCTURED.ENABLED = True
+        cfg.MODEL.STRUCTURED.D_GLOBAL = 2
+        cfg.MODEL.STRUCTURED.NUM_BASINS = 2
+        cfg.MODEL.STRUCTURED.D_BASIN = 2
+        cfg.MODEL.TARGET_SIZE = 6
+
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+        optimizer = build_optimizer(model, cfg)
+
+        name_by_id = {id(param): name for name, param in model.named_parameters()}
+        grouped_lrs = {}
+        for group in optimizer.param_groups:
+            lr = group['lr']
+            for param in group['params']:
+                grouped_lrs[name_by_id[id(param)]] = lr
+
+        for name in ("K_global", "K_coupling.0", "K_coupling.1", "K_basin.0", "K_basin.1"):
+            assert grouped_lrs[name] == cfg.TRAIN.K_MATRIX_LR
     
     def test_train_resume_from_checkpoint(self):
         """Test that training can resume from checkpoint."""
@@ -265,7 +401,33 @@ class TestTrainIntegration:
             with tempfile.TemporaryDirectory() as tmpdir:
                 model = train(cfg, log_dir=tmpdir, device='cpu')
                 assert model is not None
-    
+
+
+class TestDystsCacheProfiles:
+    """Tests for named dysts cache profiles."""
+
+    def test_apply_smoke_profile(self):
+        cfg = get_config("generic")
+        profile = apply_dysts_cache_profile(cfg, "smoke")
+
+        assert profile == DYSTS_CACHE_PROFILES["smoke"]
+        assert cfg.ENV.DYSTS.CACHE_STEPS == DYSTS_CACHE_PROFILES["smoke"]["steps"]
+        assert cfg.ENV.DYSTS.CACHE_TRAJECTORIES == DYSTS_CACHE_PROFILES["smoke"]["trajectories"]
+        assert cfg.ENV.DYSTS.CACHE_WARMUP == DYSTS_CACHE_PROFILES["smoke"]["warmup"]
+
+    def test_apply_full_profile(self):
+        cfg = get_config("generic")
+        profile = apply_dysts_cache_profile(cfg, "full")
+
+        assert profile == DYSTS_CACHE_PROFILES["full"]
+        assert cfg.ENV.DYSTS.CACHE_STEPS == DYSTS_CACHE_PROFILES["full"]["steps"]
+        assert cfg.ENV.DYSTS.CACHE_TRAJECTORIES == DYSTS_CACHE_PROFILES["full"]["trajectories"]
+        assert cfg.ENV.DYSTS.CACHE_WARMUP == DYSTS_CACHE_PROFILES["full"]["warmup"]
+
+
+class TestTrainLearning:
+    """Learning behavior checks."""
+
     def test_train_decreases_loss(self):
         """Test that training actually reduces loss over time."""
         cfg = get_config("generic")
@@ -292,10 +454,60 @@ class TestTrainIntegration:
             # (In a real scenario, we'd track loss over time)
             # For now, just check that model can compute loss
             with torch.no_grad():
-                loss, metrics = model.loss(x, nx)
+                loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
                 assert loss.item() < 100.0  # Sanity check
+
+
+class TestDefaultLogDirRouting:
+    """Tests for default run-directory routing in train()."""
+
+    @staticmethod
+    def _base_cfg(config_name: str):
+        cfg = get_config(config_name)
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LAYERS = [8]
+        cfg.TRAIN.NUM_STEPS = 1
+        cfg.TRAIN.BATCH_SIZE = 2
+        cfg.TRAIN.DATA_SIZE = 4
+        cfg.TRAIN.EVAL_NUM_STEPS = 1
+        cfg.TRAIN.EVAL_EVERY = 1000
+        return cfg
+
+    def test_default_log_dir_lista_encoder_type(self, tmp_path, monkeypatch):
+        cfg = self._base_cfg("lista")
+        cfg.MODEL.MODEL_NAME = "LISTAKM"
+        cfg.MODEL.ENCODER.ENCODER_TYPE = "lista"
+
+        monkeypatch.chdir(tmp_path)
+        train(cfg, log_dir=None, device="cpu", skip_eval=True, skip_basin_eval=True)
+
+        run_root = tmp_path / "runs" / "lista"
+        assert run_root.exists()
+        assert any(run_root.iterdir())
+
+    def test_default_log_dir_hyperlista_encoder_type(self, tmp_path, monkeypatch):
+        cfg = self._base_cfg("lista")
+        cfg.MODEL.MODEL_NAME = "LISTAKM"
+        cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
+
+        monkeypatch.chdir(tmp_path)
+        train(cfg, log_dir=None, device="cpu", skip_eval=True, skip_basin_eval=True)
+
+        run_root = tmp_path / "runs" / "hyperlista"
+        assert run_root.exists()
+        assert any(run_root.iterdir())
+
+    def test_default_log_dir_non_lista_model(self, tmp_path, monkeypatch):
+        cfg = self._base_cfg("generic")
+        cfg.MODEL.MODEL_NAME = "GenericKM"
+
+        monkeypatch.chdir(tmp_path)
+        train(cfg, log_dir=None, device="cpu", skip_eval=True, skip_basin_eval=True)
+
+        run_root = tmp_path / "runs" / "kae"
+        assert run_root.exists()
+        assert any(run_root.iterdir())
 
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
-

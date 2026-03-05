@@ -69,7 +69,7 @@ uv run python tools/train.py \
     --config lista_nonlinear \
     --env blended \
     --structured \
-    --pairwise \
+    --sequence_length 1 \
     --d_global $D_GLOBAL \
     --num_basins $NUM_BASINS \
     --d_basin $D_BASIN \

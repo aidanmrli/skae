@@ -20,7 +20,6 @@ dependencies = [
     "ml-collections>=1.1.0",
     "flax>=0.10.7",
     "optax>=0.2.6",
-    "torchdiffeq>=0.2.3",
     "dysts>=0.96",
     "numba>=0.63.1",
     "scikit-learn>=1.0",
@@ -44,7 +43,6 @@ skae-train = "tools.train:main"
 skae-evaluate = "tools.evaluate_checkpoints:main"
 skae-basin-structure = "tools.evaluate_basin_structure:main"
 skae-latent-clustering = "tools.evaluate_latent_basin_clustering:main"
-skae-tune-hyperlista = "tools.tune_hyperlista:main"
 
 # CUDA PyTorch index - only used on Linux when explicitly requested
 # On macOS/Windows, PyTorch will install from PyPI (CPU version)

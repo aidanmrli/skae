@@ -104,7 +104,6 @@ COMMON_ARGS=(
   --reconst_coeff "$RECONST_COEFF"
   --pred_coeff "$PRED_COEFF"
   --sparsity_coeff "$SPARSITY_COEFF"
-  --sequence
   --sequence_length "$SEQUENCE_LENGTH"
   --skip_eval
   --skip_basin_eval

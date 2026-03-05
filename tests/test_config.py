@@ -6,10 +6,12 @@ Tests configuration loading, modification, and registry functionality.
 import pytest
 
 from skae.config import (
+    Config,
     get_config,
     get_default_config,
     get_train_generic_km_config,
     get_train_lista_config,
+    get_train_lista_parity_generic_sparse_config,
 )
 
 
@@ -57,8 +59,14 @@ def test_get_named_configs():
     # Test LISTA config
     cfg_lista = get_train_lista_config()
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"
-    assert cfg_lista.MODEL.ENCODER.LISTA.NUM_LOOPS == 10
+    assert cfg_lista.MODEL.ENCODER.LISTA.NUM_LOOPS == 5
     assert cfg_lista.MODEL.TARGET_SIZE == 1024 * 2
+
+    cfg_parity = get_train_lista_parity_generic_sparse_config()
+    assert cfg_parity.MODEL.MODEL_NAME == "LISTAKM"
+    assert cfg_parity.MODEL.TARGET_SIZE == 64
+    assert cfg_parity.MODEL.SPARSITY_COEFF == 0.01
+    assert cfg_parity.MODEL.ENCODER.LISTA.FINAL_OP == "relu"
 
 
 def test_config_registry():
@@ -71,7 +79,11 @@ def test_config_registry():
     
     cfg_lista = get_config("lista")
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"
-    
+
+    cfg_parity = get_config("lista_parity_generic_sparse")
+    assert cfg_parity.MODEL.MODEL_NAME == "LISTAKM"
+    assert cfg_parity.MODEL.TARGET_SIZE == 64
+
     with pytest.raises(ValueError):
         get_config("nonexistent")
 
@@ -95,3 +107,53 @@ def test_config_dt_extraction():
     # Check that dt is correctly set
     assert cfg.ENV.DUFFING.DT == 0.02
     assert cfg.ENV.ENV_NAME == "duffing"
+
+
+def test_unknown_train_key_raises():
+    """Unknown TRAIN keys should fail fast (strict config parsing)."""
+    cfg_dict = get_default_config().to_dict()
+    cfg_dict["TRAIN"]["USE_SEQUENCE_LOSS"] = True
+
+    with pytest.raises(TypeError):
+        Config.from_dict(cfg_dict)
+
+
+def test_hyperlista_preset_uses_listakm():
+    """HyperLISTA preset should select LISTAKM with hyperlista encoder mode."""
+    cfg = get_config("hyperlista")
+    assert cfg.MODEL.MODEL_NAME == "LISTAKM"
+    assert cfg.MODEL.ENCODER.ENCODER_TYPE == "hyperlista"
+
+
+def test_encoder_type_default():
+    """Encoder type defaults to standard LISTA mode."""
+    cfg = get_default_config()
+    assert cfg.MODEL.ENCODER.ENCODER_TYPE == "lista"
+
+
+def test_encoder_type_roundtrip_json(tmp_path):
+    """Encoder type should persist through JSON serialization."""
+    cfg = get_default_config()
+    cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
+    path = tmp_path / "config.json"
+    cfg.to_json(str(path))
+
+    loaded = Config.from_json(str(path))
+    assert loaded.MODEL.ENCODER.ENCODER_TYPE == "hyperlista"
+
+
+def test_high_dim_env_config_from_dict_roundtrip():
+    """High-dimensional benchmark env configs should survive dict roundtrip."""
+    cfg = get_default_config()
+    cfg.ENV.ENV_NAME = "hopfield"
+    cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 32
+    cfg.ENV.HOPFIELD.NUM_NEURONS = 20
+    cfg.ENV.HOPFIELD.NUM_PATTERNS = 5
+    cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = 12
+
+    loaded = Config.from_dict(cfg.to_dict())
+
+    assert loaded.ENV.KURAMOTO.NUM_OSCILLATORS == 32
+    assert loaded.ENV.HOPFIELD.NUM_NEURONS == 20
+    assert loaded.ENV.HOPFIELD.NUM_PATTERNS == 5
+    assert loaded.ENV.COMPETITIVE_LV.NUM_SPECIES == 12

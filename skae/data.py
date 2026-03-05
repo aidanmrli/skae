@@ -7,6 +7,11 @@ structured as environments.
 
 from abc import ABC, abstractmethod
 from typing import Optional, Callable, List, Tuple
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import hashlib
+import json
+import os
+from pathlib import Path
 import time
 import numpy as np
 import torch
@@ -198,8 +203,53 @@ class VectorWrapper(Wrapper):
 # Dysts trajectory cache for training
 # ---------------------------------------------------------------------------
 
+def _build_dysts_native_trajectory(
+    system_name: str,
+    dt: float,
+    ic: np.ndarray,
+    n_steps: int,
+    resample: bool,
+    pts_per_period: int,
+    standardize: bool,
+) -> torch.Tensor:
+    """Worker helper for parallel dysts trajectory generation."""
+    from skae.benchmarks.dysts_adapter import DystsEnv
+
+    worker_env = DystsEnv(
+        system_name=system_name,
+        dt_override=float(dt),
+        ic_noise_scale=0.0,
+        standardize=standardize,
+    )
+    if hasattr(worker_env.system, "ic"):
+        worker_env.system.ic = np.array(ic, dtype=np.float32)
+    return worker_env.make_trajectory_native(
+        n=n_steps,
+        resample=resample,
+        pts_per_period=pts_per_period,
+        standardize=standardize,
+    ).float()
+
+
 class DystsTrajectoryCache:
     """In-memory cache of dysts trajectories for fast batch sampling."""
+
+    # Cache IC construction is intentionally deterministic and independent of model seed
+    # so cache files can be reused across runs with different training seeds.
+    _CACHE_BUILD_SEED = 0
+
+    @staticmethod
+    def _split_seed_offset(split: str) -> int:
+        """Deterministic offset per cache split namespace."""
+        normalized = (split or "train").strip().lower()
+        if normalized == "train":
+            return 0
+        if normalized == "val":
+            return 1
+        if normalized == "test":
+            return 2
+        digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()
+        return int(digest[:8], 16) % 1_000_000
     
     def __init__(
         self,
@@ -215,60 +265,219 @@ class DystsTrajectoryCache:
         self.standardize = cfg.ENV.DYSTS.STANDARDIZE
         self.resample = cfg.ENV.DYSTS.RESAMPLE
         self.pts_per_period = cfg.ENV.DYSTS.PTS_PER_PERIOD
+        self.cache_dir = str(getattr(cfg.ENV.DYSTS, "CACHE_DIR", "")).strip()
+        self.cache_reuse = bool(getattr(cfg.ENV.DYSTS, "CACHE_REUSE", False))
+        self.cache_split = str(getattr(cfg.ENV.DYSTS, "CACHE_SPLIT", "train")).strip().lower() or "train"
+        self.cache_num_workers = max(1, int(getattr(cfg.ENV.DYSTS, "CACHE_NUM_WORKERS", 1)))
         
         if self.cache_steps < 2:
             raise ValueError("Dysts cache requires CACHE_STEPS >= 2")
-        
-        if rng is None:
-            rng = torch.Generator().manual_seed(0)
-        self._rng = rng
+
+        # Keep constructor arg for backward compatibility; cache generation itself
+        # is intentionally seed-free from the training run perspective.
+        _ = rng
+        split_seed = self._CACHE_BUILD_SEED + self._split_seed_offset(self.cache_split)
+        self._cache_build_rng = torch.Generator().manual_seed(split_seed)
         self._trajectories = self._build_cache()
+
+    def _cache_path(self, base_ic: np.ndarray, base_std: np.ndarray) -> Optional[Path]:
+        if not self.cache_dir or not self.cache_reuse:
+            return None
+        os.makedirs(self.cache_dir, exist_ok=True)
+        payload = {
+            "version": 1,
+            "system": str(getattr(self.env, "system_name", "unknown")),
+            "dt": float(getattr(self.env, "dt", 0.0)),
+            "cache_split": self.cache_split,
+            "cache_steps": int(self.cache_steps),
+            "cache_trajectories": int(self.cache_trajectories),
+            "cache_warmup": int(self.cache_warmup),
+            "standardize": bool(self.standardize),
+            "resample": bool(self.resample),
+            "pts_per_period": int(self.pts_per_period),
+            "ic_noise_scale": float(getattr(self.env, "ic_noise_scale", 0.0)),
+            "base_ic": np.asarray(base_ic, dtype=np.float32).round(6).tolist(),
+            "base_std": np.asarray(base_std, dtype=np.float32).round(6).tolist(),
+        }
+        digest = hashlib.sha1(
+            json.dumps(payload, sort_keys=True).encode("utf-8")
+        ).hexdigest()[:16]
+        safe_system = str(payload["system"]).replace(":", "_")
+        safe_split = str(payload["cache_split"]).replace(":", "_")
+        return Path(self.cache_dir) / f"{safe_system}_{safe_split}_{digest}.pt"
+
+    def _load_cached_trajectories(self, cache_path: Optional[Path]) -> Optional[torch.Tensor]:
+        if cache_path is None or not cache_path.exists():
+            return None
+        try:
+            payload = torch.load(cache_path, map_location="cpu")
+            trajectories = payload["trajectories"] if isinstance(payload, dict) else payload
+            if not isinstance(trajectories, torch.Tensor):
+                print(f"[dysts cache] invalid tensor payload at {cache_path}; rebuilding.")
+                return None
+            if trajectories.dim() != 3:
+                print(f"[dysts cache] invalid tensor shape at {cache_path}; rebuilding.")
+                return None
+            if trajectories.shape[1] < self.cache_steps:
+                print(f"[dysts cache] cached trajectories too short at {cache_path}; rebuilding.")
+                return None
+            print(
+                f"[dysts cache] cache hit: loaded {trajectories.shape[0]} trajectories "
+                f"from {cache_path}",
+                flush=True,
+            )
+            return trajectories.float()
+        except Exception as e:
+            print(f"[dysts cache] failed loading {cache_path}: {e}. Rebuilding.")
+            return None
+
+    def _save_cached_trajectories(
+        self,
+        cache_path: Optional[Path],
+        trajectories: torch.Tensor,
+    ) -> None:
+        if cache_path is None:
+            return
+        tmp_path = cache_path.with_suffix(cache_path.suffix + f".tmp-{os.getpid()}")
+        try:
+            torch.save(
+                {
+                    "trajectories": trajectories.cpu(),
+                    "meta": {
+                        "system": str(getattr(self.env, "system_name", "unknown")),
+                        "cache_split": self.cache_split,
+                        "cache_steps": int(self.cache_steps),
+                        "cache_trajectories": int(self.cache_trajectories),
+                        "cache_warmup": int(self.cache_warmup),
+                    },
+                },
+                tmp_path,
+            )
+            os.replace(tmp_path, cache_path)
+            print(f"[dysts cache] saved cache to {cache_path}", flush=True)
+        except Exception as e:
+            print(f"[dysts cache] warning: failed to save cache at {cache_path}: {e}")
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
+
+    def _initial_conditions(self, base_ic: np.ndarray, base_std: np.ndarray) -> List[np.ndarray]:
+        ic_list: List[np.ndarray] = []
+        for i in range(self.cache_trajectories):
+            if i == 0:
+                ic = base_ic
+            else:
+                noise = torch.randn(self.env._dim, generator=self._cache_build_rng).numpy()
+                ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
+            ic_list.append(np.array(ic, dtype=np.float32))
+        return ic_list
+
+    def _build_cache_parallel(
+        self,
+        ic_list: List[np.ndarray],
+        t0: float,
+    ) -> List[torch.Tensor]:
+        total_steps = self.cache_steps + self.cache_warmup
+        trajectories: List[Optional[torch.Tensor]] = [None] * len(ic_list)
+        completed = 0
+        print(
+            f"[dysts cache] using parallel workers={self.cache_num_workers} "
+            f"for {len(ic_list)} trajectories",
+            flush=True,
+        )
+        with ProcessPoolExecutor(max_workers=self.cache_num_workers) as executor:
+            futures = {}
+            for idx, ic in enumerate(ic_list):
+                futures[executor.submit(
+                    _build_dysts_native_trajectory,
+                    str(getattr(self.env, "system_name", "")),
+                    float(getattr(self.env, "dt", 0.0)),
+                    ic,
+                    total_steps,
+                    bool(self.resample),
+                    int(self.pts_per_period),
+                    bool(self.standardize),
+                )] = idx
+            for future in as_completed(futures):
+                idx = futures[future]
+                completed += 1
+                try:
+                    traj = future.result()
+                    if self.cache_warmup > 0:
+                        traj = traj[self.cache_warmup:]
+                    trajectories[idx] = traj.float()
+                except Exception as e:
+                    if idx == 0:
+                        raise
+                    print(
+                        f"Warning: Failed to build dysts trajectory {idx + 1}/"
+                        f"{len(ic_list)}: {e}.",
+                        flush=True,
+                    )
+                if completed == 1 or completed % 10 == 0 or completed == len(ic_list):
+                    elapsed = time.perf_counter() - t0
+                    print(
+                        f"[dysts cache] completed {completed}/{len(ic_list)} "
+                        f"(elapsed={elapsed:.1f}s)",
+                        flush=True,
+                    )
+        return [traj for traj in trajectories if traj is not None]
     
     def _build_cache(self) -> torch.Tensor:
         """Generate cached trajectories using dysts native integrator."""
         base_ic = self.env._ic.detach().cpu().numpy()
         base_std = self.env._std.detach().cpu().numpy()
+        cache_path = self._cache_path(base_ic, base_std)
+        cached = self._load_cached_trajectories(cache_path)
+        if cached is not None:
+            return cached
+
+        ic_list = self._initial_conditions(base_ic, base_std)
         original_ic = None
         if hasattr(self.env.system, "ic"):
             original_ic = np.array(self.env.system.ic, copy=True)
         
         trajectories: List[torch.Tensor] = []
         t0 = time.perf_counter()
-        for i in range(self.cache_trajectories):
-            if i == 0 or (i + 1) % 10 == 0:
-                elapsed = time.perf_counter() - t0
-                print(
-                    f"[dysts cache] building trajectory {i + 1}/{self.cache_trajectories} "
-                    f"(elapsed={elapsed:.1f}s)",
-                    flush=True,
-                )
-            if i == 0:
-                ic = base_ic
-            else:
-                noise = torch.randn(self.env._dim, generator=self._rng).numpy()
-                ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
-            if hasattr(self.env.system, "ic"):
-                self.env.system.ic = np.array(ic, dtype=np.float32)
-            
-            try:
-                traj = self.env.make_trajectory_native(
-                    n=self.cache_steps + self.cache_warmup,
-                    resample=self.resample,
-                    pts_per_period=self.pts_per_period,
-                    standardize=self.standardize,
-                )
-            except Exception as e:
-                if i == 0:
-                    raise
-                print(
-                    f"Warning: Failed to build dysts trajectory {i + 1}/"
-                    f"{self.cache_trajectories}: {e}. Using fewer trajectories."
-                )
-                break
-            if self.cache_warmup > 0:
-                traj = traj[self.cache_warmup:]
-            traj = traj.float()
-            trajectories.append(traj)
+
+        can_parallel = (
+            self.cache_num_workers > 1
+            and self.cache_trajectories > 1
+            and hasattr(self.env, "system_name")
+        )
+        if can_parallel:
+            trajectories = self._build_cache_parallel(ic_list, t0)
+        else:
+            for i, ic in enumerate(ic_list):
+                if i == 0 or (i + 1) % 10 == 0:
+                    elapsed = time.perf_counter() - t0
+                    print(
+                        f"[dysts cache] building trajectory {i + 1}/{self.cache_trajectories} "
+                        f"(elapsed={elapsed:.1f}s)",
+                        flush=True,
+                    )
+                if hasattr(self.env.system, "ic"):
+                    self.env.system.ic = np.array(ic, dtype=np.float32)
+                try:
+                    traj = self.env.make_trajectory_native(
+                        n=self.cache_steps + self.cache_warmup,
+                        resample=self.resample,
+                        pts_per_period=self.pts_per_period,
+                        standardize=self.standardize,
+                    )
+                except Exception as e:
+                    if i == 0:
+                        raise
+                    print(
+                        f"Warning: Failed to build dysts trajectory {i + 1}/"
+                        f"{self.cache_trajectories}: {e}. Using fewer trajectories."
+                    )
+                    break
+                if self.cache_warmup > 0:
+                    traj = traj[self.cache_warmup:]
+                trajectories.append(traj.float())
         
         if original_ic is not None:
             self.env.system.ic = original_ic
@@ -282,9 +491,12 @@ class DystsTrajectoryCache:
         )
         
         if len(trajectories) == 1:
-            return trajectories[0].unsqueeze(0)
-        
-        return torch.stack(trajectories, dim=0)
+            stacked = trajectories[0].unsqueeze(0)
+        else:
+            stacked = torch.stack(trajectories, dim=0)
+
+        self._save_cached_trajectories(cache_path, stacked)
+        return stacked
     
     @property
     def trajectories(self) -> torch.Tensor:
@@ -575,6 +787,315 @@ class LotkaVolterra(Env):
             return torch.stack([dx1, dx2])
 
         return integrate_rk4(state, None, self.dt, dynamics_fn)
+
+
+class KuramotoOscillators(Env):
+    """Coupled Kuramoto oscillators with scalable intrinsic dimension.
+
+    State:
+        theta in R^N, one phase per oscillator.
+
+    Dynamics:
+        dtheta_i/dt = omega_i + (K / N) * sum_j sin(theta_j - theta_i)
+    with either ring (nearest-neighbor) or all-to-all coupling.
+    """
+
+    _VALID_TOPOLOGIES = {"ring", "all_to_all"}
+    _VALID_OMEGA_MODES = {"identical", "uniform_spread", "random"}
+
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
+        k_cfg = cfg.ENV.KURAMOTO
+        self.num_oscillators = int(k_cfg.NUM_OSCILLATORS)
+        self.dt = float(k_cfg.DT)
+        self.k_coupling = float(k_cfg.K_COUPLING)
+        self.topology = str(k_cfg.TOPOLOGY).lower()
+        self.omega_mode = str(k_cfg.OMEGA_MODE).lower()
+        self.omega_spread = float(k_cfg.OMEGA_SPREAD)
+
+        if self.num_oscillators < 2:
+            raise ValueError("KURAMOTO.NUM_OSCILLATORS must be >= 2.")
+        if self.topology not in self._VALID_TOPOLOGIES:
+            raise ValueError(
+                f"Unknown KURAMOTO.TOPOLOGY '{self.topology}'. "
+                f"Expected one of {sorted(self._VALID_TOPOLOGIES)}."
+            )
+        if self.omega_mode not in self._VALID_OMEGA_MODES:
+            raise ValueError(
+                f"Unknown KURAMOTO.OMEGA_MODE '{self.omega_mode}'. "
+                f"Expected one of {sorted(self._VALID_OMEGA_MODES)}."
+            )
+
+        self.omega = self._init_natural_frequencies()
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def _init_natural_frequencies(self) -> torch.Tensor:
+        if self.omega_mode == "identical":
+            return torch.zeros(self.num_oscillators, dtype=torch.float32)
+
+        if self.omega_mode == "uniform_spread":
+            return torch.linspace(
+                -self.omega_spread,
+                self.omega_spread,
+                self.num_oscillators,
+                dtype=torch.float32,
+            )
+
+        seed = int(getattr(self.cfg, "SEED", 0)) + 13
+        rng = torch.Generator().manual_seed(seed)
+        return torch.empty(self.num_oscillators, dtype=torch.float32).uniform_(
+            -self.omega_spread,
+            self.omega_spread,
+            generator=rng,
+        )
+
+    def _coupling_term(self, theta: torch.Tensor) -> torch.Tensor:
+        if self.topology == "ring":
+            right = torch.roll(theta, shifts=-1, dims=-1)
+            left = torch.roll(theta, shifts=1, dims=-1)
+            return torch.sin(right - theta) + torch.sin(left - theta)
+
+        # all_to_all
+        phase_diffs = theta.unsqueeze(-2) - theta.unsqueeze(-1)
+        return torch.sin(phase_diffs).sum(dim=-1)
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if rng is None:
+            rng = torch.Generator()
+        return torch.empty(self.num_oscillators, dtype=torch.float32).uniform_(
+            -torch.pi,
+            torch.pi,
+            generator=rng,
+        )
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        omega = self.omega.to(device=state.device, dtype=state.dtype)
+        coupling_scale = self.k_coupling / float(self.num_oscillators)
+
+        def dynamics_fn(state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+            coupling = self._coupling_term(state)
+            return omega + coupling_scale * coupling
+
+        return integrate_rk4(state, None, self.dt, dynamics_fn)
+
+    def basin_label(self, state: torch.Tensor):
+        """Return the winding-number basin label (signed integer)."""
+        phase_diffs = torch.roll(state, shifts=-1, dims=-1) - state
+        wrapped_diffs = torch.atan2(torch.sin(phase_diffs), torch.cos(phase_diffs))
+        winding = torch.round(wrapped_diffs.sum(dim=-1) / (2.0 * torch.pi)).to(torch.int64)
+        if winding.ndim == 0:
+            return int(winding.item())
+        return winding
+
+
+class ContinuousHopfield(Env):
+    """Continuous Hopfield network with configurable stored patterns."""
+
+    _VALID_PATTERN_MODES = {"random", "orthogonal"}
+
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
+        h_cfg = cfg.ENV.HOPFIELD
+        self.num_neurons = int(h_cfg.NUM_NEURONS)
+        self.num_patterns = int(h_cfg.NUM_PATTERNS)
+        self.dt = float(h_cfg.DT)
+        self.beta = float(h_cfg.BETA)
+        self.tau = float(h_cfg.TAU)
+        self.pattern_mode = str(h_cfg.PATTERN_MODE).lower()
+        self.init_scale = float(h_cfg.INIT_SCALE)
+
+        if self.num_neurons < 2:
+            raise ValueError("HOPFIELD.NUM_NEURONS must be >= 2.")
+        if self.num_patterns < 1:
+            raise ValueError("HOPFIELD.NUM_PATTERNS must be >= 1.")
+        if self.tau <= 0:
+            raise ValueError("HOPFIELD.TAU must be positive.")
+        if self.pattern_mode not in self._VALID_PATTERN_MODES:
+            raise ValueError(
+                f"Unknown HOPFIELD.PATTERN_MODE '{self.pattern_mode}'. "
+                f"Expected one of {sorted(self._VALID_PATTERN_MODES)}."
+            )
+        if self.pattern_mode == "orthogonal" and self.num_patterns > self.num_neurons:
+            raise ValueError("HOPFIELD orthogonal patterns require NUM_PATTERNS <= NUM_NEURONS.")
+
+        self.patterns = self._init_patterns()
+        self.weight_matrix = (self.patterns.T @ self.patterns) / float(self.num_patterns)
+        self.weight_matrix.fill_diagonal_(0.0)
+        self.bias = torch.zeros(self.num_neurons, dtype=torch.float32)
+        self.num_basins = self.num_patterns
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def _init_patterns(self) -> torch.Tensor:
+        seed = int(getattr(self.cfg, "SEED", 0)) + 29
+        rng = torch.Generator().manual_seed(seed)
+
+        if self.pattern_mode == "random":
+            patterns = torch.randint(
+                0,
+                2,
+                (self.num_patterns, self.num_neurons),
+                generator=rng,
+                dtype=torch.int64,
+            )
+            return patterns.to(dtype=torch.float32) * 2.0 - 1.0
+
+        basis = torch.randn(self.num_neurons, self.num_neurons, generator=rng, dtype=torch.float32)
+        q, _ = torch.linalg.qr(basis)
+        # Orthogonal mode starts from orthonormal directions, then binarizes to
+        # +/-1 so stored patterns stay in the same discrete space as random mode.
+        patterns = torch.sign(q[:, :self.num_patterns].T)
+        patterns[patterns == 0] = 1.0
+        return patterns
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if rng is None:
+            rng = torch.Generator()
+        return torch.randn(self.num_neurons, generator=rng, dtype=torch.float32) * self.init_scale
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        weights = self.weight_matrix.to(device=state.device, dtype=state.dtype)
+        bias = self.bias.to(device=state.device, dtype=state.dtype)
+
+        def dynamics_fn(state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+            activation = torch.tanh(self.beta * state)
+            recurrent_drive = torch.matmul(activation, weights.T) + bias
+            return (-state + recurrent_drive) / self.tau
+
+        return integrate_rk4(state, None, self.dt, dynamics_fn)
+
+    def basin_label(self, state: torch.Tensor):
+        """Return the index of the stored pattern with maximal overlap."""
+        patterns = self.patterns.to(device=state.device, dtype=state.dtype)
+        sign_state = torch.where(state >= 0, torch.ones_like(state), -torch.ones_like(state))
+        overlaps = torch.matmul(sign_state, patterns.T) / float(self.num_neurons)
+        label = overlaps.argmax(dim=-1).to(torch.int64)
+        if label.ndim == 0:
+            return int(label.item())
+        return label
+
+
+class CompetitiveLotkaVolterra(Env):
+    """Competitive N-species Lotka-Volterra with configurable interaction matrix."""
+
+    _VALID_INTERACTION_MODES = {"symmetric", "asymmetric", "block_diagonal"}
+    _VALID_R_MODES = {"uniform", "heterogeneous"}
+
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
+        lv_cfg = cfg.ENV.COMPETITIVE_LV
+        self.num_species = int(lv_cfg.NUM_SPECIES)
+        self.dt = float(lv_cfg.DT)
+        self.interaction_mode = str(lv_cfg.INTERACTION_MODE).lower()
+        self.r_mode = str(lv_cfg.R_MODE).lower()
+        self.interaction_scale = float(lv_cfg.INTERACTION_SCALE)
+        self.positivity_clip = bool(lv_cfg.POSITIVITY_CLIP)
+        self.survival_threshold = float(lv_cfg.SURVIVAL_THRESHOLD)
+        self.init_min = float(lv_cfg.INIT_MIN)
+        self.init_max = float(lv_cfg.INIT_MAX)
+
+        if self.num_species < 2:
+            raise ValueError("COMPETITIVE_LV.NUM_SPECIES must be >= 2.")
+        if self.interaction_mode not in self._VALID_INTERACTION_MODES:
+            raise ValueError(
+                f"Unknown COMPETITIVE_LV.INTERACTION_MODE '{self.interaction_mode}'. "
+                f"Expected one of {sorted(self._VALID_INTERACTION_MODES)}."
+            )
+        if self.r_mode not in self._VALID_R_MODES:
+            raise ValueError(
+                f"Unknown COMPETITIVE_LV.R_MODE '{self.r_mode}'. "
+                f"Expected one of {sorted(self._VALID_R_MODES)}."
+            )
+        if self.init_min <= 0 or self.init_max <= self.init_min:
+            raise ValueError("COMPETITIVE_LV requires 0 < INIT_MIN < INIT_MAX.")
+
+        self.growth_rates = self._init_growth_rates()
+        self.interaction_matrix = self._init_interaction_matrix()
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def _make_rng(self, offset: int = 0) -> torch.Generator:
+        seed = int(getattr(self.cfg, "SEED", 0)) + 43 + offset
+        return torch.Generator().manual_seed(seed)
+
+    def _init_growth_rates(self) -> torch.Tensor:
+        if self.r_mode == "uniform":
+            return torch.ones(self.num_species, dtype=torch.float32)
+
+        rng = self._make_rng(offset=1)
+        noise = torch.empty(self.num_species, dtype=torch.float32).uniform_(-0.2, 0.2, generator=rng)
+        return torch.clamp(1.0 + noise, min=0.05)
+
+    def _init_interaction_matrix(self) -> torch.Tensor:
+        rng = self._make_rng(offset=2)
+        n = self.num_species
+
+        if self.interaction_mode == "symmetric":
+            off_diag = torch.empty((n, n), dtype=torch.float32).uniform_(
+                0.0,
+                self.interaction_scale,
+                generator=rng,
+            )
+            off_diag = 0.5 * (off_diag + off_diag.T)
+        elif self.interaction_mode == "asymmetric":
+            off_diag = torch.empty((n, n), dtype=torch.float32).uniform_(
+                0.0,
+                self.interaction_scale,
+                generator=rng,
+            )
+        else:
+            block_id = torch.arange(n) % 2
+            same_block = block_id.unsqueeze(0) == block_id.unsqueeze(1)
+            noise = torch.rand((n, n), generator=rng, dtype=torch.float32)
+            intra = 0.5 * self.interaction_scale
+            inter = 1.5 * self.interaction_scale
+            off_diag = torch.where(
+                same_block,
+                intra + 0.3 * self.interaction_scale * noise,
+                inter + 0.3 * self.interaction_scale * noise,
+            )
+            off_diag = 0.5 * (off_diag + off_diag.T)
+
+        off_diag.fill_diagonal_(1.0)
+        return off_diag
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if rng is None:
+            rng = torch.Generator()
+        return torch.empty(self.num_species, dtype=torch.float32).uniform_(
+            self.init_min,
+            self.init_max,
+            generator=rng,
+        )
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        growth = self.growth_rates.to(device=state.device, dtype=state.dtype)
+        interaction = self.interaction_matrix.to(device=state.device, dtype=state.dtype)
+
+        def dynamics_fn(state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+            competition = torch.matmul(state, interaction.T)
+            return state * (growth - competition)
+
+        next_state = integrate_rk4(state, None, self.dt, dynamics_fn)
+        if self.positivity_clip:
+            next_state = torch.clamp(next_state, min=0.0)
+        return next_state
+
+    def basin_label(self, state: torch.Tensor):
+        """Return species-survival support encoded as a bitmask integer."""
+        alive = (state > self.survival_threshold).to(torch.int64)
+        bits = (1 << torch.arange(self.num_species, device=state.device, dtype=torch.int64))
+        label = (alive * bits).sum(dim=-1)
+        if label.ndim == 0:
+            return int(label.item())
+        return label
 
 
 class Lorenz63(Env):
@@ -1163,6 +1684,9 @@ _ENV_REGISTRY = {
     "lyapunov": LyapunovMultiAttractor,
     "blended": BlendedLinearSystem,
     "multiwell": MultiWellTransition,
+    "kuramoto": KuramotoOscillators,
+    "hopfield": ContinuousHopfield,
+    "competitive_lv": CompetitiveLotkaVolterra,
     "multiwell_gradient": lambda cfg: MultiWellTransition(cfg, dynamics_mode="gradient"),
     "multiwell_rotational": lambda cfg: MultiWellTransition(cfg, dynamics_mode="rotational"),
     "multiwell_energy": lambda cfg: MultiWellTransition(cfg, dynamics_mode="energy"),
@@ -1191,6 +1715,7 @@ def make_env(cfg: Config) -> Env:
     For built-in environments:
         cfg.ENV.ENV_NAME should be one of: "duffing", "pendulum", "lotka_volterra",
         "lorenz63", "parabolic", "lyapunov", "blended", "multiwell",
+        "kuramoto", "hopfield", "competitive_lv",
         "multiwell_<variant>", "multiwell_<variant>_hd"
     
     For dysts systems:

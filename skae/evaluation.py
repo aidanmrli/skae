@@ -31,7 +31,13 @@ import numpy as np
 import torch
 
 from skae.config import Config
-from skae.data import VectorWrapper, generate_trajectory, make_env, LyapunovMultiAttractor
+from skae.data import (
+    DystsTrajectoryCache,
+    LyapunovMultiAttractor,
+    VectorWrapper,
+    generate_trajectory,
+    make_env,
+)
 from skae.model import KoopmanMachine
 
 
@@ -545,6 +551,12 @@ def _estimate_learned_attractors(
         with torch.no_grad():
             for _ in range(num_steps):
                 state = model.step_env(state.unsqueeze(0)).squeeze(0)
+            # Refinement pass: run additional steps so convergent systems land
+            # close to their fixed-point/limit attractor before clustering.
+            for _ in range(num_steps):
+                state = model.step_env(state.unsqueeze(0)).squeeze(0)
+                if not torch.isfinite(state).all():
+                    break
         final_state = state.cpu().numpy()
 
         # Skip if final state is not finite or has extreme values
@@ -1010,17 +1022,40 @@ def evaluate_model(
             )
             continue
 
-        vec_env = VectorWrapper(base_env, settings.batch_size)
         rng = torch.Generator().manual_seed(cfg.SEED + settings.seed_offset)
-        init_states = vec_env.reset(rng)  # CPU tensor
-
-        # Generate ground truth trajectories (time-major)
-        print(
-            f"[evaluate_model] -> System '{system}': generating ground-truth trajectory "
-            f"(batch={settings.batch_size}, horizon={max_horizon})",
-            flush=True,
+        use_cached_eval = (
+            system.lower().startswith("dysts:")
+            and bool(getattr(eval_cfg.ENV.DYSTS, "USE_NATIVE_CACHE", False))
         )
-        true_future = generate_trajectory(vec_env.step, init_states, length=max_horizon)
+        if use_cached_eval:
+            requested_split = str(getattr(eval_cfg.ENV.DYSTS, "CACHE_SPLIT", "")).strip().lower()
+            if requested_split in ("", "train"):
+                eval_cfg.ENV.DYSTS.CACHE_SPLIT = "test"
+            print(
+                f"[evaluate_model] -> System '{system}': loading cached ground-truth trajectories "
+                f"(split={eval_cfg.ENV.DYSTS.CACHE_SPLIT}, batch={settings.batch_size}, horizon={max_horizon})",
+                flush=True,
+            )
+            eval_cache = DystsTrajectoryCache(base_env.unwrapped, eval_cfg)
+            seq = eval_cache.sample_sequence_batch(
+                rng,
+                batch_size=settings.batch_size,
+                window_length=max_horizon,
+                device=None,
+            )
+            init_states = seq[:, 0, :].contiguous()
+            true_future = seq[:, 1:, :].transpose(0, 1).contiguous()
+        else:
+            vec_env = VectorWrapper(base_env, settings.batch_size)
+            init_states = vec_env.reset(rng)  # CPU tensor
+
+            # Generate ground truth trajectories (time-major)
+            print(
+                f"[evaluate_model] -> System '{system}': generating ground-truth trajectory "
+                f"(batch={settings.batch_size}, horizon={max_horizon})",
+                flush=True,
+            )
+            true_future = generate_trajectory(vec_env.step, init_states, length=max_horizon)
 
         # Prepare initial states on device for model rollout
         init_states_device = init_states.to(device)
@@ -1239,4 +1274,3 @@ __all__ = [
     "rollout_no_reencode",
     "rollout_periodic_reencode",
 ]
-

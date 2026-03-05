@@ -1,0 +1,4 @@
+Submitted parity phase-A sweep job: 8745063
+Submitted parity phase-A collect job: 8745064 (afterany:8745063)
+Submitted parity phase-A compare job: 8745065 (afterany:8745064)
+Submitted parity phase-A select job: 8745066 (afterany:8745065)

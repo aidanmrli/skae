@@ -7,6 +7,31 @@ from skae.data import make_env, VectorWrapper, generate_trajectory
 from skae.model import make_model
 
 
+def make_unified_loss_inputs(model, x: torch.Tensor, nx: torch.Tensor):
+    """Build minimal unified-loss tensors for a 1-step horizon."""
+    x_pred = nx.unsqueeze(1)
+    x_true = nx.unsqueeze(1)
+    z0 = model.encode(x)
+    z_true = model.encode(nx).unsqueeze(1)
+    z_pred = model.rollout_latent_discrete(z0, horizon=1)
+    x_recon_true = model.decode(z_true.reshape(-1, z_true.shape[-1])).reshape_as(x_true)
+    homogeneous_loss = None
+    if getattr(model, "use_homogeneous", False) and hasattr(model, "get_homogeneous_coord"):
+        c_hat = model.get_homogeneous_coord(z_pred.reshape(-1, z_pred.shape[-1]))
+        homogeneous_loss = torch.mean((c_hat - 1.0) ** 2)
+    return {
+        "x_pred": x_pred,
+        "x_true": x_true,
+        "x0": x,
+        "z0": z0,
+        "z_pred": z_pred,
+        "z_true": z_true,
+        "reconstruction_error": torch.norm(x_true - x_recon_true, dim=-1).mean(),
+        "sparsity_latent": z_pred,
+        "homogeneous_loss": homogeneous_loss,
+    }
+
+
 class TestModelDataIntegration:
     """Test integration between model and data modules."""
     
@@ -37,7 +62,7 @@ class TestModelDataIntegration:
         x = trajectory[:-1]
         nx = trajectory[1:]
         
-        loss, metrics = model.loss(x, nx)
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
         
         assert loss.ndim == 0
         assert loss >= 0
@@ -71,7 +96,7 @@ class TestModelDataIntegration:
         x = trajectory[:-1]
         nx = trajectory[1:]
         
-        loss, metrics = model.loss(x, nx)
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
         
         assert loss.ndim == 0
         assert loss >= 0
@@ -99,7 +124,7 @@ class TestModelDataIntegration:
         nx = vec_env.step(x)
         
         # Test batch forward pass
-        loss, metrics = model.loss(x, nx)
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
         
         assert loss.ndim == 0
         assert x.shape == (batch_size, obs_size)
@@ -189,7 +214,7 @@ class TestModelDataIntegration:
         
         # Training step
         optimizer.zero_grad()
-        loss, metrics = model.loss(x, nx)
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
         loss.backward()
         optimizer.step()
         
@@ -229,12 +254,29 @@ class TestModelDataIntegration:
             nx = trajectory[1:]
             
             # Test loss computation
-            loss, metrics = model.loss(x, nx)
+            loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
             
             assert loss.ndim == 0, f"Failed for {env_name}"
             assert loss >= 0, f"Failed for {env_name}"
 
+    def test_hyperlista_config_end_to_end_through_make_model_and_loss(self):
+        """HyperLISTA preset should run end-to-end through unified LISTAKM factory path."""
+        cfg = get_config("hyperlista")
+        cfg.ENV.ENV_NAME = "duffing"
+        cfg.MODEL.TARGET_SIZE = 64
+
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+
+        rng = torch.Generator().manual_seed(42)
+        x = env.reset(rng)
+        nx = env.step(x, None)
+
+        loss, metrics = model.loss(**make_unified_loss_inputs(model, x.unsqueeze(0), nx.unsqueeze(0)))
+
+        assert loss.ndim == 0
+        assert "loss" in metrics
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

@@ -34,7 +34,7 @@ COMMON_ARGS=(
   --num_steps "${NUM_STEPS}"
   --batch_size "${BATCH_SIZE}"
   --seed "${SEED}"
-  --pairwise
+  --sequence_length 1
   --monitor_support
   --support_monitor_every 500
   --support_threshold "${SUPPORT_THRESHOLD}"

@@ -48,7 +48,7 @@ uv run python tools/train.py \
   --batch_size "$BATCH_SIZE" \
   --target_size "$TARGET_SIZE" \
   --sparsity_coeff "$SPARSITY" \
-  --pairwise \
+  --sequence_length 1 \
   --monitor_support \
   --support_monitor_every 500 \
   --support_threshold "$SUPPORT_THRESHOLD" \

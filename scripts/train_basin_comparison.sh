@@ -50,7 +50,7 @@ case $SLURM_ARRAY_TASK_ID in
             --reconst_coeff 0.02 \
             --pred_coeff 1.0 \
             --sparsity_coeff 0.001 \
-            --pairwise \
+            --sequence_length 1 \
             --seed $SEED \
             --device cuda \
             --log_dir "$LOG_DIR"
@@ -71,7 +71,7 @@ case $SLURM_ARRAY_TASK_ID in
             --sparsity_coeff 0.5 \
             --lista_alpha 0.3 \
             --lista_num_loops 5 \
-            --pairwise \
+            --sequence_length 1 \
             --seed $SEED \
             --device cuda \
             --log_dir "$LOG_DIR"
@@ -101,7 +101,7 @@ case $SLURM_ARRAY_TASK_ID in
             --pred_coeff 1.0 \
             --lista_alpha 0.3 \
             --lista_num_loops 5 \
-            --pairwise \
+            --sequence_length 1 \
             --seed $SEED \
             --device cuda \
             --log_dir "$LOG_DIR"

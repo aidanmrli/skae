@@ -18,9 +18,31 @@ from typing import Optional, Dict, Any
 import torch
 
 from skae.config import Config
+from skae.dysts_cache_profiles import apply_dysts_cache_profile, default_dysts_cache_dir
 from skae.data import make_env
 from skae.model import make_model
 from skae.evaluation import EvaluationSettings, evaluate_model
+
+
+def remap_legacy_model_keys(eval_model: torch.nn.Module, state_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Remap known legacy checkpoint key prefixes to current model names."""
+    model_keys = set(eval_model.state_dict().keys())
+    has_encoder_in_model = any(key.startswith("encoder.") for key in model_keys)
+    has_encoder_in_ckpt = any(key.startswith("encoder.") for key in state_dict.keys())
+    has_lista_in_ckpt = any(key.startswith("lista.") for key in state_dict.keys())
+
+    # Older LISTAKM checkpoints used `lista.*`; current code expects `encoder.*`.
+    if has_encoder_in_model and has_lista_in_ckpt and not has_encoder_in_ckpt:
+        remapped: Dict[str, Any] = {}
+        for key, value in state_dict.items():
+            if key.startswith("lista."):
+                remapped[f"encoder.{key[len('lista.') :]}"] = value
+            else:
+                remapped[key] = value
+        print("  Applied legacy checkpoint remap: 'lista.*' -> 'encoder.*'")
+        return remapped
+
+    return state_dict
 
 
 def get_device(device_arg: str) -> str:
@@ -88,6 +110,12 @@ def get_dt_from_config(cfg: Config) -> float:
         return cfg.ENV.PARABOLIC.DT
     elif env_name == 'lyapunov':
         return cfg.ENV.LYAPUNOV.DT
+    elif env_name == 'kuramoto':
+        return cfg.ENV.KURAMOTO.DT
+    elif env_name == 'hopfield':
+        return cfg.ENV.HOPFIELD.DT
+    elif env_name == 'competitive_lv':
+        return cfg.ENV.COMPETITIVE_LV.DT
     else:
         return 0.01  # default fallback
 
@@ -98,6 +126,11 @@ def evaluate_checkpoint(
     cfg: Config,
     device: str,
     system: str,
+    use_dysts_cache: bool = True,
+    dysts_cache_profile: str = "full",
+    dysts_cache_split: str = "test",
+    dysts_cache_dir: Optional[str] = None,
+    dysts_cache_num_workers: Optional[int] = None,
     output_dir: Optional[Path] = None,
 ) -> Optional[Dict[str, Any]]:
     """Load a checkpoint and evaluate it.
@@ -136,7 +169,24 @@ def evaluate_checkpoint(
     # Create evaluation config with specified system for environment creation
     eval_cfg = Config.from_dict(model_cfg.to_dict())
     eval_cfg.ENV.ENV_NAME = system
-    
+    if system.lower().startswith("dysts:") and use_dysts_cache:
+        eval_cfg.ENV.DYSTS.USE_NATIVE_CACHE = True
+        eval_cfg.ENV.DYSTS.CACHE_REUSE = True
+        eval_cfg.ENV.DYSTS.CACHE_SPLIT = dysts_cache_split
+        apply_dysts_cache_profile(eval_cfg, dysts_cache_profile)
+        if dysts_cache_dir:
+            eval_cfg.ENV.DYSTS.CACHE_DIR = str(dysts_cache_dir)
+        elif not eval_cfg.ENV.DYSTS.CACHE_DIR:
+            eval_cfg.ENV.DYSTS.CACHE_DIR = default_dysts_cache_dir()
+        if dysts_cache_num_workers is not None:
+            eval_cfg.ENV.DYSTS.CACHE_NUM_WORKERS = int(dysts_cache_num_workers)
+        print(
+            "  Dysts eval cache enabled: "
+            f"split={eval_cfg.ENV.DYSTS.CACHE_SPLIT}, "
+            f"profile={dysts_cache_profile}, "
+            f"dir='{eval_cfg.ENV.DYSTS.CACHE_DIR}'"
+        )
+
     # Verify observation size compatibility and derive dt from instantiated env.
     eval_env = make_env(eval_cfg)
     dt = getattr(eval_env.unwrapped, "dt", get_dt_from_config(eval_cfg))
@@ -146,7 +196,8 @@ def evaluate_checkpoint(
             f"but model expects {eval_model.observation_size}. "
             f"Evaluation may fail or be skipped."
         )
-    eval_model.load_state_dict(checkpoint['model_state_dict'])
+    model_state_dict = remap_legacy_model_keys(eval_model, checkpoint['model_state_dict'])
+    eval_model.load_state_dict(model_state_dict)
     eval_model = eval_model.to(device)
     eval_model.eval()
     eval_model.dt = dt
@@ -252,6 +303,37 @@ def main():
         default=None,
         help='Output directory for evaluation results (default: run_dir)'
     )
+    parser.add_argument(
+        '--disable_dysts_cache',
+        action='store_true',
+        help='Disable dysts trajectory cache during evaluation'
+    )
+    parser.add_argument(
+        '--dysts_cache_profile',
+        type=str,
+        default='full',
+        choices=['smoke', 'full'],
+        help='Named dysts cache profile for evaluation'
+    )
+    parser.add_argument(
+        '--dysts_cache_split',
+        type=str,
+        default='test',
+        choices=['train', 'val', 'test'],
+        help='Cache split namespace for evaluation'
+    )
+    parser.add_argument(
+        '--dysts_cache_dir',
+        type=str,
+        default=None,
+        help='Optional cache directory (defaults to shared cache path)'
+    )
+    parser.add_argument(
+        '--dysts_cache_num_workers',
+        type=int,
+        default=None,
+        help='Parallel workers for cache build fallback'
+    )
     
     args = parser.parse_args()
     
@@ -298,6 +380,15 @@ def main():
     eval_system = args.system if args.system else cfg.ENV.ENV_NAME
     print(f"Configuration loaded: {cfg.ENV.ENV_NAME} system, {cfg.MODEL.MODEL_NAME} model")
     print(f"Evaluation system: {eval_system}")
+    if eval_system.lower().startswith("dysts:"):
+        if args.disable_dysts_cache:
+            print("Dysts cache: disabled")
+        else:
+            cache_dir = args.dysts_cache_dir if args.dysts_cache_dir else default_dysts_cache_dir()
+            print(
+                "Dysts cache: "
+                f"enabled (split={args.dysts_cache_split}, profile={args.dysts_cache_profile}, dir='{cache_dir}')"
+            )
     print("-" * 80)
     
     # Set output directory
@@ -321,6 +412,11 @@ def main():
             cfg=cfg,
             device=device,
             system=eval_system,
+            use_dysts_cache=not args.disable_dysts_cache,
+            dysts_cache_profile=args.dysts_cache_profile,
+            dysts_cache_split=args.dysts_cache_split,
+            dysts_cache_dir=args.dysts_cache_dir,
+            dysts_cache_num_workers=args.dysts_cache_num_workers,
             output_dir=output_dir,
         )
         

@@ -95,7 +95,7 @@ uv run python tools/train.py \
   --seed "$SEED" \
   --k_structure block_diagonal \
   --k_block_size "$K_BLOCK_SIZE" \
-  --pairwise \
+  --sequence_length 1 \
   --monitor_support \
   --support_monitor_every 500 \
   --support_threshold "$SUPPORT_THRESHOLD" \

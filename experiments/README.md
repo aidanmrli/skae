@@ -33,7 +33,7 @@ uv run python dysts_experiments/run_dysts_sweep.py \
   --pred_coeff 10.0 \
   --sparsity_coeff 1.5 \
   --lista_alpha 0.3 \
-  --pairwise
+  --sequence_length 1
 
 # Standard benchmark on 12 systems
 uv run python dysts_experiments/run_dysts_sweep.py --systems standard --config lista --num_steps 10000
@@ -64,7 +64,7 @@ uv run python dysts_experiments/run_dysts_sweep.py --systems standard --dry_run
 | `--reconst_coeff` | 1.0 | Reconstruction loss weight |
 | `--pred_coeff` | 0.0 | Prediction loss weight |
 | `--lista_alpha` | 0.005 | LISTA soft-threshold alpha |
-| `--pairwise` | False | Use single-step training instead of sequence |
+| `--sequence_length` | `1` | Unified rollout horizon (`1` matches former pairwise mode) |
 
 ## System Sets
 

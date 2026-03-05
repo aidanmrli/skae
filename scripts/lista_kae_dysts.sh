@@ -59,7 +59,7 @@ uv run python tools/train.py \
   --sparsity_coeff 1.0 \
   --lista_alpha 0.30 \
   --lista_num_loops 5 \
-  --pairwise \
+  --sequence_length 1 \
   --standardize \
   --dysts_ic_noise_scale 0.2 \
   --dysts_native_cache \

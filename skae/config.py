@@ -99,6 +99,8 @@ cfg.MODEL  # Shows all model settings
 - `"generic_prediction"`: Prediction-focused (no reconstruction)
 - `"lista"`: LISTA-based sparse autoencoder (2048-dim latent)
 - `"lista_nonlinear"`: LISTA with nonlinear MLP encoder
+- `"hyperlista"`: LISTAKM with HyperLISTA encoder mode
+- `"lista_parity_generic_sparse"`: LISTA preset aligned to `generic_sparse` non-depth settings
 
 ## Structure
 
@@ -199,6 +201,44 @@ class MultiWellConfig:
 
 
 @dataclass
+class KuramotoConfig:
+    """Coupled Kuramoto oscillator system parameters."""
+    DT: float = 0.05
+    NUM_OSCILLATORS: int = 16
+    K_COUPLING: float = 4.0
+    TOPOLOGY: str = "ring"  # ["ring", "all_to_all"]
+    OMEGA_MODE: str = "identical"  # ["identical", "uniform_spread", "random"]
+    OMEGA_SPREAD: float = 0.5
+
+
+@dataclass
+class HopfieldConfig:
+    """Continuous Hopfield network parameters."""
+    DT: float = 0.05
+    NUM_NEURONS: int = 16
+    NUM_PATTERNS: int = 4
+    BETA: float = 1.0
+    TAU: float = 1.0
+    # "orthogonal" = QR-derived decorrelated pattern directions, then sign-binarized to +/-1.
+    PATTERN_MODE: str = "random"  # ["random", "orthogonal"]
+    INIT_SCALE: float = 1.0
+
+
+@dataclass
+class CompetitiveLVConfig:
+    """Competitive N-species Lotka-Volterra parameters."""
+    DT: float = 0.01
+    NUM_SPECIES: int = 10
+    INTERACTION_MODE: str = "symmetric"  # ["symmetric", "asymmetric", "block_diagonal"]
+    R_MODE: str = "uniform"  # ["uniform", "heterogeneous"]
+    INTERACTION_SCALE: float = 0.35
+    POSITIVITY_CLIP: bool = True
+    SURVIVAL_THRESHOLD: float = 1e-3
+    INIT_MIN: float = 0.05
+    INIT_MAX: float = 1.5
+
+
+@dataclass
 class DystsConfig:
     """Configuration for dysts-based environments.
     
@@ -225,6 +265,10 @@ class DystsConfig:
     CACHE_STEPS: int = 30000  # Length of each cached trajectory
     CACHE_TRAJECTORIES: int = 200  # Number of cached trajectories
     CACHE_WARMUP: int = 200  # Discard initial steps to skip transients
+    CACHE_DIR: str = ""  # Optional on-disk cache directory for trajectory reuse
+    CACHE_REUSE: bool = False  # Reuse/load/save on-disk cached trajectories
+    CACHE_SPLIT: str = "train"  # Cache namespace: train/val/test
+    CACHE_NUM_WORKERS: int = 1  # Parallel workers for cache construction
 
 
 @dataclass
@@ -234,7 +278,8 @@ class EnvConfig:
     For built-in environments, set ENV_NAME to one of:
         [
             "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
-            "lyapunov", "blended", "multiwell", "multiwell:<mode>"
+            "lyapunov", "blended", "multiwell", "multiwell:<mode>",
+            "kuramoto", "hopfield", "competitive_lv"
         ]
     
     For dysts systems, set ENV_NAME to "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
@@ -248,6 +293,9 @@ class EnvConfig:
     LORENZ63: Lorenz63Config = field(default_factory=Lorenz63Config)
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
     MULTIWELL: MultiWellConfig = field(default_factory=MultiWellConfig)
+    KURAMOTO: KuramotoConfig = field(default_factory=KuramotoConfig)
+    HOPFIELD: HopfieldConfig = field(default_factory=HopfieldConfig)
+    COMPETITIVE_LV: CompetitiveLVConfig = field(default_factory=CompetitiveLVConfig)
     DYSTS: DystsConfig = field(default_factory=DystsConfig)
 
 
@@ -258,7 +306,7 @@ class ListaConfig:
     L: float = 1e3  # Lipschitz constant estimate
     ALPHA: float = 0.1  # sparsity threshold
     LINEAR_ENCODER: bool = False  # use MLP vs linear encoder
-    FINAL_OP: str = "shrink"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
+    FINAL_OP: str = "relu"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
 
 
 @dataclass
@@ -324,6 +372,7 @@ class BlockLossConfig:
 @dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
+    ENCODER_TYPE: str = "lista"  # from ["lista", "hyperlista"]
     LAYERS: List[int] = field(default_factory=lambda: [16, 16])  # hidden layer sizes
     LAST_RELU: bool = False
     USE_BIAS: bool = False
@@ -344,7 +393,7 @@ class DecoderConfig:
 @dataclass
 class ModelConfig:
     """Model architecture and loss configuration."""
-    MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM"]
+    MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM", "StructuredLISTAKM"]
     NORM_FN: str = "id"  # from ["id", "ball"]
     TARGET_SIZE: int = 16  # latent_dim i.e. zdim
     
@@ -383,10 +432,9 @@ class TrainConfig:
     EVAL_EVERY: int = 500  # evaluation interval in training steps
     EVAL_NUM_STEPS: int = 200  # rollout horizon for the quick eval() helper
     
-    # Sequence training parameters
-    USE_SEQUENCE_LOSS: bool = False  # default to single-step loss for parity with JAX
-    USE_MULTISTEP_LOSS: bool = False  # discrete multi-step rollout (z_{t+k} = K^k z_t)
-    SEQUENCE_LENGTH: int = 10  # number of forward steps in each training sequence (T)
+    # Unified horizon-based training parameter.
+    # H=1 matches former pairwise behavior.
+    SEQUENCE_LENGTH: int = 1
 
 @dataclass
 class Config:
@@ -419,6 +467,9 @@ class Config:
             LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
             LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
             MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
+            KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
+            HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
+            COMPETITIVE_LV=CompetitiveLVConfig(**env_dict.get("COMPETITIVE_LV", {})),
             DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
         )
         
@@ -439,7 +490,8 @@ class Config:
         model.STRUCTURED = structured
         model.BLOCK_LOSS = block_loss
         
-        train = TrainConfig(**config_dict.get("TRAIN", {}))
+        train_dict = config_dict.get("TRAIN", {})
+        train = TrainConfig(**train_dict)
         
         return cls(
             SEED=config_dict.get("SEED", 0),
@@ -550,6 +602,27 @@ def get_train_lista_nonlinear_config() -> Config:
     return cfg
 
 
+def get_train_lista_parity_generic_sparse_config() -> Config:
+    """LISTA preset aligned to generic_sparse settings for depth-parity sweeps."""
+    cfg = Config()
+    cfg.TRAIN.LR = 1e-4
+    cfg.MODEL.MODEL_NAME = "LISTAKM"
+    cfg.MODEL.TARGET_SIZE = 64
+    cfg.MODEL.NORM_FN = "id"
+    cfg.MODEL.RES_COEFF = 1.0
+    cfg.MODEL.RECONST_COEFF = 0.5
+    cfg.MODEL.PRED_COEFF = 0.0
+    cfg.MODEL.SPARSITY_COEFF = 0.01
+    cfg.MODEL.USE_HOMOGENEOUS = False
+    cfg.MODEL.DECODER.LAYERS = []
+    cfg.MODEL.ENCODER.LAYERS = [64, 64]
+    cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = False
+    cfg.MODEL.ENCODER.LISTA.FINAL_OP = "relu"
+    cfg.MODEL.ENCODER.LISTA.ALPHA = 0.1
+    cfg.MODEL.ENCODER.USE_BIAS = True
+    return cfg
+
+
 def get_train_hyperlista_config() -> Config:
     """Configuration for HyperLISTA-based Sparse KM.
     
@@ -558,7 +631,8 @@ def get_train_hyperlista_config() -> Config:
     This enables gradient flow from the Koopman loss back through the encoder to the dictionary.
     """
     cfg = Config()
-    cfg.MODEL.MODEL_NAME = "HyperLISTAKM"
+    cfg.MODEL.MODEL_NAME = "LISTAKM"
+    cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
     cfg.MODEL.TARGET_SIZE = 1024 * 2
     cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 5
     cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 1e-2
@@ -576,13 +650,45 @@ def get_train_hyperlista_config() -> Config:
     return cfg
 
 
+def get_train_hyperlista_parity_generic_sparse_config() -> Config:
+    """HyperLISTA preset aligned to generic_sparse non-depth settings.
+
+    Mirrors the LISTA parity baseline coefficients/structure while using
+    ENCODER_TYPE=hyperlista so threshold adaptation can be tested fairly.
+    """
+    cfg = Config()
+    cfg.TRAIN.LR = 1e-4
+    cfg.MODEL.MODEL_NAME = "LISTAKM"
+    cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
+    cfg.MODEL.TARGET_SIZE = 64
+    cfg.MODEL.NORM_FN = "id"
+    cfg.MODEL.RES_COEFF = 1.0
+    cfg.MODEL.RECONST_COEFF = 0.5
+    cfg.MODEL.PRED_COEFF = 0.0
+    cfg.MODEL.SPARSITY_COEFF = 0.01
+    cfg.MODEL.USE_HOMOGENEOUS = False
+    cfg.MODEL.DECODER.LAYERS = []
+    cfg.MODEL.ENCODER.LAYERS = [64, 64]
+    cfg.MODEL.ENCODER.USE_BIAS = True
+    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 5
+    cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 1e-2
+    cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = 1e-4
+    cfg.MODEL.ENCODER.HYPERLISTA.C_SS = 0.5
+    cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = True
+    cfg.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = True
+    cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS = True
+    return cfg
+
+
 _TRAIN_CONFIG_REGISTRY = {
     "generic": get_train_generic_km_config,
     "generic_sparse": get_train_generic_sparse_config,
     "generic_prediction": get_train_generic_prediction_config,
     "lista": get_train_lista_config,
     "lista_nonlinear": get_train_lista_nonlinear_config,
+    "lista_parity_generic_sparse": get_train_lista_parity_generic_sparse_config,
     "hyperlista": get_train_hyperlista_config,
+    "hyperlista_parity_generic_sparse": get_train_hyperlista_parity_generic_sparse_config,
 }
 
 
@@ -597,6 +703,9 @@ def get_config(name: str = "default") -> Config:
             - "generic_prediction": Prediction-focused
             - "lista": LISTA-based KoopmanMachine
             - "lista_nonlinear": LISTA with MLP encoder
+            - "hyperlista": LISTAKM with HyperLISTA encoder mode
+            - "lista_parity_generic_sparse": LISTA parity preset for generic_sparse alignment
+            - "hyperlista_parity_generic_sparse": HyperLISTA parity preset for generic_sparse alignment
     
     Returns:
         Config for the specified configuration.
