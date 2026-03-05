@@ -110,6 +110,12 @@ def get_dt_from_config(cfg: Config) -> float:
         return cfg.ENV.PARABOLIC.DT
     elif env_name == 'lyapunov':
         return cfg.ENV.LYAPUNOV.DT
+    elif env_name == 'kuramoto':
+        return cfg.ENV.KURAMOTO.DT
+    elif env_name == 'hopfield':
+        return cfg.ENV.HOPFIELD.DT
+    elif env_name == 'competitive_lv':
+        return cfg.ENV.COMPETITIVE_LV.DT
     else:
         return 0.01  # default fallback
 

@@ -66,7 +66,7 @@ def test_get_named_configs():
     assert cfg_parity.MODEL.MODEL_NAME == "LISTAKM"
     assert cfg_parity.MODEL.TARGET_SIZE == 64
     assert cfg_parity.MODEL.SPARSITY_COEFF == 0.01
-    assert cfg_parity.MODEL.ENCODER.LISTA.FINAL_OP == "shrink"
+    assert cfg_parity.MODEL.ENCODER.LISTA.FINAL_OP == "relu"
 
 
 def test_config_registry():
@@ -140,3 +140,20 @@ def test_encoder_type_roundtrip_json(tmp_path):
 
     loaded = Config.from_json(str(path))
     assert loaded.MODEL.ENCODER.ENCODER_TYPE == "hyperlista"
+
+
+def test_high_dim_env_config_from_dict_roundtrip():
+    """High-dimensional benchmark env configs should survive dict roundtrip."""
+    cfg = get_default_config()
+    cfg.ENV.ENV_NAME = "hopfield"
+    cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 32
+    cfg.ENV.HOPFIELD.NUM_NEURONS = 20
+    cfg.ENV.HOPFIELD.NUM_PATTERNS = 5
+    cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = 12
+
+    loaded = Config.from_dict(cfg.to_dict())
+
+    assert loaded.ENV.KURAMOTO.NUM_OSCILLATORS == 32
+    assert loaded.ENV.HOPFIELD.NUM_NEURONS == 20
+    assert loaded.ENV.HOPFIELD.NUM_PATTERNS == 5
+    assert loaded.ENV.COMPETITIVE_LV.NUM_SPECIES == 12

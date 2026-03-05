@@ -161,11 +161,16 @@ class LISTA(nn.Module):
         self.alpha = cfg.MODEL.ENCODER.LISTA.ALPHA
         self.L = L_override if L_override is not None else cfg.MODEL.ENCODER.LISTA.L
         self.use_linear_encode = cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER
-        self.final_op = cfg.MODEL.ENCODER.LISTA.FINAL_OP.lower()
-        if self.final_op not in {"shrink", "relu"}:
+        requested_final_op = cfg.MODEL.ENCODER.LISTA.FINAL_OP.lower()
+        if requested_final_op not in {"shrink", "relu"}:
             raise ValueError(
-                f"Unknown LISTA FINAL_OP '{self.final_op}'. "
+                f"Unknown LISTA FINAL_OP '{requested_final_op}'. "
                 "Expected one of ['shrink', 'relu']."
+            )
+        if requested_final_op != "relu":
+            print(
+                f"WARNING: LISTA FINAL_OP='{requested_final_op}' requested; "
+                "forcing final operation to ReLU."
             )
         
         assert Wd_init.shape == (xdim, self.zdim), \
@@ -207,9 +212,9 @@ class LISTA(nn.Module):
         threshold = self.alpha / self.L
 
         def apply_step(pre_act: torch.Tensor, is_final_step: bool) -> torch.Tensor:
-            if is_final_step and self.final_op == "relu":
-                return F.relu(pre_act)
-            return shrink(pre_act, threshold)
+            # Always apply shrinkage; enforce ReLU as the final operation.
+            z = shrink(pre_act, threshold)
+            return F.relu(z) if is_final_step else z
 
         # Initialize with LISTA nonlinearity.
         # If no loops, this initialization is also the final step.

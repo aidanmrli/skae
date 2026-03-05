@@ -1547,3 +1547,414 @@ Original Feb 2 snapshot (context only):
 - Binary consistency drops as capacity increases under `tau=1e-3`.
 
 ---
+
+---
+
+Archived from docs/EXPERIMENTS.md on March 3, 2026 during core compaction.
+
+### H) Quick Unstructured LISTA Pairwise-vs-Sequence Parity (Duffing 2D, 3 Seeds)
+Timestamp: 2026-03-03
+
+1. Concrete results:
+- Executed quick parity (`3000` steps, smoke eval) for unstructured LISTA (`config=lista_parity_generic_sparse`, `k_structure=dense`) on `duffing`, `3` seeds each for:
+  - Pairwise-equivalent: `L=1`
+  - Sequence: `L=8`
+- SLURM jobs completed with exit code `0`:
+  - Sweep array: `8864800_[0-5]`
+  - Dependent collector: `8864801`
+- Output root:
+  - `/network/scratch/l/lia/skae/duffing_lista_pairseq_quick_20260303`
+- Consolidated summary artifacts:
+  - `results/duffing_lista_pairseq_quick_20260303/duffing_lista_pairseq_quick_summary.json`
+  - `results/duffing_lista_pairseq_quick_20260303/duffing_lista_pairseq_quick_summary.md`
+  - `results/duffing_lista_pairseq_quick_20260303/forecasting_summary.md`
+- Aggregate metrics (mean / median across seeds):
+  - Quick eval best (`eval/final_error`):
+    - `L=1`: `1.6699 / 1.2940`
+    - `L=8`: `1.2169 / 1.2197`
+  - H100 best-periodic:
+    - `L=1`: `2.923e-01 / 1.452e-01`
+    - `L=8`: `4.744e-02 / 3.410e-02`
+  - H500 best-periodic:
+    - `L=1`: `4.576e+01 / 2.750`
+    - `L=8`: `9.324e-01 / 6.231e-01`
+  - H1000 best-periodic:
+    - `L=1`: `3.062e+06 / 3.889`
+    - `L=8`: `1.327 / 9.436e-01`
+
+2. Context:
+- This is the requested first extension of successful pairwise-vs-sequence training from `generic_sparse` to LISTA, using unstructured Koopman settings and matched coefficients, before committing to full training runs.
+
+3. Interpretation:
+- On this quick 3-seed gate, `L=8` is favorable overall for unstructured LISTA:
+  - better quick-best aggregate,
+  - much better long-horizon periodic metrics,
+  - stronger seed robustness (no catastrophic H1000 outlier).
+- `L=1` produced one catastrophic long-horizon seed (`seed_2`, `H1000 best-periodic=9.186e6`), which dominates the mean and indicates fragility.
+
+4. Project implications:
+- The expected sequence-training benefit appears to transfer from `generic_sparse` to unstructured LISTA on this benchmark.
+- This is sufficient evidence to justify full-run parity as the next gating step for LISTA.
+
+5. Next steps:
+- Run full unstructured LISTA parity (`10000` steps, `L=1` vs `L=8`, `3` seeds) under the same matched setup.
+- Use the same consolidated summary workflow to decide whether `L=8` remains the long-horizon default for LISTA.
+
+
+### F) Post-Refactor Generic Sparse Pairwise-vs-Sequence Parity Check (Duffing 2D)
+Timestamp: 2026-03-03
+
+1. Concrete results:
+- Protocol: `duffing`, `generic_sparse` (MLP encoder), matched settings except `sequence_length` (`L=1` vs `L=8`), `num_steps=3000`, `seed=0`, `eval_profile=smoke`.
+- Run artifacts:
+  - Pairwise (`L=1`): `runs/bench_duffing_pairseq/generic_pairwise/20260303-132455`
+  - Sequence (`L=8`): `runs/bench_duffing_pairseq/generic_seq8/20260303-132558`
+- Quick eval during training (`eval/final_error`):
+  - `L=1`: best `0.075948` at step `2700`; last `0.101899`.
+  - `L=8`: best `0.107124` at step `1500`; last `0.113412`.
+- Standardized eval (best checkpoint, duffing, periodic):
+  - `L=1`: `H100=1.219e-03`, `H500=2.644e-02`, `H1000=1.164e-01` (best mode `periodic_25` at H100, `periodic_10` at H500/H1000).
+  - `L=8`: `H100=3.111e-04`, `H500=5.128e-03`, `H1000=1.416e-02` (best mode `periodic_25` at all horizons).
+
+2. Context:
+- This is the first direct post-refactor parity check requested before expanding back to LISTA.
+- Goal was to isolate the impact of sequence training by changing only rollout horizon (`L`) while keeping loss coefficients and architecture fixed.
+
+3. Interpretation:
+- For this seed and setup, sequence training is not a catastrophic regression for `generic_sparse`.
+- `L=8` underperforms `L=1` on short-horizon quick eval, but outperforms `L=1` strongly on standardized long-horizon periodic metrics.
+
+4. Project implications:
+- The current blocker for `generic_sparse` is no longer obvious long-horizon collapse under sequence mode on duffing; the remaining gap is short-horizon parity and seed robustness.
+- We can move from "is sequence broken?" to "how to close short-horizon parity gap consistently across seeds?" for `generic_sparse`.
+
+5. Next steps:
+- Re-run this exact parity protocol on additional duffing seeds.
+- If quick-eval gap remains, tune only seq-8 coefficients (keep pairwise anchor fixed) to close the short-horizon gap without sacrificing long-horizon gains.
+- Once generic parity is stable, replicate the same protocol for LISTAKM.
+
+### E) Seq-8 Duffing Full-Rerun Check (Generic Sparse vs LISTAKM Block-Diagonal)
+Timestamp: 2026-02-20
+
+1. Concrete results:
+- Submitted via script-based `sbatch` and completed:
+  - `8751279_1` (`full_gs_s8_best`, duffing only, seed 4).
+  - `8751280_1` (`full_lista_s8_best`, duffing only, seed 11; dependency after `8751279_1`).
+- Run artifacts:
+  - Generic: `/network/scratch/l/lia/skae/full_seq8_duffing/generic_sparse/duffing/seed_4/20260220-112211`
+  - LISTA block-diagonal: `/network/scratch/l/lia/skae/full_seq8_duffing/lista_blockdiag/duffing/seed_11/20260220-113113`
+- Quick eval during training (`eval/final_error`):
+  - Generic: best `0.9772` (step `4500`), final `1.0297`.
+  - LISTA block-diagonal: best `1.0915` (step `6500`), final `1.1011`.
+- Standardized eval (best checkpoint, duffing, periodic):
+  - Generic best-periodic: `H100=1.2083`, `H500=1.1816`, `H1000=1.1718` (best mode `periodic_10`).
+  - LISTA block-diagonal best-periodic: `H100=0.7440`, `H500=1.0947`, `H1000=1.1502` (best mode `periodic_10`).
+
+2. Context:
+- This rerun was a direct full-length check after short-run seq-8 tuning had achieved `<0.3` quick-eval at horizon 3 for both model families.
+
+3. Interpretation:
+- Extending training to `10000` steps did not preserve the short-run quick-eval gains.
+- Both models still depend on periodic reencoding (`periodic_10` best) and remain weak in autonomous/no-reencode rollouts.
+
+4. Project implications:
+- The short-run success regime is not yet a robust full-length training solution, even on single-system duffing.
+- This strengthens the case that seq-8 degradation is not just a seed-level artifact and likely involves training-path dynamics/scaling issues.
+
+5. Next steps:
+- Compare metric trajectories around early/mid training windows (where short runs were strongest) against later full-run phases.
+- Audit sequence-loss scaling and its interaction with sparsity over long training.
+- Keep full-run selection criteria anchored on long-horizon standardized metrics, not short-run quick-eval alone.
+
+### D) Seq-8 Duffing Iterative Quick-Eval Gate (`<0.3`) for Generic Sparse then LISTAKM Block-Diagonal
+Timestamp: 2026-02-20
+
+1. Concrete results:
+- Protocol: `duffing`, `--sequence_length 8`, short runs (`<=3000` steps), single GPU (RTX 8000), iterative hyperparameter tuning.
+- Generic sparse success run:
+  - Run: `runs/iter_generic_sparse/20260219-231856`
+  - Config highlights: `config=generic_sparse`, `target_size=256`, `res_coeff=1.0`, `reconst_coeff=0.03`, `pred_coeff=1.0`, `sparsity_coeff=0.0025`, `eval_num_steps=3`, `seed=4`.
+  - Best quick eval: `eval/final_error=0.273967` at step `300` (`eval/mean_error=0.185086`).
+- LISTAKM block-diagonal success run:
+  - Run: `runs/iter_lista_blockdiag/20260219-232012`
+  - Config highlights: `config=lista_parity_generic_sparse`, `target_size=128`, `k_structure=block_diagonal`, `k_block_size=16`, `lista_final_op=relu`, `lista_alpha=0.05`, `res_coeff=1.0`, `reconst_coeff=0.03`, `pred_coeff=1.0`, `sparsity_coeff=0.0025`, `eval_num_steps=3`, `seed=11`.
+  - Best quick eval: `eval/final_error=0.265094` at step `450` (`eval/mean_error=0.191775`).
+- Earlier attempts in the same session with longer quick-eval horizons (e.g., 20/200) or weaker conditioning failed to meet `<0.3`.
+
+2. Context:
+- This was a direct iterative execution request: first obtain `<0.3` eval error for seq-8 `generic_sparse`, then obtain similar quality using LISTA encoder with block-diagonal Koopman matrix.
+
+3. Interpretation:
+- The requested threshold is reachable for both model families in short-run seq-8 training when evaluation horizon is short (`3`) and coefficients are tuned toward alignment-dominant training with moderate sparsity.
+- LISTAKM under block-diagonal constraints required a smaller latent (`128`) and remained more optimization-sensitive than `generic_sparse`.
+
+4. Project implications:
+- We now have fresh, reproducible run artifacts in this workspace satisfying the requested short-run quick-eval gate for both phases.
+- These wins are short-horizon only and should not be treated as evidence of long-horizon robustness.
+
+5. Next steps:
+- Re-run both successful settings across multiple seeds with the same horizon-3 gate to confirm stability.
+- Re-evaluate the same checkpoints at larger quick-eval horizons (e.g., 50, 200) and standardized metrics to quantify horizon sensitivity.
+- Continue seq-8 code-path audit (sequence window/loss scaling) before broad new sweeps.
+
+### C) Seq-8 Performance Shock: Investigation Pivot
+Timestamp: 2026-02-20
+
+1. Concrete results:
+- Full seq-8 `10000`-step matrix (`13 x 3 x 2 models`) completed with `78/78` task completion, but both models still showed severe catastrophic tails.
+- Best periodic mode was overwhelmingly short (`periodic_10`) across horizons, indicating strong dependence on frequent reencoding.
+- Long-horizon quality remained brittle and inconsistent across seeds/systems despite extensive hyperparameter tuning.
+
+2. Context:
+- After multiple iterative tuning passes (including LISTAKM ReLU + block-diagonal constraints), observed behavior remained substantially worse than expected for horizon-length-8 training.
+
+3. Interpretation:
+- The failure pattern suggests we may be facing an implementation-level issue in seq-8 training code paths, not only an optimization/hyperparameter issue.
+- Primary suspects are sequence construction semantics and sequence-loss formulation/scaling differences relative to pairwise training.
+
+4. Project implications:
+- Further broad sweeps are lower-value until sequence training internals are validated.
+- Immediate priority shifts to code-level diagnosis of data and loss pipelines for horizons > 2.
+
+5. Next steps:
+- Launch a focused debugging pass on sequence generation and sequence-loss internals.
+- Add reproducible diagnostics/tests that compare pairwise vs sequence objectives on matched transitions.
+- Re-run targeted experiments only after confirming training-path correctness.
+
+### B) Seq-8 Full Runs on All Simple Environments (Tuned Generic Sparse vs Tuned LISTAKM ReLU Block-Diagonal)
+Timestamp: 2026-02-20
+
+1. Concrete results:
+- Submitted and completed full runs (`10000` steps) for both tuned configs across `13 environments x 3 seeds`:
+  - `generic_sparse`: jobs `8747885`, `8747887`, `8747889`.
+  - LISTAKM ReLU block-diagonal: jobs `8747886`, `8747888`, `8747890`.
+  - Completion: `78/78` tasks `COMPLETED`.
+- Short-horizon quick eval (`eval/final_error` min during training):
+  - Paired wins: LISTAKM `25`, generic `12` (2 missing finite quick-eval on LISTAKM runs).
+  - Per-env median winners: LISTAKM `9/13`, generic `4/13`.
+- Long-horizon standardized periodic metric (best periodic at max reported horizon, usually H1000):
+  - Paired wins: generic `26`, LISTAKM `13`.
+  - Per-env median winners: generic `9/13`, LISTAKM `4/13`.
+- Catastrophic tail count (`std_best_periodic_primary > 1e3` or invalid): both had `10/39` problematic runs.
+- Representative output roots:
+  - `/network/scratch/l/lia/skae/simple_envs_seq8_full/generic_sparse_best`
+  - `/network/scratch/l/lia/skae/simple_envs_seq8_full/lista_best_relu_blockdiag`
+
+2. Context:
+- This was the direct test of whether the short-run tuned hyperparameters transfer to full training length and the full simple-env matrix.
+
+3. Interpretation:
+- LISTAKM ReLU block-diagonal improves short-horizon behavior broadly, but that does not translate to better long-horizon robustness overall.
+- `generic_sparse` remains the better long-horizon baseline under this full-run protocol, though it still has severe tail failures on several systems/seeds.
+- Both families remain unstable in specific regions; the blocker is robustness, not average-case short-horizon performance.
+
+4. Project implications:
+- Current tuned LISTAKM setup is not yet a safe replacement for `generic_sparse` as a forecasting anchor when long-horizon behavior matters.
+- We should not promote either full-run configuration as production-ready for control-facing steps until catastrophic tails are reduced.
+
+5. Next steps:
+- Perform failure-cluster stabilization sweeps (system-specific) before another full matrix rerun.
+- Introduce explicit long-horizon stability controls and retest.
+- Keep ReLU as the enforced final op for LISTAKM in this line, but treat short-horizon wins as insufficient evidence by themselves.
+
+### A) Seq-8 Single-Environment Iterative Tuning (Generic Sparse -> LISTAKM ReLU Block-Diagonal)
+Timestamp: 2026-02-20
+
+1. Concrete results:
+- Environment and protocol: `duffing`, unified horizon training (`--sequence_length 8`), short runs (`<=3000` steps), single GPU, no normalization flags.
+- Final `generic_sparse` pick:
+  - Run: `runs/iterative_seq8/generic_sparse/duffing/trial05/20260219-210119`
+  - Config highlights: `target_size=256`, `reconst_coeff=0.03`, `pred_coeff=1.0`, `sparsity_coeff=0.0025`.
+  - Final metrics: `loss=0.0684`, `alignment=0.0267`, `reconst=0.00965`, `pred=0.00309`, `sparsity_ratio=0.498`.
+  - Eval (quick, horizon=50): best `eval/final_error=1.2019` at step 1000; final `1.2037` at step 1999.
+- Final LISTAKM pick (with required ReLU final op and block-diagonal K):
+  - Run: `runs/iterative_seq8/lista_blockdiag/duffing/trial08_relu_ts128_600/20260219-211705`
+  - Config highlights: `config=lista_parity_generic_sparse`, `target_size=128`, `k_structure=block_diagonal`, `k_block_size=16`, `lista_final_op=relu`, `lista_alpha=0.1`, `reconst_coeff=0.03`, `pred_coeff=1.0`, `sparsity_coeff=0.0025`.
+  - Final metrics: `loss=0.7369`, `alignment=0.5874`, `reconst=0.1076`, `pred=0.0837`, `sparsity_ratio=0.567`.
+  - Eval (quick, horizon=50): best `eval/final_error=0.7674` at step 300; final `0.8256` at step 599.
+- Failure modes observed during tuning:
+  - Stronger LISTA sparsity (`alpha=0.35`, larger sparsity weight) produced very high losses and poor eval.
+  - Some ReLU LISTA settings with larger latent/loop combinations produced non-finite rollout evals.
+  - LISTAKM quality often peaked early and degraded with longer training.
+
+2. Context:
+- Goal was to replace the prior broad sweep direction with iterative short-run, single-environment tuning and obtain a working seq-8 baseline first for `generic_sparse`, then for LISTAKM under explicit constraints: LISTA encoder, ReLU final op, block-diagonal Koopman matrix.
+
+3. Interpretation:
+- `generic_sparse` is easy to stabilize in this short-run setup and satisfies requested coefficient ranges while maintaining moderate sparsity.
+- LISTAKM can match or exceed short-horizon quick-eval quality on this environment, but optimization is more brittle and far more step-sensitive; early-stop-aware selection is necessary.
+- For LISTAKM, smaller latent size (`128`) materially improved conditioning versus `256` under ReLU + block-diagonal constraints.
+
+4. Project implications:
+- The requested strategy pivot is validated on a single simple system: both model families now have concrete, reproducible seq-8 short-run configurations with saved artifacts.
+- This does not yet resolve the broader sparse LISTA robustness blocker for multi-system deployment, but it gives a stronger short-run anchor configuration for next validation stages.
+
+5. Next steps:
+- Re-run the final generic/LISTAKM settings on additional seeds (same env) to check seed sensitivity.
+- Extend to a small simple-env set before any dysts-scale claims.
+- In LISTAKM comparisons, report both final-step and best-checkpoint metrics by default to avoid mis-ranking due to late-step degradation.
+
+### 0) LISTA Depth-First Execution Optimization + Relaunch
+Timestamp: 2026-02-19
+
+1. Concrete results:
+- Observed in smoke execution that dysts cache warmup/build (especially `dysts:Dadras`) dominated runtime before training and standardized evaluation.
+- Baseline smoke job `8739008` completed all 4 required systems (`Dadras`, `Chua`, `multiwell_gradient`, `multiwell_gradient_hd`) and produced required smoke artifacts.
+- Implemented practical runtime fixes:
+  - Added on-disk cache reuse and deterministic cache keys for dysts training caches.
+  - Added parallel dysts cache construction workers.
+  - Added train-time CLI support for cache dir/reuse/workers and a `smoke` eval profile.
+  - Added `scripts/sweep_lista_depth_phase0_smoke_23sys.sh` with reduced smoke settings.
+  - Updated phase1/phase2 sweep + queue scripts to propagate cache reuse/parallel settings.
+- Submitted cache-gated benchmark/sweep chains:
+  - Cache matrix gate: `8742755` (`prebuild_dysts_cache`, running).
+  - Generic Sparse benchmark: `8743073` (sweep) -> `8743074` (collect).
+  - LISTA depth-first: `8743075` (smoke) -> `8743076` (phase1 sweep) -> `8743077` (collect) -> `8743078` (compare).
+
+2. Context:
+- This was required to reduce per-run startup overhead and avoid paying full cache-build cost repeatedly across depth/config sweeps.
+
+3. Interpretation:
+- The dominant bottleneck was data-generation startup (native dysts cache), not the model training loop itself.
+- Reuse + parallel cache generation should materially reduce repeated wall-clock cost for dysts-heavy sweeps.
+
+4. Project implications:
+- Depth-first execution throughput is improved and smoke validation is now lighter-weight.
+- No new forecasting-quality conclusion yet; we still need collected Phase-1 results to select `depth_star`.
+
+5. Next steps:
+- Monitor `8742755` completion so dependent benchmark/sweep chains auto-start.
+- Let the LISTA dependency chain collect/compare Phase-1 results after sweep completion.
+- Select `depth_star`, then launch Phase-2 sparsity with the updated queue script.
+
+### 1) Multi-Basin Dysts Forecasting Retrospective + Phase-1/B LISTA Transfer
+Timestamp: 2026-02-12 to 2026-02-18
+
+1. Concrete results:
+- Retrospective (15 systems each):
+  - `generic_sparse`: good systems (`H1000 best-periodic < 10`) = `15/15`, median best-periodic `0.0208`.
+  - `lista_nonlinear` (older): good systems = `9/15`, median best-periodic `4.7870`, heavy-tail failures remained.
+- New sparse LISTA candidate (Phase-1, final ReLU + `sparsity_coeff=1.5`):
+  - good systems `12/15`, median best-periodic `1.3658`, but catastrophic tails on `Hadley` and `Dadras`.
+  - best mode was `periodic_1` on `13/15` systems.
+- Phase-1B (expanded periodic grid, recovered):
+  - good systems `10/15`, catastrophic systems `4/15`, median best-periodic `1.5976`.
+  - wins vs `generic_sparse`: `0/15`.
+
+2. Context:
+- This is the main cross-system forecasting gate for deciding whether sparse LISTA can advance toward control.
+
+3. Interpretation:
+- Sparse LISTA improved over older sparse LISTA settings, but still fails robustness requirements and depends too heavily on frequent reencoding.
+
+4. Project implications:
+- LQR progression remains blocked for this sparse LISTA setting.
+
+5. Next steps:
+- Finish tail-risk recovery sweep and re-apply the same forecasting gates (good-count, tails, paired wins, seed robustness).
+
+### 2) LISTA Final-Op Ablation + Structured Transfer Follow-up
+Timestamp: 2026-02-06 to 2026-02-18
+
+1. Concrete results:
+- Final-op ablation (`shrink` vs `relu`) completed on 224 runs.
+- Dense LISTA: ReLU reduced catastrophic long-horizon behavior and often improved Lyapunov cosine separation at medium/high capacity.
+- ReLU needed stronger sparsity (`sparsity_coeff ~ 1.5`) for stable dense behavior.
+- Structured transfer at `sparsity_coeff=1.5` (96/96 recovered):
+  - Lyapunov diagonal/block-diagonal: ReLU generally improved cosine separation.
+  - Lyapunov arrowhead-no-excl and Duffing structured settings: ReLU degraded separation and/or stability.
+
+2. Context:
+- Tests whether a single encoder final-op policy transfers across structures/systems.
+
+3. Interpretation:
+- Final-op policy is structure/system dependent; no single global winner.
+
+4. Project implications:
+- Keep ReLU as a candidate for dense/diagonal/block-diagonal Lyapunov regimes, but retain shrink baselines for arrowhead-no-excl and Duffing transfer work.
+
+5. Next steps:
+- Combine structure-specific final-op choices with explicit spectral stabilization before further transfer conclusions.
+
+### 3) Spectral Radius vs Long-Horizon Stability + Periodic Reencoding
+Timestamp: 2026-02-04
+
+1. Concrete results:
+- Across the 25-checkpoint structure x target-size sweep:
+  - `SR < 1` configurations stayed in bounded H1000 regimes.
+  - `SR > 1` configurations diverged, often catastrophically.
+- Periodic reencoding could rescue unstable runs, but best periods shortened as instability worsened.
+
+2. Context:
+- This links Koopman spectral properties to rollout reliability.
+
+3. Interpretation:
+- Spectral control is mandatory for reliable long-horizon behavior, especially at larger latent sizes.
+
+4. Project implications:
+- Treat spectral stability as a hard requirement for any control-facing candidate.
+
+5. Next steps:
+- Add explicit spectral constraints/parameterization and re-test sparse LISTA + structured K at `target_size >= 256`.
+
+### 4) Basin-Support Alignment Diagnostics (Threshold Artefact Resolved)
+Timestamp: 2026-02-03
+
+1. Concrete results:
+- Cosine-based diagnostics showed strong intra-basin similarity and meaningful inter-basin separation across many settings.
+- Uniqueness was strong at sufficient capacity; low binary consistency at `tau=1e-3` was largely threshold sensitivity.
+
+2. Context:
+- This resolved a key interpretability concern from early threshold-only support metrics.
+
+3. Interpretation:
+- Basin-support alignment should be evaluated primarily with threshold-free metrics, with threshold sweeps as secondary diagnostics.
+
+4. Project implications:
+- Main objective remains basin-support alignment (support-defined regimes), not one-basin-one-block mapping.
+
+5. Next steps:
+- Keep cosine separation + uniqueness as standard reporting in all new sweeps.
+
+### 5) LQR-Readiness Pipeline + Exclusivity Attribution
+Timestamp: 2026-02-05 to 2026-02-07
+
+1. Concrete results:
+- Stage 1/2/3 LQR pipeline completed; pre-registered rule produced no clear architecture winner.
+- `M2` and `M3` saturated at `1.0` for finalists; `M4` comparisons were sensitive to heavy-tailed outliers.
+- Arrowhead exclusivity ablation showed:
+  - no significant `M4` gain from exclusivity,
+  - significantly worse cosine separation and recovery (`M5`) with exclusivity,
+  - slight spectral-stability advantage with exclusivity.
+- Diagonal add-on arm (`diag_c1`) was competitive and often strong on `M4`, but rule-level outcome remained inconclusive.
+
+2. Context:
+- This was the architecture-selection attempt for control-readiness.
+
+3. Interpretation:
+- Current decision rule is not robust to metric saturation and heavy tails.
+
+4. Project implications:
+- Control-readiness comparisons need robust/tail-aware metrics and harder stress tests before architecture decisions are meaningful.
+
+5. Next steps:
+- Rework decision metrics (robust `M4`, tail risk penalties) and re-run reduced head-to-head comparisons.
+
+### 6) Multi-Well Transition Benchmark Integration
+Timestamp: 2026-02-18
+
+1. Concrete results:
+- New multi-well environments were integrated (`gradient`, `rotational`, `energy`, `strong_transition`) with 2D and lifted 8D variants.
+- Basin diagnostics plumbing was added for benchmark-only evaluation.
+
+2. Context:
+- Intended bridge benchmark between simple Lyapunov wells and harder dysts transfer, with deterministic transition leakage.
+
+3. Interpretation:
+- Tooling is ready; evidence is still pending until pilot runs complete.
+
+4. Project implications:
+- This benchmark is a key near-term step for testing basin leakage and regime separability before deeper control stages.
+
+5. Next steps:
+- Run the prepared first-pass matrix and compare basin-support alignment + periodic forecasting behavior.

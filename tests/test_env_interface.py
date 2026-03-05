@@ -236,6 +236,9 @@ def test_make_env_registry():
         "lotka_volterra",
         "lorenz63",
         "parabolic",
+        "kuramoto",
+        "hopfield",
+        "competitive_lv",
         "multiwell_gradient",
         "multiwell_rotational",
         "multiwell_energy",
@@ -256,7 +259,17 @@ def test_make_env_registry():
             cfg.ENV.LORENZ63.DT = 0.01
         elif name == "parabolic":
             cfg.ENV.PARABOLIC.DT = 0.01
-        
+        elif name == "kuramoto":
+            cfg.ENV.KURAMOTO.DT = 0.05
+            cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 8
+        elif name == "hopfield":
+            cfg.ENV.HOPFIELD.DT = 0.05
+            cfg.ENV.HOPFIELD.NUM_NEURONS = 8
+            cfg.ENV.HOPFIELD.NUM_PATTERNS = 3
+        elif name == "competitive_lv":
+            cfg.ENV.COMPETITIVE_LV.DT = 0.01
+            cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = 8
+
         env = make_env(cfg)
         assert isinstance(env, Env)
         assert env.observation_size > 0

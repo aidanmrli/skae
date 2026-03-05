@@ -913,11 +913,13 @@ Examples:
     parser.add_argument('--config', type=str, default='generic',
                         choices=['default', 'generic', 'generic_sparse', 
                                 'generic_prediction', 'lista', 'lista_nonlinear',
-                                'lista_parity_generic_sparse', 'hyperlista'],
+                                'lista_parity_generic_sparse', 'hyperlista',
+                                'hyperlista_parity_generic_sparse'],
                         help='Training configuration preset')
     parser.add_argument('--env', type=str, default='duffing',
                         help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '
                              'lorenz63, parabolic, lyapunov, blended, '
+                             'kuramoto, hopfield, competitive_lv, '
                              'multiwell, multiwell:<mode>, multiwell_*_hd. '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
     parser.add_argument('--lyapunov_dim', type=int, default=None,

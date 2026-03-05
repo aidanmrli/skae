@@ -201,6 +201,44 @@ class MultiWellConfig:
 
 
 @dataclass
+class KuramotoConfig:
+    """Coupled Kuramoto oscillator system parameters."""
+    DT: float = 0.05
+    NUM_OSCILLATORS: int = 16
+    K_COUPLING: float = 4.0
+    TOPOLOGY: str = "ring"  # ["ring", "all_to_all"]
+    OMEGA_MODE: str = "identical"  # ["identical", "uniform_spread", "random"]
+    OMEGA_SPREAD: float = 0.5
+
+
+@dataclass
+class HopfieldConfig:
+    """Continuous Hopfield network parameters."""
+    DT: float = 0.05
+    NUM_NEURONS: int = 16
+    NUM_PATTERNS: int = 4
+    BETA: float = 1.0
+    TAU: float = 1.0
+    # "orthogonal" = QR-derived decorrelated pattern directions, then sign-binarized to +/-1.
+    PATTERN_MODE: str = "random"  # ["random", "orthogonal"]
+    INIT_SCALE: float = 1.0
+
+
+@dataclass
+class CompetitiveLVConfig:
+    """Competitive N-species Lotka-Volterra parameters."""
+    DT: float = 0.01
+    NUM_SPECIES: int = 10
+    INTERACTION_MODE: str = "symmetric"  # ["symmetric", "asymmetric", "block_diagonal"]
+    R_MODE: str = "uniform"  # ["uniform", "heterogeneous"]
+    INTERACTION_SCALE: float = 0.35
+    POSITIVITY_CLIP: bool = True
+    SURVIVAL_THRESHOLD: float = 1e-3
+    INIT_MIN: float = 0.05
+    INIT_MAX: float = 1.5
+
+
+@dataclass
 class DystsConfig:
     """Configuration for dysts-based environments.
     
@@ -240,7 +278,8 @@ class EnvConfig:
     For built-in environments, set ENV_NAME to one of:
         [
             "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
-            "lyapunov", "blended", "multiwell", "multiwell:<mode>"
+            "lyapunov", "blended", "multiwell", "multiwell:<mode>",
+            "kuramoto", "hopfield", "competitive_lv"
         ]
     
     For dysts systems, set ENV_NAME to "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
@@ -254,6 +293,9 @@ class EnvConfig:
     LORENZ63: Lorenz63Config = field(default_factory=Lorenz63Config)
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
     MULTIWELL: MultiWellConfig = field(default_factory=MultiWellConfig)
+    KURAMOTO: KuramotoConfig = field(default_factory=KuramotoConfig)
+    HOPFIELD: HopfieldConfig = field(default_factory=HopfieldConfig)
+    COMPETITIVE_LV: CompetitiveLVConfig = field(default_factory=CompetitiveLVConfig)
     DYSTS: DystsConfig = field(default_factory=DystsConfig)
 
 
@@ -264,7 +306,7 @@ class ListaConfig:
     L: float = 1e3  # Lipschitz constant estimate
     ALPHA: float = 0.1  # sparsity threshold
     LINEAR_ENCODER: bool = False  # use MLP vs linear encoder
-    FINAL_OP: str = "shrink"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
+    FINAL_OP: str = "relu"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
 
 
 @dataclass
@@ -425,6 +467,9 @@ class Config:
             LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
             LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
             MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
+            KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
+            HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
+            COMPETITIVE_LV=CompetitiveLVConfig(**env_dict.get("COMPETITIVE_LV", {})),
             DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
         )
         
@@ -572,7 +617,7 @@ def get_train_lista_parity_generic_sparse_config() -> Config:
     cfg.MODEL.DECODER.LAYERS = []
     cfg.MODEL.ENCODER.LAYERS = [64, 64]
     cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = False
-    cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+    cfg.MODEL.ENCODER.LISTA.FINAL_OP = "relu"
     cfg.MODEL.ENCODER.LISTA.ALPHA = 0.1
     cfg.MODEL.ENCODER.USE_BIAS = True
     return cfg
@@ -605,6 +650,36 @@ def get_train_hyperlista_config() -> Config:
     return cfg
 
 
+def get_train_hyperlista_parity_generic_sparse_config() -> Config:
+    """HyperLISTA preset aligned to generic_sparse non-depth settings.
+
+    Mirrors the LISTA parity baseline coefficients/structure while using
+    ENCODER_TYPE=hyperlista so threshold adaptation can be tested fairly.
+    """
+    cfg = Config()
+    cfg.TRAIN.LR = 1e-4
+    cfg.MODEL.MODEL_NAME = "LISTAKM"
+    cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
+    cfg.MODEL.TARGET_SIZE = 64
+    cfg.MODEL.NORM_FN = "id"
+    cfg.MODEL.RES_COEFF = 1.0
+    cfg.MODEL.RECONST_COEFF = 0.5
+    cfg.MODEL.PRED_COEFF = 0.0
+    cfg.MODEL.SPARSITY_COEFF = 0.01
+    cfg.MODEL.USE_HOMOGENEOUS = False
+    cfg.MODEL.DECODER.LAYERS = []
+    cfg.MODEL.ENCODER.LAYERS = [64, 64]
+    cfg.MODEL.ENCODER.USE_BIAS = True
+    cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 5
+    cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 1e-2
+    cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = 1e-4
+    cfg.MODEL.ENCODER.HYPERLISTA.C_SS = 0.5
+    cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = True
+    cfg.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = True
+    cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS = True
+    return cfg
+
+
 _TRAIN_CONFIG_REGISTRY = {
     "generic": get_train_generic_km_config,
     "generic_sparse": get_train_generic_sparse_config,
@@ -613,6 +688,7 @@ _TRAIN_CONFIG_REGISTRY = {
     "lista_nonlinear": get_train_lista_nonlinear_config,
     "lista_parity_generic_sparse": get_train_lista_parity_generic_sparse_config,
     "hyperlista": get_train_hyperlista_config,
+    "hyperlista_parity_generic_sparse": get_train_hyperlista_parity_generic_sparse_config,
 }
 
 
@@ -629,6 +705,7 @@ def get_config(name: str = "default") -> Config:
             - "lista_nonlinear": LISTA with MLP encoder
             - "hyperlista": LISTAKM with HyperLISTA encoder mode
             - "lista_parity_generic_sparse": LISTA parity preset for generic_sparse alignment
+            - "hyperlista_parity_generic_sparse": HyperLISTA parity preset for generic_sparse alignment
     
     Returns:
         Config for the specified configuration.
