@@ -149,13 +149,17 @@ class TestEvaluate:
         assert 'true_trajectory' in results
         assert 'pred_trajectory' in results
         assert 'pred_error' in results
+        assert 'pred_error_per_dim' in results
         assert 'mean_error' in results
+        assert 'mean_error_per_dim' in results
         assert 'final_error' in results
+        assert 'final_error_per_dim' in results
         
         # Check shapes
         assert results['true_trajectory'].shape == (10, 4, env.observation_size)
         assert results['pred_trajectory'].shape == (10, 4, env.observation_size)
         assert results['pred_error'].shape == (10,)
+        assert results['pred_error_per_dim'].shape == (10,)
     
     def test_evaluate_no_gradient(self):
         """Test that evaluation doesn't compute gradients."""
@@ -288,6 +292,96 @@ class TestTrainCli:
         )
         train_module.main()
         assert captured["sequence_length"] == 8
+
+    def test_cli_accepts_intrinsic_hd_size_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["kuramoto_num_oscillators"] = cfg.ENV.KURAMOTO.NUM_OSCILLATORS
+            captured["hopfield_num_neurons"] = cfg.ENV.HOPFIELD.NUM_NEURONS
+            captured["hopfield_num_patterns"] = cfg.ENV.HOPFIELD.NUM_PATTERNS
+            captured["competitive_lv_num_species"] = cfg.ENV.COMPETITIVE_LV.NUM_SPECIES
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "generic",
+                "--env",
+                "kuramoto",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--kuramoto_num_oscillators",
+                "32",
+                "--hopfield_num_neurons",
+                "64",
+                "--hopfield_num_patterns",
+                "8",
+                "--competitive_lv_num_species",
+                "12",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["kuramoto_num_oscillators"] == 32
+        assert captured["hopfield_num_neurons"] == 64
+        assert captured["hopfield_num_patterns"] == 8
+        assert captured["competitive_lv_num_species"] == 12
+
+    def test_cli_accepts_optimizer_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["lr"] = cfg.TRAIN.LR
+            captured["k_matrix_lr"] = cfg.TRAIN.K_MATRIX_LR
+            captured["weight_decay"] = cfg.TRAIN.WEIGHT_DECAY
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "generic_sparse",
+                "--env",
+                "duffing",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--lr",
+                "3e-4",
+                "--k_matrix_lr",
+                "3e-5",
+                "--weight_decay",
+                "5e-5",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["lr"] == pytest.approx(3e-4)
+        assert captured["k_matrix_lr"] == pytest.approx(3e-5)
+        assert captured["weight_decay"] == pytest.approx(5e-5)
 
     def test_basin_eval_import_uses_package_model_path(self):
         import inspect

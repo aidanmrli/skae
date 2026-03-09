@@ -16,6 +16,8 @@ Or use it programmatically:
 
 import argparse
 import json
+import math
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -26,7 +28,7 @@ import torch.nn as nn
 print("Torch loaded.")
 
 print("Loading config...")
-from skae.config import Config, get_config
+from skae.config import Config, apply_env_dt_override, get_config
 from skae.dysts_cache_profiles import (
     DYSTS_CACHE_PROFILES,
     apply_dysts_cache_profile,
@@ -108,15 +110,36 @@ class MetricsLogger:
             metrics_by_name[name].append(entry['value'])
         
         for name, values in metrics_by_name.items():
+            numeric_values = [
+                float(value)
+                for value in values
+                if isinstance(value, (int, float)) and math.isfinite(float(value))
+            ]
+            comparable_values = []
+            first_type = type(values[0]) if values else None
+            if first_type is not None and all(isinstance(value, first_type) for value in values):
+                comparable_values = values
             summary[name] = {
                 'final': values[-1] if values else None,
-                'min': min(values) if values else None,
-                'max': max(values) if values else None,
-                'mean': sum(values) / len(values) if values else None,
+                'min': min(comparable_values) if comparable_values else (min(numeric_values) if numeric_values else None),
+                'max': max(comparable_values) if comparable_values else (max(numeric_values) if numeric_values else None),
+                'mean': (sum(numeric_values) / len(numeric_values)) if numeric_values else None,
             }
         
         with open(summary_file, 'w') as f:
             json.dump(summary, f, indent=2)
+
+
+def parse_optional_bool(value: str) -> bool:
+    """Parse a string boolean for optional CLI overrides."""
+    lowered = value.lower()
+    if lowered in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if lowered in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(
+        f"Invalid boolean value '{value}'. Expected one of true/false, yes/no, 1/0."
+    )
 
 
 def train_step(
@@ -284,13 +307,18 @@ def evaluate(
         # Per-step error: [time, batch] -> average over batch with NaN-safe mean.
         step_error = torch.norm(diff, dim=-1)
         step_error = torch.nanmean(step_error, dim=1)
+        obs_dim = max(1, int(diff.shape[-1]))
+        step_error_per_dim = step_error / math.sqrt(float(obs_dim))
 
         return {
             "true_trajectory": true_traj,
             "pred_trajectory": pred_traj_cpu,
             "pred_error": step_error,
+            "pred_error_per_dim": step_error_per_dim,
             "mean_error": torch.nanmean(step_error).item(),
+            "mean_error_per_dim": torch.nanmean(step_error_per_dim).item(),
             "final_error": torch.nanmean(step_error[-1]).item(),
+            "final_error_per_dim": torch.nanmean(step_error_per_dim[-1]).item(),
         }
 
 
@@ -526,10 +554,16 @@ def train(
                 num_steps=cfg.TRAIN.EVAL_NUM_STEPS,
             )
             logger.log_scalar('eval/mean_error', eval_results['mean_error'], step)
+            logger.log_scalar('eval/mean_error_per_dim', eval_results['mean_error_per_dim'], step)
             logger.log_scalar('eval/final_error', eval_results['final_error'], step)
+            logger.log_scalar('eval/final_error_per_dim', eval_results['final_error_per_dim'], step)
             
-            print(f"  Eval | Mean error: {eval_results['mean_error']:.4f} | "
-                  f"Final error: {eval_results['final_error']:.4f}")
+            print(
+                f"  Eval | Mean error: {eval_results['mean_error']:.4f} "
+                f"(per-dim {eval_results['mean_error_per_dim']:.4f}) | "
+                f"Final error: {eval_results['final_error']:.4f} "
+                f"(per-dim {eval_results['final_error_per_dim']:.4f})"
+            )
             
             # Save checkpoint
             checkpoint_dict = {
@@ -642,7 +676,7 @@ def train(
             primary_system = cfg.ENV.ENV_NAME
             primary_metrics = eval_results.get(primary_system)
             if primary_metrics is not None:
-                print(f"  {checkpoint_name.upper()} - Primary system ({primary_system}) MSE summary:")
+                print(f"  {checkpoint_name.upper()} - Primary system ({primary_system}) forecast summary:")
                 is_dysts = primary_system.lower().startswith("dysts:")
                 for horizon in eval_settings.horizons:
                     if primary_system == "parabolic" and horizon > 100:
@@ -653,11 +687,20 @@ def train(
                     best = primary_metrics["best_periodic"].get(horizon_key)
                     if no_re is None or every is None:
                         continue
-                    best_str = "best-PR=N/A" if best is None else f"best-PR={best['mean']:.4e} ({best['mode']})"
+                    best_str = (
+                        "best-PR=N/A"
+                        if best is None
+                        else (
+                            f"best-PR={best['mean']:.4e} "
+                            f"(per-dim {best.get('per_dim_mean', float('nan')):.4e}, {best['mode']})"
+                        )
+                    )
                     print(
                         f"    Horizon {horizon}: "
-                        f"no-reencode={no_re['mean']:.4e}, "
-                        f"every-step={every['mean']:.4e}, "
+                        f"no-reencode={no_re['mean']:.4e} "
+                        f"(per-dim {no_re.get('per_dim_mean', float('nan')):.4e}), "
+                        f"every-step={every['mean']:.4e} "
+                        f"(per-dim {every.get('per_dim_mean', float('nan')):.4e}), "
                         f"{best_str}"
                     )
 
@@ -676,7 +719,11 @@ def train(
                             horizon_key = str(horizon)
                             horizon_mse = mode_data["horizons"].get(horizon_key)
                             if horizon_mse is not None:
-                                print(f"      H={horizon}: mean={horizon_mse['mean']:.4e}, std={horizon_mse['std']:.4e}")
+                                print(
+                                    f"      H={horizon}: mean={horizon_mse['mean']:.4e}, "
+                                    f"per-dim={horizon_mse.get('per_dim_mean', float('nan')):.4e}, "
+                                    f"std={horizon_mse['std']:.4e}"
+                                )
 
             print(f"  Evaluation artifacts saved to {eval_dir}")
             return eval_results
@@ -684,6 +731,18 @@ def train(
         # Evaluate both checkpoints
         last_checkpoint = run_dir / 'last.pt'
         best_checkpoint = run_dir / 'checkpoint.pt'
+
+        # Some unstable runs can produce non-finite quick-eval errors at every
+        # checkpoint, which means no "best" checkpoint ever gets recorded.
+        # For benchmark completeness, fall back to the final weights so the
+        # standardized evaluation still emits evaluation_results_best.json.
+        if last_checkpoint.exists() and not best_checkpoint.exists():
+            print(
+                "Best checkpoint was never created during training. "
+                "Copying last.pt to checkpoint.pt for fallback evaluation.",
+                flush=True,
+            )
+            shutil.copy2(last_checkpoint, best_checkpoint)
 
         eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
         eval_results_best = evaluate_checkpoint(best_checkpoint, "best")
@@ -922,6 +981,16 @@ Examples:
                              'kuramoto, hopfield, competitive_lv, '
                              'multiwell, multiwell:<mode>, multiwell_*_hd. '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
+    parser.add_argument('--env_dt', type=float, default=None,
+                        help='Override the integration timestep for the active environment')
+    parser.add_argument('--kuramoto_num_oscillators', type=int, default=None,
+                        help='Override ENV.KURAMOTO.NUM_OSCILLATORS')
+    parser.add_argument('--hopfield_num_neurons', type=int, default=None,
+                        help='Override ENV.HOPFIELD.NUM_NEURONS')
+    parser.add_argument('--hopfield_num_patterns', type=int, default=None,
+                        help='Override ENV.HOPFIELD.NUM_PATTERNS')
+    parser.add_argument('--competitive_lv_num_species', type=int, default=None,
+                        help='Override ENV.COMPETITIVE_LV.NUM_SPECIES')
     parser.add_argument('--lyapunov_dim', type=int, default=None,
                         help='Lyapunov state dimension (default: 2)')
     parser.add_argument('--lyapunov_num_basins', type=int, default=None,
@@ -979,6 +1048,10 @@ Examples:
                         help='Batch size')
     parser.add_argument('--lr', type=float, default=None,
                         help='Learning rate (overrides config default)')
+    parser.add_argument('--k_matrix_lr', type=float, default=None,
+                        help='Koopman-matrix learning rate (overrides config default)')
+    parser.add_argument('--weight_decay', type=float, default=None,
+                        help='Weight decay (overrides config default)')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
     
@@ -1034,6 +1107,14 @@ Examples:
                         help='HyperLISTA momentum scaling C_BETA (overrides config default)')
     parser.add_argument('--hyperlista_c_ss', type=float, default=None,
                         help='HyperLISTA support-selection scaling C_SS (overrides config default)')
+    parser.add_argument('--hyperlista_use_ss', type=parse_optional_bool, default=None,
+                        help='Enable or disable HyperLISTA support selection')
+    parser.add_argument('--hyperlista_use_momentum', type=parse_optional_bool, default=None,
+                        help='Enable or disable HyperLISTA momentum')
+    parser.add_argument('--hyperlista_constrain_c_theta', type=parse_optional_bool, default=None,
+                        help='Constrain HyperLISTA c_theta to stay strictly positive')
+    parser.add_argument('--hyperlista_c_theta_min', type=float, default=None,
+                        help='Minimum HyperLISTA c_theta value when constrained')
     
     # Structured latent space (StructuredLISTAKM)
     parser.add_argument('--structured', action='store_true',
@@ -1132,6 +1213,16 @@ Examples:
     cfg.TRAIN.BATCH_SIZE = args.batch_size
     cfg.SEED = args.seed
 
+    # Environment overrides
+    if args.kuramoto_num_oscillators is not None:
+        cfg.ENV.KURAMOTO.NUM_OSCILLATORS = args.kuramoto_num_oscillators
+    if args.hopfield_num_neurons is not None:
+        cfg.ENV.HOPFIELD.NUM_NEURONS = args.hopfield_num_neurons
+    if args.hopfield_num_patterns is not None:
+        cfg.ENV.HOPFIELD.NUM_PATTERNS = args.hopfield_num_patterns
+    if args.competitive_lv_num_species is not None:
+        cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = args.competitive_lv_num_species
+
     # Lyapunov environment overrides
     if args.lyapunov_dim is not None:
         cfg.ENV.LYAPUNOV.DIM = args.lyapunov_dim
@@ -1149,10 +1240,17 @@ Examples:
         cfg.ENV.LYAPUNOV.EXTEND_MODE = args.lyapunov_extend_mode
     if args.lyapunov_extra_decay is not None:
         cfg.ENV.LYAPUNOV.EXTRA_DECAY = args.lyapunov_extra_decay
+    if args.env_dt is not None:
+        apply_env_dt_override(cfg, dt=float(args.env_dt), env_name=args.env)
+        print(f"Using environment dt override: {float(args.env_dt):.8g}")
     
     # Override config with command-line args
     if args.lr is not None:
         cfg.TRAIN.LR = args.lr
+    if args.k_matrix_lr is not None:
+        cfg.TRAIN.K_MATRIX_LR = args.k_matrix_lr
+    if args.weight_decay is not None:
+        cfg.TRAIN.WEIGHT_DECAY = args.weight_decay
     if args.target_size is not None:
         cfg.MODEL.TARGET_SIZE = args.target_size
     if args.sparsity_coeff is not None:
@@ -1205,6 +1303,14 @@ Examples:
         cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = args.hyperlista_c_beta
     if args.hyperlista_c_ss is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_SS = args.hyperlista_c_ss
+    if args.hyperlista_use_ss is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = args.hyperlista_use_ss
+    if args.hyperlista_use_momentum is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = args.hyperlista_use_momentum
+    if args.hyperlista_constrain_c_theta is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.CONSTRAIN_C_THETA = args.hyperlista_constrain_c_theta
+    if args.hyperlista_c_theta_min is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.C_THETA_MIN = args.hyperlista_c_theta_min
     
     # Dysts standardization
     is_dysts_env = cfg.ENV.ENV_NAME.lower().startswith("dysts:")

@@ -242,11 +242,20 @@ def evaluate_checkpoint(
             best = system_metrics.get("best_periodic", {}).get(horizon_key)
             if no_re is None or every is None:
                 continue
-            best_str = "best-PR=N/A" if best is None else f"best-PR={best['mean']:.4e} ({best['mode']})"
+            best_str = (
+                "best-PR=N/A"
+                if best is None
+                else (
+                    f"best-PR={best['mean']:.4e} "
+                    f"(per-dim {best.get('per_dim_mean', float('nan')):.4e}, {best['mode']})"
+                )
+            )
             print(
                 f"      Horizon {horizon}: "
-                f"no-reencode={no_re['mean']:.4e}, "
-                f"every-step={every['mean']:.4e}, "
+                f"no-reencode={no_re['mean']:.4e} "
+                f"(per-dim {no_re.get('per_dim_mean', float('nan')):.4e}), "
+                f"every-step={every['mean']:.4e} "
+                f"(per-dim {every.get('per_dim_mean', float('nan')):.4e}), "
                 f"{best_str}"
             )
     

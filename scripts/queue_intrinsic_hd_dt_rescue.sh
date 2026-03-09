@@ -1,0 +1,176 @@
+#!/bin/bash
+#
+# Queue the focused intrinsic-HD dt-rescue pilot and collector.
+#
+# Submit:
+#   sbatch scripts/queue_intrinsic_hd_dt_rescue.sh
+#
+# Default target:
+#   - systems: kuramoto, hopfield
+#   - dt: 0.025, 0.0125
+#   - num_steps: 20000
+#   - generic_sparse sp: 0.0005, 0.0025
+#   - lista_blockdiag sp: 0.0005, 0.0010
+#   - lista alpha: 0.15
+#   - lista loops: 1
+#   - block size: 16
+#
+#SBATCH --job-name=queue_hd_dt
+#SBATCH --ntasks=1
+#SBATCH --partition=long
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1G
+#SBATCH --time=00:10:00
+#SBATCH -o /network/scratch/l/lia/skae/queue-hd-dt-%j.out
+
+set -euo pipefail
+
+ROOT_DIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
+cd "${ROOT_DIR}"
+
+DATE_TAG="${DATE_TAG:-$(date +%Y%m%d)}"
+BASE_OUT="${BASE_OUT:-/network/scratch/l/lia/skae/intrinsic_hd_dt_rescue_${DATE_TAG}}"
+OUT_DIR="${OUT_DIR:-results/intrinsic_hd_dt_rescue_${DATE_TAG}}"
+
+SYSTEMS_CSV="${SYSTEMS_CSV:-kuramoto,hopfield}"
+ENV_DTS_CSV="${ENV_DTS_CSV:-0.025,0.0125}"
+NUM_STEPS_CSV="${NUM_STEPS_CSV:-20000}"
+SEEDS_CSV="${SEEDS_CSV:-0,1,2}"
+
+GENERIC_SPARSITY_COEFFS_CSV="${GENERIC_SPARSITY_COEFFS_CSV:-0.0005,0.0025}"
+BLOCKDIAG_SPARSITY_COEFFS_CSV="${BLOCKDIAG_SPARSITY_COEFFS_CSV:-0.0005,0.0010}"
+LISTA_ALPHAS_CSV="${LISTA_ALPHAS_CSV:-0.15}"
+LISTA_NUM_LOOPS_CSV="${LISTA_NUM_LOOPS_CSV:-1}"
+K_BLOCK_SIZES_CSV="${K_BLOCK_SIZES_CSV:-16}"
+
+BATCH_SIZE="${BATCH_SIZE:-256}"
+TARGET_SIZE="${TARGET_SIZE:-256}"
+SEQUENCE_LENGTH="${SEQUENCE_LENGTH:-8}"
+EVAL_PROFILE="${EVAL_PROFILE:-full}"
+KURAMOTO_NUM_OSCILLATORS="${KURAMOTO_NUM_OSCILLATORS:-}"
+HOPFIELD_NUM_NEURONS="${HOPFIELD_NUM_NEURONS:-}"
+HOPFIELD_NUM_PATTERNS="${HOPFIELD_NUM_PATTERNS:-}"
+COMPETITIVE_LV_NUM_SPECIES="${COMPETITIVE_LV_NUM_SPECIES:-}"
+
+RES_COEFF="${RES_COEFF:-1.0}"
+RECONST_COEFF="${RECONST_COEFF:-0.03}"
+PRED_COEFF="${PRED_COEFF:-1.0}"
+LISTA_FINAL_OP="${LISTA_FINAL_OP:-relu}"
+
+IFS=',' read -r -a SYSTEMS <<< "${SYSTEMS_CSV}"
+IFS=',' read -r -a ENV_DTS <<< "${ENV_DTS_CSV}"
+IFS=',' read -r -a NUM_STEPS_LIST <<< "${NUM_STEPS_CSV}"
+IFS=',' read -r -a SEEDS <<< "${SEEDS_CSV}"
+IFS=',' read -r -a GENERIC_SPARSITY_COEFFS <<< "${GENERIC_SPARSITY_COEFFS_CSV}"
+IFS=',' read -r -a BLOCKDIAG_SPARSITY_COEFFS <<< "${BLOCKDIAG_SPARSITY_COEFFS_CSV}"
+IFS=',' read -r -a LISTA_ALPHAS <<< "${LISTA_ALPHAS_CSV}"
+IFS=',' read -r -a LISTA_NUM_LOOPS_LIST <<< "${LISTA_NUM_LOOPS_CSV}"
+IFS=',' read -r -a K_BLOCK_SIZES <<< "${K_BLOCK_SIZES_CSV}"
+
+NUM_SYSTEMS=${#SYSTEMS[@]}
+NUM_DTS=${#ENV_DTS[@]}
+NUM_STEP_OPTIONS=${#NUM_STEPS_LIST[@]}
+NUM_SEEDS=${#SEEDS[@]}
+NUM_GENERIC_SPARSITY=${#GENERIC_SPARSITY_COEFFS[@]}
+NUM_BLOCKDIAG_SPARSITY=${#BLOCKDIAG_SPARSITY_COEFFS[@]}
+NUM_ALPHAS=${#LISTA_ALPHAS[@]}
+NUM_LOOPS=${#LISTA_NUM_LOOPS_LIST[@]}
+NUM_BLOCKS=${#K_BLOCK_SIZES[@]}
+
+GENERIC_TOTAL=$((NUM_SYSTEMS * NUM_DTS * NUM_STEP_OPTIONS * NUM_GENERIC_SPARSITY * NUM_SEEDS))
+BLOCKDIAG_TOTAL=$((NUM_SYSTEMS * NUM_DTS * NUM_STEP_OPTIONS * NUM_BLOCKDIAG_SPARSITY * NUM_ALPHAS * NUM_LOOPS * NUM_BLOCKS * NUM_SEEDS))
+
+if (( GENERIC_TOTAL <= 0 || BLOCKDIAG_TOTAL <= 0 )); then
+  echo "Invalid grid sizes: generic=${GENERIC_TOTAL}, blockdiag=${BLOCKDIAG_TOTAL}"
+  exit 1
+fi
+
+GENERIC_ARRAY="0-$((GENERIC_TOTAL - 1))"
+BLOCKDIAG_ARRAY="0-$((BLOCKDIAG_TOTAL - 1))"
+
+echo "Queueing intrinsic-HD dt-rescue pilot"
+echo "Timestamp: $(date)"
+echo "BASE_OUT: ${BASE_OUT}"
+echo "OUT_DIR: ${OUT_DIR}"
+echo "SYSTEMS_CSV: ${SYSTEMS_CSV}"
+echo "ENV_DTS_CSV: ${ENV_DTS_CSV}"
+echo "NUM_STEPS_CSV: ${NUM_STEPS_CSV}"
+echo "SEEDS_CSV: ${SEEDS_CSV}"
+echo "GENERIC_SPARSITY_COEFFS_CSV: ${GENERIC_SPARSITY_COEFFS_CSV}"
+echo "BLOCKDIAG_SPARSITY_COEFFS_CSV: ${BLOCKDIAG_SPARSITY_COEFFS_CSV}"
+echo "LISTA_ALPHAS_CSV: ${LISTA_ALPHAS_CSV}"
+echo "LISTA_NUM_LOOPS_CSV: ${LISTA_NUM_LOOPS_CSV}"
+echo "K_BLOCK_SIZES_CSV: ${K_BLOCK_SIZES_CSV}"
+echo "KURAMOTO_NUM_OSCILLATORS: ${KURAMOTO_NUM_OSCILLATORS:-<default>}"
+echo "HOPFIELD_NUM_NEURONS: ${HOPFIELD_NUM_NEURONS:-<default>}"
+echo "HOPFIELD_NUM_PATTERNS: ${HOPFIELD_NUM_PATTERNS:-<default>}"
+echo "COMPETITIVE_LV_NUM_SPECIES: ${COMPETITIVE_LV_NUM_SPECIES:-<default>}"
+echo "GENERIC_ARRAY: ${GENERIC_ARRAY}"
+echo "BLOCKDIAG_ARRAY: ${BLOCKDIAG_ARRAY}"
+
+# Pass CSV-valued grid variables via the process environment. SLURM treats commas
+# inside --export assignments as separators, which would collapse multi-value grids
+# down to their first element inside the child jobs.
+GENERIC_JOB_ID=$(DATE_TAG="${DATE_TAG}" \
+  BASE_OUT="${BASE_OUT}" \
+  MODEL_VARIANT=generic_sparse \
+  SYSTEMS_CSV="${SYSTEMS_CSV}" \
+  ENV_DTS_CSV="${ENV_DTS_CSV}" \
+  NUM_STEPS_CSV="${NUM_STEPS_CSV}" \
+  SEEDS_CSV="${SEEDS_CSV}" \
+  GENERIC_SPARSITY_COEFFS_CSV="${GENERIC_SPARSITY_COEFFS_CSV}" \
+  BATCH_SIZE="${BATCH_SIZE}" \
+  TARGET_SIZE="${TARGET_SIZE}" \
+  SEQUENCE_LENGTH="${SEQUENCE_LENGTH}" \
+  EVAL_PROFILE="${EVAL_PROFILE}" \
+  KURAMOTO_NUM_OSCILLATORS="${KURAMOTO_NUM_OSCILLATORS}" \
+  HOPFIELD_NUM_NEURONS="${HOPFIELD_NUM_NEURONS}" \
+  HOPFIELD_NUM_PATTERNS="${HOPFIELD_NUM_PATTERNS}" \
+  COMPETITIVE_LV_NUM_SPECIES="${COMPETITIVE_LV_NUM_SPECIES}" \
+  RES_COEFF="${RES_COEFF}" \
+  RECONST_COEFF="${RECONST_COEFF}" \
+  PRED_COEFF="${PRED_COEFF}" \
+  sbatch \
+  --array="${GENERIC_ARRAY}" \
+  --export=ALL \
+  "${ROOT_DIR}/scripts/sweep_intrinsic_hd_dt_rescue.sh" | awk '{print $4}')
+
+BLOCKDIAG_JOB_ID=$(DATE_TAG="${DATE_TAG}" \
+  BASE_OUT="${BASE_OUT}" \
+  MODEL_VARIANT=lista_blockdiag \
+  SYSTEMS_CSV="${SYSTEMS_CSV}" \
+  ENV_DTS_CSV="${ENV_DTS_CSV}" \
+  NUM_STEPS_CSV="${NUM_STEPS_CSV}" \
+  SEEDS_CSV="${SEEDS_CSV}" \
+  BLOCKDIAG_SPARSITY_COEFFS_CSV="${BLOCKDIAG_SPARSITY_COEFFS_CSV}" \
+  LISTA_ALPHAS_CSV="${LISTA_ALPHAS_CSV}" \
+  LISTA_NUM_LOOPS_CSV="${LISTA_NUM_LOOPS_CSV}" \
+  K_BLOCK_SIZES_CSV="${K_BLOCK_SIZES_CSV}" \
+  BATCH_SIZE="${BATCH_SIZE}" \
+  TARGET_SIZE="${TARGET_SIZE}" \
+  SEQUENCE_LENGTH="${SEQUENCE_LENGTH}" \
+  EVAL_PROFILE="${EVAL_PROFILE}" \
+  KURAMOTO_NUM_OSCILLATORS="${KURAMOTO_NUM_OSCILLATORS}" \
+  HOPFIELD_NUM_NEURONS="${HOPFIELD_NUM_NEURONS}" \
+  HOPFIELD_NUM_PATTERNS="${HOPFIELD_NUM_PATTERNS}" \
+  COMPETITIVE_LV_NUM_SPECIES="${COMPETITIVE_LV_NUM_SPECIES}" \
+  RES_COEFF="${RES_COEFF}" \
+  RECONST_COEFF="${RECONST_COEFF}" \
+  PRED_COEFF="${PRED_COEFF}" \
+  LISTA_FINAL_OP="${LISTA_FINAL_OP}" \
+  sbatch \
+  --array="${BLOCKDIAG_ARRAY}" \
+  --export=ALL \
+  "${ROOT_DIR}/scripts/sweep_intrinsic_hd_dt_rescue.sh" | awk '{print $4}')
+
+COLLECT_JOB_ID=$(DATE_TAG="${DATE_TAG}" \
+  BASE_OUT="${BASE_OUT}" \
+  OUT_DIR="${OUT_DIR}" \
+  sbatch \
+  --dependency="afterany:${GENERIC_JOB_ID}:${BLOCKDIAG_JOB_ID}" \
+  --export=ALL \
+  "${ROOT_DIR}/scripts/collect_intrinsic_hd_dt_rescue.sh" | awk '{print $4}')
+
+echo "Submitted generic_sparse sweep array: ${GENERIC_JOB_ID}"
+echo "Submitted lista_blockdiag sweep array: ${BLOCKDIAG_JOB_ID}"
+echo "Submitted collector: ${COLLECT_JOB_ID} (afterany:${GENERIC_JOB_ID}:${BLOCKDIAG_JOB_ID})"

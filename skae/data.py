@@ -8,6 +8,7 @@ structured as environments.
 from abc import ABC, abstractmethod
 from typing import Optional, Callable, List, Tuple
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import get_context
 import hashlib
 import json
 import os
@@ -228,7 +229,24 @@ def _build_dysts_native_trajectory(
         resample=resample,
         pts_per_period=pts_per_period,
         standardize=standardize,
-    ).float()
+    )
+
+
+def _init_dysts_cache_worker() -> None:
+    """Keep torch CPU threading minimal inside spawned cache workers.
+
+    Forked PyTorch workers can deadlock in OpenMP-backed copy paths when they
+    inherit a parent process that already imported torch. Spawning fresh workers
+    plus forcing single-threaded torch in the worker avoids that class of hangs.
+    """
+    try:
+        torch.set_num_threads(1)
+    except Exception:
+        pass
+    try:
+        torch.set_num_interop_threads(1)
+    except Exception:
+        pass
 
 
 class DystsTrajectoryCache:
@@ -387,7 +405,11 @@ class DystsTrajectoryCache:
             f"for {len(ic_list)} trajectories",
             flush=True,
         )
-        with ProcessPoolExecutor(max_workers=self.cache_num_workers) as executor:
+        with ProcessPoolExecutor(
+            max_workers=self.cache_num_workers,
+            mp_context=get_context("spawn"),
+            initializer=_init_dysts_cache_worker,
+        ) as executor:
             futures = {}
             for idx, ic in enumerate(ic_list):
                 futures[executor.submit(
@@ -407,7 +429,9 @@ class DystsTrajectoryCache:
                     traj = future.result()
                     if self.cache_warmup > 0:
                         traj = traj[self.cache_warmup:]
-                    trajectories[idx] = traj.float()
+                    if traj.dtype != torch.float32:
+                        traj = traj.to(dtype=torch.float32)
+                    trajectories[idx] = traj
                 except Exception as e:
                     if idx == 0:
                         raise
@@ -477,7 +501,9 @@ class DystsTrajectoryCache:
                     break
                 if self.cache_warmup > 0:
                     traj = traj[self.cache_warmup:]
-                trajectories.append(traj.float())
+                if traj.dtype != torch.float32:
+                    traj = traj.to(dtype=torch.float32)
+                trajectories.append(traj)
         
         if original_ic is not None:
             self.env.system.ic = original_ic
@@ -1539,11 +1565,12 @@ class BlendedLinearSystem(Env):
     def __init__(self, cfg: Config):
         super().__init__(cfg)
 
+        b_cfg = getattr(cfg.ENV, "BLENDED", None)
         # Timestep for integration
-        self.dt = 0.05
+        self.dt = float(b_cfg.DT) if b_cfg is not None else 0.05
 
         # Blending width (controls how sharply basins transition)
-        self.sigma = 1.5
+        self.sigma = float(b_cfg.SIGMA) if b_cfg is not None else 1.5
 
         # Basin centers
         self.centers = torch.tensor([

@@ -129,7 +129,7 @@ Config
 
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
-from typing import List
+from typing import List, Optional
 import json
 
 
@@ -178,6 +178,13 @@ class LyapunovConfig:
     INIT_RANGE: float = 2.5  # reset range for initial states (uniform in [-r, r])
     EXTEND_MODE: str = "embed"  # "embed" (2D Lyapunov + linear decay dims) or "full"
     EXTRA_DECAY: float = 1.0  # decay for extra dims in embed mode
+
+
+@dataclass
+class BlendedConfig:
+    """Three-basin blended linear system parameters."""
+    DT: float = 0.05
+    SIGMA: float = 1.5
 
 
 @dataclass
@@ -292,6 +299,7 @@ class EnvConfig:
     LOTKA_VOLTERRA: LotkaVolterraConfig = field(default_factory=LotkaVolterraConfig)
     LORENZ63: Lorenz63Config = field(default_factory=Lorenz63Config)
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
+    BLENDED: BlendedConfig = field(default_factory=BlendedConfig)
     MULTIWELL: MultiWellConfig = field(default_factory=MultiWellConfig)
     KURAMOTO: KuramotoConfig = field(default_factory=KuramotoConfig)
     HOPFIELD: HopfieldConfig = field(default_factory=HopfieldConfig)
@@ -322,10 +330,13 @@ class HyperListaConfig:
     C_THETA: float = 5e-3            # Threshold scaling hyperparameter (c₁)
     C_BETA: float = 5e-3             # Momentum hyperparameter (c₂)
     C_SS: float = 0.5                # Support selection hyperparameter (c₃)
+    C_THETA_MIN: float = 1e-6        # Minimum threshold scale when constraining c_theta
+    CONSTRAIN_C_THETA: bool = True   # Reparameterize c_theta to stay strictly positive
     USE_SUPPORT_SELECTION: bool = True  # Enable adaptive support selection
     USE_MOMENTUM: bool = True        # Enable momentum acceleration
     MAG_RATIO: float = 0.1           # Threshold for support size approximation
     LEARN_HYPERPARAMS: bool = True   # Whether c_theta, c_beta, c_ss are learnable
+    PINV_CACHE_MODE: str = "none"    # Pseudo-inverse caching mode; "none" recomputes every forward
 
 
 @dataclass
@@ -396,6 +407,7 @@ class ModelConfig:
     MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM", "StructuredLISTAKM"]
     NORM_FN: str = "id"  # from ["id", "ball"]
     TARGET_SIZE: int = 16  # latent_dim i.e. zdim
+    OBS_LOSS_DIM_NORMALIZATION: str = "sqrt_dim"  # ["none", "sqrt_dim", "dim"]
     
     # Loss coefficients
     RES_COEFF: float = 1.0  # alignment loss weight
@@ -466,6 +478,7 @@ class Config:
             LOTKA_VOLTERRA=LotkaVolterraConfig(**env_dict.get("LOTKA_VOLTERRA", {})),
             LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
             LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
+            BLENDED=BlendedConfig(**env_dict.get("BLENDED", {})),
             MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
             KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
             HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
@@ -506,6 +519,103 @@ class Config:
         with open(filepath, 'r') as f:
             config_dict = json.load(f)
         return cls.from_dict(config_dict)
+
+
+_BUILTIN_ENV_DT_NAMES = {
+    "parabolic",
+    "duffing",
+    "pendulum",
+    "lotka_volterra",
+    "lorenz63",
+    "lyapunov",
+    "blended",
+    "multiwell",
+    "kuramoto",
+    "hopfield",
+    "competitive_lv",
+}
+
+
+def canonical_env_name(env_name: str) -> str:
+    """Normalize an environment name for config-level routing."""
+    lowered = env_name.lower()
+    if lowered.startswith("dysts:"):
+        return "dysts"
+    if lowered.startswith("multiwell:"):
+        return "multiwell"
+    if lowered in _BUILTIN_ENV_DT_NAMES:
+        return lowered
+    # Unknown names are treated as dysts because make_env() falls back to Dysts.
+    return "dysts"
+
+
+def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None) -> None:
+    """Apply a timestep override to the active environment config."""
+    if dt <= 0.0:
+        raise ValueError("Environment dt override must be positive.")
+
+    target_env = canonical_env_name(env_name or cfg.ENV.ENV_NAME)
+    dt = float(dt)
+
+    if target_env == "dysts":
+        cfg.ENV.DYSTS.DT_OVERRIDE = dt
+    elif target_env == "parabolic":
+        cfg.ENV.PARABOLIC.DT = dt
+    elif target_env == "duffing":
+        cfg.ENV.DUFFING.DT = dt
+    elif target_env == "pendulum":
+        cfg.ENV.PENDULUM.DT = dt
+    elif target_env == "lotka_volterra":
+        cfg.ENV.LOTKA_VOLTERRA.DT = dt
+    elif target_env == "lorenz63":
+        cfg.ENV.LORENZ63.DT = dt
+    elif target_env == "lyapunov":
+        cfg.ENV.LYAPUNOV.DT = dt
+    elif target_env == "blended":
+        cfg.ENV.BLENDED.DT = dt
+    elif target_env == "multiwell":
+        cfg.ENV.MULTIWELL.DT = dt
+    elif target_env == "kuramoto":
+        cfg.ENV.KURAMOTO.DT = dt
+    elif target_env == "hopfield":
+        cfg.ENV.HOPFIELD.DT = dt
+    elif target_env == "competitive_lv":
+        cfg.ENV.COMPETITIVE_LV.DT = dt
+    else:
+        raise ValueError(f"Unsupported environment for dt override: '{env_name or cfg.ENV.ENV_NAME}'")
+
+
+def get_env_dt(cfg: Config, env_name: Optional[str] = None) -> float:
+    """Read the configured timestep for the active environment."""
+    target_env = canonical_env_name(env_name or cfg.ENV.ENV_NAME)
+
+    if target_env == "dysts":
+        if cfg.ENV.DYSTS.DT_OVERRIDE > 0.0:
+            return float(cfg.ENV.DYSTS.DT_OVERRIDE)
+        return 0.0
+    if target_env == "parabolic":
+        return float(cfg.ENV.PARABOLIC.DT)
+    if target_env == "duffing":
+        return float(cfg.ENV.DUFFING.DT)
+    if target_env == "pendulum":
+        return float(cfg.ENV.PENDULUM.DT)
+    if target_env == "lotka_volterra":
+        return float(cfg.ENV.LOTKA_VOLTERRA.DT)
+    if target_env == "lorenz63":
+        return float(cfg.ENV.LORENZ63.DT)
+    if target_env == "lyapunov":
+        return float(cfg.ENV.LYAPUNOV.DT)
+    if target_env == "blended":
+        return float(cfg.ENV.BLENDED.DT)
+    if target_env == "multiwell":
+        return float(cfg.ENV.MULTIWELL.DT)
+    if target_env == "kuramoto":
+        return float(cfg.ENV.KURAMOTO.DT)
+    if target_env == "hopfield":
+        return float(cfg.ENV.HOPFIELD.DT)
+    if target_env == "competitive_lv":
+        return float(cfg.ENV.COMPETITIVE_LV.DT)
+    raise ValueError(f"Unsupported environment for dt lookup: '{env_name or cfg.ENV.ENV_NAME}'")
 
 
 def get_default_config() -> Config:

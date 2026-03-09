@@ -7,6 +7,7 @@ including mathematical dynamics, integration, trajectory generation, and batchin
 import unittest
 import torch
 from skae.config import Config
+from skae.benchmarks.dysts_adapter import DystsEnv, is_dysts_available
 from skae.data import (
     Env, Wrapper, VectorWrapper,
     Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic, MultiWellTransition,
@@ -202,6 +203,28 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(x_next.dtype, torch.float32)
         # State should change after integration
         self.assertFalse(torch.allclose(x, x_next))
+
+
+@unittest.skipUnless(is_dysts_available(), "dysts not available")
+class TestDystsAdapter(unittest.TestCase):
+    """Smoke tests for the dysts adapter tensor conversion paths."""
+
+    def test_make_trajectory_native_returns_float32(self):
+        env = DystsEnv("Duffing", dt_override=0.01, standardize=True)
+        traj = env.make_trajectory_native(n=32, resample=False, standardize=True)
+
+        self.assertEqual(traj.dtype, torch.float32)
+        self.assertEqual(traj.shape, (32, env.observation_size))
+        self.assertTrue(traj.is_contiguous())
+
+    def test_step_batch_returns_float32(self):
+        env = DystsEnv("Duffing", dt_override=0.01, standardize=True)
+        batch = torch.stack([env.reset(torch.Generator().manual_seed(i)) for i in range(4)], dim=0)
+        next_batch = env.step(batch)
+
+        self.assertEqual(next_batch.dtype, torch.float32)
+        self.assertEqual(next_batch.shape, batch.shape)
+        self.assertTrue(next_batch.is_contiguous())
 
     def test_rk4_energy_conservation(self):
         """Test that RK4 conserves energy better than Euler for harmonic oscillator."""

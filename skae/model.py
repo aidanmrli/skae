@@ -260,43 +260,73 @@ class HyperLISTA(nn.Module):
         
         # Learnable hyperparameters (or fixed if LEARN_HYPERPARAMS=False)
         hypercfg = cfg.MODEL.ENCODER.HYPERLISTA
+        self.constrain_c_theta = hypercfg.CONSTRAIN_C_THETA
+        self.c_theta_min = hypercfg.C_THETA_MIN
+        self.pinv_cache_mode = hypercfg.PINV_CACHE_MODE
+        c_theta_init = self._c_theta_to_storage(hypercfg.C_THETA)
         if hypercfg.LEARN_HYPERPARAMS:
-            self.c_theta = nn.Parameter(torch.tensor([hypercfg.C_THETA]))
+            self.c_theta_raw = nn.Parameter(torch.tensor([c_theta_init]))
             self.c_beta = nn.Parameter(torch.tensor([hypercfg.C_BETA]))
             self.c_ss = nn.Parameter(torch.tensor([hypercfg.C_SS]))
         else:
-            self.register_buffer('c_theta', torch.tensor([hypercfg.C_THETA]))
+            self.register_buffer('c_theta_raw', torch.tensor([c_theta_init]))
             self.register_buffer('c_beta', torch.tensor([hypercfg.C_BETA]))
             self.register_buffer('c_ss', torch.tensor([hypercfg.C_SS]))
         
         self.use_ss = hypercfg.USE_SUPPORT_SELECTION
         self.use_momentum = hypercfg.USE_MOMENTUM
         self.mag_ratio = hypercfg.MAG_RATIO
-        
-        # Precompute pseudo-inverse for error approximation (updated when dict changes)
-        # TODO: Consider more robust cache invalidation - data_ptr may give false positives
-        # after optimizer steps if memory is reused. For now this is acceptable since we
-        # detach the pinv anyway and it's only used for error estimation.
-        self._cached_D_pinv = None
-        self._cached_D_hash = None
-    
+
+    def _c_theta_to_storage(self, c_theta: float) -> float:
+        """Map user-facing c_theta to the stored parameter domain."""
+        if not self.constrain_c_theta:
+            return c_theta
+        shifted = max(c_theta - self.c_theta_min, 1e-12)
+        return math.log(math.expm1(shifted))
+
+    @property
+    def c_theta(self) -> torch.Tensor:
+        """User-facing threshold scale."""
+        if self.constrain_c_theta:
+            return F.softplus(self.c_theta_raw) + self.c_theta_min
+        return self.c_theta_raw
+
+    def _load_from_state_dict(
+        self,
+        state_dict: Dict[str, torch.Tensor],
+        prefix: str,
+        local_metadata: Dict[str, Any],
+        strict: bool,
+        missing_keys: List[str],
+        unexpected_keys: List[str],
+        error_msgs: List[str],
+    ) -> None:
+        legacy_key = f"{prefix}c_theta"
+        raw_key = f"{prefix}c_theta_raw"
+        if raw_key not in state_dict and legacy_key in state_dict:
+            legacy_tensor = state_dict.pop(legacy_key)
+            legacy_value = float(legacy_tensor.reshape(-1)[0].item())
+            converted = self._c_theta_to_storage(legacy_value)
+            state_dict[raw_key] = legacy_tensor.new_tensor([converted])
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
     def _get_D_pinv(self, D: torch.Tensor) -> torch.Tensor:
-        """Get pseudo-inverse of D, with caching for efficiency.
-        
-        The pseudo-inverse is detached to prevent gradients flowing through it,
-        as it's only used for error estimation (not as part of the main computation).
-        
-        Args:
-            D: Dictionary matrix [xdim, zdim]
-            
-        Returns:
-            Pseudo-inverse of D [zdim, xdim]
-        """
-        D_hash = D.data_ptr()
-        if self._cached_D_pinv is None or self._cached_D_hash != D_hash:
-            self._cached_D_pinv = torch.linalg.pinv(D).detach()
-            self._cached_D_hash = D_hash
-        return self._cached_D_pinv
+        """Get pseudo-inverse of D for error approximation."""
+        if self.pinv_cache_mode != "none":
+            raise ValueError(
+                f"Unsupported HyperLISTA PINV_CACHE_MODE='{self.pinv_cache_mode}'. "
+                "Only 'none' is implemented."
+            )
+        with torch.no_grad():
+            return torch.linalg.pinv(D)
     
     def _compute_L(self, D: torch.Tensor) -> torch.Tensor:
         """Compute Lipschitz constant L = spectral_norm(D.T @ D).
@@ -622,8 +652,30 @@ class KoopmanMachine(ABC, nn.Module):
         raise ValueError(f"Expected scalar-like value for '{name}', got {type(value).__name__}")
 
     def _prediction_loss_from_tensors(self, x_pred: torch.Tensor, x_true: torch.Tensor) -> torch.Tensor:
-        """Prediction loss: ||x_pred - x_true|| averaged over batch/time."""
+        """Raw prediction loss: ||x_pred - x_true|| averaged over batch/time."""
         return torch.norm(x_pred - x_true, dim=-1).mean()
+
+    def _observation_loss_dim_scale(
+        self,
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        """Return the observation-space dimension normalization factor."""
+        mode = str(getattr(self.cfg.MODEL, "OBS_LOSS_DIM_NORMALIZATION", "sqrt_dim")).strip().lower()
+        obs_dim = max(1, int(self.observation_size))
+        if mode == "none":
+            scale = 1.0
+        elif mode == "sqrt_dim":
+            scale = math.sqrt(float(obs_dim))
+        elif mode == "dim":
+            scale = float(obs_dim)
+        else:
+            raise ValueError(
+                f"Unknown OBS_LOSS_DIM_NORMALIZATION='{self.cfg.MODEL.OBS_LOSS_DIM_NORMALIZATION}'. "
+                "Expected one of ['none', 'sqrt_dim', 'dim']."
+            )
+        return torch.tensor(scale, device=device, dtype=dtype)
 
     def _alignment_loss_from_tensors(
         self,
@@ -741,16 +793,21 @@ class KoopmanMachine(ABC, nn.Module):
         device = x_pred.device
         dtype = x_pred.dtype
 
-        prediction_loss = self._prediction_loss_from_tensors(x_pred, x_true)
+        obs_loss_dim_scale = self._observation_loss_dim_scale(device=device, dtype=dtype)
+        prediction_loss_raw = self._prediction_loss_from_tensors(x_pred, x_true)
         alignment_loss = self._alignment_loss_from_tensors(z_pred, z_true, device=device, dtype=dtype)
-        reconst_loss = self._reconstruction_loss(reconstruction_error, device=device, dtype=dtype)
+        reconst_loss_raw = self._reconstruction_loss(reconstruction_error, device=device, dtype=dtype)
         sparsity_loss = self._sparsity_loss_from_inputs(
             sparsity_error, sparsity_latent, z_pred, device=device, dtype=dtype
         )
+        prediction_loss = prediction_loss_raw / obs_loss_dim_scale
+        reconst_loss = reconst_loss_raw / obs_loss_dim_scale
 
         sequence_term_scale = 1.0 / float(horizon)
+        prediction_loss_raw = prediction_loss_raw * sequence_term_scale
         prediction_loss = prediction_loss * sequence_term_scale
         alignment_loss = alignment_loss * sequence_term_scale
+        reconst_loss_raw = reconst_loss_raw * sequence_term_scale
         reconst_loss = reconst_loss * sequence_term_scale
         sparsity_loss = sparsity_loss * sequence_term_scale
 
@@ -771,10 +828,16 @@ class KoopmanMachine(ABC, nn.Module):
             'loss': total_loss.item(),
             'alignment_loss': alignment_loss.item(),
             'residual_loss': alignment_loss.item(),
+            'reconst_loss_raw': reconst_loss_raw.item(),
             'reconst_loss': reconst_loss.item(),
+            'prediction_loss_raw': prediction_loss_raw.item(),
             'prediction_loss': prediction_loss.item(),
             'sparsity_loss': sparsity_loss.item(),
             'sequence_term_scale': sequence_term_scale,
+            'obs_loss_dim_scale': float(obs_loss_dim_scale.item()),
+            'obs_loss_dim_normalization': str(
+                getattr(self.cfg.MODEL, "OBS_LOSS_DIM_NORMALIZATION", "sqrt_dim")
+            ),
             'A_max_eigenvalue': max_eigenvalue.item(),
             'spectral_radius': spectral_radius.item(),
             'sparsity_ratio': sparsity_ratio.item(),

@@ -67,6 +67,10 @@ def test_evaluate_model_generates_outputs(tmp_path):
     assert "no_reencode" in duffing_metrics["modes"]
     assert "best_periodic" in duffing_metrics
     assert "10" in duffing_metrics["best_periodic"]
+    horizon_metrics = duffing_metrics["modes"]["no_reencode"]["horizons"]["10"]
+    assert "per_dim_mean" in horizon_metrics
+    assert "rmse_per_dim_mean" in horizon_metrics
+    assert "per_dim_mean" in duffing_metrics["best_periodic"]["10"]
 
     metrics_json = tmp_path / "metrics.json"
     assert metrics_json.exists(), "Evaluation should write metrics.json"
@@ -118,4 +122,3 @@ def test_lyapunov_phase_portrait_outputs(tmp_path):
     assert true_hist.exists()
     assert learned_hist.exists()
     assert "phase_portrait_comparison" in files
-

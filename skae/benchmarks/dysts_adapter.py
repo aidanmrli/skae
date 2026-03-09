@@ -10,6 +10,7 @@ Example:
     >>> x1 = env.step(x0)
 """
 
+from functools import lru_cache
 from typing import Optional, List, Dict, Any
 import warnings
 
@@ -81,6 +82,12 @@ def get_dysts_systems(include_delay: bool = False) -> List[str]:
         return get_attractor_list("continuous_no_delay")
 
 
+@lru_cache(maxsize=2)
+def _cached_dysts_system_data(data_key: str) -> Dict[str, Any]:
+    """Cache raw dysts metadata lookups to avoid repeated large loads."""
+    return get_system_data(data_key)
+
+
 def get_dysts_system_data(include_delay: bool = False) -> Dict[str, Any]:
     """Get metadata for all available dysts systems.
     
@@ -94,7 +101,7 @@ def get_dysts_system_data(include_delay: bool = False) -> Dict[str, Any]:
         return {}
     
     data_key = "continuous" if include_delay else "continuous_no_delay"
-    return get_system_data(data_key)
+    return dict(_cached_dysts_system_data(data_key))
 
 
 def get_dysts_system_metadata(system_name: str) -> Dict[str, Any]:
@@ -109,7 +116,7 @@ def get_dysts_system_metadata(system_name: str) -> Dict[str, Any]:
     if not HAS_DYSTS:
         raise RuntimeError("dysts library is not available")
     
-    all_data = get_system_data("continuous")
+    all_data = _cached_dysts_system_data("continuous")
     if system_name in all_data:
         return all_data[system_name]
     
@@ -126,6 +133,14 @@ def get_dysts_system_metadata(system_name: str) -> Dict[str, Any]:
         "parameters": system.params,
         "initial_conditions": system.ic.tolist() if hasattr(system, "ic") else None,
     }
+
+
+def _to_float32_tensor(array: np.ndarray) -> torch.Tensor:
+    """Convert numpy output to a contiguous float32 tensor without torch-side casting."""
+    out_np = np.asarray(array, dtype=np.float32)
+    if not out_np.flags.c_contiguous:
+        out_np = np.ascontiguousarray(out_np, dtype=np.float32)
+    return torch.from_numpy(out_np)
 
 
 class DystsEnv:
@@ -335,13 +350,13 @@ class DystsEnv:
         """Single-state RK4 integration step."""
         state_cpu = state.detach().cpu().contiguous()
         out_np = self._rk4_numpy(state_cpu.numpy())
-        return torch.from_numpy(out_np).float()
+        return _to_float32_tensor(out_np)
     
     def _step_batch(self, state: torch.Tensor) -> torch.Tensor:
         """Batched RK4 integration step using numpy."""
         state_cpu = state.detach().cpu().contiguous()
         out_np = self._rk4_numpy(state_cpu.numpy())
-        return torch.from_numpy(out_np).float()
+        return _to_float32_tensor(out_np)
     
     def make_trajectory(self, n: int, init_cond: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Generate a trajectory of n steps.
@@ -399,8 +414,8 @@ class DystsEnv:
         
         if traj_np is None:
             raise RuntimeError(f"Failed to generate trajectory for {self.system_name}")
-        
-        return torch.from_numpy(traj_np).float()
+
+        return _to_float32_tensor(traj_np)
     
     def __repr__(self) -> str:
         return (

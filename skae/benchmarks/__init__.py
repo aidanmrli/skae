@@ -21,6 +21,16 @@ from skae.benchmarks.system_catalog import (
     get_multiscroll_systems,
     get_system_info,
 )
+from skae.benchmarks.paper_benchmark_manifest import (
+    PAPER_BENCHMARK_BATCH_SIZE,
+    PAPER_BENCHMARK_NUM_STEPS,
+    PAPER_BENCHMARK_SEQUENCE_LENGTH,
+    PAPER_BENCHMARK_TARGET_SIZE,
+    PAPER_BENCHMARK_SEEDS,
+    paper_benchmark_manifest_jsonable,
+    paper_benchmark_models,
+    paper_benchmark_systems,
+)
 
 __all__ = [
     "DystsEnv",
@@ -38,4 +48,12 @@ __all__ = [
     "get_multi_basin_systems",
     "get_multiscroll_systems",
     "get_system_info",
+    "PAPER_BENCHMARK_BATCH_SIZE",
+    "PAPER_BENCHMARK_NUM_STEPS",
+    "PAPER_BENCHMARK_SEQUENCE_LENGTH",
+    "PAPER_BENCHMARK_TARGET_SIZE",
+    "PAPER_BENCHMARK_SEEDS",
+    "paper_benchmark_manifest_jsonable",
+    "paper_benchmark_models",
+    "paper_benchmark_systems",
 ]

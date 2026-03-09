@@ -23,6 +23,7 @@ dictionary and optionally saves metrics/plots to disk.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -144,23 +145,24 @@ def rollout_periodic_reencode(
 # ---------------------------------------------------------------------------
 
 
-def _compute_horizon_mse(
-    squared_errors: torch.Tensor,
+def _compute_horizon_metric_stats(
+    per_step_values: torch.Tensor,
     horizon: int,
 ) -> Tuple[float, float, List[float], int]:
-    """Compute mean ± std MSE for a specific horizon.
+    """Compute mean ± std for a horizon-wise scalar metric.
 
     Args:
-        squared_errors: Tensor ``[time, batch]`` with per-step squared L2 norms.
-        horizon: Horizon length (<= time dimension of squared_errors).
+        per_step_values: Tensor ``[time, batch]`` with one scalar metric per
+            step and initial condition.
+        horizon: Horizon length (<= time dimension of per_step_values).
 
     Returns:
         Tuple ``(mean, std, per_ic, num_valid)`` where *per_ic* is a list of the
-        per-initial-condition MSE values used for aggregation.
+        per-initial-condition metric values used for aggregation.
     """
 
-    horizon = min(horizon, squared_errors.size(0))
-    horizon_errors = squared_errors[:horizon]
+    horizon = min(horizon, per_step_values.size(0))
+    horizon_errors = per_step_values[:horizon]
 
     # Average over time, ignoring NaNs (exploding rollouts)
     per_ic = torch.nanmean(horizon_errors, dim=0)
@@ -175,12 +177,12 @@ def _compute_horizon_mse(
     return mean, std, valid_errors.tolist(), int(valid_mask.sum().item())
 
 
-def _cumulative_mse_curve(squared_errors: torch.Tensor) -> List[float]:
+def _cumulative_mse_curve(per_step_values: torch.Tensor) -> List[float]:
     """Compute cumulative MSE curve averaged across initial conditions."""
 
-    time_steps = squared_errors.size(0)
-    steps = torch.arange(1, time_steps + 1, dtype=torch.float32, device=squared_errors.device)
-    cumulative = torch.cumsum(squared_errors, dim=0)
+    time_steps = per_step_values.size(0)
+    steps = torch.arange(1, time_steps + 1, dtype=torch.float32, device=per_step_values.device)
+    cumulative = torch.cumsum(per_step_values, dim=0)
     with torch.no_grad():
         curve = torch.nanmean(cumulative / steps.view(-1, 1), dim=1)
     return curve.cpu().tolist()
@@ -1097,11 +1099,21 @@ def evaluate_model(
         for mode_name, pred in predictions.items():
             pred_cpu = pred.detach().cpu().float()
 
-            per_step_error = torch.norm(pred_cpu - true_future_cpu, dim=-1).mean(dim=1)
+            obs_dim = max(1, int(true_future_cpu.shape[-1]))
+            obs_dim_sqrt = math.sqrt(float(obs_dim))
+
+            l2_error = torch.norm(pred_cpu - true_future_cpu, dim=-1)
+            per_step_error = l2_error.mean(dim=1)
             per_step_errors[mode_name] = per_step_error
+            per_step_error_per_dim = (l2_error / obs_dim_sqrt).mean(dim=1)
 
             squared_diff = torch.sum((pred_cpu - true_future_cpu) ** 2, dim=-1)
             squared_diff = torch.where(torch.isfinite(squared_diff), squared_diff, torch.nan)
+            squared_diff_per_dim = squared_diff / float(obs_dim)
+            squared_diff_per_dim = torch.where(
+                torch.isfinite(squared_diff_per_dim), squared_diff_per_dim, torch.nan
+            )
+            l2_error_per_dim = torch.where(torch.isfinite(l2_error), l2_error / obs_dim_sqrt, torch.nan)
 
             horizons_metrics = {}
             for horizon in settings.horizons:
@@ -1109,12 +1121,26 @@ def evaluate_model(
                     # Skip 1000-step metric for parabolic attractor
                     continue
 
-                mean, std, per_ic, num_valid = _compute_horizon_mse(squared_diff, horizon)
+                mean, std, per_ic, num_valid = _compute_horizon_metric_stats(squared_diff, horizon)
+                per_dim_mean, per_dim_std, per_dim_ic, per_dim_num_valid = _compute_horizon_metric_stats(
+                    squared_diff_per_dim, horizon
+                )
+                rmse_per_dim_mean, rmse_per_dim_std, rmse_per_dim_ic, rmse_per_dim_num_valid = (
+                    _compute_horizon_metric_stats(l2_error_per_dim, horizon)
+                )
                 horizons_metrics[str(horizon)] = {
                     "mean": mean,
                     "std": std,
                     "num_valid": num_valid,
                     "values": per_ic,
+                    "per_dim_mean": per_dim_mean,
+                    "per_dim_std": per_dim_std,
+                    "per_dim_num_valid": per_dim_num_valid,
+                    "per_dim_values": per_dim_ic,
+                    "rmse_per_dim_mean": rmse_per_dim_mean,
+                    "rmse_per_dim_std": rmse_per_dim_std,
+                    "rmse_per_dim_num_valid": rmse_per_dim_num_valid,
+                    "rmse_per_dim_values": rmse_per_dim_ic,
                 }
 
                 if mode_name.startswith("periodic_") and num_valid > 0:
@@ -1123,6 +1149,9 @@ def evaluate_model(
             mode_metrics[mode_name] = {
                 "horizons": horizons_metrics,
                 "mse_curve": _cumulative_mse_curve(squared_diff),
+                "mse_curve_per_dim": _cumulative_mse_curve(squared_diff_per_dim),
+                "l2_error_curve": per_step_error.cpu().tolist(),
+                "l2_error_curve_per_dim": per_step_error_per_dim.cpu().tolist(),
             }
 
         # Determine best periodic reencoding period per horizon
@@ -1137,9 +1166,13 @@ def evaluate_model(
                 continue
 
             best_mode = min(candidates.items(), key=lambda item: item[1])
+            best_mode_name = best_mode[0]
+            best_horizon_metrics = mode_metrics.get(best_mode_name, {}).get("horizons", {}).get(horizon_key, {})
             best_periodic[horizon_key] = {
-                "mode": best_mode[0],
+                "mode": best_mode_name,
                 "mean": best_mode[1],
+                "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
+                "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
             }
 
         # Save qualitative plots when requested

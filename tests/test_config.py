@@ -7,8 +7,11 @@ import pytest
 
 from skae.config import (
     Config,
+    apply_env_dt_override,
+    canonical_env_name,
     get_config,
     get_default_config,
+    get_env_dt,
     get_train_generic_km_config,
     get_train_lista_config,
     get_train_lista_parity_generic_sparse_config,
@@ -30,6 +33,7 @@ def test_get_default_config():
     assert hasattr(cfg.ENV, "DUFFING")
     assert hasattr(cfg.ENV, "PARABOLIC")
     assert hasattr(cfg.ENV, "MULTIWELL")
+    assert hasattr(cfg.ENV, "BLENDED")
     
     # Check MODEL structure
     assert hasattr(cfg.MODEL, "MODEL_NAME")
@@ -146,6 +150,7 @@ def test_high_dim_env_config_from_dict_roundtrip():
     """High-dimensional benchmark env configs should survive dict roundtrip."""
     cfg = get_default_config()
     cfg.ENV.ENV_NAME = "hopfield"
+    cfg.MODEL.OBS_LOSS_DIM_NORMALIZATION = "dim"
     cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 32
     cfg.ENV.HOPFIELD.NUM_NEURONS = 20
     cfg.ENV.HOPFIELD.NUM_PATTERNS = 5
@@ -157,3 +162,41 @@ def test_high_dim_env_config_from_dict_roundtrip():
     assert loaded.ENV.HOPFIELD.NUM_NEURONS == 20
     assert loaded.ENV.HOPFIELD.NUM_PATTERNS == 5
     assert loaded.ENV.COMPETITIVE_LV.NUM_SPECIES == 12
+    assert loaded.MODEL.OBS_LOSS_DIM_NORMALIZATION == "dim"
+
+
+@pytest.mark.parametrize(
+    ("env_name", "expected"),
+    [
+        ("duffing", "duffing"),
+        ("multiwell:energy", "multiwell"),
+        ("blended", "blended"),
+        ("kuramoto", "kuramoto"),
+        ("dysts:LorenzCoupled", "dysts"),
+        ("LorenzCoupled", "dysts"),
+    ],
+)
+def test_canonical_env_name(env_name, expected):
+    """Environment aliases should normalize to the correct config bucket."""
+    assert canonical_env_name(env_name) == expected
+
+
+@pytest.mark.parametrize(
+    "env_name",
+    [
+        "duffing",
+        "multiwell_rotational",
+        "multiwell:energy",
+        "blended",
+        "kuramoto",
+        "dysts:LorenzCoupled",
+    ],
+)
+def test_apply_env_dt_override_sets_expected_bucket(env_name):
+    """dt overrides should land on the environment config actually used by training."""
+    cfg = get_default_config()
+    cfg.ENV.ENV_NAME = env_name
+
+    apply_env_dt_override(cfg, dt=0.123, env_name=env_name)
+
+    assert get_env_dt(cfg, env_name=env_name) == pytest.approx(0.123)

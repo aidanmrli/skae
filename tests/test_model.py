@@ -351,7 +351,52 @@ class TestGenericKM:
         assert 'sparsity_loss' in metrics
         assert 'A_max_eigenvalue' in metrics
         assert 'sparsity_ratio' in metrics
-    
+
+    @pytest.mark.parametrize(
+        ("norm_mode", "expected_scale", "expected_loss"),
+        [
+            ("none", 1.0, 3.0),
+            ("sqrt_dim", 3.0, 1.0),
+            ("dim", 9.0, 1.0 / 3.0),
+        ],
+    )
+    def test_observation_loss_dim_normalization(self, norm_mode, expected_scale, expected_loss):
+        """Observation-space losses should support configurable dimension normalization."""
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.RES_COEFF = 0.0
+        cfg.MODEL.RECONST_COEFF = 1.0
+        cfg.MODEL.PRED_COEFF = 1.0
+        cfg.MODEL.SPARSITY_COEFF = 0.0
+        cfg.MODEL.OBS_LOSS_DIM_NORMALIZATION = norm_mode
+
+        obs_size = 9
+        model = GenericKM(cfg, obs_size)
+
+        x_pred = torch.ones(2, 1, obs_size)
+        x_true = torch.zeros_like(x_pred)
+        z0 = torch.zeros(2, cfg.MODEL.TARGET_SIZE)
+        z_pred = torch.zeros(2, 1, cfg.MODEL.TARGET_SIZE)
+        z_true = torch.zeros(2, 1, cfg.MODEL.TARGET_SIZE)
+        reconstruction_error = torch.norm(x_true - x_pred, dim=-1).mean()
+
+        loss, metrics = model.loss(
+            x_pred=x_pred,
+            x_true=x_true,
+            z0=z0,
+            z_pred=z_pred,
+            z_true=z_true,
+            reconstruction_error=reconstruction_error,
+            sparsity_latent=z_pred,
+        )
+
+        assert metrics["obs_loss_dim_scale"] == pytest.approx(expected_scale)
+        assert metrics["prediction_loss_raw"] == pytest.approx(3.0)
+        assert metrics["prediction_loss"] == pytest.approx(expected_loss)
+        assert metrics["reconst_loss_raw"] == pytest.approx(3.0)
+        assert metrics["reconst_loss"] == pytest.approx(expected_loss)
+        assert loss.item() == pytest.approx(2.0 * expected_loss)
+
     def test_norm_fn_id(self):
         """Test identity normalization function."""
         cfg = get_config("generic")
