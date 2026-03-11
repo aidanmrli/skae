@@ -2,13 +2,16 @@
 
 ## Documentation Updates
 - Keep `docs/EXPERIMENTS.md` with a short **Current Status Summary** at the very top that states the problem(s) being solved, the solution if found (or the current approach if not), and clearly labels the **outstanding problem**.
+- Keep `docs/PAPER_TRACK_STATUS.md` as the high-level paper-track source of truth for paper claims, wrap-up priorities, and remaining blockers. Use `docs/EXPERIMENTS.md` as the detailed experiment log, and keep the two documents aligned.
 - When new experiment results are produced, document them in this order:
   1. Report the concrete result(s).
   2. Explain the result(s) in the context of the experiment.
   3. Explain how to interpret the result(s).
   4. Explain project implications.
   5. Suggest next steps.
-- After reporting results, update project state in `docs/EXPERIMENTS.md` (at minimum: **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the relevant experiment log entry).
+- After reporting results, update project state in `docs/EXPERIMENTS.md` (at minimum: **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the relevant experiment log entry). If the results affect paper positioning, narrative, or priorities, update `docs/PAPER_TRACK_STATUS.md` in the same pass.
+- Project phase: we are actively trying to wrap up this project and convert the evidence into a publishable top-tier machine learning conference paper, with NeurIPS as the default target venue. Prioritize work that directly strengthens that paper.
+- Current research focus: we are running two main experiment tracks during wrap-up. The first aims to improve block LISTA performance on difficult high-dimensional dynamical systems, especially Kuramoto and Hopfield. The second aims to improve the LISTA encoder so it outperforms, or at least reaches parity with, the `generic_sparse` MLP encoder on most nonlinear dynamical systems in the paper evaluation suite. For both tracks, prioritize in-time prediction and forecasting performance of the Koopman autoencoders.
 - Note: In our intended **training/deployment** setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results for training-time method design.
 - For **evaluation on benchmark systems**, it is acceptable to use known basin counts and basin labels to measure separability/performance.
 - Terminology/goal: prioritize **basin-support alignment** (each basin maps to a unique sparse support in latent `z`). Do not treat basin-block alignment as the primary objective unless explicitly required by a specific experiment.

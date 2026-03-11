@@ -12,20 +12,32 @@ We want to induce structured sparsity on the Koopman matrix such that each basin
 
 If this is true, we can isolate each basin and solve with LQR. Then, a nonlinear control problem over multiple basins of attraction reduces to solving linear Koopman dynamics within each basin using LQR, and modeling the changes between basins. We hypothesize that our periodic reencoding mechanism at inference time where we encode and immediately decode an input might be a good mechanism for modeling changes between basins.
 
-More detailed notes about the project are in `docs/notes.tex`, which contains the working draft of the research paper that we will publish and contains any annotated notes. This essentially contains the current state of the project.
+The repository is now in a project wrap-up phase. The immediate objective is to finish the empirical and narrative work needed for a publishable top-tier machine learning conference paper, with NeurIPS as the default target venue.
 
-IMPORTANT NOTE: After any changes that we make to the framework or experiments that we run, we should ALWAYS
-* update `docs/notes.tex` by describing the experiment that was ran, and the results of the experiment. Also, interpret the results of the experiment in context if possible. When writing, carefully discern what has been implemented and explain it to me thoroughly. Check all the math. The tone of your writing should be academic and appropriate for an audience specializing in mathematics and machine learning. The writing should be for an award-winning paper at NeurIPS or ICML. Do not make any explicit references to code or filenames. Focus on explaining well in a scientific manner so that a reader can understand and reproduce the results.
+The current wrap-up effort has two main experiment tracks. One track is focused on improving block LISTA performance on difficult high-dimensional dynamical systems, especially Kuramoto and Hopfield. The other track is focused on improving the LISTA encoder so it outperforms, or at least reaches parity with, the `generic_sparse` MLP encoder on most nonlinear dynamical systems in the paper evaluation suite. Across both tracks, the primary empirical targets are in-time prediction and forecasting performance of the Koopman autoencoders.
+
+Use the documentation stack this way:
+- `docs/PAPER_TRACK_STATUS.md`: high-level paper-track source of truth for claims, priorities, and remaining blockers
+- `docs/EXPERIMENTS.md`: detailed experiment log and queue/state ledger
+- `docs/notes.tex`: manuscript draft and deeper technical write-up
+
+IMPORTANT NOTE: After any framework change or experiment result, we should ALWAYS
+* update `docs/PAPER_TRACK_STATUS.md` when the result changes the paper claim, paper priority, risk assessment, or wrap-up plan.
+* update `docs/EXPERIMENTS.md` by describing the experiment that was run, the results, and their interpretation in context.
+* update `docs/notes.tex` when the manuscript narrative, math, or empirical claims need to change. When writing, carefully discern what has been implemented and explain it thoroughly. Check all the math. The tone should be academic and appropriate for an audience specializing in mathematics and machine learning. The writing should be suitable for an award-winning paper at NeurIPS or ICML. Do not make any explicit references to code or filenames. Focus on explaining the work scientifically so that a reader can understand and reproduce the results.
 
 ## Documentation Updates
 - Keep `docs/EXPERIMENTS.md` with a short **Current Status Summary** at the very top that states the problem(s) being solved, the solution if found (or the current approach if not), and clearly labels the **outstanding problem**.
+- Keep `docs/PAPER_TRACK_STATUS.md` as the high-level paper-track source of truth for project status, paper claims, wrap-up priorities, and open risks. Keep it aligned with `docs/EXPERIMENTS.md`.
 - When new experiment results are produced, report and write them in this sequence:
   1. Report the concrete result(s).
   2. Explain the result(s) in the context of the experiment design/question.
   3. State the interpretation of the result(s).
   4. State implications for the overall project direction.
   5. Propose next steps.
-- After reporting any results, update the project state in `docs/EXPERIMENTS.md` (including **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the corresponding experiment entry).
+- After reporting any results, update the project state in `docs/EXPERIMENTS.md` (including **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the corresponding experiment entry). If the results change paper positioning or the execution plan, update `docs/PAPER_TRACK_STATUS.md` in the same pass.
+- Project phase: prioritize work that helps close the project and produce a publishable NeurIPS-caliber paper over open-ended exploratory work.
+- Current research focus: prioritize the two active wrap-up experiment tracks. First, improve block LISTA performance on difficult high-dimensional systems such as Kuramoto and Hopfield. Second, improve the LISTA encoder so it outperforms, or at least reaches parity with, the `generic_sparse` MLP encoder on most nonlinear systems in the paper evaluation suite. For both tracks, emphasize in-time prediction and forecasting performance.
 - Note: In our intended **training/deployment** setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results for training-time method design.
 - For **evaluation on benchmark systems**, it is acceptable to use known basin counts and basin labels to measure separability/performance.
 - Terminology/goal: prioritize **basin-support alignment** (each basin maps to a unique sparse support in latent `z`). Do not treat basin-block alignment as the primary objective unless explicitly required by a specific experiment.
