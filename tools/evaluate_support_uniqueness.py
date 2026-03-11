@@ -8,6 +8,7 @@ activate different sets of latent coordinates?
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
@@ -19,7 +20,7 @@ import torch
 from skae.config import Config
 from skae.data import make_env
 from skae.model import make_model
-from skae.basin_utils import BasinLabeledDataset, BasinLabeledTrajectory
+from skae.basin_utils import BasinLabeledDataset
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +43,17 @@ class SupportUniquenessResults:
     mean_basin_consistency: float
     mean_mode_support_size: float
     mean_pairwise_jaccard: float
+    sampling_strategy: str = "random"
+    raw_basin_labels: List[int] = field(default_factory=list)
+    raw_to_mapped_label: Dict[int, int] = field(default_factory=dict)
+    raw_basin_distribution: Dict[int, int] = field(default_factory=dict)
+    mapped_basin_distribution: Dict[int, int] = field(default_factory=dict)
+    trajectory_unique_support_count: int = 0
+    trajectory_unique_support_rate: float = 0.0
+    mean_trajectory_support_size: float = 0.0
+    mean_within_basin_hamming: float = 0.0
+    mean_between_basin_hamming: float = 0.0
+    between_over_within_hamming_ratio: float = 0.0
     # Cosine similarity metrics (threshold-free)
     mean_intra_basin_cosine: float = 0.0
     mean_inter_basin_cosine: float = 0.0
@@ -49,6 +61,11 @@ class SupportUniquenessResults:
     per_basin_consistency: Dict[int, float] = field(default_factory=dict)
     per_basin_support_size: Dict[int, float] = field(default_factory=dict)
     per_basin_active_indices: Dict[int, List[int]] = field(default_factory=dict)
+    per_basin_mode_count: Dict[int, int] = field(default_factory=dict)
+    per_basin_mode_frequency: Dict[int, float] = field(default_factory=dict)
+    per_basin_unique_support_count: Dict[int, int] = field(default_factory=dict)
+    per_basin_num_trajectories: Dict[int, int] = field(default_factory=dict)
+    per_basin_mode_tie_count: Dict[int, int] = field(default_factory=dict)
 
 
 def _support_from_latents(
@@ -68,6 +85,10 @@ def _support_from_latents(
     elif mode == "majority":
         votes = (latents.abs() > threshold).float().mean(dim=0)
         support = (votes > 0.5).cpu().numpy()
+    elif mode == "modal":
+        supports = (latents.abs() > threshold).cpu().numpy().astype(np.int8)
+        support_tuples = [tuple(row.tolist()) for row in supports]
+        support = np.array(Counter(support_tuples).most_common(1)[0][0], dtype=np.int8)
     else:
         raise ValueError(f"Unknown support mode '{mode}'")
     return support.astype(np.int8)
@@ -100,6 +121,10 @@ def _cosine(a: np.ndarray, b: np.ndarray) -> float:
     if na < 1e-12 or nb < 1e-12:
         return 0.0
     return float(np.dot(a, b) / (na * nb))
+
+
+def _hamming(a: np.ndarray, b: np.ndarray) -> int:
+    return int(np.not_equal(a, b).sum())
 
 
 def _compute_cosine_metrics(
@@ -294,32 +319,55 @@ def compute_support_uniqueness(
 ) -> SupportUniquenessResults:
     model.eval()
     basin_supports: Dict[int, List[Tuple[int, ...]]] = {b: [] for b in range(dataset.num_basins)}
+    trajectory_support_tuples: List[Tuple[int, ...]] = []
+    trajectory_support_arrays: List[np.ndarray] = []
+    basin_ids: List[int] = []
 
     with torch.no_grad():
         for traj in dataset.trajectories:
             states = traj.states.to(device)
             z = model.encode(states)
             support = _support_from_latents(z, support_threshold, support_mode)
-            basin_supports[traj.final_basin].append(tuple(support.tolist()))
+            support_tuple = tuple(support.tolist())
+            basin_supports[traj.final_basin].append(support_tuple)
+            trajectory_support_tuples.append(support_tuple)
+            trajectory_support_arrays.append(support)
+            basin_ids.append(traj.final_basin)
 
     # Mode support per basin + consistency
     per_basin_consistency: Dict[int, float] = {}
     per_basin_support_size: Dict[int, float] = {}
     per_basin_active_indices: Dict[int, List[int]] = {}
+    per_basin_mode_count: Dict[int, int] = {}
+    per_basin_mode_frequency: Dict[int, float] = {}
+    per_basin_unique_support_count: Dict[int, int] = {}
+    per_basin_num_trajectories: Dict[int, int] = {}
+    per_basin_mode_tie_count: Dict[int, int] = {}
     basin_mode_supports: Dict[int, Tuple[int, ...]] = {}
     for basin, supports in basin_supports.items():
+        per_basin_num_trajectories[basin] = len(supports)
         if not supports:
             per_basin_consistency[basin] = 0.0
             per_basin_support_size[basin] = 0.0
+            per_basin_mode_count[basin] = 0
+            per_basin_mode_frequency[basin] = 0.0
+            per_basin_unique_support_count[basin] = 0
+            per_basin_mode_tie_count[basin] = 0
             continue
-        counts: Dict[Tuple[int, ...], int] = {}
-        for s in supports:
-            counts[s] = counts.get(s, 0) + 1
-        mode_support, mode_count = max(counts.items(), key=lambda kv: kv[1])
+        counts = Counter(supports)
+        mode_count = max(counts.values())
+        tied_mode_supports = sorted(
+            support for support, count in counts.items() if count == mode_count
+        )
+        mode_support = tied_mode_supports[0]
         basin_mode_supports[basin] = mode_support
         per_basin_consistency[basin] = mode_count / max(1, len(supports))
         per_basin_support_size[basin] = float(np.sum(mode_support))
         per_basin_active_indices[basin] = [i for i, v in enumerate(mode_support) if v == 1]
+        per_basin_mode_count[basin] = int(mode_count)
+        per_basin_mode_frequency[basin] = float(mode_count / len(supports))
+        per_basin_unique_support_count[basin] = len(counts)
+        per_basin_mode_tie_count[basin] = len(tied_mode_supports)
 
     # Uniqueness across basins
     mode_support_list = list(basin_mode_supports.values())
@@ -342,6 +390,34 @@ def compute_support_uniqueness(
     # Aggregate stats
     mean_consistency = float(np.mean(list(per_basin_consistency.values()))) if per_basin_consistency else 0.0
     mean_support_size = float(np.mean(list(per_basin_support_size.values()))) if per_basin_support_size else 0.0
+    trajectory_unique_support_count = len(set(trajectory_support_tuples))
+    trajectory_unique_support_rate = (
+        float(trajectory_unique_support_count / len(trajectory_support_tuples))
+        if trajectory_support_tuples
+        else 0.0
+    )
+    mean_trajectory_support_size = (
+        float(np.mean([np.sum(support) for support in trajectory_support_arrays]))
+        if trajectory_support_arrays
+        else 0.0
+    )
+
+    within_hamming = []
+    between_hamming = []
+    for i, support_i in enumerate(trajectory_support_arrays):
+        for j in range(i + 1, len(trajectory_support_arrays)):
+            distance = _hamming(support_i, trajectory_support_arrays[j])
+            if basin_ids[i] == basin_ids[j]:
+                within_hamming.append(distance)
+            else:
+                between_hamming.append(distance)
+    mean_within_hamming = float(np.mean(within_hamming)) if within_hamming else 0.0
+    mean_between_hamming = float(np.mean(between_hamming)) if between_hamming else 0.0
+    between_over_within_hamming_ratio = (
+        float(mean_between_hamming / mean_within_hamming)
+        if mean_within_hamming > 0
+        else 0.0
+    )
 
     return SupportUniquenessResults(
         system_name=dataset.system,
@@ -357,10 +433,32 @@ def compute_support_uniqueness(
         mean_basin_consistency=mean_consistency,
         mean_mode_support_size=mean_support_size,
         mean_pairwise_jaccard=mean_jaccard,
+        sampling_strategy=dataset.sampling_strategy,
+        raw_basin_labels=list(dataset.raw_basin_labels),
+        raw_to_mapped_label=dict(dataset.raw_to_mapped_label),
+        raw_basin_distribution=dict(dataset.raw_basin_distribution),
+        mapped_basin_distribution=dict(dataset.mapped_basin_distribution),
+        trajectory_unique_support_count=trajectory_unique_support_count,
+        trajectory_unique_support_rate=trajectory_unique_support_rate,
+        mean_trajectory_support_size=mean_trajectory_support_size,
+        mean_within_basin_hamming=mean_within_hamming,
+        mean_between_basin_hamming=mean_between_hamming,
+        between_over_within_hamming_ratio=between_over_within_hamming_ratio,
         per_basin_consistency=per_basin_consistency,
         per_basin_support_size=per_basin_support_size,
         per_basin_active_indices=per_basin_active_indices,
+        per_basin_mode_count=per_basin_mode_count,
+        per_basin_mode_frequency=per_basin_mode_frequency,
+        per_basin_unique_support_count=per_basin_unique_support_count,
+        per_basin_num_trajectories=per_basin_num_trajectories,
+        per_basin_mode_tie_count=per_basin_mode_tie_count,
     )
+
+
+def _parse_csv_ints(raw: str | None) -> List[int]:
+    if raw is None:
+        return []
+    return [int(value.strip()) for value in raw.split(",") if value.strip()]
 
 
 # ---------------------------------------------------------------------------
@@ -385,8 +483,17 @@ def main():
     parser.add_argument('--support_threshold', type=float, default=1e-3,
                         help='Threshold for nonzero support')
     parser.add_argument('--support_mode', type=str, default='mean',
-                        choices=['mean', 'last', 'median', 'majority'],
+                        choices=['mean', 'last', 'median', 'majority', 'modal'],
                         help='How to aggregate support over a trajectory')
+    parser.add_argument('--sampling_strategy', type=str, default='random',
+                        choices=['random', 'balanced'],
+                        help='How to sample basin-labeled trajectories')
+    parser.add_argument('--target_raw_labels_csv', type=str, default='',
+                        help='Comma-separated raw basin labels to target for balanced sampling')
+    parser.add_argument('--trajectories_per_basin', type=int, default=None,
+                        help='Per-basin quota for balanced sampling')
+    parser.add_argument('--max_attempts', type=int, default=None,
+                        help='Maximum trajectory attempts when balanced sampling is enabled')
     parser.add_argument('--cosine_aggregation', type=str, default='mean',
                         choices=['mean', 'median', 'mean_abs'],
                         help='Aggregation for cosine similarity metrics')
@@ -437,6 +544,10 @@ def main():
         trajectory_length=args.trajectory_length,
         long_rollout_steps=args.long_rollout_steps,
         seed=args.seed,
+        sampling_strategy=args.sampling_strategy,
+        target_raw_labels=_parse_csv_ints(args.target_raw_labels_csv),
+        trajectories_per_basin=args.trajectories_per_basin,
+        max_attempts=args.max_attempts,
     )
 
     # Cosine similarity metrics (threshold-free)
@@ -526,6 +637,14 @@ def main():
         print(f"  Mean basin consistency: {results.mean_basin_consistency:.3f}")
         print(f"  Mean mode support size: {results.mean_mode_support_size:.1f}")
         print(f"  Mean pairwise Jaccard: {results.mean_pairwise_jaccard:.3f}")
+        print(
+            f"  Trajectory-unique supports: {results.trajectory_unique_support_count}/"
+            f"{results.num_trajectories}"
+        )
+        print(
+            f"  Hamming ratio (between/within): "
+            f"{results.between_over_within_hamming_ratio:.3f}"
+        )
         print(f"\nSaved results to {results_path}")
 
     # Always save cosine metrics
@@ -533,9 +652,13 @@ def main():
     cosine_payload = {
         "system_name": system,
         "model_name": cfg.MODEL.MODEL_NAME,
-        "num_trajectories": args.num_trajectories,
+        "num_trajectories": len(dataset.trajectories),
         "trajectory_length": args.trajectory_length,
         "long_rollout_steps": args.long_rollout_steps,
+        "sampling_strategy": args.sampling_strategy,
+        "target_raw_labels": _parse_csv_ints(args.target_raw_labels_csv),
+        "trajectories_per_basin": args.trajectories_per_basin,
+        "max_attempts": args.max_attempts,
         "cosine_aggregation": args.cosine_aggregation,
         "cosine_demean": args.cosine_demean,
         "cosine_remove_pc1": args.cosine_remove_pc1,
