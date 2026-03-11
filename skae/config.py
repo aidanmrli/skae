@@ -238,7 +238,7 @@ class CompetitiveLVConfig:
     NUM_SPECIES: int = 10
     INTERACTION_MODE: str = "symmetric"  # ["symmetric", "asymmetric", "block_diagonal"]
     R_MODE: str = "uniform"  # ["uniform", "heterogeneous"]
-    INTERACTION_SCALE: float = 0.35
+    INTERACTION_SCALE: float = 0.70
     POSITIVITY_CLIP: bool = True
     SURVIVAL_THRESHOLD: float = 1e-3
     INIT_MIN: float = 0.05
