@@ -1,12 +1,13 @@
 # Experiments (Core)
 
-Date: March 9, 2026
+Date: March 11, 2026
 
 ## Current Status Summary
 
 Paper-track directive:
 - `docs/PAPER_TRACK_STATUS.md` is the high-level source of truth for paper-facing claims, wrap-up priorities, and remaining blockers.
 - This file remains the detailed experiment ledger that backs the paper-track view.
+- The active paper follow-up execution plan is now coordinated in [docs/planning/paper_parallel_workstreams_20260309.md](/home/mila/l/lia/skae/docs/planning/paper_parallel_workstreams_20260309.md). Treat that file as the current source of truth for the next batch of paper-strengthening experiments and per-agent status logs.
 
 Wrap-up objective:
 - We are actively pushing to wrap up the project and convert the current evidence into a publishable top-tier machine learning conference paper, with NeurIPS as the default target venue.
@@ -20,8 +21,13 @@ Assumption split:
 
 What we now know (high-confidence):
 - Basin-support uniqueness is achievable at sufficient latent capacity (typically `target_size >= 256`), and cosine-based diagnostics are the reliable primary metric.
+- The broad labelable-system `v4` support audit is now complete under `results/paper_benchmark_support_alignment_20260311_v4_labelable`: binary mode-support uniqueness saturates (`44/44` system-root medians have `mode_uniqueness_rate=1.0`), so it is not a useful cross-system paper metric. Cosine separation remains informative: multiwell systems are positive, Duffing and Kuramoto are negative, and Hopfield shows continuous separation without stable discrete support reuse.
+- The direct Kuramoto unique-mode-support audit is now **complete** under `results/kuramoto_mode_support_audit_20260310/` with summary at `/network/scratch/l/lia/skae/kuramoto_mode_support_audit_20260310/summary/kuramoto_mode_support_audit_summary.md`. All `30/30` array tasks completed, collector `8922717` completed, balanced probe `8922718_1` timed out (non-critical: the main array covers both `random` and `balanced` sampling). **Result: the strong negative claim holds.** Mode-support uniqueness is trivially degenerate across all 3 model families, all 5 seeds, both sampling protocols, all support definitions, and all thresholds tested. Every trajectory has its own unique support (`traj_unique_rate=1.0`), mode supports are singletons (`all_mode_counts_ge_2=no`), basin consistency is negligible (`0.0625` balanced / `0.309` random), and Hamming geometry is flat (`ratio≈1.0`). Kuramoto winding-number basins do not have meaningful basin-specific support patterns under any tested model family or evaluation protocol.
 - Long-horizon behavior tracks spectral radius: `SR < 1` is generally bounded; `SR > 1` is generally unstable.
-- The canonical **research-paper benchmark** is now locked to `target_size=256`, `sequence_length=8`, `batch_size=256`, `num_steps=50000`, `seeds={0,1,2}` across `29` systems and `4` baselines (`generic_sparse`, dense LISTA, diagonal-K LISTA, block-diagonal-K LISTA).
+- New paper-blocking fairness requirement (March 11): every paper-facing experiment that uses `lista_blockdiag` must also include a matched `generic_sparse + block_diagonal K` control. Current block-diagonal comparisons are still useful as end-to-end model results, but they do not isolate Koopman structure because `GenericKM` currently forces dense `K`. Execution plan: [docs/planning/generic_sparse_blockdiag_fairness_plan_20260311.md](/home/mila/l/lia/skae/docs/planning/generic_sparse_blockdiag_fairness_plan_20260311.md).
+- Diagonal policy (March 11): retire `lista_diagonal` from active paper scope. Keep the existing diagonal-K results only as historical context; do not spend more queue budget on diagonal reruns, and do not include diagonal in future paper-facing rebuilds.
+- A targeted Hopfield mechanism sweep is now live on SLURM under `results/hopfield_basin_sweep_n64_dt00625_200k_20260310/` with wrapper `8922497`, array `8922498_[0-44]`, collector `8922499`, and comparison `8922500`; as of the latest SLURM check, all `45/45` array tasks are running. This sweep tests whether increasing stored-pattern count can create a regime where dense LISTA and block-diagonal LISTA beat the MLP baseline on periodic-reencoding forecasting. This is a system-design probe, not a replacement for the canonical paper benchmark.
+- The canonical **research-paper benchmark** uses `target_size=256`, `sequence_length=8`, `batch_size=256`, `seeds={0,1,2}` across `29` systems. The **primary paper results** are at `num_steps=200000` (`results/paper_followup_recipes_200k_20260309`), with `generic_sparse_ns200k_best` as the anchor. The earlier `50k` `v4` matrix is retained as a historical symmetric four-model audit.
 - The paper benchmark infrastructure is now reproducible end-to-end: per-system `dt` overrides are supported in config/training, mixed-root forecasting collection records `env_dt`, and the `generic_sparse` anchor can drive `dt` rescue using the `H1000` every-step per-dim gate.
 - The first fully collected paper-benchmark matrix (`v3`) finished `347/348` rows at default `dt`, and it remains a useful provisional default-`dt` audit only: `generic_sparse` is strongest at `H1000` (`0.0251` vs `0.0648` dense LISTA, `0.1619` block LISTA, `1.1417` diagonal-K LISTA).
 - The corrected paper-benchmark rerun (`v4`) is now complete under `results/paper_benchmark_20260307_paper_final_ts256_50k_v4`; rescue passes `1/2`, the final `348`-task full matrix, final collection, and final comparison all finished overnight on March 8, 2026.
@@ -68,14 +74,33 @@ What we now know (high-confidence):
   - interpretation:
     - a single fair dense-LISTA external recipe is now promotable without changing architecture or `dt`
     - dense LISTA still does not dominate `generic_sparse`, but it now has a publication-grade parity narrative on the targeted easy subset
-  - project implication:
-    - the dense thread is no longer blocked by recipe ambiguity; the full `29`-system rerun of the promoted `200k, sc=0.003` recipe is now queued under `results/dense_lista_paper_rerun_stage4_20260309`
+- The promoted dense-LISTA full `29`-system rerun is now complete under `results/dense_lista_paper_rerun_stage4_20260309`:
+  - same dense LISTA architecture, promoted Stage-3 recipe, and benchmark-selected pass-2 `dt`
+  - compared against the fixed `generic_sparse` `v4` anchor, dense LISTA wins `21/29` shared systems with median dense/generic ratio `0.6455`
+  - cross-system median `H1000` best-periodic improves from `0.0328` to `0.0232`
+  - good-system count improves from `25/29` to `26/29`
+  - there are `0` systems where the promoted dense recipe fails the good-forecast band while `generic_sparse` passes
+  - the remaining dense failures are still concentrated on the hard systems, especially `kuramoto` (`48.50`), `hopfield` (`1.578e+06`), and `multiwell_strong_transition_hd` (`4.533e+04`)
+  - interpretation:
+    - the dense thread is no longer blocked by pending reruns; the fixed-recipe parity claim is now backed by a full-benchmark follow-up
+    - this result materially strengthens the dense-LISTA paper story, but it does not replace the symmetric `v4` matrix as the canonical all-model benchmark because only the dense arm changed
+- The paper follow-up recipe rerun is now complete under `results/paper_followup_recipes_200k_20260309`:
+  - concrete result:
+    - the full `200k` collector and all comparison artifacts were generated on March 9, 2026, so the `50k` vs `200k` fairness hole is now closed
+    - `generic_sparse_ns200k_best` is the best full-benchmark root by cross-system median `H1000` best-periodic (`0.0208`), ahead of promoted dense Stage 4 (`0.0232`) and canonical `v4` `generic_sparse` (`0.0328`)
+    - versus canonical `generic_sparse`, `generic_sparse_ns200k_best` wins `19/29` systems with median ratio `0.8323`, but the good-system count stays `25/29` and catastrophic systems rise from `2` to `3`
+    - promoted dense Stage 4 still wins `18/29` systems versus `generic_sparse_ns200k_best`, keeps the better good-system count (`26/29` vs `25/29`), and has `0` systems where dense fails while the fair `200k` `generic_sparse` rerun passes
+    - the dense-optimizer block-diagonal follow-ups do not recover global parity: `lista_blockdiag_ns200k_denseopt_sc3em3` wins `7/29` vs `generic_sparse_ns200k_best` with median ratio `4.0114`, and `lista_blockdiag_ns200k_denseopt_sc6em3` wins `5/29` with median ratio `3.0644`
+  - interpretation:
+    - `generic_sparse` remains the overall paper anchor once matched at `200k`
+    - dense LISTA remains the strongest cross-system LISTA result, but the paper story now has to separate “best overall median” from “wins more systems / keeps more systems in-band”
+    - dense-optimizer transfer to block-diagonal LISTA is a negative global result even though it repairs a small number of hard transition systems
 - The repaired `dt` resolution is now complete through pass `2`: `15/29` systems accept default `dt`, `4/29` accept after at least one halving, and `10/29` remain `integration_hard`. The queueing blocker is gone, but the step-size/integration bottleneck remains real.
 - The hardest intrinsic-HD systems are still the main blockers even at the selected smaller `dt=0.0125`:
   - `kuramoto`: `generic_sparse=65.70`, `lista_blockdiag=14.26`, dense LISTA=`35.23` (`H1000` system-median best-periodic)
   - `hopfield`: `generic_sparse=199.50`, `lista_blockdiag=280.42`, dense LISTA=`7.241e+09`
 - For the current LISTA-family recovery phase (`lista_dense`, `lista_blockdiag`, HyperLISTA), the primary optimization target is long-horizon forecasting robustness; sparsity/support calibration is a secondary diagnostic until forecasting improves.
-- Dense LISTA is now the strongest cross-system LISTA baseline, but `lista_blockdiag` remains the only LISTA-family candidate worth carrying forward on the hardest intrinsic-HD systems.
+- Dense LISTA remains the strongest cross-system LISTA reference, but the fair `200k` rerun shows it no longer has the best overall median once `generic_sparse` is matched at `200k`; `lista_blockdiag` remains the only LISTA-family candidate worth carrying forward on the hardest intrinsic-HD systems.
 - On `duffing`, `L=8` training is superior for both `generic_sparse` and LISTA given that the model trains long enough. Use at least 20000 steps for training to draw definitive conclusions.
 - On `duffing`, controlled 50k training with coefficient-matched arms (Experiment K) did **not** close the LISTA-vs-generic_sparse gap; `generic_sparse` remains best across all seeds and reported horizons.
 - The intrinsic-HD `L=8`, `TARGET_SIZE=256` baseline with current env defaults (`kuramoto=16`, `hopfield=16`, `competitive_lv=10`) is now complete for `generic_sparse`, dense LISTA, and block-diagonal LISTA:
@@ -115,17 +140,165 @@ What we now know (high-confidence):
   - interpretation:
     - the stronger Kuramoto result survives a stricter `N=32` confirmation
     - the hard-system story is now more about step size and periodic reencoding than about a universal architecture win
-- A dedicated Kuramoto dimension sweep is now queued under `results/kuramoto_dimension_sweep_dt00625_200k_20260309`:
+- The Kuramoto dimension sweep is now complete under `results/kuramoto_dimension_sweep_dt00625_200k_20260309`:
   - dimensions: `N in {8,16,24,32,64}`
   - models: `generic_sparse`, promoted dense LISTA, `lista_blockdiag`
   - fixed setting: `dt=0.00625`, `num_steps=200000`, `seeds={0,1,2,3,4}`
-  - purpose:
-    - test whether the smaller-`dt`, longer-training Kuramoto rescue actually scales with dimension
-    - measure whether the promoted dense-LISTA recipe transfers to the oscillator setting as dimension grows
+  - `H1000` seed-median best-periodic by `N`:
+    - `generic_sparse`: `813.57`, `30.18`, `6.71`, `6.68`, `208.93`
+    - promoted dense LISTA: `495.07`, `13.44`, `15.01`, `92.28`, `208.71`
+    - `lista_blockdiag`: `8.11`, `7.07`, `6.57`, `5.92`, `23.27`
+  - `lista_blockdiag` is all-seeds-good at `N=16/24/32`, median-good but not fully robust at `N=8` (`4/5` good seeds), and no longer in-band at `N=64` (`2/5` good seeds)
+  - interpretation:
+    - the smaller-`dt`, longer-training Kuramoto rescue is now a moderate-dimension block-diagonal result with an explicit scaling limit at `N=64`
+    - the promoted dense-LISTA recipe does not transfer as a robust Kuramoto solution
 - A diagnostic recollection from `evaluation_results_last.json` shows checkpoint-selection misalignment on Kuramoto:
   - for `lista_blockdiag`, `dt=0.0125`, system-median `H1000` best-periodic improves from `23.40` to `14.64` when switching from the validation-selected checkpoint to the last checkpoint across the focused pilot grid
   - on the winning `lista_blockdiag`, `dt=0.0125`, `sp=0.0005` arm, the last-checkpoint median is `13.91`
   - this is a diagnostic, not yet the official paper metric, but it shows late training can still help on Kuramoto
+- **More seeds on headline positives (Subagent D, completed March 10):**
+  - low-dimensional `5`-seed extension confirms the prior `3`-seed headline: `generic_sparse_ns200k_best` median `H1000` best-periodic `0.0233`, `lista_dense_promoted_stage4` median `0.0232`, dense wins `18/29` systems, dense keeps `26/29` good vs `25/29` for generic
+  - Kuramoto `N=16` `7`-seed extension strengthens the block-diagonal headline: `lista_blockdiag` seed-median `6.98` with all `7` seeds good (range `6.82–7.20`), `generic_sparse` `30.18`, `lista_dense` `16.39`
+  - Kuramoto `N=32` `5`-seed confirmation completed; see full entry below
+- **Kuramoto N=32 more seeds (Subagent D, completed March 10):**
+  - seeds `3,4` for `generic_sparse` and `lista_blockdiag` completed
+  - `3`-seed result: `lista_blockdiag` median `H1000` best-periodic `6.00` (range `5.79–6.58`, std `0.33`), `generic_sparse` median `6.65` (range `6.62–8.09`)
+  - both models have all seeds good; marginal block-diagonal edge (ratio `0.90`)
+  - primary audit files: `results/paper_parallel_20260309_d_kuramoto_n32_more_seeds/compare/lista_blockdiag_vs_generic_sparse/forecasting_comparison.md`
+- **Kuramoto robustness — uniform frequency spread (Subagent E, completed March 10):**
+  - Kuramoto `N=16`, `dt=0.00625`, `200k`, `5` seeds with uniform frequency spread (heterogeneous natural frequencies)
+  - `lista_blockdiag`: seed-median `H1000` best-periodic `9.53` (4/5 seeds good, std `0.64`)
+  - `generic_sparse`: seed-median `H1000` best-periodic `44.46` (0/5 seeds good)
+  - `lista_blockdiag` achieves `4.7x` improvement (ratio `0.214`) and is the only model that passes the good-forecast band
+  - every-step errors remain catastrophic for `lista_blockdiag` (`1.5e34`) — periodic re-encoding is essential
+  - interpretation: the Kuramoto block-diagonal win is not a single-regime artifact; it survives frequency heterogeneity
+  - primary audit files: `results/paper_parallel_20260309_e_kuramoto_uniform_spread_n16_dt0p00625_20260309/compare/lista_blockdiag_uniform_spread_vs_generic_sparse_uniform_spread/forecasting_comparison.md`
+- **Label-free clustering v1 (Subagent H, completed March 10) — methodology limitation, not a negative result:**
+  - protocol: encode each trajectory → average over all timesteps → cosine normalize → k-means with oracle cluster count → score vs basin labels
+  - systems evaluated: `duffing` (2 basins), `competitive_lv` (1 observed basin), `kuramoto` (5 basins)
+  - results:
+    - `duffing`: ARI=`0.134`, NMI=`0.104`, purity=`0.688`, linear_acc=`0.679` — all three models give **exactly identical** scores (to 15+ decimal places)
+    - `competitive_lv`: ARI=`1.0` trivially (only 1 basin observed)
+    - `kuramoto`: ARI≈`0` for all models (generic `0.009`, dense `-0.016`, blockdiag `-0.001`); purity=`0.60`, linear_acc=`0.625`
+  - interpretation:
+    - the v1 clustering protocol has three methodology limitations: (1) trajectory-mean averaging washes out per-timestep support structure that is already confirmed to exist (Duffing 2/2 unique supports, Lyapunov 13/13 at TS>=256), (2) cosine k-means in 256 dimensions with 128 points suffers from concentration of measure, and (3) only the `cosine` feature view was tested while the code supports `support` views
+    - the identical Duffing scores across all three architectures confirm that the feature extraction protocol (not the encoder) is the bottleneck
+    - this is a methodology limitation, not a negative result on basin-support separability — per-timestep support uniqueness is well-established by `evaluate_support_uniqueness.py`
+    - **follow-up:** label-free clustering v2 (below) addresses all three limitations
+  - primary audit files: `/network/scratch/l/lia/skae/paper_parallel_20260309_h_label_free_clustering/summary/label_free_clustering_summary.md`
+- **Label-free clustering v2 (completed March 10):**
+  - revised evaluation addressing all v1 methodology limitations
+  - completed on array `8919951` with collector `8919952`
+  - systems: `duffing` (2 basins), `multiwell_energy/gradient/rotational` + HD variants + `strong_transition` variants (5 basins each), `kuramoto` (winding-number basins)
+  - models: `generic_sparse`, `lista_dense`, `lista_blockdiag` (3 seeds each for low-dim from 50k benchmark, 5 seeds for kuramoto from 200k fine-dt runs)
+  - key protocol improvements over v1:
+    1. six feature views tested per checkpoint: `modal_support` (per-timestep binary support → most common per trajectory), `majority_support` (per-dim majority vote), `last_step_support` (binary support of last timestep), `last_step_cosine` (cosine-normalised last timestep), `traj_mean_support` (binarised trajectory mean), `traj_mean_cosine` (original v1 approach for comparison)
+    2. `256` trajectories (up from `128`)
+    3. PCA to `20` dims for continuous features before k-means (addresses concentration of measure)
+    4. binary support views preserve discrete structure that trajectory-mean averaging destroys
+  - hypothesis: `modal_support` and `majority_support` should substantially outperform `traj_mean_cosine` on systems where per-timestep support uniqueness is already demonstrated (Duffing: 2/2, multiwell variants: 5/5)
+  - results directory: `/network/scratch/l/lia/skae/label_free_clustering_v2_20260310/`
+  - task specs: `results/label_free_clustering_v2_20260310/task_specs.tsv`
+  - **v2 results (completed March 10, array `8919951`, collector `8919952`):**
+    - **multiwell systems (all 8 variants, 5 basins each): strong positive.** Label-free k-means on latent features recovers basin structure with high fidelity:
+      - `multiwell_gradient`: mean ARI `0.976` (best view `last_step_cosine`), max `0.990`
+      - `multiwell_gradient_hd`: mean ARI `0.991`, max `1.000` (perfect recovery on multiple seeds)
+      - `multiwell_rotational`: mean ARI `0.963`, max `0.981`
+      - `multiwell_rotational_hd`: mean ARI `0.971`, max `0.981`
+      - `multiwell_energy`: mean ARI `0.794`, max `0.960`
+      - `multiwell_energy_hd`: mean ARI `0.916`, max `0.990`
+      - `multiwell_strong_transition`: mean ARI `0.931`, max `0.982`
+      - `multiwell_strong_transition_hd`: mean ARI `0.918`, max `0.992`
+      - `generic_sparse` tends to have the highest ARI on most multiwell systems; LISTA families are close behind
+    - **duffing (2 basins): weak positive.** ARI ~`0.19–0.24` across all views, all families similar. Above chance but not strong. `majority_support` view is slightly best (mean `0.239`). Root cause: the 2/2 unique per-timestep mode supports have very low within-basin consistency (basin 0: 12.8%, basin 1: 7.5%), meaning ~90% of trajectories in each basin activate a different support than their basin's mode. The encoder learned basin-discriminative continuous representations (linear accuracy ~0.84) but not basin-aligned sparse supports on this system.
+    - **kuramoto (5 basins): negative.** ARI ~`0` across all views and families (mean `-0.001` to `+0.009`). Kuramoto basin structure is not recoverable from latent features under any tested feature extraction protocol. Deeper analysis:
+      - winding-number basin distribution is extremely imbalanced: q=0 has 150/256 (58.6%), q=±2 have only 1–2 samples
+      - supports are genuinely non-separable: within-basin Hamming distance (99.5 bits) ≈ between-basin distance (100.0 bits), ratio 1.004
+      - every trajectory has a unique support pattern (256/256 unique), with ~93–94 active dims per basin (identical across all 5 basins)
+      - purity = 0.5859 = 150/256 (majority class fraction), constant across all evaluations — k-means assigns clusters randomly w.r.t. basin structure
+      - **linear accuracy bug (fixed):** the v2 `compute_linear_accuracy` reported ~0.92–0.99 on support views for Kuramoto, but this was a measurement artifact — singleton basins (q=±2) caused a fallback to train accuracy with no CV, and logistic regression memorizes when p=n=256. Corrected 3-class CV on well-populated basins (q=-1,0,+1) gives accuracy `0.427`, below majority baseline `0.593`. Fix applied: singleton classes are now dropped before CV in `evaluate_label_free_clustering_v2.py`.
+    - **best feature view by system class:** `last_step_cosine` is strongest on multiwell systems; `majority_support` and `modal_support` are competitive but not clearly better than continuous cosine views after PCA reduction; `traj_mean_cosine` (v1 baseline) is comparable to discrete views on most systems, suggesting the v1 failure was primarily driven by concentration of measure (no PCA) rather than the averaging itself
+    - **interpretation:**
+      - the core basin-support story is validated on multiwell systems (8/8 strong, ARI 0.71–1.00) — label-free basin recovery from latent features is possible without training-time basin labels
+      - duffing's weak result reflects low within-basin support consistency (~10%), not a feature extraction issue — the encoder has not achieved basin-support alignment on this system despite having 2/2 unique mode supports
+      - the kuramoto negative is genuine: supports carry zero basin-discriminative signal (flat Hamming geometry), the encoder produces unique supports per trajectory with ~90 active dims, and the high linear accuracy previously reported was a measurement artifact
+      - **paper impact:** the multiwell positives upgrade the basin-support claim from "per-timestep support uniqueness" to "label-free basin recovery." The kuramoto and duffing negatives limit this claim to potential-well systems with well-separated energy landscapes. The duffing result honestly demonstrates that per-timestep support uniqueness does not guarantee trajectory-level basin-support alignment.
+    - summary audit: `/network/scratch/l/lia/skae/label_free_clustering_v2_20260310/summary/label_free_clustering_v2_summary.md`
+- **Broad support-alignment audit on labelable `v4` benchmark systems (completed March 11, local):**
+  - output root: `results/paper_benchmark_support_alignment_20260311_v4_labelable`
+  - protocol:
+    - canonical `v4` benchmark checkpoints only (`11` currently valid labelable systems x `4` roots x `3` seeds = `132` checkpoints)
+    - systems: `duffing`, the `8` `multiwell*` variants, `kuramoto`, `hopfield`
+    - excluded: `competitive_lv` from canonical `v4`, because those checkpoints used the invalidated 1-basin configuration
+    - evaluation settings: `100` trajectories, length `500`, `5000`-step post-rollout basin identification, `support_threshold=1e-3`, `support_mode=mean`, cosine aggregation=`mean`
+  - concrete result:
+    - binary mode-support uniqueness saturates completely: **all `44/44` system-root medians have `mode_uniqueness_rate=1.0`**
+    - support repetition is weak almost everywhere: **`40/44` system-root medians have `mean_basin_consistency < 0.2`**
+    - trajectory-level supports are usually unique: **`24/44` system-root medians have `trajectory_unique_support_rate = 1.0`**
+    - all `8` multiwell variants are positive by cosine separation across all roots (system-root medians `0.250` to `0.706`)
+    - Duffing is negative across all roots (`-0.129` to `-0.084`) despite `mode_uniqueness_rate=1.0`
+    - Kuramoto is negative across all roots (`-0.307` to `-0.264`) despite `mode_uniqueness_rate=1.0`; the random `100`-trajectory audit again hits the same singleton-basin issue (`q=±2` appear once each), so the apparent `mean_basin_consistency≈0.424` is inflated and not evidence of reusable basin supports
+    - Hopfield is mixed: cosine separation is positive across all roots (`0.459` to `0.607`), but `mean_basin_consistency` is only `0.043` for every root and `trajectory_unique_support_rate=1.0` throughout
+  - interpretation:
+    - the literal binary question "does each basin have a unique mode support?" is **too weak** as a broad benchmark diagnostic, because it returns a perfect score even on known negatives like Kuramoto and Duffing
+    - cosine separation reproduces the real system split and should remain the primary support-alignment metric
+    - Hopfield currently has **continuous basin separation without reusable discrete support signatures**: the centroids separate, but trajectories do not reuse a stable sparse support per basin
+  - project implications:
+    - do **not** make a paper claim based on benchmark-wide `mode_uniqueness_rate`
+    - keep the strong support story tied to multiwell cosine/clustering positives, not to a global "unique supports everywhere" statement
+    - treat Duffing and Kuramoto as genuine support-alignment negatives under the current encoder settings
+  - suggested next steps:
+    - keep the queued rescued-Kuramoto mode-support audit as the direct test for the stronger claim on the `dt=0.00625`, `200k` checkpoints
+    - after the `competitive_lv` retrain is clean, rerun this same audit on the new 4-basin checkpoints
+- **Kuramoto unique mode-support audit (completed March 10):**
+  - output roots: `results/kuramoto_mode_support_audit_20260310/` and `/network/scratch/l/lia/skae/kuramoto_mode_support_audit_20260310/`
+  - jobs: full array `8922716_[0-29]` (all `30/30` completed), collector `8922717` (completed), balanced probe `8922718_1` (timed out at 20 min wall-clock — non-critical)
+  - pre-queue QA: three infrastructure bugs were fixed before clean submission (negative raw-label CSV parsing, empty-field TSV parsing, CRLF leakage)
+  - experiment setup:
+    - checkpoints: rescued Kuramoto `N=16`, `dt=0.00625`, `200k`
+    - roots: `generic_sparse`, `lista_dense`, `lista_blockdiag`
+    - seeds `0..4`, sampling `{random, balanced}`, support modes `{mean, majority, modal}`, threshold sweeps on `{mean, modal}`
+  - concrete result:
+    - **strong negative — degenerate uniqueness across all conditions:**
+    - `mode_uniqueness = 5/5` for every family × sampling × seed → technically every basin has a "unique" mode support, but this is vacuous
+    - `traj_unique_rate = 1.0` everywhere → every single trajectory has its own unique support pattern
+    - `all_mode_counts_ge_2 = no` everywhere → mode supports are singletons, not reused within basins
+    - `hamming_ratio ≈ 1.0` everywhere → within-basin vs between-basin Hamming distance is flat (no geometric structure)
+    - `basin_consistency = 0.0625` (balanced) / `0.309` (random) → negligible reuse
+    - `full_unique_nontrivial_seeds = 0` everywhere → zero seeds achieve nontrivial (non-singleton) unique supports
+    - results are **identical across all 3 model families** — the encoder architecture makes no difference
+    - threshold sweeps (mean & modal modes, thresholds `1e-4` to `1e-1`) do not change the conclusion
+  - interpretation:
+    - the strong negative claim is now directly confirmed: Kuramoto winding-number basins do not have meaningful basin-specific support patterns under any tested model family, sampling protocol, support definition, or threshold
+    - uniqueness is trivially degenerate — each basin has a "unique" mode support only because essentially every trajectory activates a different support pattern; supports are not reusable within basins
+    - this closes the gap left by label-free clustering v2, which only established non-recoverability but did not directly test literal mode-support uniqueness
+    - the balanced probe timed out but is non-critical: the main array already includes both `random` and `balanced` sampling conditions with identical conclusions
+  - primary audit file: `/network/scratch/l/lia/skae/kuramoto_mode_support_audit_20260310/summary/kuramoto_mode_support_audit_summary.md`
+- **Competitive LV multi-basin retrain (in progress March 10):**
+  - default `INTERACTION_SCALE` changed from `0.35` to `0.70` in `skae/config.py` to produce 4 major basins instead of 1 trivial basin
+  - basin structure at scale=0.70: species 1, 5, 6 are fragile under competition; basins differ by which subset goes extinct
+  - retraining ALL paper-facing competitive_lv experiments (28 tasks):
+    - Group A: v4 benchmark (generic_sparse, lista_dense, lista_blockdiag, lista_diagonal × seeds 0-2 × 50k)
+    - Group B: 200k followup (generic_sparse_ns200k_best, lista_blockdiag_ns200k_denseopt_sc3em3, lista_blockdiag_ns200k_denseopt_sc6em3 × seeds 0-2 × 200k)
+    - Group C: promoted dense Stage 4 (lista_dense_promoted_stage4 × seeds 0-2 × 200k)
+    - Group D: more seeds (generic_sparse_ns200k_best + lista_dense_promoted_stage4 × seeds 3,4 × 200k)
+  - forward-looking scope change: `lista_diagonal` is now retired from active paper scope. The clean rerun should exclude diagonal and focus on `generic_sparse`, `lista_dense`, `lista_blockdiag`, and the matched `generic_sparse + block_diagonal K` control once it exists.
+  - first retrain attempt array: `8922033`
+  - current status: the first attempt finished in a mixed state. `17/28` rows completed and `11/28` rows failed. `generic_sparse` and `lista_blockdiag` rows ran, while `lista_dense` and `lista_diagonal` rows failed because empty optional TSV columns in `scripts/run_competitive_lv_retrain_array.sh` are shifting arguments (for example `--k_block_size` receives `0.15` on dense/diagonal rows). No clean rerun is queued yet.
+  - task specs: `results/competitive_lv_multibas_retrain_20260310/task_specs.tsv`
+  - results: `/network/scratch/l/lia/skae/competitive_lv_multibas_retrain_20260310/`
+  - scripts: `scripts/queue_competitive_lv_retrain.sh`, `scripts/run_competitive_lv_retrain_array.sh`
+  - **After a clean retrain completes:** re-run support alignment (Subagent A) and label-free clustering on the new 4-basin checkpoints. The old competitive_lv evaluations are ALL INVALID (ran on 1-basin data).
+- **Checkpoint-selection ablation (Subagent G, completed offline March 9):**
+  - the current `dt=0.00625`, `200k` Kuramoto comparison is checkpoint-selection-stable: switching to `evaluation_results_last.json` changes `lista_blockdiag` from `6.98 -> 7.00`, `lista_dense` from `13.84 -> 17.63`, `generic_sparse` from `27.02 -> 29.43`
+  - ranking and good-band membership are unchanged under both selection rules
+  - the older `dt=0.0125`, `20k` pilot mismatch reproduces (`lista_blockdiag` aggregated: `23.40 -> 14.64`; winning arm: `14.36 -> 13.91`) but is tied to the earlier setting, not the current headline result
+  - decision: keep `evaluation_results_best.json` as the official paper rule; mention the older pilot mismatch as a diagnostic limitation
+- **Fixed-cadence re-encoding ablation (Subagent C, completed offline March 9):**
+  - dense benchmark under fixed `periodic_100`: wins `17/29` overall (`13/23` non-intrinsic-HD), but good-system count falls to tie (`22/29` vs `22/29`) and dense newly fails `blended` while the fair anchor passes; the win-count advantage survives but the safety margin does not
+  - Kuramoto under fixed `periodic_100`: exactly reproduces the official `best_periodic` `H1000` ranking (`6.98`, `13.84`, `27.02`) with `periodic_100/best_periodic` ratio of `1.0` for all three roots; the long-horizon Kuramoto claim does not depend on horizon-wise cadence selection
+  - at `H500`, `generic_sparse` still has lower error than `lista_blockdiag` under the fixed cadence; the Kuramoto positive is specifically an `H1000` forecasting result
+  - sensitivity: `periodic_100` is the strongest of the saved fixed cadences for both stories; shorter cadences (`periodic_50/25/10`) progressively weaken or break both the dense benchmark and Kuramoto claims
 - Queue `0–1` on `duffing` is complete under ReLU-final LISTA; `lista_alpha=0.15` is the best long-horizon alpha among tested values.
 - Queue `2` (`SPARSITY_COEFF` sweep at fixed `lista_alpha=0.15`) is complete:
   - `sp_0p0005`: sparsity `0.7708`, `H500=0.0191`, `H1000=0.1324` (best in-band candidate, closest to target `~0.8`).
@@ -157,137 +330,158 @@ What we now know (high-confidence):
 - LQR decision metrics remain non-discriminative due metric saturation (`M2`, `M3`) and heavy-tailed `M4`.
 
 Current approach:
-- Treat the completed canonical paper-benchmark rerun (`v4`) as the primary evaluation program and current paper evidence base, not the earlier subset sweeps.
-- Keep `L=8` sequence training as the default training mode for long-horizon forecasting experiments.
-- Use `generic_sparse` as the overall performance anchor while LISTA architecture/capacity changes are evaluated.
-- Use dense LISTA as the cross-system LISTA reference, but keep `lista_blockdiag` as the only LISTA-family candidate for intrinsic-HD follow-up unless new evidence clearly overturns that ranking.
-- Use the current-default intrinsic-HD sweep as a baseline only; do not yet treat it as the final stress test for the plan because only the `N=32` Kuramoto confirmation has results in hand and the broader `N={8,16,24,32,64}` scaling sweep is still running.
-- For intrinsic-HD follow-up, prioritize autonomous long-horizon stability on `hopfield` and robustness on `kuramoto`; `competitive_lv` is not the bottleneck at `TARGET_SIZE=256`.
-- Treat `results/intrinsic_hd_dt_rescue_20260308_rerun1` as the decision-grade focused intrinsic-HD source of truth for the current-default `N=16` setting.
-- Use the best-checkpoint collection as the official paper-facing metric for now, and use `evaluation_results_last.json` only as a diagnostic for checkpoint-selection mismatch.
-- Replace the old current-default Kuramoto LISTA anchor with the completed smaller-`dt`, longer-training winner: carry forward `lista_blockdiag`, `dt=0.00625`, `num_steps=200000` as the Kuramoto intrinsic-HD anchor, with the `N=32` confirmation as the stricter supporting result.
-- Use the queued Kuramoto dimension sweep as the next decision point for the hard-system narrative:
-  - if `lista_blockdiag` stays in-band through `N=64`, the paper can claim a real oscillator-scaling rescue under smaller `dt`
-  - if the rescue degrades sharply with `N`, position the result as a smaller-`dt`, moderate-dimension success with explicit scaling limits
-  - if promoted dense LISTA closes the gap at some `N`, keep that as a secondary transfer result rather than the primary hard-system claim
-- Carry forward `generic_sparse`, `dt=0.00625`, `num_steps=200000` as the Hopfield intrinsic-HD anchor; keep `lista_blockdiag` as the structured-encoder comparator there, but not as the preferred model.
-- Treat the completed Kuramoto-only `200k` continuation as a modest positive result rather than a full rescue:
-  - `lista_blockdiag` improves from `H1000=14.36` to `13.77`
-  - matched `generic_sparse` does not improve over the `20k` rerun
-  - Kuramoto remains above the good-forecast band, so the paper narrative should not claim that longer training alone solves the intrinsic-HD oscillator case
-- Use the completed architecture-fixed dense-LISTA easy-system Stage-1 sweep in [docs/planning/dense_lista_easy_system_parity_plan_20260308.md](/home/mila/l/lia/skae/docs/planning/dense_lista_easy_system_parity_plan_20260308.md) as the cross-system parity reference point:
-  - Stage 1 shows that external optimization alone can flip a majority of the targeted easy near-misses without changing architecture or `dt`
-  - carry forward the low-LR longer-training winners (`100k, 5e-5/5e-6` and `200k, 5e-5/5e-6`) as the only sensible Stage-2 anchors
-  - use the completed Stage-2 / Stage-3 chain as the current decision point:
-    - `duffing` can be fixed by a specialized coefficient recipe, but `competitive_lv` remains MLP-favored
-    - the promoted fair dense recipe is `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3`
-    - if more benchmark budget is approved, spend it on the full `29`-system rerun of that one promoted recipe
-- Treat the old `50k` coefficient-matching result on `duffing` as superseded by the completed low-LR Stage-2 / Stage-3 read: coefficient balance does matter once training length and optimizer scale are in the right regime, but the effect is recipe-specific rather than a global dense-LISTA win.
-- Enforce **ReLU as the final operation** in LISTA going forward, and rank LISTA-family models by long-horizon forecasting first; track `sparsity_ratio` / support structure as diagnostics rather than promotion gates for now (`docs/LISTA_STACK_FORECASTING_PLAN.md`).
-- Keep `lista_alpha=0.15` fixed and treat Queue-2/3 outcomes as anchors for joint tuning.
-- Promote Queue-4 winners as forecasting-first LISTA anchors:
-  - robustness-first anchor: `sp_0p0060_loops_1`
-  - quick-best tie-break anchor: `sp_0p0040_loops_1`
-- Treat Queue-5 HyperLISTA adaptive-threshold results as a negative result for the tested `c_theta` grid; do not promote Queue-5 arms.
-- Treat HyperLISTA stabilization as a validated code-path repair: keep constrained positive `c_theta` and safe `pinv(D)` recomputation, and only rank future HyperLISTA runs by long-horizon forecasting under those safe settings.
-- Use Queue-4 instability flags to exclude heavy-tail arms from further shortlist.
-- Validate current `duffing` conclusions on additional systems/seeds before promoting defaults.
-- Prioritize forecasting robustness first across all LISTA-family models; only then advance basin-support deployment checks and control-facing stages.
-- For intrinsic-HD blockers, treat smaller-`dt` rescue as the next cheapest honest test before broader representation changes or `10x` longer training; if the benchmark-selected smaller `dt` still leaves a system `integration_hard`, promote targeted representation or optimization changes rather than assuming more blind halving or more steps will be enough.
-- For the current intrinsic-HD follow-up, use the completed Hopfield `dt=0.00625`, `200k` result and the completed Kuramoto `N=32` confirmation as the decision-grade evidence for the paper narrative.
+- **The `200k` follow-up (`results/paper_followup_recipes_200k_20260309`) is the primary paper evidence base.** Use `generic_sparse_ns200k_best` as the main anchor and `lista_dense_promoted_stage4` as the main dense LISTA comparator. Treat the `v4` `50k` matrix as a symmetric historical audit, not the source of headline claims.
+- Keep `L=8` as the default training mode for forecasting-facing comparisons.
+- Use dense LISTA as the cross-system LISTA reference, and reserve `lista_blockdiag` for targeted hard-system claims rather than global baseline claims.
+- Retire `lista_diagonal` from active paper scope. Keep its existing benchmark numbers only as historical negatives; do not schedule new diagonal reruns.
+- For hard systems, prefer smaller `dt` before more architecture churn. The current decision-grade evidence is the repaired focused intrinsic-HD rerun plus the completed `dt=0.00625`, `200k` Kuramoto/Hopfield follow-ups and the Kuramoto dimension sweep.
+- Present the dense result as a split-metric story: `generic_sparse_ns200k_best` has the best full-benchmark median, while promoted dense Stage 4 wins more systems and keeps more systems in-band.
+- Present the basin-support story as system-dependent: strong label-free recovery on multiwell, weak on Duffing, negative on Kuramoto, and currently invalidated on `competitive_lv` until the new 4-basin retrain is clean.
+- Keep `evaluation_results_best.json` as the official checkpoint rule; use `evaluation_results_last.json` only as a diagnostic.
+- Do not spend more queue budget on broad reruns by default, except for the new `generic_sparse + block_diagonal K` fairness control. The remaining paper-track work is to close the `competitive_lv` blocker, land the block-diagonal fairness fix, and sharpen the limitation framing around hard-system autonomous rollout stability.
 
 Outstanding problem:
-- The wrap-up problem is no longer broad exploration; it is to close, or clearly delimit, the remaining paper blockers identified in `docs/PAPER_TRACK_STATUS.md` so the final NeurIPS-facing story is crisp and defensible.
-- The canonical `v4` paper benchmark is now complete, but `10/29` systems remain `integration_hard` after two rescue passes and the hardest intrinsic-HD systems (`kuramoto`, `hopfield`) still sit well above the good-forecast band.
-- The repaired focused intrinsic-HD rerun and the completed smaller-`dt`, longer-training follow-ups are now jointly interpretable: `kuramoto` is rescued under `dt=0.00625`, `200k`, and `hopfield` is no longer catastrophic on the same lever at `N=16`, but every-step autonomous rollouts remain unstable and `generic_sparse` still wins Hopfield.
-- Checkpoint selection is now part of the scientific problem: on Kuramoto, the validation-selected checkpoint can be materially worse than the last checkpoint for the paper metric, so the model-selection narrative must be explicit.
-- The remaining Kuramoto paper question is now a scaling question, not a one-off rescue question: `N=16` and `N=32` are positive, but the full `N={8,16,24,32,64}` sweep is still in flight and the promoted dense-LISTA transfer story is still unmeasured beyond `N=16`.
-- The dense-LISTA easy-system parity story is now narrower and cleaner after the completed Stage-2/Stage-3 chain:
-  - `duffing` is flipped by coefficient-only tuning under the fixed architecture, but only by a specialized recipe
-  - `competitive_lv` remains the only accepted-default easy-system holdout that is still clearly `generic_sparse`-better
-  - the fairness question is no longer recipe selection among three arms; the promoted global dense recipe is now `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3`
-
+- The remaining wrap-up task is to present a clean paper story that separates the real positives from the real limits: dense LISTA is now a credible cross-system comparator, `lista_blockdiag` has a targeted Kuramoto rescue through `N=32`, and label-free basin recovery works well on multiwell systems, but `generic_sparse` still owns the best median and in-time accuracy, Hopfield remains MLP-better, Kuramoto breaks by `N=64`, autonomous rollouts remain unstable, the `competitive_lv` paper evidence is currently being rebuilt, and the missing `generic_sparse + block_diagonal K` control still blocks clean causal claims about block-diagonal gains.
 
 ## Outstanding problems (active)
 
 These are the active blockers for the paper-track plan in `docs/PAPER_TRACK_STATUS.md`.
 
-- The completed `v4` paper-benchmark matrix is now the canonical paper audit, but `10/29` systems remain `integration_hard` after two rescue passes (`lotka_volterra`, `multiwell_strong_transition`, `multiwell_gradient_hd`, `multiwell_rotational_hd`, `multiwell_strong_transition_hd`, `kuramoto`, `hopfield`, `dysts:DequanLi`, `dysts:WangSun`, `dysts:LorenzCoupled`).
-- **LISTA-vs-generic_sparse quality gap persists after controlled matching**: at 50k steps with matched coefficients, LISTA remains substantially worse than `generic_sparse` on `duffing` (quick-best and long horizons), indicating the main gap is not resolved by loss coefficient matching alone.
-- Queue `2` identified better LISTA operating points, but forecasting remains clearly behind the `generic_sparse` anchor.
-- Queue `3` improved forecast means at low loop counts (`loops_1`), but the best settings still trail `generic_sparse` and seed robustness is uneven.
-- Queue `4` identified in-band non-dominated settings, but the best one (`sp_0p0060_loops_1`) is still ~`3x` behind `generic_sparse` on long horizons.
-- Queue `4` exposed unstable heavy-tail regimes for some arms; robust candidate filtering is still needed before promotion.
-- Queue `5` adaptive-threshold sweep failed the primary objective in this regime: long-horizon errors stayed far above Queue-4 anchors.
-- Queue `5b` smoke validated the safe HyperLISTA code path, but its best aggregate arm still has very poor long-horizon error (`H1000 ~ 4.2e3`), so HyperLISTA remains uncompetitive on forecasting.
-- Unstructured LISTA parity is validated only on `duffing`; generalization to other systems/seeds is unverified.
-- Dense LISTA can now close most of the targeted easy accepted-default near-misses by changing only external optimization knobs, and the official Stage-2/Stage-3 read narrows the remaining issue substantially:
-  - Stage 1 flips `6/8` systems at best with no catastrophic runs
-  - Stage 2 shows `duffing` can be flipped but `competitive_lv` does not close under coefficient-only tuning
-  - Stage 3 promotes a single global recipe, `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3`, which wins `6/8` shared systems with `0` catastrophic runs
-- The next dense-LISTA paper decision is no longer recipe selection; it is whether to spend the remaining benchmark budget on a full `29`-system rerun of the promoted `200k, sc=0.003` recipe.
-- Intrinsic-HD `hopfield` is no longer catastrophic under the targeted `dt=0.00625`, `200k` follow-up, but it remains unresolved as a structured-LISTA success story because `generic_sparse` is still better and every-step autonomous errors remain enormous.
-- Dense LISTA is the strongest cross-system LISTA variant on the completed `v4` benchmark, but it is still not viable on the hardest intrinsic-HD systems because `kuramoto` and especially `hopfield` remain badly unstable.
-- Current-default Kuramoto recovery is only partial: block-diagonal LISTA can beat matched `generic_sparse` on `H1000`, but the best arm is still `48.64` and several other settings retain catastrophic tails.
-- The repaired intrinsic-HD `dt` rerun plus the completed `dt=0.00625`, `200k` follow-ups show that smaller `dt` helps materially on both `kuramoto` and `hopfield`, and that long-horizon periodic-reencoding forecasts can enter the good band on both systems under the milder targeted setting.
-- Kuramoto dimension scaling is now the main unresolved hard-system question: the direct `N=16` comparison and the stricter `N=32` confirmation are positive, but we do not yet know whether the smaller-`dt` rescue and the block-diagonal edge persist through `N=64`, or whether promoted dense LISTA transfers beyond the original `N=16` case.
-- Current focused-pilot best arms are still unsatisfactory for a final paper claim:
-  - `kuramoto`: `lista_blockdiag`, `dt=0.0125`, `sp=0.0005`, `H1000=14.36`
-  - `hopfield`: `generic_sparse`, `dt=0.0125`, `sp=0.0005`, `H1000=71.02`
-- The completed Kuramoto `200k` continuation improves the winning block-diagonal arm only modestly (`H1000=13.77`) and still leaves one clear long-horizon outlier seed; longer training alone is therefore not enough for a clean intrinsic-HD rescue claim.
-- Checkpoint-selection mismatch is now a live issue on Kuramoto: at least one strong seed has a much better last-checkpoint `H1000` than its validation-selected checkpoint.
-- Cross-system LISTA performance improved materially for dense LISTA on the completed `v4` matrix, but that improvement has not translated into reliable intrinsic-HD transfer and block-diagonal LISTA still has catastrophic long-horizon tails on some systems.
-- Best-period collapse toward short reencoding periods indicates weak autonomous rollout stability.
-- Label-free regime assignment from supports is not yet reliable enough for deployment-time control.
-- Non-diagonal sequence training remains difficult to keep spectrally stable at larger capacities without explicit spectral constraints.
-- Only part of the stricter intrinsic-HD scaling plan has produced results so far: `kuramoto N=32` now has a successful confirmation, the full `N={8,16,24,32,64}` Kuramoto sweep is running, and stricter Hopfield scaling remains untested.
-- LQR decision metrics/rules are still weakly discriminative under saturation and heavy-tailed outcomes.
+- `competitive_lv` must be rebuilt on `INTERACTION_SCALE=0.70`; all old 1-basin forecasting, support-alignment, and label-free clustering results are invalid.
+- The first `competitive_lv` retrain attempt `8922033` is not yet clean enough to use: `generic_sparse` and block-diagonal rows ran, dense rows failed because empty optional TSV fields shift arguments in `scripts/run_competitive_lv_retrain_array.sh`, and diagonal is now retired from active scope rather than something to rescue.
+- Paper-blocking fairness gap: every paper-facing `lista_blockdiag` experiment still lacks the matched `generic_sparse + block_diagonal K` control. Implement structured `K` for `GenericKM`, mirror the block-diagonal task variants, and rerun the affected paper studies before locking causal language around block-diagonal wins.
+- `generic_sparse_ns200k_best` has the best full-benchmark median (`0.0208`), while promoted dense Stage 4 wins more shared systems (`18/29`) and keeps a better good-system count (`26/29` vs `25/29`). The paper needs a crisp split-metric presentation.
+- `lista_blockdiag` is a targeted Kuramoto positive, not a global paper baseline: it is robust through `N=32`, not fully robust at `N=8`, and broken by `N=64`.
+- Hopfield is rescued under smaller `dt` for periodic-reencoding forecasts, but `generic_sparse` remains better and every-step autonomous errors are still enormous.
+- It remains unknown whether a higher-basin Hopfield variant can flip the dense/block-diagonal LISTA ordering against the MLP without turning the task into an overloaded-memory artifact; the active `N=64`, `P in {8,10,12,14,16}` sweep is meant to answer that mechanistic question.
+- Label-free basin recovery is strong on multiwell, weak on Duffing, and negative on Kuramoto. The basin-support claim must be scoped accordingly.
+- Binary `mode_uniqueness_rate` should not be used as a primary cross-system paper metric. The broad labelable-system audit saturates at `1.0` even on Duffing and Kuramoto, so the paper should anchor basin-support claims on cosine separation and label-free recovery instead.
+- The stronger Kuramoto claim "no unique basin mode support per basin" is now **resolved (confirmed negative)**. The completed mode-support audit directly shows that Kuramoto supports are trivially degenerate: every trajectory has its own support, mode supports are singletons, and Hamming geometry is flat. This holds across all model families, seeds, sampling protocols, support modes, and thresholds.
+- Autonomous rollout stability remains the main scientific limitation on the hard systems.
+- No additional broad benchmark rerun is justified by current evidence; remaining work should either retire the `competitive_lv` blocker or sharpen limitation framing.
 
 ## Queue Status
 
 Queue work should be justified against `docs/PAPER_TRACK_STATUS.md`; prefer runs that directly retire a paper blocker or sharpen the final paper narrative.
 
-In progress:
-- **Dense LISTA promoted full `29`-system rerun (`TS=256`, `L=8`, `200k`, promoted fair recipe, seeds `0,1,2`)**:
-  - queue launcher: `8909900`
-  - array: `8909900_[0-86]`
-  - collector: `8909901`
-  - comparison: `8909902`
-  - output roots:
-    - `/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309`
-    - `results/dense_lista_paper_rerun_stage4_20260309`
-  - recipe:
-    - `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3`
-  - fairness constraints:
-    - same dense LISTA architecture as the canonical benchmark
-    - benchmark-selected `dt` from `results/paper_benchmark_20260307_paper_final_ts256_50k_v4/dt_resolution/pass2/selected_dt.tsv`
-    - fixed comparison against the existing `generic_sparse` `v4` anchor
-  - rationale:
-    - Stage 2 and Stage 3 resolved the dense recipe question
-    - this is the next honest paper-grade spend for the dense thread
-  - current cluster snapshot:
-    - the array is broadly running across the cluster
-    - collect / compare are waiting on dependency completion
-- **Kuramoto dimension sweep (`dt=0.00625`, `200k`, `5` seeds, `N={8,16,24,32,64}`)**:
-  - queue launcher / array: `8910056_[0-74]`
-  - collector: `8910057`
-  - comparison: `8910061`
-  - output roots:
-    - `/network/scratch/l/lia/skae/kuramoto_dimension_sweep_dt00625_200k_20260309`
-    - `results/kuramoto_dimension_sweep_dt00625_200k_20260309`
-  - models:
-    - `generic_sparse`
-    - promoted dense LISTA: `lista_dense_promoted` = `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3`
-    - `lista_blockdiag`
-  - purpose:
-    - settle the Kuramoto scaling story with a paper-usable `N` sweep
-    - test whether the promoted dense recipe transfers to Kuramoto as dimension grows
-    - measure whether the `lista_blockdiag` smaller-`dt` rescue persists through `N=64`
-  - current cluster snapshot:
-    - the array is broadly running across the cluster
-    - collect / compare are waiting on dependency completion
+In progress (paper-parallel workstreams, March 11):
+- The immediate paper-strengthening program is coordinated in `docs/planning/paper_parallel_workstreams_20260309/`.
+- **Block-diagonal fairness-control implementation/re-run:** not started. This is now required before freezing any paper claim that compares `lista_blockdiag` against `generic_sparse`. Tracking plan: [docs/planning/generic_sparse_blockdiag_fairness_plan_20260311.md](/home/mila/l/lia/skae/docs/planning/generic_sparse_blockdiag_fairness_plan_20260311.md).
+- **A - Competitive LV support alignment:** invalidated. The March 9 evaluation ran on the old 1-basin `competitive_lv` setup, so all prior `competitive_lv` support-alignment, forecasting, and label-free clustering results must be replaced after a clean multi-basin retrain. Do not re-use the old checkpoints or metrics.
+- **Competitive LV multi-basin retrain:** the first array attempt `8922033` finished in a mixed state under `results/competitive_lv_multibas_retrain_20260310/`: `17/28` rows completed and `11/28` rows failed. The current runner mis-parses empty optional TSV columns, so dense/diagonal rows fail while `generic_sparse` and block-diagonal rows run. No clean rerun is queued yet. The clean rerun should drop diagonal and cover `generic_sparse`, `lista_dense`, `lista_blockdiag`, and the matched `generic_sparse + block_diagonal K` control once available. After that rerun completes, re-run support alignment (Subagent A) and label-free clustering v2 on the new 4-basin checkpoints.
+- **Hopfield basin-count mechanism sweep:** wrapper `8922497`, array `8922498_[0-44]`, collector `8922499`, comparison `8922500`.
+  - Output roots:
+    - `/network/scratch/l/lia/skae/hopfield_basin_sweep_n64_dt00625_200k_20260310`
+    - `results/hopfield_basin_sweep_n64_dt00625_200k_20260310`
+  - Setup:
+    - Hopfield only, `N=64`, `P in {8,10,12,14,16}`, `dt=0.00625`, `200k`, `seeds={0,1,2}`
+    - roots: `generic_sparse`, `lista_dense_promoted_stage4`, `lista_blockdiag_targeted`
+    - dense recipe is the promoted Stage-4 optimizer setting; block-diagonal recipe is the targeted smaller-`dt` Hopfield/Kuramoto-style setting (`sp=0.001`, `alpha=0.15`, `loops=1`, block size `16`)
+  - Purpose:
+    - test whether increasing the number of stored Hopfield patterns can create a high-basin regime where both LISTA baselines beat the MLP anchor on periodic-reencoding forecasting
+  - Interpretation rule:
+    - treat this as a mechanistic environment-design follow-up, not as a new canonical benchmark result, because the system itself is being changed to probe the architecture ordering
+  - Current status:
+    - as of the latest SLURM check, all `45/45` array tasks are running and the collector/comparison jobs remain pending on dependency
+- **Kuramoto unique mode-support audit:** complete. All `30/30` array tasks and collector finished. The strong negative claim is confirmed: mode-support uniqueness is trivially degenerate across all model families, seeds, sampling protocols, support definitions, and thresholds. Balanced probe `8922718_1` timed out but is non-critical. See experiment entry above for full results.
+- **B - Kuramoto support alignment:** closed as redundant. Label-free clustering v2 already showed the same Kuramoto checkpoints are non-separable.
+- **C - Fixed-cadence re-encoding ablation:** complete. The dense win-count story survives `periodic_100`, and the Kuramoto `H1000` block-diagonal win is already a fixed-cadence result.
+- **D - More seeds on headline positives:** complete. The low-dimensional `5`-seed extension leaves the dense-vs-MLP narrative unchanged, and the Kuramoto `N=16` and `N=32` confirmations both support the block-diagonal headline.
+- **E - Kuramoto robustness:** complete. The uniform-spread heterogeneity check remains positive for `lista_blockdiag`.
+- **F - Support transition dynamics:** not started and lower priority than closing `competitive_lv`.
+- **G - Kuramoto checkpoint selection:** complete. The current headline result is selection-stable.
+- **H - Label-free clustering quality:** complete for all non-`competitive_lv` systems. v1 is retained only as a methodology limitation; v2 is final for multiwell, Duffing, and Kuramoto.
 
 Most recent completed paper-track chains:
+- **Local broad support-alignment audit on labelable `v4` systems (completed March 11, no queue):**
+  - Output root:
+    - `results/paper_benchmark_support_alignment_20260311_v4_labelable`
+  - Setup:
+    - canonical `v4` checkpoints for `11` currently valid labelable systems (`duffing`, `8` `multiwell*` variants, `kuramoto`, `hopfield`)
+    - roots: `generic_sparse`, `lista_dense`, `lista_diagonal`, `lista_blockdiag` (historical `v4` set; diagonal is now retired from active scope)
+    - `3` seeds each (`132` checkpoints total)
+    - evaluation settings: `100` trajectories, length `500`, `5000` rollout steps, `support_threshold=1e-3`, `support_mode=mean`
+  - Concrete result:
+    - all `44/44` system-root medians have `mode_uniqueness_rate=1.0`
+    - `40/44` have `mean_basin_consistency < 0.2`
+    - all multiwell system-root medians have positive cosine separation (`0.250` to `0.706`)
+    - Duffing is negative across all roots (`-0.129` to `-0.084`)
+    - Kuramoto is negative across all roots (`-0.307` to `-0.264`)
+    - Hopfield is mixed: positive cosine separation (`0.459` to `0.607`) but uniformly tiny support consistency (`0.043`)
+  - Interpretation:
+    - benchmark-wide binary mode-support uniqueness saturates and is not a useful discriminative paper metric
+    - cosine separation matches the known qualitative story, so it remains the correct primary support-alignment diagnostic
+    - Hopfield currently shows continuous basin separation without reusable sparse support signatures
+- **Paper follow-up recipe rerun (`29` systems, pass-2 `dt`, `200k`, seeds `0,1,2`)**:
+  - Completed submission chain:
+    - queue launcher / array: `8911901_[0-260]`
+    - collector: `8911902`
+    - comparison vs canonical `generic_sparse`: `8911903`
+    - comparison vs `generic_sparse_ns200k_best`: `8911904`
+    - comparison vs promoted dense Stage-4 root: `8911905`
+  - Output roots:
+    - `/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309`
+    - `results/paper_followup_recipes_200k_20260309`
+  - Training arms:
+    - `generic_sparse_ns200k_best`
+    - `lista_blockdiag_ns200k_denseopt_sc6em3`
+    - `lista_blockdiag_ns200k_denseopt_sc3em3`
+  - Existing comparison-only root:
+    - promoted dense Stage-4 root `lista_dense_promoted_stage4`
+  - Concrete result:
+    - all training, collection, and comparison stages are complete; the output root now contains the final summary and comparison artifacts
+    - `generic_sparse_ns200k_best` is the best full-benchmark root by cross-system median `H1000` best-periodic (`0.0208`)
+    - promoted dense Stage 4 still wins `18/29` shared systems against `generic_sparse_ns200k_best` and keeps a better good-system count (`26/29` vs `25/29`)
+    - `lista_blockdiag_ns200k_denseopt_sc3em3` and `lista_blockdiag_ns200k_denseopt_sc6em3` remain globally behind the fair `200k` `generic_sparse` rerun (`7/29` and `5/29` wins, respectively)
+  - Context:
+    - this chain was designed to close the `50k` vs `200k` fairness hole for `generic_sparse` and test whether the promoted dense optimizer transfers to block-diagonal LISTA at full benchmark scale
+  - Interpretation:
+    - the fairness hole is now closed
+    - the ranking story is now split across metrics: `generic_sparse_ns200k_best` has the best overall median, while promoted dense Stage 4 has better win-count and good-system count
+    - dense-optimizer transfer to block-diagonal LISTA is a negative full-benchmark result
+  - Project implications:
+    - use `generic_sparse_ns200k_best` as the fair `200k` anchor in any asymmetric `200k` paper comparisons
+    - do not claim that promoted dense LISTA remains better than a fair `200k` MLP anchor on the single summary statistic of cross-system median
+    - keep the block-diagonal full-benchmark `200k` reruns only as targeted evidence for `multiwell_strong_transition` / `multiwell_strong_transition_hd`, not as global parity evidence
+  - Suggested next steps:
+    - do not queue another broad benchmark rerun by default
+    - if more paper-track budget is approved, spend it on targeted hard-system clarification (`N=64` Kuramoto robustness or autonomous-rollout diagnostics), not another global parity sweep
+- **Kuramoto dimension sweep (`dt=0.00625`, `200k`, `5` seeds, `N={8,16,24,32,64}`)**:
+  - Completed chain:
+    - queue launcher / array: `8910056_[0-74]`
+    - collector: `8910057`
+    - comparison: `8910061`
+  - Output roots:
+    - `/network/scratch/l/lia/skae/kuramoto_dimension_sweep_dt00625_200k_20260309`
+    - `results/kuramoto_dimension_sweep_dt00625_200k_20260309`
+  - Concrete result:
+    - `lista_blockdiag` wins the Kuramoto `H1000` median against `generic_sparse` at every tested `N`
+    - the rescue is robust at `N=16/24/32` (`7.07`, `6.57`, `5.92`, all seeds good)
+    - `N=8` is median-good but not fully robust (`8.11`, `4/5` good seeds)
+    - `N=64` breaks the rescue (`23.27`, `2/5` good seeds)
+    - promoted dense LISTA does not enter the good band at any tested `N`
+  - Current interpretation:
+    - the Kuramoto paper story is now a moderate-dimension smaller-`dt` success with explicit scaling limits, not an open scaling question
+- **Dense LISTA promoted full `29`-system rerun (`TS=256`, `L=8`, `200k`, promoted fair recipe, seeds `0,1,2`)**:
+  - Completed chain:
+    - queue launcher: `8909900`
+    - dense LISTA array: `8909900_[0-86]`
+    - collector: `8909901`
+    - comparison vs fixed `generic_sparse` anchor: `8909902`
+  - Output roots:
+    - `/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309`
+    - `results/dense_lista_paper_rerun_stage4_20260309`
+  - Concrete result:
+    - all `87` dense runs were collected
+    - the promoted dense recipe wins `21/29` shared systems vs the fixed `generic_sparse` anchor
+    - median shared-system `H1000` best-periodic ratio is `0.6455`
+    - cross-system median `H1000` best-periodic improves from `0.0328` to `0.0232`
+    - good-system count improves from `25/29` to `26/29`
+    - there are `0` systems where dense fails while `generic_sparse` passes
+    - the remaining dense failures are concentrated on `kuramoto`, `hopfield`, and `multiwell_strong_transition_hd`
+  - Current interpretation:
+    - the dense thread is now full-benchmark positive against the fixed `generic_sparse` anchor
+    - the dense paper question is no longer whether to run this rerun; it is how to present the result without confusing it with the symmetric `v4` matrix
 - **Dense LISTA easy-system parity Stage 2 (`competitive_lv` + `duffing`, coefficient-only, architecture fixed, `84` tasks)**:
   - Planning document:
     - [docs/planning/dense_lista_easy_system_parity_plan_20260308.md](/home/mila/l/lia/skae/docs/planning/dense_lista_easy_system_parity_plan_20260308.md)
@@ -314,7 +508,7 @@ Most recent completed paper-track chains:
   - Concrete result:
     - `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3` is the promoted dense-LISTA recipe (`6/8` wins, median shared-system ratio `0.6928`, `8/8` good systems, `0` catastrophic systems)
   - Current interpretation:
-    - the dense thread is now promotion-ready; the remaining question is whether to rerun this one recipe on the full `29`-system benchmark
+    - the dense thread is no longer blocked on recipe validation; Stage 4 has already supplied the full `29`-system follow-up, so the remaining question is paper positioning rather than more dense queue work
 - **Focused Kuramoto `dt=0.00625`, `200k` comparison (`generic_sparse`, dense LISTA, block-diagonal LISTA; seeds `0,1,2,3,4`)**:
   - Completed chain:
     - queue launcher: `8907758`
@@ -349,8 +543,9 @@ Most recent completed paper-track chains:
   - Current interpretation:
     - the positive Kuramoto result survives the stricter `N=32` confirmation, though the architectural gap narrows
 - Recommended next queue if more paper-track budget is approved:
-  - let the active dense full rerun and active Kuramoto dimension sweep finish before queuing more hard-system work
-  - avoid more coefficient-only holdout sweeps
+  - do not queue another broad paper-benchmark rerun unless a specific paper-positioning question cannot be answered from the existing artifacts
+  - if more hard-system budget is needed after that, target `N=64` robustness or autonomous-rollout diagnostics directly instead of another broad sweep
+  - avoid more coefficient-only holdout sweeps or another dense full-benchmark rerun for now
 
 Completed in the last 24 hours:
 - **Dense LISTA easy-system parity Stage 1 (`8` accepted-default systems, dense LISTA only, architecture fixed, `216` tasks)**:
@@ -463,10 +658,7 @@ Completed:
     - best matched `generic_sparse` arm is `sp_0p0005`: seed-median `H100/H500/H1000` best-periodic `6.24 / 48.30 / 136.60`
     - interpretation: current-default block-diagonal retuning materially improves Kuramoto versus matched `generic_sparse`, but remains outside the good-forecast band and some other block-diagonal arms have catastrophic tails
 - **Canonical research-paper benchmark `v3` default-`dt` pass (`29 systems x 4 baselines x 3 seeds`, `TS=256`, `L=8`, `50k`)**:
-  - Launch/debug history:
-    - first chain `8897520`-`8897533` failed due Slurm repo-root resolution
-    - second chain `8897551`-`8897564` failed because shell TSV parsing corrupted empty fields / `env_dt`
-    - final corrected chain `8897639`-`8897652` completed training/collection
+  - Completed queue chain: `8897639`-`8897652`
   - Output roots:
     - `/network/scratch/l/lia/skae/paper_benchmark_20260306_paper_final_ts256_50k_v3`
     - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3`
@@ -575,128 +767,99 @@ Completed:
 - **Experiment K**: 50k encoder comparison (LISTA-current vs LISTA-matched vs generic_sparse), `L=8`, 3 seeds each. Sweep: `8866049_[0-8]`, collector: `8866050`.
 - Consolidated outputs: `results/duffing_encoder_50k_20260303/duffing_encoder_50k_summary.{json,md}`.
 
-Blocked:
-- No scheduler blocker at the moment.
-- Queue-1 launch bug (CSV env values split by `sbatch --export`) is resolved and validated by successful 15/15 corrected gate-task mapping.
-- Queue-4 direct manual submission from interactive shell intermittently hit SLURM controller connectivity errors, but queue launcher `8875686` completed and successfully submitted the chain `8875708/8875709`, which has now completed.
-- The intrinsic-HD `dt` rescue root cause is now known: `scripts/queue_intrinsic_hd_dt_rescue.sh` passed comma-separated grids through `sbatch --export`, so the child jobs saw singleton values and only task `0` ran per model.
-- The dense parity queue launcher root-path bug is resolved: `scripts/queue_dense_lista_easy_parity_stage1.sh` now prefers `SLURM_SUBMIT_DIR`, matching the other queue scripts.
-- The immediate paper-track blockers are scientific rather than scheduler-level:
-  - which single fair dense-LISTA external recipe should be promoted beyond the targeted easy-system subset
-  - whether the final two `lista_blockdiag` seeds keep the `dt=0.00625`, `200k` Kuramoto result clean enough to serve as the main positive intrinsic-HD follow-up
-  - whether Hopfield must remain an explicit boundary-case limitation
+Current paper-facing blockers:
+- `competitive_lv` is the only live queue blocker: the old 1-basin results are invalid, and the multi-basin retrain still needs a clean rerun for dense plus the new `generic_sparse + block_diagonal K` control. Diagonal is no longer in scope.
+- The paper still needs a crisp split-metric presentation of `generic_sparse_ns200k_best` vs promoted dense Stage 4.
+- Autonomous rollout instability remains the limiting story on the hard systems, even where periodic re-encoding succeeds.
 
 Planned next:
-- Promote `v4` `final_collect` / `final_compare` as the paper benchmark source of truth and stop citing the provisional `v3` matrix or anchor-only `v4` stage for paper-ranking claims.
-- Do not queue further architecture-changing LISTA experiments while the architecture-fixed dense-LISTA parity story is still being resolved with external knobs alone.
-- Keep Queue-5 as a completed negative control for the tested adaptive-threshold region.
-- Re-evaluate LISTA-family candidates against `generic_sparse` using forecasting-first criteria (`H1000`, `H500`, `H100`, `quick-best`, robustness across seeds, best-period mode distribution); keep sparsity as a diagnostic column only.
-- Separate LISTA follow-up into two tracks:
-  - dense LISTA as the cross-system paper comparator
-  - `lista_blockdiag` as the only LISTA-family intrinsic-HD candidate
-- Let the queued dense-LISTA easy-system Stage-2 holdout sweep finish and use the formal collector only as confirmation of the live partial read:
-  - `duffing` is already flipped in the live partial read
-  - `competitive_lv` is not going to flip under this coefficient-only Stage-2 grid
-- After the Stage-2 collector lands, stop coefficient-only holdout tuning and run a small `8`-system confirmation on exactly two single global dense-LISTA recipes:
-  - safe Stage-1 anchor: `lista_dense_ns100k_lr5em5_klr5em6_wd1em4`
-  - Duffing-fixing Stage-2 candidate: `lista_dense_ns100k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc1em2`
-- Use that `8`-system confirmation to choose one fair dense-LISTA recipe for the full `29`-system rerun; do not add more `competitive_lv`-specific coefficient sweeps before that rerun.
-- Use the completed repaired intrinsic-HD `dt` rerun as the current decision-grade targeted evidence for `kuramoto` / `hopfield`.
-- Use the completed Kuramoto `200k` continuation as evidence that longer training helps Kuramoto only modestly under the current architecture and `dt`; do not claim that longer training alone solves the intrinsic-HD oscillator case.
-- Replace the old current-default Kuramoto LISTA anchor with the repaired smaller-`dt` winner: `lista_blockdiag`, `dt=0.0125`, `sp=0.0005`, `alpha=0.15`, `loops=1`, `block_16`.
-- Use the completed `dt=0.00625`, `20k` Kuramoto diagnostic as the next honest Kuramoto setup:
-  - `lista_blockdiag` is already below the good band there (`H1000=7.37`)
-  - matched `generic_sparse` remains above threshold (`H1000=15.61`)
-  - treat that setting as a more forgiving discretization analysis, not as a silent replacement for the main benchmark
-- Run the focused `dt=0.00625`, `200k` Kuramoto comparison across `generic_sparse`, dense LISTA, and block-diagonal LISTA with seeds `0,1,2,3,4`:
-  - use it to test whether the easier-discretization advantage for `lista_blockdiag` survives a stronger seed audit and a direct dense-LISTA comparison
-  - if it does, this becomes the main positive Kuramoto follow-up result for the paper’s limitation-aware narrative
-- If the final two `lista_blockdiag` seeds stay in band, do not keep halving `dt`; instead consider a single stricter intrinsic-HD scaling confirmation (`N=32`) at the winning `dt=0.00625`, `200k` setting.
-- Do not queue the stricter intrinsic-HD scaling check (`N=32/64`) until the current `5`-seed `dt=0.00625`, `200k` collector confirms the live partial read.
-- Make the paper narrative explicit that step size, checkpoint selection, and longer training help substantially on Kuramoto but still do not fully solve the intrinsic-HD oscillator regime, and keep Hopfield as the clearest boundary case.
-- Use the validated HyperLISTA stabilization patch set for any follow-up, but only queue runs that explicitly target better long-horizon forecasting.
-- Queue the stricter intrinsic-HD plan variants (`N=32/64`) once the current-default baseline and the repaired smaller-`dt` pilot are understood well enough to serve as references.
+- Repair or replace the current `competitive_lv` retrain attempt, then re-run support alignment and label-free clustering on the new 4-basin checkpoints.
+- Keep the hard-system narrative tied to the completed smaller-`dt` Kuramoto/Hopfield follow-ups and the completed Kuramoto dimension sweep; do not open another broad rerun by default.
+- Keep forecasting-first evaluation as the promotion rule for any further LISTA-family follow-up.
 
 ## Core Experiment Log (Most Informative)
 
-### ZF) Late-Partial Audit: `duffing` Likely Flips, `competitive_lv` Likely Does Not, and `lista_blockdiag` Likely Solves Kuramoto at `dt=0.00625`
-Timestamp: 2026-03-08
-Status: **running, late partial read**
+### ZH) Kuramoto Dimension Sweep Completed: `lista_blockdiag` Rescues Kuramoto Through `N=32`, But the Rescue Breaks at `N=64`
+Timestamp: 2026-03-09
+Status: **completed**
 
 1. Concrete results:
-- A live partial recollection from `results/dense_lista_easy_parity_stage2_20260308` shows:
-  - `80/84` Stage-2 tasks complete, `4/84` still running, collector `8907834` still pending
-  - `duffing` is flipped by `lista_dense_ns100k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc1em2` with seed-median `H1000` best-periodic `0.0182` vs `generic_sparse=0.0309`
-  - `competitive_lv` is not flipped; the best incomplete arm is `lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3` with current two-seed median `0.0395` vs `generic_sparse=0.0276`, and the missing third seed cannot lower the final three-seed median below the anchor
-- A live partial recollection from `results/kuramoto_dt00625_200k_compare_20260308` shows:
-  - `13/15` training runs complete, `2/15` still running, both remaining runs are `lista_blockdiag`
-  - `generic_sparse` (`5/5` seeds): `H1000=27.02`
-  - dense LISTA (`5/5` seeds): `H1000=13.84`
-  - `lista_blockdiag` (`3/5` seeds so far): `H1000=6.98`, with completed-seed values `{6.89, 6.98, 7.13}`
+- The full Kuramoto dimension sweep finished, collected, and compared under `results/kuramoto_dimension_sweep_dt00625_200k_20260309`:
+  - queue launcher / array: `8910056_[0-74]`
+  - collector: `8910057`
+  - comparison: `8910061`
+- `H1000` seed-median best-periodic by dimension:
+  - `generic_sparse`: `N=8` `813.5733`, `N=16` `30.1799`, `N=24` `6.7146`, `N=32` `6.6781`, `N=64` `208.9328`
+  - promoted dense LISTA: `N=8` `495.0707`, `N=16` `13.4408`, `N=24` `15.0073`, `N=32` `92.2826`, `N=64` `208.7072`
+  - `lista_blockdiag`: `N=8` `8.1126`, `N=16` `7.0714`, `N=24` `6.5693`, `N=32` `5.9158`, `N=64` `23.2681`
+- Seed robustness:
+  - `lista_blockdiag` is all-seeds-good at `N=16/24/32`
+  - `lista_blockdiag` is median-good but not fully robust at `N=8` (`4/5` good seeds, worst seed `10.8898`)
+  - `lista_blockdiag` is no longer in-band at `N=64` (`2/5` good seeds, worst seed `209.2029`)
+  - promoted dense LISTA is out of band at every tested `N`
 
 2. Context:
-- Stage 2 was designed as the minimal coefficient-only follow-up after Stage 1 left `duffing` and `competitive_lv` as the only easy-system holdouts.
-- The `dt=0.00625`, `200k` Kuramoto comparison was the direct test of whether smaller `dt` helps more than longer training alone and whether block-diagonal LISTA still wins after adding seeds and a dense-LISTA comparator.
+- This was the direct scaling test of the stronger Kuramoto setting that had already looked positive at `N=16` and `N=32`: `dt=0.00625`, `200k` steps, `5` seeds, and a three-way comparison among `generic_sparse`, promoted dense LISTA, and `lista_blockdiag`.
+- The goal was to decide whether the smaller-`dt`, longer-training Kuramoto rescue was a genuine scaling story and whether the promoted dense-LISTA recipe transferred to the oscillator setting.
 
 3. Interpretation:
-- `duffing` now looks coefficient-limited under the fixed dense-LISTA architecture, but `competitive_lv` still does not.
-- The current Stage-2 grid has effectively answered the holdout question:
-  - `duffing`: yes
-  - `competitive_lv`: no
-- On Kuramoto, smaller `dt=0.00625` is a stronger lever than the earlier `dt=0.0125`, `200k` continuation, and block-diagonal LISTA is now very likely to stay below the good-forecast band once the last two seeds finish.
+- The Kuramoto rescue is real for `lista_blockdiag`, but only through moderate dimensions.
+- The clean positive part of the story is `N=16/24/32`, where `lista_blockdiag` stays in-band and all seeds are good.
+- `N=8` is not a clean robustness win despite an in-band median, and `N=64` is the clear scaling failure point.
+- The promoted dense recipe does not transfer as a robust Kuramoto solution; its `N=16` improvement over `generic_sparse` is still out of band and does not persist.
 
 4. Project implications:
-- The dense-LISTA paper story should now move from “can coefficient-only tuning fix the holdouts?” to “which single fair global recipe should be promoted?”
-- The Kuramoto paper story is now close to a clean limitation-aware positive result:
-  - under a more forgiving discretization, `lista_blockdiag` appears to solve Kuramoto while dense LISTA and `generic_sparse` do not
-  - Hopfield remains the real intrinsic-HD limitation
+- The paper no longer has to treat Kuramoto scaling as an open question.
+- The defensible claim is now: smaller `dt` plus longer training gives a moderate-dimension Kuramoto rescue for block-diagonal LISTA under periodic reencoding, with explicit scaling failure by `N=64`.
+- This also removes promoted dense LISTA from the hard-system positive narrative; dense remains a cross-system parity story, not the Kuramoto rescue story.
 
 5. Next steps:
-- Let `8907834/8907835` and `8907760/8907761` finish, and treat the formal collectors as confirmation of the current live read.
-- Stop coefficient-only holdout exploration after Stage 2 and run a small `8`-system confirmation on the two single global dense-LISTA recipes already shortlisted in the summary above.
-- If the final two Kuramoto `lista_blockdiag` seeds stay in band, promote `dt=0.00625`, `200k`, block-diagonal LISTA as the main positive Kuramoto follow-up and consider one stricter `N=32` confirmation instead of more `dt` halving.
+- Update the paper-track docs and queue ledger so they reflect the completed sweep and its moderate-dimension conclusion.
+- Keep the active `29`-system paper follow-up rerun as the only paper-track queue priority.
+- If additional hard-system work is justified later, focus on `N=64` robustness or autonomous-rollout stability rather than another broad Kuramoto sweep.
 
-### ZE) Dense LISTA Easy-System Parity Stage 2 Queued: Coefficient-Only Holdout Sweep on `competitive_lv` and `duffing`
-Timestamp: 2026-03-08
-Status: **running**
+### ZG) Dense LISTA Promoted Full Rerun Completed: One Fixed Fair Recipe Beats the `generic_sparse` Anchor on `21/29` Systems
+Timestamp: 2026-03-09
+Status: **completed**
 
 1. Concrete results:
-- The coefficient-only dense-LISTA Stage 2 holdout sweep is now running under `results/dense_lista_easy_parity_stage2_20260308`:
-  - array: `8907833_[0-83]`
-  - collector: `8907834`
-  - comparison: `8907835`
-- Scope:
-  - systems: `competitive_lv`, `duffing`
-  - base optimizer recipes:
-    - `100k`, `lr=5e-5`, `k_matrix_lr=5e-6`, `weight_decay=1e-4`
-    - `200k`, `lr=5e-5`, `k_matrix_lr=5e-6`, `weight_decay=1e-4`
-  - coefficient variants per base recipe:
-    - baseline
-    - `sparsity_coeff in {0.003, 0.012}`
-    - `reconst_coeff in {0.01, 0.1}`
-    - `pred_coeff in {0.5, 2.0}`
-  - total jobs: `84`
+- The promoted dense-LISTA full `29`-system rerun finished and collected under `results/dense_lista_paper_rerun_stage4_20260309`:
+  - queue launcher: `8909900`
+  - dense LISTA array: `8909900_[0-86]`
+  - collector: `8909901`
+  - comparison vs fixed `generic_sparse` anchor: `8909902`
+- Compared against the fixed `generic_sparse` `v4` anchor:
+  - dense LISTA wins `21/29` shared systems and loses `8/29`
+  - median shared-system `H1000` best-periodic ratio is `0.6455`
+  - cross-system median `H1000` best-periodic improves from `0.0328` to `0.0232`
+  - good-system count improves from `25/29` to `26/29`
+  - there are `0` systems where dense LISTA fails while `generic_sparse` passes
+- The remaining dense failures are still concentrated on the hard systems:
+  - `hopfield`: `1.578e+06`
+  - `kuramoto`: `48.50`
+  - `multiwell_strong_transition_hd`: `4.533e+04`
 
 2. Context:
-- Stage 1 already answered the first fairness question positively: external optimization alone can flip `6/8` targeted easy near-misses.
-- The only unresolved easy systems are now `competitive_lv` and `duffing`.
-- This sweep keeps architecture and `dt` fixed, and changes only loss balance around the two low-LR Stage-1 winners.
+- Stage 4 was the full-benchmark follow-up after Stage 2 and Stage 3 resolved the dense-LISTA recipe question.
+- The rerun kept the dense LISTA architecture fixed, used the promoted Stage-3 external recipe, reused the benchmark-selected pass-2 `dt` table, and compared only against the existing `generic_sparse` `v4` anchor.
 
 3. Interpretation:
-- This is the minimal next test before spending full-benchmark compute:
-  - same architecture
-  - same benchmark-selected task difficulty
-  - same optimizer family that already worked best
-  - only coefficient balance changes
+- The dense-LISTA parity story is now full-benchmark positive rather than only a targeted easy-system subset result.
+- One fixed fair dense recipe now beats the fixed `generic_sparse` anchor on most benchmark systems overall.
+- This still does not solve the hard-system story: the same intrinsic-HD failures continue to dominate the tail risk.
+- Because only dense LISTA was rerun, this result should be treated as a dense-specific follow-up and not as a replacement for the symmetric `v4` all-model matrix.
 
 4. Project implications:
-- If either holdout flips here, the dense-LISTA paper story gets stronger without sacrificing fairness.
-- If both holdouts stay MLP-better, we should stop trying to make the easy-system story perfect and move to a full-benchmark rerun of the best fair dense-LISTA recipe.
+- The dense thread is no longer blocked by pending reruns or by recipe-selection ambiguity.
+- The paper can now make a substantially stronger dense-LISTA claim: fixed-architecture external tuning is enough to beat the fixed `generic_sparse` anchor on most systems overall.
+- The remaining dense-LISTA paper risk is now narrative discipline, not missing experiments:
+  - keep the Stage-4 result separate from the canonical `v4` benchmark
+  - do not oversell dense LISTA on the unresolved hard systems
 
 5. Next steps:
-- Let `8907833_[0-83]` finish and collect under `results/dense_lista_easy_parity_stage2_20260308/collect`.
-- Compare each candidate root against the fixed `generic_sparse` anchor.
-- Decide whether to promote one dense-LISTA recipe to a full `29`-system rerun or to stop the easy-system tuning track.
+- Update the paper-track docs and queue ledger so they reflect that Stage 4 is complete and the paper follow-up recipe rerun is now the only active paper-track queue.
+- Do not queue more dense coefficient-only sweeps or another dense full-benchmark rerun for now.
+- Keep the hard-system narrative tied to the completed Kuramoto scaling read rather than opening another dense-specific branch.
 
 ### ZD) Dense LISTA Easy-System Parity Stage 1 Completed: External Optimization Alone Flips 6/8 Targeted Near-Misses
 Timestamp: 2026-03-08
@@ -744,44 +907,6 @@ Status: **completed**
 - Keep architecture and `dt` fixed.
 - Prioritize `competitive_lv` and `duffing`, then rerun a single winning dense-LISTA external recipe on the full `29`-system benchmark before changing the paper-level parity claim.
 
-### ZC) Focused Kuramoto `dt=0.00625`, `200k`, 5-Seed Comparison Running: Direct Three-Way Check of `generic_sparse` vs Dense LISTA vs Block-Diagonal LISTA
-Timestamp: 2026-03-08
-Status: **running**
-
-1. Concrete results:
-- A focused Kuramoto follow-up is now running under `results/kuramoto_dt00625_200k_compare_20260308`:
-  - launcher: `8907758`
-  - array: `8907759_[0-14]`
-  - collector: `8907760`
-  - comparison: `8907761`
-- The run matrix is:
-  - system: `kuramoto`
-  - `env_dt=0.00625`
-  - `num_steps=200000`
-  - models: `generic_sparse`, `lista_dense`, `lista_blockdiag`
-  - seeds: `0,1,2,3,4`
-
-2. Context:
-- The completed Kuramoto follow-ups now say:
-  - `dt=0.0125`, `20k`: block-diagonal LISTA reaches `H1000=14.36`
-  - `dt=0.0125`, `200k`: block-diagonal LISTA reaches `H1000=13.77`
-  - `dt=0.00625`, `20k`: block-diagonal LISTA reaches `H1000=7.37`
-- That makes `dt=0.00625` the strongest Kuramoto setup observed so far, but it has only been checked at `20k` and only against `generic_sparse`.
-
-3. Interpretation:
-- This is the correct next Kuramoto test if we want a stronger paper-facing result without changing architecture:
-  - more seeds for robustness
-  - direct dense-LISTA comparison instead of only generic-vs-blockdiag
-  - longer training on the smaller-`dt` setup that already looked best
-
-4. Project implications:
-- If block-diagonal LISTA stays below the good band with `5` seeds at `200k`, then the paper can make a cleaner positive Kuramoto claim under an explicitly easier discretization setting.
-- If dense LISTA closes the gap here, then the cross-system near-parity story may extend further into the intrinsic-HD oscillator regime than the current canonical benchmark suggests.
-
-5. Next steps:
-- Let `8907759_[0-14]` finish and collect under `results/kuramoto_dt00625_200k_compare_20260308/collect`.
-- Compare block-diagonal LISTA not only against `generic_sparse`, but also against dense LISTA on the same smaller-`dt`, longer-training, higher-seed-budget setup.
-
 ### ZB) Kuramoto `200k` Continuation Completed: Longer Training Helps Modestly but Does Not Reach the Good-Forecast Band
 Timestamp: 2026-03-08
 Status: **completed**
@@ -822,53 +947,6 @@ Status: **completed**
 - Keep this `200k` result as the current Kuramoto follow-up reference point.
 - Do not queue a broader “train longer everywhere” campaign based on this alone.
 - Let the active dense-LISTA Stage-2 holdout sweep answer the separate cross-system parity follow-up while Hopfield remains the clearest unresolved intrinsic-HD boundary case.
-
-### ZA) Dense LISTA Easy-System Parity Stage 1 Queued: External Optimization-Only Sweep on the 8 Accepted-Default Near-Miss Systems
-Timestamp: 2026-03-08
-Status: **completed; superseded by ZD**
-
-1. Concrete results:
-- The architecture-fixed dense-LISTA parity plan is now documented in:
-  - [docs/planning/dense_lista_easy_system_parity_plan_20260308.md](/home/mila/l/lia/skae/docs/planning/dense_lista_easy_system_parity_plan_20260308.md)
-- Stage-1 dense-LISTA sweep was queued under `results/dense_lista_easy_parity_stage1_20260308`:
-  - launcher: `8906725`
-  - array: `8906726_[0-215]`
-  - collector: `8906727`
-  - comparison: `8906728`
-- The Stage-1 target systems are the accepted-default dense-LISTA near-misses from `v4`:
-  - `blended`, `competitive_lv`, `duffing`, `dysts:Dadras`, `dysts:Hadley`, `dysts:LuChenCheng`, `dysts:SanUmSrisuchinwong`, `multiwell_gradient`
-- The active arm grid is:
-  - `num_steps in {50000,100000,200000}`
-  - `(lr, k_matrix_lr) in {(1e-4,1e-5),(3e-4,3e-5),(5e-5,5e-6)}`
-  - fixed coefficients: `res=1.0`, `reconst=0.03`, `pred=1.0`, `sparsity=0.006`, `weight_decay=1e-4`
-- Operational note:
-  - initial launcher `8906721` failed because the queue script resolved `ROOT_DIR` from the SLURM spool copy instead of `SLURM_SUBMIT_DIR`
-  - a later duplicate retry submitted `8906756/8906757/8906758`, which was canceled after confirming the first fixed chain was already live
-
-2. Context:
-- On the canonical `v4` benchmark, dense LISTA is already close to `generic_sparse` overall (`15/29` wins, median paired ratio `0.9588`), but the remaining accepted-default losses are still important for the paper narrative.
-- The goal here is not to change architecture or task difficulty. It is to test whether dense LISTA can close the easy-system gap using only fair external optimization changes.
-
-3. Interpretation:
-- This is the cleanest cross-system parity test available:
-  - same architecture on every system
-  - same benchmark-selected `dt`
-  - same loss coefficients as the `v4` dense-LISTA baseline
-  - only `num_steps`, `lr`, and `k_matrix_lr` change
-- If Stage 1 materially improves several of these easy near-miss systems, then the remaining dense-LISTA gap is at least partly optimization-limited rather than purely representational.
-
-4. Project implications:
-- The paper can now make a stronger fairness claim:
-  - we did not need to change architecture to test whether dense LISTA could improve
-  - we isolated the first parity push to external knobs only
-- This also keeps the narrative cleanly separated from the intrinsic-HD `dt` story:
-  - easy-system parity work keeps `dt` fixed
-  - hard intrinsic-HD work still uses smaller-`dt` diagnostics where numerics are the actual issue
-
-5. Next steps:
-- Let `8906726_[0-215]` progress to the first collected summary under `results/dense_lista_easy_parity_stage1_20260308/collect`.
-- Rank the `9` Stage-1 dense-LISTA arms by target-set median `H1000` ratio vs the fixed `generic_sparse` anchor.
-- Only queue Stage 2 coefficient sweeps if at least one Stage-1 arm materially improves the easy near-miss set without creating new catastrophic tails.
 
 ### Z) Repaired Intrinsic-HD DT Rescue Completed: Smaller-`dt` Changes the Intrinsic-HD Ranking, and a Narrow Kuramoto `200k` Continuation Is Now Justified
 Timestamp: 2026-03-08
@@ -912,89 +990,6 @@ Status: **completed, follow-up queued**
 - Monitor the queued Kuramoto-only `200k` continuation under `results/intrinsic_hd_kuramoto_dt00125_200k`.
 - If the winning block-diagonal arm crosses `H1000 < 10`, use that result to justify an `N=32/64` scaling check on the same settings.
 - If it stays above threshold, keep the step-size and checkpoint-selection results as a strong mechanistic narrative and frame Hopfield as the clearest unresolved intrinsic-HD limitation.
-
-### Y) Repaired Intrinsic-HD DT Rescue Rerun: Full Grid Active, Early Partial Results Show Smaller-`dt` Gains but Not Yet a Full Rescue
-Timestamp: 2026-03-08
-Status: **running, early partial read only**
-
-1. Concrete results:
-- The repaired rerun launcher completed successfully:
-  - launcher: `8906425`
-  - `generic_sparse` array: `8906426_[0-23]`
-  - `lista_blockdiag` array: `8906427_[0-23]`
-  - collector: `8906428`
-- The child sweep jobs now decode the intended full grid:
-  - representative logs show `TOTAL_JOBS=24`
-  - run directories have been created under `/network/scratch/l/lia/skae/intrinsic_hd_dt_rescue_20260308_rerun1`
-- Early partial collection from completed rows (`10` rows so far) shows:
-  - `generic_sparse`, `kuramoto`, `dt=0.0125`, `sp=0.0005`, `H1000` best-periodic:
-    - seed `0`: `25.93`
-    - seed `1`: `25.87`
-    - seed `2`: `36.16`
-  - `generic_sparse`, `hopfield`, `dt=0.0125`, `sp=0.0025`, `H1000` best-periodic:
-    - seed `1`: `130.89`
-    - seed `2`: `197.34`
-- Relative to existing anchors:
-  - `generic_sparse` Kuramoto at the paper-default sparsity in `v4` had system-median `H1000` best-periodic `65.70`
-  - the current-default Kuramoto recovery at `dt=0.05` had `generic_sparse` seed-median `H1000` best-periodic `136.60`
-
-2. Context:
-- This rerun is the direct repair of the collapsed singleton pilot.
-- The scientific question is whether smaller `dt` alone makes `kuramoto` / `hopfield` paper-worthy, or whether a longer-training or representation change is still needed.
-
-3. Interpretation:
-- The rerun is now scientifically valid at the launch level.
-- Early generic-sparse results confirm the main numeric hypothesis: smaller `dt` materially improves both Kuramoto and Hopfield.
-- The gains are not yet sufficient to claim a full rescue:
-  - Kuramoto is improved to the `~26–36` range on the first completed `dt=0.0125`, `sp=0.0005` rows, still above the good-forecast band (`< 10`)
-  - Hopfield remains much worse than acceptable on the first completed rows, even though it is far better than the old catastrophic baseline
-
-4. Project implications:
-- The paper narrative is strengthening around step size as a hidden first-order confound, not just around encoder ranking.
-- The next experiment decision should be based on the completed repaired pilot:
-  - if the best Kuramoto / Hopfield arms are still improving materially but stay above threshold, a targeted `200k` continuation is justified
-  - if the best arms plateau far above threshold, the paper should frame Hopfield as a boundary case and prioritize a stronger mechanistic limitation story
-
-5. Next steps:
-- Let the repaired rerun finish and collect all rows under `results/intrinsic_hd_dt_rescue_20260308_rerun1`.
-- Re-rank the best arms by `H100/H500/H1000` best-periodic and robustness across seeds.
-- Use that completed ranking to decide whether the next queued run is:
-  - a narrow `200k` continuation on the best smaller-`dt` arms
-  - or the `N=32/64` scaling check on the winning intrinsic-HD settings
-  - or a boundary-case follow-up centered on Hopfield
-### X) Intrinsic-HD DT Rescue Pilot Root-Cause Audit: `sbatch --export` Collapsed the Grid to Singleton Child Jobs
-Timestamp: 2026-03-08
-Status: **completed, launcher repaired, rerun required**
-
-1. Concrete results:
-- The focused intrinsic-HD `dt` rescue launcher (`8903785`) computed the intended arrays correctly:
-  - `generic_sparse`: `0-23`
-  - `lista_blockdiag`: `0-23`
-- The child sweep jobs did not receive the full grid. Representative task logs show:
-  - queue log `queue-hd-dt-8903785.out`: `SYSTEMS_CSV=kuramoto,hopfield`, `ENV_DTS_CSV=0.025,0.0125`, arrays `0-23`
-  - sweep task logs `hd-dt-rescue-8903787_1.out` and `hd-dt-rescue-8903788_1.out`: `Task 1 out of range for TOTAL_JOBS=1. Exiting.`
-  - only task `0` ran per model (`8903787_0`, `8903788_0`), which matches the two collected rows in `results/intrinsic_hd_dt_rescue_20260308/forecasting_rows.csv`
-- Root cause:
-  - `scripts/queue_intrinsic_hd_dt_rescue.sh` passed comma-separated values like `SYSTEMS_CSV=kuramoto,hopfield` through `sbatch --export=...`
-  - SLURM uses commas as separators in `--export`, so the child jobs saw only the first value of each CSV and recomputed `TOTAL_JOBS=1`
-- The launcher script has been repaired to pass grid variables through the process environment and use `--export=ALL`, which preserves comma-containing values.
-
-2. Context:
-- This audit was needed because the collector itself looked suspicious, but the scratch root contained only two real training runs. That pointed to a launch-path failure rather than a collection-only bug.
-- The pilot was intended to be the cheapest direct test of whether smaller `dt` helps the two hardest intrinsic-HD systems (`kuramoto`, `hopfield`) under the current seq8 / `TARGET_SIZE=256` setup.
-
-3. Interpretation:
-- The current two-row summary is not a partial sample of a finished grid; it is the exact output of a collapsed singleton launch.
-- There is still no clean focused-pilot evidence on whether smaller `dt` alone resolves `kuramoto` or `hopfield`.
-
-4. Project implications:
-- The right next action is a narrow rerun of the same pilot with the repaired launcher, not more collector work.
-- Because step size itself may be making optimization harder on these systems, smaller `dt` remains the first intervention to test before spending `10x` more budget on longer training.
-
-5. Next steps:
-- Rerun the exact same focused pilot (`kuramoto`, `hopfield`, `dt in {0.025, 0.0125}`, `20k`, current grids) with the repaired launcher.
-- Re-collect and inspect whether the smaller-`dt` runs produce clear monotonic gains at `H500/H1000` or merely shift catastrophic tails.
-- Only consider a targeted `200000`-step follow-up after that rerun if the repaired `20k` smaller-`dt` results look optimization-limited rather than obviously integration-limited.
 
 ### W) Canonical Paper Benchmark Completion: Repaired `dt`-Rescue Matrix Collected and Compared (`29` Systems, `4` Baselines, `TS=256`, `L=8`, `50k`)
 Timestamp: 2026-03-08
@@ -1047,51 +1042,6 @@ Status: **completed**
 - Update all paper-track notes and figure references to cite the completed `v4` artifacts.
 - Prioritize targeted follow-up on the `10` `integration_hard` systems, especially `kuramoto` and `hopfield`.
 - Use the completed benchmark to decide whether the next paper-facing intrinsic-HD work should be step-size repair, optimization changes, or representation changes on the unresolved systems.
-
-### V) Intrinsic-HD DT Rescue Pilot Collection Audit: Scheduler Finished, but the Collected Summary Is Incomplete (`kuramoto` + `hopfield`, Seq8, `TARGET_SIZE=256`, `20k`)
-Timestamp: 2026-03-08
-Status: **completed, follow-up required**
-
-1. Concrete results:
-- The focused intrinsic-HD `dt` rescue scheduler chain completed:
-  - launcher: `8903785`
-  - `generic_sparse` array: `8903787_[0-23]`
-  - `lista_blockdiag` array: `8903788_[0-23]`
-  - collector: `8903789`
-- Output roots:
-  - `/network/scratch/l/lia/skae/intrinsic_hd_dt_rescue_20260308`
-  - `results/intrinsic_hd_dt_rescue_20260308`
-- Intended grid:
-  - systems: `kuramoto`, `hopfield`
-  - `dt`: `0.025`, `0.0125`
-  - seeds: `0,1,2`
-  - `generic_sparse`: `sp in {0.0005, 0.0025}`
-  - `lista_blockdiag`: `sp in {0.0005, 0.0010}`, `alpha=0.15`, `loops=1`, `block=16`
-  - `num_steps=20000`
-- Current collected artifact gap:
-  - `results/intrinsic_hd_dt_rescue_20260308/forecasting_rows.csv` contains only `2` rows total
-  - both rows are `kuramoto`, `seed_0`, `dt=0.025`
-  - collected `H1000` best-periodic:
-    - `generic_sparse`: `52.8679`
-    - `lista_blockdiag`: `28.2276`
-  - no `hopfield` rows and no `dt=0.0125` rows appear in the current summary
-
-2. Context:
-- This pilot was supposed to be the cheapest direct test of the paper-track step-size hypothesis on the two intrinsic-HD systems that stayed obviously bad at default `dt=0.05`.
-- The current-default Kuramoto recovery sweep already suggested that `lista_blockdiag` was the only LISTA-family intrinsic-HD variant worth retesting under smaller `dt`.
-
-3. Interpretation:
-- The scheduler did its job, but the collected result is not decision-grade.
-- The currently visible rows do suggest that `dt=0.025` alone does not make Kuramoto paper-worthy, but that is too thin to support a broader claim because the summary is missing most of the intended grid.
-
-4. Project implications:
-- We still do not have clean focused-pilot evidence on whether smaller `dt` alone resolves `kuramoto` / `hopfield`.
-- Intrinsic-HD follow-up is therefore blocked on rerunning the repaired launcher rather than on more interpretation of the current two-row summary.
-
-5. Next steps:
-- Keep this entry as the scheduler/collection audit record, but use `### X` as the launch root-cause source of truth.
-- Rerun the same narrow pilot with the repaired launcher before making any paper-facing step-size conclusion for `kuramoto` / `hopfield`.
-- Continue using the current-default Kuramoto recovery result (`lista_blockdiag sp_0p0010 loops_1`) as the intrinsic-HD LISTA anchor until the smaller-`dt` pilot is repaired.
 
 ### U) Kuramoto Recovery Completion + Reporting Repair: Current-Default Retuning Beats Matched `generic_sparse` but Remains Above Good-Forecast Band
 Timestamp: 2026-03-08
@@ -1306,46 +1256,6 @@ Status: **completed**
 - Exclude heavy-tail Queue-4 arms from promotion unless robustified.
 - Re-evaluate against `generic_sparse` using the same metrics and sparsity-band objective.
 
-### P) Queue 4 Launch: Joint Pareto Sweep (`SPARSITY_COEFF × lista_num_loops`) at Fixed `lista_alpha=0.15` (Duffing 2D, L=8, 3 Seeds)
-Timestamp: 2026-03-04
-Status: **completed (launch record; results in Entry Q)**
-
-1. Concrete results:
-- Added Queue-4 scripts:
-  - `scripts/sweep_duffing_lista_pareto_q4.sh`
-  - `scripts/collect_duffing_lista_pareto_q4.sh`
-  - `scripts/queue_duffing_lista_queue04_pareto.sh`
-- Added Pareto utility:
-  - `tools/compute_pareto_frontier.py`
-- Submitted Queue-4 chain via queue launcher:
-  - Queue launcher: `8875686` (**completed**)
-  - Sweep array: `8875708_[0-59]`
-  - Collector: `8875709` (`afterany:8875708`)
-- Sweep grid:
-  - `sparsity_coeff ∈ {0.0005, 0.0010, 0.0020, 0.0040, 0.0060}`
-  - `lista_num_loops ∈ {1,2,5,7}`
-  - `seed ∈ {0,1,2}`
-- Collector outputs both aggregate and Pareto artifacts:
-  - `duffing_lista_q04_pareto_50k_summary.{json,md}`
-  - `duffing_lista_q04_pareto_50k_pareto_frontier.{json,md}`
-
-2. Context:
-- Queue-2 and Queue-3 each varied a single knob and produced conflicting optima (forecast vs sparsity-band compliance).
-- A joint sweep is required to identify non-dominated settings rather than forcing a single scalar objective too early.
-
-3. Interpretation:
-- Queue-4 is the correct next step to map the true tradeoff surface and avoid locking into an artifact of single-knob tuning.
-- Pareto reporting makes the branch decision explicit and reproducible.
-
-4. Project implications:
-- If Queue-4 yields an in-band point with materially better `H500/H1000`, that becomes the new LISTA anchor.
-- If all in-band Pareto points remain far from `generic_sparse`, we should transition from coefficient/depth tuning to threshold adaptivity/encoder-method changes.
-
-5. Next steps:
-- Wait for Queue-4 completion and inspect non-dominated arms.
-- Compare frontier candidates against `generic_sparse` benchmark.
-- Select Queue-5 branch based on remaining gap and robustness.
-
 ### O) Queue 3 Completion: `lista_num_loops` Capacity Sweep at Fixed (`lista_alpha=0.15`, `sparsity_coeff=0.0005`) (Duffing 2D, L=8, 3 Seeds)
 Timestamp: 2026-03-04
 Status: **completed**
@@ -1420,56 +1330,18 @@ Status: **completed**
 - Select depth by long-horizon robustness first (`H500/H1000`), while keeping sparsity in-band.
 - If depth tuning fails to close robustness gaps, move to adaptive-threshold and encoder-variant interventions.
 
-### M) Queue 2 Launch: `SPARSITY_COEFF` Sweep at Fixed `lista_alpha=0.15` (Duffing 2D, L=8, 3 Seeds)
-Timestamp: 2026-03-04
-Status: **completed (launch record; results in Entry N)**
-
-1. Concrete results:
-- Launched Queue-2 sparsity sweep to reduce `sparsity_ratio` toward `~0.8` while keeping `lista_alpha=0.15` fixed:
-  - Sweep array: `8874221_[0-14]`
-  - Collector: `8874222` (afterany dependency on sweep)
-- Sweep grid:
-  - `sparsity_coeff ∈ {0.0005, 0.0010, 0.0020, 0.0040, 0.0060}`
-  - `seed ∈ {0,1,2}`
-- Added reproducible Queue-2 scripts:
-  - `scripts/sweep_duffing_lista_spcoeff_q2.sh`
-  - `scripts/collect_duffing_lista_spcoeff_q2.sh`
-  - `scripts/queue_duffing_lista_queue02_spcoeff.sh`
-
-2. Context:
-- Queue-1 full results selected `alpha=0.15` as the strongest long-horizon setting (`H500/H1000`) among tested alphas.
-- Queue-1 also showed all tested alphas were over-sparse (`sparsity_ratio ~ 0.95`), missing the target `0.7–0.9`.
-- This sweep isolates sparsity-pressure tuning at fixed alpha to test whether the target band can be reached without degrading long-horizon forecasting.
-
-3. Interpretation:
-- This is the correct immediate follow-up to user-priority criteria: keep alpha moderate (`0.15`) and reduce shrinkage pressure through lower `SPARSITY_COEFF`.
-- Metrics are not available yet; no branch decision is changed until Queue-2 summary is collected.
-
-4. Project implications:
-- If one or more coefficients move sparsity into band (`~0.8`) while preserving `H500/H1000`, we can lock a stronger LISTA config for the next stage.
-- If all coefficients remain too sparse or collapse forecasting, this supports moving to Queue `3` (capacity/depth-focused changes).
-
-5. Next steps:
-- Wait for Queue-2 sweep/collector completion and summarize metrics from:
-  - `results/duffing_lista_q02_spcoeff_50k_20260304/duffing_lista_q02_spcoeff_50k_summary.{json,md}`
-- Rank coefficients by `H500/H1000`, `quick-best`, sparsity-band match (`0.7–0.9`, target near `0.8`), and mode distribution.
-- Decide Queue `2` winner or escalate to Queue `3`.
-
-### L) Queue 0-1 Launch: ReLU-Baseline + Focused `lista_alpha` Sweep (Duffing 2D, L=8, 3 Seeds)
+### L) Queue 0-1 Completion: ReLU Baseline + Focused `lista_alpha` Sweep (Duffing 2D, L=8, 3 Seeds)
 Timestamp: 2026-03-04
 Status: **completed**
 
 1. Concrete results:
-- Implemented Queue `0–1` launch scripts and submitted the dependency chain.
-- Detected Queue-1 launch bug: comma-delimited `LISTA_ALPHAS`/`SEEDS_CSV` were truncated by `sbatch --export`, so initial Queue-1 run only executed task `0` and marked tasks `1–14` out-of-range (`TOTAL_JOBS=1`).
-- Patched launch scripts to pass CSV values via environment prefix (instead of inline `--export` values), then canceled and relaunched Queue-1.
 - Queue 0 completed:
   - Sweep: `8873286_[0-2]` (**completed**)
-  - Scheduled collector `8873287` was canceled due queue delay; equivalent collector command was run locally.
+  - Collector output was produced locally from the completed sweep artifacts.
   - Baseline aggregate: quick-best `0.4527`, `H500` `0.0506`, `H1000` `0.3992`, sparsity median `0.9571`.
 - Queue 1 gate completed:
-  - Initial (canceled): Queue 1 gate sweep `8873288_[0-14]`, collector `8873289`, selector `8873290`, full launcher `8873291`
-  - Corrected gate chain: sweep `8873328_[0-14]`, collector `8873329`
+  - Sweep: `8873328_[0-14]`
+  - Collector: `8873329`
   - Gate summary artifacts: `results/duffing_lista_q01_20260304/queue1_gate/duffing_lista_alpha_gate_10k_summary.{json,md}`
 - Gate aggregate means (10k stage, lower better for errors):
   - `alpha_0p15`: quick-best `1.2095`, `H500` `0.1082`, `H1000` `0.3736`, sparsity median `0.9501`
@@ -1477,10 +1349,10 @@ Status: **completed**
   - `alpha_0p20`: quick-best `0.9936`, `H500` `0.1739`, `H1000` `0.5712`, sparsity median `0.9491`
   - `alpha_0p30`: quick-best `0.8347`, `H500` `0.1953`, `H1000` `0.5733`, sparsity median `0.9467`
   - `alpha_0p40`: quick-best `0.9646`, `H500` `0.1452`, `H1000` `0.5772`, sparsity median `0.9473`
-- Selector job `8873330` remained queued (`PD`) with dependencies satisfied, so selection was run locally using `tools/select_lista_alpha_survivors.py`; survivors were `alpha_0p15`, `alpha_0p10`, `alpha_0p20`.
+- Selection used `tools/select_lista_alpha_survivors.py`; survivors were `alpha_0p15`, `alpha_0p10`, `alpha_0p20`.
 - Full stage completed:
   - Launcher `8873462`, sweep `8873469_[0-8]` (**completed**)
-  - Scheduled collector `8873470` was canceled due queue delay; equivalent collector command was run locally.
+  - Collector output was produced locally from the completed sweep artifacts.
   - Full summary artifacts: `results/duffing_lista_q01_20260304/queue1_full/duffing_lista_alpha_full_50k_summary.{json,md}`
 - Full-stage aggregate means (50k survivors):
   - `alpha_0p15`: quick-best `0.3918`, `H500` `0.0205`, `H1000` `0.1709`, sparsity median `0.9549`
@@ -1498,7 +1370,6 @@ Status: **completed**
 - Queue 1 uses a short gate (`10k`) before full runs (`50k`) to reduce wasted long jobs on clearly weak alphas.
 
 3. Interpretation:
-- Queue `0–1` orchestration is valid after the CSV export fix; corrected gate execution covered all 15 alpha-seed tasks.
 - Full stage confirms a clear winner among tested alphas: `alpha_0p15` has the best `H500/H1000` means and best quick-best mean.
 - `alpha_0p20` is second-best and shows the cleanest mode concentration (`periodic_25`), but with weaker long-horizon means than `alpha_0p15`.
 - `alpha_0p10` is unstable across seeds (one large `H1000` outlier), making it a weak candidate despite one strong seed.
@@ -1514,150 +1385,6 @@ Status: **completed**
 - Launch Queue `2` (`SPARSITY_COEFF` sweep) at fixed `lista_alpha=0.15`, `L=8`, `50k`, 3 seeds.
 - Use the same ranking criteria (`H500/H1000`, quick-best, sparsity band, mode distribution) to choose the best Queue-2 setting.
 - If Queue-2 cannot bring sparsity into `0.7–0.9` without long-horizon collapse, move to Queue `3` (`lista_num_loops`/capacity or refined alpha neighborhood).
-
-### M) Canonical Paper Benchmark Progress Check (`v3` Collected, Provisional, Rerun Required)
-Timestamp: 2026-03-07
-Status: **completed once, rerun required**
-
-1. Concrete results:
-- The corrected `v3` paper benchmark chain (`8897639`-`8897652`) completed smoke, anchor, rescue, full training, and final collection.
-- After repairing `tools/collect_forecasting_roots.py` for the `system/dt_tag/seed/run` layout and rerunning collection locally:
-  - repaired final collection found `347` rows out of the expected `348`
-  - the missing row is `lista_dense / multiwell_strong_transition / seed_2` because the run lacks `evaluation_results_best.json`
-  - repaired pairwise comparisons against `generic_sparse` were generated under:
-    - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3/final_compare/`
-- Provisional cross-system `H1000` best-periodic medians from the repaired default-`dt` full matrix:
-  - `generic_sparse`: `0.0251`
-  - `lista_dense`: `0.0648`
-  - `lista_blockdiag`: `0.1619`
-  - `lista_diagonal`: `1.1417`
-- Provisional catastrophic-system counts at `H1000`:
-  - `generic_sparse`: `2`
-  - `lista_dense`: `4`
-  - `lista_blockdiag`: `2`
-  - `lista_diagonal`: `2`
-- Candidate-vs-anchor comparisons on the repaired default-`dt` matrix:
-  - dense LISTA vs `generic_sparse`: candidate wins `5/29`, anchor wins `24/29`
-  - block LISTA vs `generic_sparse`: candidate wins `4/29`, anchor wins `25/29`
-  - diagonal-K LISTA vs `generic_sparse`: candidate wins `6/29`, anchor wins `23/29`
-- After recomputing anchor pass `0` with the repaired collector:
-  - `13/29` systems accept default `dt`
-  - `16/29` systems require at least one halving before the benchmark matches the intended protocol
-
-2. Context:
-- The full `v3` matrix did finish, but the original in-chain collector had been empty during queue execution.
-- Because of that, the in-chain `dt` resolver never saw the anchor results and the queued rescue/full stages effectively stayed at default `dt`.
-- The repaired collection therefore tells us two things simultaneously:
-  - what the default-`dt` matrix looks like
-  - whether that matrix is actually valid as the intended paper benchmark
-
-3. Interpretation:
-- On the provisional default-`dt` matrix, `generic_sparse` is clearly the strongest overall baseline.
-- Dense LISTA is the closest LISTA-family competitor by median `H1000`, but it is less robust and has more catastrophic systems.
-- The benchmark is **not yet paper-final** because more than half the systems (`16/29`) should have been rerun at smaller `dt` according to the agreed rescue rule.
-
-4. Project implications:
-- We now have a useful default-difficulty audit, but not the final paper benchmark.
-- The repaired collector confirms that step size really is a major difficulty knob across this system set; leaving everything at default `dt` overstates task difficulty for many systems.
-- The current `v3` full matrix should be treated as provisional evidence only and should not be the version cited in the paper.
-
-5. Next steps:
-- Relaunch the canonical paper benchmark with the repaired collector in the loop so `dt` rescue uses real anchor data.
-- Use the recomputed anchor/default collect as the source of truth for the pass-1 rescue task table.
-- Patch or backfill the missing dense-LISTA `multiwell_strong_transition / seed_2` evaluation artifact if we want the provisional `v3` matrix to remain analyzable while the corrected rerun is executing.
-
-### L) Canonical Research-Paper Benchmark Lock-In + Queue Launch (29 Systems, 4 Baselines, `TS=256`, `L=8`, `50k`)
-Timestamp: 2026-03-06
-Status: **in progress**
-
-1. Concrete results:
-- Implemented the canonical paper-benchmark scaffold:
-  - manifest module: `29` systems, `4` baselines
-  - locked training defaults: `target_size=256`, `sequence_length=8`, `batch_size=256`, `num_steps=50000`, `seeds={0,1,2}`
-  - locked baselines: `generic_sparse`, `lista_dense`, `lista_diagonal`, `lista_blockdiag`
-- Added explicit environment-step control for the benchmark:
-  - `tools/train.py` now accepts `--env_dt`
-  - built-in envs and `dysts` persist the resolved `dt` into `config.json`
-  - `blended` now reads `cfg.ENV.BLENDED.DT` instead of a hard-coded step size
-- Implemented benchmark automation:
-  - `tools/build_paper_benchmark_tasks.py`
-  - `tools/resolve_paper_benchmark_dt.py`
-  - `tools/summarize_paper_benchmark_results.py`
-  - `scripts/run_paper_benchmark_array.sh`
-  - `scripts/collect_paper_benchmark.sh`
-  - `scripts/resolve_paper_benchmark_dt.sh`
-  - `scripts/compare_paper_benchmark.sh`
-  - `scripts/queue_paper_benchmark_chain.sh`
-- Validation results:
-  - focused validation suite passed: `28 passed in 139.88s`
-  - smoke task table count: `16`
-  - anchor task table count: `87`
-  - full benchmark training count (after dt resolution): `348`
-  - mixed-root collector validation on existing high-dimensional roots produced `18` rows and recorded `env_dt`
-  - paper-summary writer emitted paper-ready markdown/json on existing benchmark rows
-  - the `dt` resolver initially failed when unresolved systems had `selected_dt=None`; that markdown bug was fixed and the resolver then wrote all expected artifacts successfully
-- First queue submission (`8897520`-`8897533`) failed immediately due a Slurm path bug: the batch scripts resolved `.venv` from the temporary spool copy instead of the repo root.
-- Patched all batch scripts to use `SLURM_SUBMIT_DIR`, canceled the broken chain, and resubmitted a second chain (`8897551`-`8897564`).
-- The second chain reached live execution and confirmed the path fix:
-  - task `8897551_15` started on `cn-c008`
-  - the run executed from `/home/mila/l/lia/skae`
-  - `dysts:LorenzCoupled` received the resolved `dt=0.0003241940323387382`
-  - Dysts train/validation caches were both hit successfully
-- Built-in smoke tasks on the second chain then failed because shell TSV parsing collapsed empty fields and corrupted `env_dt` (`'\r'` reached `train.py` for built-in rows).
-- Replaced shell `read` parsing with Python-backed TSV parsing in `scripts/run_paper_benchmark_array.sh`, canceled the second chain, and resubmitted the final clean canonical chain:
-  - smoke array: `8897639`
-  - smoke collect: `8897640`
-  - anchor array: `8897641`
-  - anchor collect: `8897642`
-  - resolve/rescue/full/final chain: `8897643`-`8897652`
-- First live smoke results from the final clean chain:
-  - `generic_sparse / duffing / seed_0 / dt=0.01` (last checkpoint):
-    - `H100` best-periodic `2.5783e-04`
-    - `H500` best-periodic `4.6018e-03`
-    - `H1000` best-periodic `1.5665e-02`
-    - `H1000` every-step `1.2278`
-  - `lista_blockdiag / multiwell_rotational / seed_0 / dt=0.02` (last checkpoint):
-    - `H100` best-periodic `3.0264e-02`
-    - `H500` best-periodic `1.7808e-01`
-    - `H1000` best-periodic `2.3307e-01`
-    - `H1000` every-step `8.0212e-01`
-- Canonical output roots for the paper benchmark:
-  - `/network/scratch/l/lia/skae/paper_benchmark_20260306_paper_final_ts256_50k_v3`
-  - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3`
-
-2. Context:
-- This is the benchmark suite intended for the actual research paper. It replaces the earlier subset-only view (`duffing`, intrinsic-HD only, or ad hoc Dysts subsets) with a single reproducible queue that covers:
-  - low-dimensional built-ins
-  - high-dimensional built-ins
-  - chaotic multi-basin Dysts systems
-- The difficulty knob is now explicit and controlled:
-  - keep architecture/training recipe fixed
-  - reduce environment integration `dt` only when the anchor `generic_sparse` median `H1000` every-step per-dim is poor
-  - use at most two halvings (`dt`, `dt/2`, `dt/4`)
-- The benchmark reports both requested evaluation views:
-  - in-time prediction: every-step MSE
-  - forecasting: best-periodic / no-reencode evaluation from the standardized suite
-
-3. Interpretation:
-- The paper benchmark definition is now fixed and reproducible; we no longer need to manually stitch together separate launchers, collectors, or per-system `dt` overrides.
-- The first two failures were purely infrastructure-related and are now corrected; they do not invalidate the benchmark specification itself.
-- The final clean chain is now producing valid smoke-stage training and standardized evaluation artifacts on both built-in and Dysts-backed systems.
-- The remaining blocker is benchmark wall-clock time on cluster, not missing experimental machinery or launcher correctness.
-
-4. Project implications:
-- These are now the experiments that should go into the actual research paper.
-- Earlier subset benchmarks remain useful for diagnosis, but they should not be treated as the final paper evidence once this canonical run completes.
-- All future cross-system model claims should be grounded in the artifacts produced under:
-  - `/network/scratch/l/lia/skae/paper_benchmark_20260306_paper_final_ts256_50k_v3`
-  - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3`
-
-5. Next steps:
-- Let the corrected smoke stage run and verify the first collected artifacts under `results/paper_benchmark_20260306_paper_final_ts256_50k_v3/smoke_collect`.
-- Let the anchor stage resolve per-system `dt` under `results/paper_benchmark_20260306_paper_final_ts256_50k_v3/dt_resolution`.
-- When the full chain completes, report the final paper tables from:
-  - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3/final_collect/forecasting_summary.md`
-  - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3/final_collect/paper_benchmark_summary.md`
-  - `results/paper_benchmark_20260306_paper_final_ts256_50k_v3/final_compare/`
 
 ### K) 50k Encoder Comparison: LISTA-current vs LISTA-matched vs generic_sparse (Duffing 2D, L=8, 3 Seeds)
 Timestamp: 2026-03-03
