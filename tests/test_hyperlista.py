@@ -81,9 +81,10 @@ class TestHyperLISTA:
         dict_param = torch.nn.Parameter(torch.randn(32, xdim))
         hyperlista = HyperLISTA(cfg, xdim, dict_param)
 
-        assert isinstance(hyperlista.c_theta, torch.nn.Parameter)
+        assert isinstance(hyperlista.c_theta_raw, torch.nn.Parameter)
         assert isinstance(hyperlista.c_beta, torch.nn.Parameter)
         assert isinstance(hyperlista.c_ss, torch.nn.Parameter)
+        assert hyperlista.c_theta.item() > 0.0
 
     def test_fixed_hyperparams(self):
         cfg = get_config("hyperlista")
@@ -95,9 +96,26 @@ class TestHyperLISTA:
         hyperlista = HyperLISTA(cfg, xdim, dict_param)
 
         param_names = [n for n, _ in hyperlista.named_parameters()]
-        assert "c_theta" not in param_names
+        assert "c_theta_raw" not in param_names
         assert "c_beta" not in param_names
         assert "c_ss" not in param_names
+
+    def test_c_theta_stays_positive_when_constrained(self):
+        cfg = get_config("hyperlista")
+        cfg.MODEL.TARGET_SIZE = 32
+        cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 5e-4
+        cfg.MODEL.ENCODER.HYPERLISTA.C_THETA_MIN = 1e-6
+        cfg.MODEL.ENCODER.HYPERLISTA.CONSTRAIN_C_THETA = True
+
+        dict_param = torch.nn.Parameter(torch.randn(32, 5))
+        hyperlista = HyperLISTA(cfg, 5, dict_param)
+        optimizer = torch.optim.SGD(hyperlista.parameters(), lr=10.0)
+
+        loss = -hyperlista.c_theta.sum()
+        loss.backward()
+        optimizer.step()
+
+        assert hyperlista.c_theta.item() >= cfg.MODEL.ENCODER.HYPERLISTA.C_THETA_MIN
 
     def test_no_momentum(self):
         cfg = get_config("hyperlista")
@@ -219,7 +237,7 @@ class TestUnifiedHyperLISTAGradientFlow:
         loss, _ = model.loss(**make_unified_loss_inputs(model, x, nx))
         loss.backward()
 
-        assert model.encoder.c_theta.grad is not None
+        assert model.encoder.c_theta_raw.grad is not None
         assert model.encoder.c_beta.grad is not None
 
 
@@ -259,6 +277,27 @@ class TestHyperLISTAShrinkOperators:
         assert result[0, 5] == -5.0
         assert result[0, 2] == 0.0
         assert result[0, 3] == 0.0
+
+    def test_pinv_refresh_uses_current_dictionary_values(self):
+        cfg = get_config("hyperlista")
+        cfg.MODEL.TARGET_SIZE = 4
+
+        dict_param = torch.nn.Parameter(torch.randn(4, 3))
+        hyperlista = HyperLISTA(cfg, 3, dict_param)
+
+        D = torch.tensor(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 0.0],
+                [0.0, 0.0, 3.0, 0.0],
+            ]
+        )
+        pinv_1 = hyperlista._get_D_pinv(D)
+
+        D.mul_(2.0)
+        pinv_2 = hyperlista._get_D_pinv(D)
+
+        assert not torch.allclose(pinv_1, pinv_2)
 
 
 if __name__ == "__main__":
