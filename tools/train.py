@@ -985,6 +985,12 @@ Examples:
                         help='Override the integration timestep for the active environment')
     parser.add_argument('--kuramoto_num_oscillators', type=int, default=None,
                         help='Override ENV.KURAMOTO.NUM_OSCILLATORS')
+    parser.add_argument('--kuramoto_topology', type=str, default=None,
+                        help='Override ENV.KURAMOTO.TOPOLOGY')
+    parser.add_argument('--kuramoto_omega_mode', type=str, default=None,
+                        help='Override ENV.KURAMOTO.OMEGA_MODE')
+    parser.add_argument('--kuramoto_omega_spread', type=float, default=None,
+                        help='Override ENV.KURAMOTO.OMEGA_SPREAD')
     parser.add_argument('--hopfield_num_neurons', type=int, default=None,
                         help='Override ENV.HOPFIELD.NUM_NEURONS')
     parser.add_argument('--hopfield_num_patterns', type=int, default=None,
@@ -1216,6 +1222,12 @@ Examples:
     # Environment overrides
     if args.kuramoto_num_oscillators is not None:
         cfg.ENV.KURAMOTO.NUM_OSCILLATORS = args.kuramoto_num_oscillators
+    if args.kuramoto_topology is not None:
+        cfg.ENV.KURAMOTO.TOPOLOGY = args.kuramoto_topology
+    if args.kuramoto_omega_mode is not None:
+        cfg.ENV.KURAMOTO.OMEGA_MODE = args.kuramoto_omega_mode
+    if args.kuramoto_omega_spread is not None:
+        cfg.ENV.KURAMOTO.OMEGA_SPREAD = args.kuramoto_omega_spread
     if args.hopfield_num_neurons is not None:
         cfg.ENV.HOPFIELD.NUM_NEURONS = args.hopfield_num_neurons
     if args.hopfield_num_patterns is not None:
