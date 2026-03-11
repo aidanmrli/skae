@@ -8,8 +8,9 @@ eigenvalue analysis, latent clustering, etc.).
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List, Sequence
 
 import torch
 
@@ -87,6 +88,7 @@ def identify_env_basin(
 class BasinLabeledTrajectory:
     states: torch.Tensor
     final_basin: int
+    raw_final_basin: int | None = None
 
 
 class BasinLabeledDataset:
@@ -100,6 +102,10 @@ class BasinLabeledDataset:
         trajectory_length: int = 500,
         long_rollout_steps: int = 5000,
         seed: int = 42,
+        sampling_strategy: str = "random",
+        target_raw_labels: Sequence[int] | None = None,
+        trajectories_per_basin: int | None = None,
+        max_attempts: int | None = None,
     ):
         self.system = system
         self.cfg = cfg
@@ -107,6 +113,14 @@ class BasinLabeledDataset:
         self.trajectory_length = trajectory_length
         self.long_rollout_steps = long_rollout_steps
         self.seed = seed
+        self.sampling_strategy = str(sampling_strategy).lower()
+        self.target_raw_labels = (
+            [int(label) for label in target_raw_labels]
+            if target_raw_labels
+            else None
+        )
+        self.trajectories_per_basin = trajectories_per_basin
+        self.max_attempts = max_attempts
 
         self.env = make_env(cfg)
 
@@ -133,51 +147,140 @@ class BasinLabeledDataset:
             )
 
         self.trajectories: List[BasinLabeledTrajectory] = []
+        self.raw_basin_labels: List[int] = []
+        self.raw_to_mapped_label: Dict[int, int] = {}
+        self.raw_basin_distribution: Dict[int, int] = {}
+        self.mapped_basin_distribution: Dict[int, int] = {}
         self._generate_trajectories()
 
-    def _generate_trajectories(self):
-        print(f"Generating {self.num_trajectories} trajectories for {self.system}...")
+    def _draw_trajectory(self, sample_index: int) -> tuple[torch.Tensor, int]:
+        env_rng = torch.Generator().manual_seed(self.seed + sample_index)
+        init_state = self.env.reset(env_rng)
+
+        traj = generate_trajectory(
+            self.env.step,
+            init_state,
+            length=self.trajectory_length,
+        )
+        traj = torch.cat([init_state.unsqueeze(0), traj], dim=0)
+
+        raw_label = identify_env_basin(self.env, traj, self.long_rollout_steps)
+        return traj, raw_label
+
+    def _build_basin_names(self, raw_labels: Sequence[int]) -> List[str]:
+        system_lower = self.system.lower()
+        if system_lower == "kuramoto":
+            return [f"Winding q={label}" for label in raw_labels]
+        if system_lower == "competitive_lv":
+            return [f"Survivor mask {label}" for label in raw_labels]
+        return [f"Basin {label}" for label in raw_labels]
+
+    def _generate_random_trajectories(self) -> tuple[List[torch.Tensor], List[int]]:
+        raw_trajectories: List[torch.Tensor] = []
+        raw_labels: List[int] = []
+        for i in range(self.num_trajectories):
+            traj, raw_label = self._draw_trajectory(i)
+            raw_trajectories.append(traj)
+            raw_labels.append(raw_label)
+        return raw_trajectories, raw_labels
+
+    def _generate_balanced_trajectories(self) -> tuple[List[torch.Tensor], List[int]]:
+        if self.trajectories_per_basin is None or self.trajectories_per_basin < 1:
+            raise ValueError(
+                "Balanced sampling requires `trajectories_per_basin >= 1`."
+            )
+        if not self.target_raw_labels:
+            raise ValueError(
+                "Balanced sampling requires explicit `target_raw_labels`."
+            )
+
+        target_raw_labels = list(dict.fromkeys(int(label) for label in self.target_raw_labels))
+        counts = {label: 0 for label in target_raw_labels}
         raw_trajectories: List[torch.Tensor] = []
         raw_labels: List[int] = []
 
-        for i in range(self.num_trajectories):
-            env_rng = torch.Generator().manual_seed(self.seed + i)
-            init_state = self.env.reset(env_rng)
+        max_attempts = self.max_attempts
+        if max_attempts is None:
+            max_attempts = len(target_raw_labels) * self.trajectories_per_basin * 50
 
-            traj = generate_trajectory(
-                self.env.step,
-                init_state,
-                length=self.trajectory_length,
+        attempt = 0
+        while any(count < self.trajectories_per_basin for count in counts.values()):
+            if attempt >= max_attempts:
+                missing = {
+                    label: self.trajectories_per_basin - count
+                    for label, count in counts.items()
+                    if count < self.trajectories_per_basin
+                }
+                raise RuntimeError(
+                    "Failed to sample requested basin quotas. "
+                    f"targets={target_raw_labels}, counts={counts}, missing={missing}, "
+                    f"max_attempts={max_attempts}"
+                )
+
+            traj, raw_label = self._draw_trajectory(attempt)
+            if raw_label in counts and counts[raw_label] < self.trajectories_per_basin:
+                raw_trajectories.append(traj)
+                raw_labels.append(raw_label)
+                counts[raw_label] += 1
+            attempt += 1
+
+        self.num_trajectories = len(raw_trajectories)
+        return raw_trajectories, raw_labels
+
+    def _generate_trajectories(self):
+        print(
+            f"Generating trajectories for {self.system} "
+            f"(sampling={self.sampling_strategy})..."
+        )
+        if self.sampling_strategy == "balanced":
+            raw_trajectories, raw_labels = self._generate_balanced_trajectories()
+        elif self.sampling_strategy == "random":
+            raw_trajectories, raw_labels = self._generate_random_trajectories()
+        else:
+            raise ValueError(
+                f"Unknown sampling_strategy '{self.sampling_strategy}'. "
+                "Expected 'random' or 'balanced'."
             )
-            traj = torch.cat([init_state.unsqueeze(0), traj], dim=0)
 
-            final_basin = identify_env_basin(self.env, traj, self.long_rollout_steps)
-            raw_trajectories.append(traj)
-            raw_labels.append(final_basin)
         has_fixed_index_space = (
             self.num_basins > 0
             and all(0 <= label < self.num_basins for label in raw_labels)
+            and self.target_raw_labels is None
         )
 
         if has_fixed_index_space:
             mapped_labels = raw_labels
+            self.raw_basin_labels = list(range(self.num_basins))
+            self.raw_to_mapped_label = {label: label for label in self.raw_basin_labels}
             if not self.basin_names:
                 self.basin_names = [f"Basin {i}" for i in range(self.num_basins)]
         else:
-            unique_labels = sorted(set(raw_labels))
+            if self.target_raw_labels is not None:
+                unique_labels = list(dict.fromkeys(int(label) for label in self.target_raw_labels))
+            else:
+                unique_labels = sorted(set(raw_labels))
             label_to_index = {label: idx for idx, label in enumerate(unique_labels)}
             mapped_labels = [label_to_index[label] for label in raw_labels]
+            self.raw_basin_labels = unique_labels
+            self.raw_to_mapped_label = dict(label_to_index)
             self.num_basins = len(unique_labels)
+            self.basin_names = self._build_basin_names(unique_labels)
 
-            system_lower = self.system.lower()
-            if system_lower == "kuramoto":
-                self.basin_names = [f"Winding q={label}" for label in unique_labels]
-            elif system_lower == "competitive_lv":
-                self.basin_names = [f"Survivor mask {label}" for label in unique_labels]
-            else:
-                self.basin_names = [f"Basin {label}" for label in unique_labels]
+        if not self.raw_basin_labels:
+            self.raw_basin_labels = list(range(self.num_basins))
+        if not self.raw_to_mapped_label:
+            self.raw_to_mapped_label = {
+                label: idx for idx, label in enumerate(self.raw_basin_labels)
+            }
 
-        for traj, mapped_basin in zip(raw_trajectories, mapped_labels):
+        self.raw_basin_distribution = dict(sorted(Counter(raw_labels).items()))
+        self.mapped_basin_distribution = dict(sorted(Counter(mapped_labels).items()))
+
+        for traj, raw_label, mapped_basin in zip(raw_trajectories, raw_labels, mapped_labels):
             self.trajectories.append(
-                BasinLabeledTrajectory(states=traj, final_basin=int(mapped_basin))
+                BasinLabeledTrajectory(
+                    states=traj,
+                    final_basin=int(mapped_basin),
+                    raw_final_basin=int(raw_label),
+                )
             )
