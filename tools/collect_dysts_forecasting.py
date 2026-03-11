@@ -43,6 +43,17 @@ def _horizon_mean(system_data: Dict, mode_name: str, horizon: int) -> Optional[f
     return _safe_float(mean)
 
 
+def _horizon_per_dim_mean(system_data: Dict, mode_name: str, horizon: int) -> Optional[float]:
+    mean = (
+        system_data.get("modes", {})
+        .get(mode_name, {})
+        .get("horizons", {})
+        .get(str(horizon), {})
+        .get("per_dim_mean")
+    )
+    return _safe_float(mean)
+
+
 def _is_run_dir(path: Path) -> bool:
     return (path / "config.json").exists() or (path / "evaluation_results_best.json").exists()
 
@@ -95,9 +106,12 @@ def _extract_row(
     system_data = eval_data.get(system_key, {})
 
     no_re = _horizon_mean(system_data, "no_reencode", horizon)
+    no_re_per_dim = _horizon_per_dim_mean(system_data, "no_reencode", horizon)
     every_step = _horizon_mean(system_data, "every_step", horizon)
+    every_step_per_dim = _horizon_per_dim_mean(system_data, "every_step", horizon)
     best = system_data.get("best_periodic", {}).get(str(horizon), {})
     best_periodic = _safe_float(best.get("mean"))
+    best_periodic_per_dim = _safe_float(best.get("per_dim_mean"))
     best_mode = best.get("mode")
 
     cfg_data = _read_json(run_dir / "config.json") or {}
@@ -122,8 +136,11 @@ def _extract_row(
         "sequence_length": sequence_length,
         "num_steps": train_cfg.get("NUM_STEPS"),
         f"h{horizon}_no_reencode_mean": no_re,
+        f"h{horizon}_no_reencode_per_dim_mean": no_re_per_dim,
         f"h{horizon}_every_step_mean": every_step,
+        f"h{horizon}_every_step_per_dim_mean": every_step_per_dim,
         f"h{horizon}_best_periodic_mean": best_periodic,
+        f"h{horizon}_best_periodic_per_dim_mean": best_periodic_per_dim,
         f"h{horizon}_best_periodic_mode": best_mode,
     }
 
