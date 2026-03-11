@@ -5,8 +5,11 @@ Date: 2026-03-04
 ## Goal
 
 - Improve LISTA-stack (`LISTAKM`) forecasting (especially long-horizon rollouts) while preserving basin-support alignment.
-- Target `sparsity_ratio` (inactive latent dims) in the `0.7–0.9` range during steady training.
+- For the current LISTA-family recovery phase, optimize long-horizon forecasting first; treat `sparsity_ratio` / support density as a secondary diagnostic rather than a hard promotion gate.
 - Close the forecasting gap vs `generic_sparse` on benchmark systems (start with Duffing): aim for `<= 2x` on `H500/H1000` best-periodic, with comparable robustness across seeds.
+
+Current wrap-up execution note:
+- The active paper-phase follow-up workstreams, including the fixed-cadence periodic re-encoding ablation, are coordinated in [docs/planning/paper_parallel_workstreams_20260309.md](/home/mila/l/lia/skae/docs/planning/paper_parallel_workstreams_20260309.md).
 
 ## Current Evidence (Duffing)
 
@@ -23,7 +26,7 @@ Date: 2026-03-04
 
 ## Hypotheses To Test (No Basin Labels Required)
 
-- **H1: Sparsity is threshold-limited**. `alpha / L` is too small, so shrinkage rarely produces zeros. Increasing the effective threshold yields `sparsity_ratio` in `0.7–0.9` and improves forecasting.
+- **H1: Threshold scaling is limiting**. `alpha / L` is too small, so shrinkage may be too weak to produce stable supports. Increasing the effective threshold may improve forecasting robustness, even if it does not immediately land in any specific sparsity band.
 - **H2: Encoder capacity is limiting**. With `NUM_LOOPS=5` and tied parameters, LISTA cannot represent the x→z map that best supports multi-step Koopman rollouts.
 - **H3: Decoder/dictionary constraints matter**. Per-forward dictionary normalization (and lack of bias/homogeneous coordinate) may restrict reconstruction quality and/or distort the optimization landscape for LISTA-stack.
 - **H4: We need stable supports, not just zeros**. Forecasting improves when supports are temporally stable and consistent across rollouts (support jitter makes K-fitting and rollouts brittle).
@@ -56,8 +59,8 @@ Date: 2026-03-04
 - Keep loss coefficients fixed (matched to `generic_sparse`) to isolate threshold effects.
 - Run a short gate (`10k`) to filter obviously-bad settings, then full `50k` on survivors.
 - Success criteria:
-  - `sparsity_ratio` enters `0.7–0.9`.
   - Forecasting does not collapse at long horizons (especially `H500/H1000`).
+  - Support behavior / `sparsity_ratio` improves or at least does not indicate obvious pathologies, but this is not a hard gate for promotion.
 
 ### 2) Sparsity Penalty Sweep (Given a Good `alpha`)
 
@@ -100,12 +103,11 @@ Date: 2026-03-04
 
 - Do not treat lower training loss as success; require:
   - forecasting metrics + robustness across seeds, and
-  - `sparsity_ratio` in target band, and
   - reduced reliance on very short reencoding periods (best-period collapse is a warning sign).
+- Record `sparsity_ratio` and support diagnostics, but do not reject a forecasting improvement solely because it misses a target sparsity band during this recovery phase.
 - Prefer interventions that improve long-horizon robustness first; quick-best can be tuned after.
 
 ## Next Steps
 
 - Run the post-change baseline, then the `alpha` sweep (short gate first).
-- Only after achieving the target `sparsity_ratio` should we invest in bigger capacity/decoder changes.
-
+- Do not wait for a specific `sparsity_ratio` target before exploring capacity/decoder changes if forecasting evidence points there first.
