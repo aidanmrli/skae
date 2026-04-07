@@ -1,7 +1,7 @@
 # Experiments (Core)
 
-Date: April 1, 2026
-Paper-critical live queue status last refreshed: `2026-04-01 15:01 EDT`
+Date: April 7, 2026
+Paper-critical live queue status last refreshed: `2026-04-07 EDT`
 
 ## Current Status Summary
 
@@ -15,6 +15,36 @@ Current paper-facing approach:
   - `multiwell_strong_transition`
   - `gated_local_linear`
   - `gated_transfer_linear`
+- The current restored worktree now also has a broader follow-up design pool in
+  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md):
+  a first-pass pool of `45` candidates has now been expanded to `63` accepted
+  systems across `100` reviewed concepts after a stricter higher-novelty second
+  pass; `37` systems were rejected or held out, and the benchmark-expansion
+  shortlist has been revised to `16` systems with an `8`-system elite subset
+  plus implementation-oriented elite sketches in
+  [docs/planning/transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md)
+  and companion conceptual shortlist / atlas / card figures under
+  [docs/figures/transition_rich_inventory_20260406](/home/mila/l/lia/skae/docs/figures/transition_rich_inventory_20260406).
+- The worktree now also has an artifact-backed audit of the already implemented
+  Claude catalog in
+  [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
+  with a companion figure under
+  [docs/figures/claude_catalog_audit_20260407](/home/mila/l/lia/skae/docs/figures/claude_catalog_audit_20260407):
+  - `112` systems are registered in `skae/claude_catalog`
+  - the combined grounded screen now covers `83`
+  - `29` implemented systems remain unscreened
+  - `12` systems now pass the fast-screen acceptance rule, with an
+    `8`-system strict-crossing core:
+    `cal_triangle_3`, `cal_pentagon_5`, `cal_asymmetric_3`,
+    `var_depth_gradient_4`, `var_diamond_4`, `var_l_shape_5`,
+    `hybrid_state_dep_rot_5`, and `transition_routes_4`
+  - the accepted-but-relaxed subset is `cal_hexagon_6`, `snic_multi`,
+    `cal_square_4`, and `cal_star_5`
+  - the companion packet now includes a combined audit atlas plus separate
+    strict-crossing and accepted-pass portrait galleries
+  - the implemented catalog should now be treated as a grounded small benchmark
+    pool plus a retune frontier, not as an already validated `44`-system
+    benchmark packet
 - The first two systems pass the current endpoint-conditioned transition gate
   on the fixed `17x17` screening grid, but they are now understood as partial
   positives under that calibration:
@@ -86,10 +116,15 @@ Outstanding problem:
   is not yet clean enough to anchor the story, the `gated_transfer_linear`
   chart-change-localization claim is currently negative, and the support
   local-linearity read is positive but not sparse-specific. The remaining
-  question is whether to demote `multiwell_strong_transition`, rerun the single
-  missing LISTA `multiwell` seed only if that system stays paper-relevant, and
-  whether a cleaner localization benchmark is needed before making a stronger
-  causal chart-switch claim.
+  question is now twofold: whether to demote `multiwell_strong_transition`,
+  rerun the single missing LISTA `multiwell` seed only if that system stays
+  paper-relevant, and whether the next benchmark expansion should come from
+  the conceptual shortlist in
+  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md)
+  or from a repaired subset of the already implemented Claude catalog now
+  audited in
+  [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
+  before making a stronger causal chart-switch claim.
 
 Assumption split:
 - Training/deployment target: basin count and basin labels are unknown.
@@ -140,6 +175,14 @@ Assumption split:
   `gated_local_linear` is the clean mechanistic positive, `gated_transfer_linear`
   is the hard transfer stress test, and `multiwell_strong_transition` is the
   weakest shared-corridor toy rather than a clean headline positive.
+- The already implemented Claude catalog is now audited rather than assumed:
+  the current saved artifacts now support `112` registered systems, `83`
+  screened rows, `29` unscreened systems, `12` accepted passes, and an
+  `8`-system strict-crossing core. The active
+  benchmark-expansion problem is therefore not concept generation alone; it is
+  deciding whether the grounded Claude-catalog pass pool is already a good
+  enough benchmark backbone or whether we still need one of the conceptually
+  richer elite designs.
 - One Stage 1 cell is still missing from the collected matrix:
   `lista_dense_promoted_stage4` on `multiwell_strong_transition`, seed `2`
   (array task `9135303_20` failed). Decide whether that rerun is worth doing
@@ -160,10 +203,60 @@ Assumption split:
 - Autonomous rollout stability remains the main scientific limitation on the hard systems.
 - The basin-support claim must stay system-dependent: strong on multiwell, weak on Duffing, negative on Kuramoto, mixed continuous-only on Hopfield, and negative on corrected competitive Lotka-Volterra.
 
+## Recent Paper-Critical Result
+
+### April 7, 2026: implemented Claude-catalog audit
+
+- Concrete result:
+  [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
+  now verifies that the current worktree has `112` registered Claude-catalog
+  systems, `83` systems covered by the combined grounded fast screen, `29`
+  implemented but unscreened systems, `12` accepted systems after a completed
+  `15`-system priority screen, and an `8`-system strict-crossing subset within
+  that accepted pool.
+- Context:
+  this audit was needed because the older
+  [claude_transition_rich_catalog.md](/home/mila/l/lia/skae/docs/planning/claude_transition_rich_catalog.md)
+  note claimed `44 confirmed passing` systems, which was strong enough to
+  affect benchmark-positioning decisions if true.
+- Interpretation:
+  the implemented Claude catalog is real and useful, and it is no longer just a
+  speculative backlog: several tuned controls and two hybrid mechanisms now
+  survive the exact same fast screen. The retune pass also rescued
+  `var_depth_gradient_4` into the strict-crossing core and `cal_hexagon_6`
+  into the relaxed-accept subset. The stricter claim now needs one more split:
+  `8` of the accepted systems keep every basin inside the strict crossing band,
+  while `4` more survive through the relaxed crossing gate. Repeated official
+  re-screens still leave `cal_octagon_8` outside the pool, so the high-basin
+  control frontier is real rather than papered over.
+  The
+  saved artifacts still do not support treating the catalog as a validated
+  large benchmark packet.
+- Project implications:
+  the paper should not promise a repaired `44`-system implemented benchmark,
+  but it can now legitimately discuss a grounded `12`-system Claude-catalog
+  accepted pool, with an `8`-system strict core, as a possible benchmark
+  backbone or control family.
+- Next steps:
+  retune the new near-miss controls first, then decide whether the paper
+  benchmark should come from the existing calibrated trio, the grounded
+  Claude-catalog pass pool plus retuned extensions, or the conceptual elite
+  designs.
+
 ## Queue Status
 
 - No live paper-critical forecasting or hard-system queue remains.
 - No live paper-critical transition-rich queue remains either.
+- One new local catalog-audit pass is complete without changing the live queue:
+  - audit note:
+    [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
+  - audit figure root:
+    [docs/figures/claude_catalog_audit_20260407](/home/mila/l/lia/skae/docs/figures/claude_catalog_audit_20260407)
+  - key result:
+    the combined grounded Claude-catalog fast screen now supports `12`
+    accepted systems across `83` screened systems, with an `8`-system
+    strict-crossing core, not the stale `44 confirmed passing` headline in the
+    older branch note
 - The completed transition-rich execution chain is:
   - Stage 1 array `9135303`: finished with `26/27` completed tasks and one
     failed cell, `9135303_20 = lista_dense_promoted_stage4 x multiwell_strong_transition x seed_2`

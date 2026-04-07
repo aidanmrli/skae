@@ -4,6 +4,12 @@
 
 NOTE: Update this file, `docs/EXPERIMENTS.md`, and `docs/PAPER_TRACK_STATUS.md` together.
 
+Companion design-inventory file for the current restored worktree:
+[docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md).
+
+Companion audit of the already implemented Claude catalog:
+[docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md).
+
 ## Motivation
 
 The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that for these systems with multiple basins of attraction, finite-dimensional Koopman-invariant subspaces cannot provide a globally exact linear representation across all basins simultaneously. In a multistable finite-dimensional system, we might be able to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes.

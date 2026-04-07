@@ -1,7 +1,7 @@
 # Paper Track Status
 
-Date: April 1, 2026
-Paper-critical live queue status last refreshed: `2026-04-01 15:01 EDT`
+Date: April 7, 2026
+Paper-critical live queue status last refreshed: `2026-04-07 EDT`
 
 ## Goal
 
@@ -30,6 +30,36 @@ Active execution note:
 - The current lead blocker is no longer queue completion. The deterministic
   transition-rich Stage 1 screen and both dependent mechanistic passes are now
   collected, so the blocker is now claim selection and benchmark positioning.
+- The current restored worktree now also has a follow-up design inventory in
+  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md):
+  the first `45`-system design pool has now been expanded to `63` accepted
+  systems across `100` reviewed concepts after a stricter higher-novelty second
+  pass; `37` systems were rejected or held out, the shortlist is now `16`
+  systems with an `8`-system elite subset, and conceptual comparison figures
+  plus implementation-oriented elite sketches in
+  [docs/planning/transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md);
+  the conceptual comparison figures live under
+  [docs/figures/transition_rich_inventory_20260406](/home/mila/l/lia/skae/docs/figures/transition_rich_inventory_20260406)
+  if we decide that the paper needs a cleaner localization benchmark than the
+  present three-system suite.
+- The worktree now also has an artifact-backed audit of the already
+  implemented Claude catalog in
+  [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
+  with a companion figure under
+  [docs/figures/claude_catalog_audit_20260407](/home/mila/l/lia/skae/docs/figures/claude_catalog_audit_20260407):
+  - `112` systems are registered in `skae/claude_catalog`
+  - the combined grounded screen now covers `83`
+  - `29` implemented systems remain unscreened
+  - `12` screened systems are now accepted under the fast-screen gates, with an
+    `8`-system strict-crossing core
+  - `var_depth_gradient_4` is now part of that strict core and `cal_hexagon_6`
+    is now part of the relaxed-accept subset after targeted retune refreshes,
+    while `cal_octagon_8` remains a screened high-basin near miss
+  - the companion packet now includes a combined audit atlas plus separate
+    strict-crossing and accepted-pass portrait galleries
+  - the implemented Claude catalog should therefore be treated as a grounded
+    small benchmark pool plus retune frontier rather than as an already
+    validated large benchmark packet
 - The first frozen `2D` pair remains useful, but it is now understood as the
   secondary half of a three-system suite:
   - `gated_local_linear` is now the cleanest oracle-validated chart-switching
@@ -85,8 +115,10 @@ Active execution note:
 - Do not queue another broad benchmark or hard-system rerun by default. The
   immediate work is to turn the collected transition-rich read into a clean
   paper claim and decide whether the single missing dense-LISTA `multiwell`
-  seed or a cleaner chart-localization benchmark is actually worth follow-up
-  budget.
+  seed, the grounded `12`-system Claude-catalog accepted pool plus the
+  remaining retuned near
+  misses, or a cleaner conceptually designed chart-localization benchmark is
+  actually worth follow-up budget.
 
 LISTA follow-up priority note:
 - The highest-leverage LISTA follow-up is no longer hypothetical. The compact recurring-support local-linearity study has already been executed on `multiwell_strong_transition` and targeted smaller-`dt` `kuramoto`, and the corrected `competitive_lv` branch is now explicitly out of scope because the repaired clustering rerun stayed negative.
