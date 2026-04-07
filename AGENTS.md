@@ -11,7 +11,7 @@
   5. Suggest next steps.
 - After reporting results, update project state in `docs/EXPERIMENTS.md` (at minimum: **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the relevant experiment log entry). If the results affect paper positioning, narrative, or priorities, update `docs/PAPER_TRACK_STATUS.md` in the same pass.
 - Project phase: we are actively trying to wrap up this project and convert the evidence into a publishable top-tier machine learning conference paper, with NeurIPS as the default target venue. Prioritize work that directly strengthens that paper.
-- Current research focus: we are running two main experiment tracks during wrap-up. The first aims to improve block LISTA performance on difficult high-dimensional dynamical systems, especially Kuramoto and Hopfield. The second aims to improve the LISTA encoder so it outperforms, or at least reaches parity with, the `generic_sparse` MLP encoder on most nonlinear dynamical systems in the paper evaluation suite. For both tracks, prioritize in-time prediction and forecasting performance of the Koopman autoencoders.
+- Current research focus: Handing over the documents to senior coauthors with emphasis on clear descriptions of all experimental protocol that isolates causal effects and does not include code names. The aim is to make the choices and current experimental results clear to senior coauthors so they can decide how to position the paper.
 - Note: In our intended **training/deployment** setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results for training-time method design.
 - For **evaluation on benchmark systems**, it is acceptable to use known basin counts and basin labels to measure separability/performance.
 - Terminology/goal: prioritize **basin-support alignment** (each basin maps to a unique sparse support in latent `z`). Do not treat basin-block alignment as the primary objective unless explicitly required by a specific experiment.
@@ -41,8 +41,10 @@ Use `uv` for reproducible environments.
 
 ## SLURM Submission Rules
 - Launch SLURM job scripts with `sbatch` (for scripts with `#SBATCH` headers); do not run them directly with `bash`.
+- Use the `long` partition by default for SLURM jobs. Treat `long` as the repository convention unless a specific script or experiment has a documented reason to use another partition.
 - Prefer queue/launcher scripts that call `sbatch` to submit dependency chains (sweep -> collect -> compare).
 - If a script is intended for SLURM execution, submit it via `sbatch scripts/<name>.sh` to ensure cluster-side permissions and environment are applied.
+- Do not override a script away from its existing `long` defaults without checking that the alternative partition is actually required and will not impose a stricter GPU/QOS limit.
 - In Codex/sandboxed sessions, `sbatch` submission requires out-of-sandbox escalation, so always run `sbatch` command with escalated permissions.
 
 ## Coding Style & Naming Conventions

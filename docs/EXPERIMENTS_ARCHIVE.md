@@ -2,6 +2,69 @@
 
 This file keeps detailed historical logs, superseded diagnostics, queue-level provenance, and lower-priority experiment notes that were moved out of `docs/EXPERIMENTS.md` to keep the core document focused on decision-driving results.
 
+## Archived From Core on March 31, 2026
+
+`docs/EXPERIMENTS.md` was trimmed again on March 31, 2026 using `docs/review_main_results_tables_20260314.tex` as the filter for what remains live. The live file now keeps only:
+
+- the cross-system forecasting headline
+- the hard-system forecasting headline
+- the basin-support/mechanism headline
+- the most recent paper-critical execution updates
+- the paper-facing experiment, reporting, and document-update protocol
+
+The detailed branches below were moved out of the live file and should stay archived unless they become necessary for a new paper-facing claim.
+
+### March 2026 Appendix Provenance And Historical Benchmark Threads
+
+- `P1`: the matched `50k` `v4` four-model audit. This is appendix-only historical context once the fair `200k` packet exists.
+- `P3`: the dense LISTA Stage 1-4 promotion chain. This remains the provenance for fixing the dense comparator, but it is no longer a live main-text experiment family.
+
+### March 2026 Invalidated Historical Control
+
+- `P4`: the original “block-`K` fairness is negative” conclusion. This entry is archived because it was invalidated by the March 17 audit showing that the historical MLP `+ block_diagonal K` runs were actually dense-`K` MLP runs.
+
+### March 2026 Detailed Hard-System, CLV, And Mechanism Chronology
+
+- `P5`: the original decision-grade smaller-`dt` hard-system rescue write-up.
+- `P6`: the first consolidated support-alignment and label-free clustering read.
+- `P7` and `P8`: the corrected competitive-LV forecasting and smaller-`dt` high-basin closeout before the later paper-family compression.
+- `P15` and `P16`: the corrected competitive-LV clustering rerun and the local-linearity interpretation refresh.
+- `P21`: the March 17 provenance audit that invalidated the historical block-`K` MLP controls.
+- `P24`, `P25`, and `P26`: the repaired Kuramoto retry wave, the `N=64` seed-fragility audit, and the dense uniform-spread Kuramoto backfill.
+- `P27`, `P28`, and `P29`: the launch and recovery chronology for the matched zero-sparsity MLP campaign before the final closeout.
+
+### March 2026 Queue Snapshots And Documentation Passes
+
+- `P9` and `P10`: the shorter-horizon audit and the `H3000` reevaluation setup before the later refreshed packet existed.
+- `P11`, `P12`, `P13`, and `P14`: queue-state snapshots and transition notes around the parity sweep, corrected CLV repair, and first local-linearity pass.
+- `P17`, `P18`, and `P19`: documentation and handoff rewrites that are now compressed into the live file’s protocol and family map.
+- `P20`: the detailed fixed-cadence benchmark rescore note. Its conclusion is retained live, but the full write-up belongs here.
+- `P22` and `P23`: the code-and-queue startup logs for the repaired block-`K` rerun wave and the later Kuramoto follow-up launch.
+
+Archive-use rule:
+- If a future paper claim depends on one of the detailed branches above, cite it from this archive rather than restoring the full chronology to `docs/EXPERIMENTS.md`.
+- If the exact wording from an older live entry is ever needed, recover it from git history instead of expanding the live file again.
+
+## Archived From Core on March 11, 2026
+
+`docs/EXPERIMENTS.md` was trimmed on March 11, 2026 to keep only paper-critical experiments, active blockers, and live queue decisions. The following material was removed from the core ledger and should stay here unless it becomes paper-critical again:
+
+- **Dense LISTA intermediate tuning stages, now summarized in core by the promoted Stage-4 result:**
+  - Stage 1 easy-system sweep: `results/dense_lista_easy_parity_stage1_20260308`
+  - Stage 2 holdout coefficient sweep: `results/dense_lista_easy_parity_stage2_20260308`
+  - Stage 3 exact recipe validation: `results/dense_lista_recipe_validation_stage3_20260309`
+- **Early hard-system iteration logs, now summarized in core by the consolidated intrinsic-HD entry:**
+  - current-default Kuramoto recovery: `results/kuramoto_recovery_seq8_20260305`
+  - repaired intrinsic-HD `dt` rescue: `results/intrinsic_hd_dt_rescue_20260308_rerun1`
+  - narrow Kuramoto `200k` continuation: `results/intrinsic_hd_kuramoto_dt00125_200k`
+  - initial intrinsic-HD baseline: `results/high_dim_benchmarks_plan_seq8_20260305`
+- **Duffing-centric LISTA development logs that were useful for model development but are no longer central to the paper narrative:**
+  - parity logs: `G`, `I`, `J`
+  - encoder/tuning queues: `K`, `L`, `N`, `O`, `Q`, `R`, `T`
+- **Verbose March 8-11 queue chronology and "completed in the last 24 hours" notes** are archived here rather than in the core file. The core file now keeps only the decision-grade conclusion for each thread.
+
+If a future paper-facing claim depends on one of these intermediate steps, cite the result root directly from this archive rather than moving the full prose back into the core file.
+
 Archived on: February 18, 2026
 
 ---
