@@ -24,6 +24,7 @@ import skae.claude_catalog.systems_novel
 import skae.claude_catalog.systems_tuned
 import skae.claude_catalog.systems_variants
 import skae.claude_catalog.systems_hybrid
+import skae.claude_catalog.systems_flagship
 from skae.claude_catalog.registry import CATALOG_REGISTRY, get_system, list_systems
 
 
