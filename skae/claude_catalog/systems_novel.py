@@ -40,6 +40,7 @@ class WaddingtonLandscape(CatalogSystem):
         self.branch1 = (0.0, 2.5)  # first branch (stem → left/right progenitor)
         self.branch2_l = (-1.6, 1.0)  # left progenitor → two fates
         self.branch2_r = (1.6, 1.0)  # right progenitor → two fates
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -83,6 +84,13 @@ class WaddingtonLandscape(CatalogSystem):
         dxdt = -dVdx - 0.1 * state[0]
         dydt = -dVdy
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -111,6 +119,7 @@ class NeuralDecision3Choice(CatalogSystem):
         self.w_self = 4.0  # self-excitation
         self.w_inh = 2.5  # mutual inhibition
         self.I = [0.8, 0.85, 0.75]  # external inputs (slight bias)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -152,6 +161,13 @@ class NeuralDecision3Choice(CatalogSystem):
         dxdt = dxdt + conf * x
         dydt = dydt + conf * y
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -179,6 +195,7 @@ class ClimateTippingCascade(CatalogSystem):
         self.alpha_land = 0.3  # land albedo
         self.T_melt = 0.0  # melting threshold
         self.k_melt = 5.0  # sharpness of melt transition
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -204,6 +221,13 @@ class ClimateTippingCascade(CatalogSystem):
 
         # Add multi-stability through nonlinear ice-albedo feedback
         dTdt = dTdt + 0.3 * I * (1 - I) * (0.5 - I)  # triple-well in I direction
+
+        # Independent rotation for transition richness
+        dTdt = dTdt + self.omega * I
+        dIdt = dIdt - self.omega * T
+        # Confinement to prevent divergence from rotation
+        dTdt = dTdt - 0.01 * T ** 3
+        dIdt = dIdt - 0.01 * I ** 3
 
         return torch.stack([dTdt, dIdt])
 
@@ -233,6 +257,7 @@ class MorphogenesisModeSel(CatalogSystem):
         self.g12 = 1.8  # cross-saturation (>1 for competition)
         self.g21 = 1.5  # cross-saturation (asymmetric)
         self.c = 0.3  # coupling creating mixed state
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -259,6 +284,13 @@ class MorphogenesisModeSel(CatalogSystem):
         # Keep amplitudes positive-ish with soft wall
         dA1 = dA1 - 0.5 * torch.clamp(-A1, min=0)
         dA2 = dA2 - 0.5 * torch.clamp(-A2, min=0)
+
+        # Independent rotation for transition richness
+        dA1 = dA1 + self.omega * A2
+        dA2 = dA2 - self.omega * A1
+        # Confinement to prevent divergence from rotation
+        dA1 = dA1 - 0.01 * A1 ** 3
+        dA2 = dA2 - 0.01 * A2 ** 3
 
         return torch.stack([dA1, dA2])
 
@@ -290,6 +322,7 @@ class RiverDeltaBranching(CatalogSystem):
             (-1.5, 1.2, 0.3, 0.25, 2.0),
             (1.5, 1.2, -0.3, 0.25, 2.0),
         ]
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -332,6 +365,13 @@ class RiverDeltaBranching(CatalogSystem):
         # Lateral confinement
         dxdt = dxdt - 0.02 * x ** 3
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -357,6 +397,7 @@ class VolcanicEruption(CatalogSystem):
         # Three chambers
         self.chambers = [(-1.5, 0.0), (0.0, 0.0), (1.5, 0.0)]
         self.thresholds = [1.2, 1.0, 1.4]
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -384,6 +425,13 @@ class VolcanicEruption(CatalogSystem):
         # Cubic nullcline creates relaxation oscillation
         y_nullcline = x ** 3 - 3.0 * x  # S-shaped curve
         dydt = self.eps * (y_nullcline - y + 0.5 * torch.sin(2 * x))
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
 
         return torch.stack([dxdt, dydt])
 
@@ -417,6 +465,7 @@ class DNARegulatorySwitch(CatalogSystem):
         self.d2 = 1.0
         self.cross_act = 0.3  # cross-activation strength
         self.cross_inh = 0.2  # cross-inhibition strength
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -446,6 +495,13 @@ class DNARegulatorySwitch(CatalogSystem):
         dm1dt = basal + self_act_1 + cross_1 - self.d1 * m1
         dm2dt = basal + self_act_2 + cross_2 - self.d2 * m2
 
+        # Independent rotation for transition richness
+        dm1dt = dm1dt + self.omega * m2
+        dm2dt = dm2dt - self.omega * m1
+        # Confinement to prevent divergence from rotation
+        dm1dt = dm1dt - 0.01 * m1 ** 3
+        dm2dt = dm2dt - 0.01 * m2 ** 3
+
         return torch.stack([dm1dt, dm2dt])
 
 
@@ -471,6 +527,7 @@ class PredatorForagingSwitch(CatalogSystem):
         self.a = [2.0, 1.8, 2.2]  # attack rates
         self.h = [0.5, 0.6, 0.4]  # handling times
         self.speed = 2.0  # adaptation speed
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -502,6 +559,13 @@ class PredatorForagingSwitch(CatalogSystem):
         dp1dt = dp1dt + 0.01 * (0.33 - p1)
         dp2dt = dp2dt + 0.01 * (0.33 - p2)
 
+        # Independent rotation for transition richness
+        dp1dt = dp1dt + self.omega * p2
+        dp2dt = dp2dt - self.omega * p1
+        # Confinement to prevent divergence from rotation
+        dp1dt = dp1dt - 0.01 * p1 ** 3
+        dp2dt = dp2dt - 0.01 * p2 ** 3
+
         return torch.stack([dp1dt, dp2dt])
 
 
@@ -526,6 +590,7 @@ class GearMeshDynamics(CatalogSystem):
         self.n_teeth = n_teeth
         self.damping = 0.5
         self.spring = 1.0
+        self.omega = 0.5
 
     @property
     def dim(self):
@@ -561,6 +626,13 @@ class GearMeshDynamics(CatalogSystem):
         dxdt = dxdt - self.damping * x + 0.15 * y
         dydt = dydt - self.damping * y - 0.15 * x
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -590,6 +662,7 @@ class HourglassBottleneck(CatalogSystem):
             (2.0, 1.0),    # top-right
             (2.0, -1.0),   # bottom-right
         ]
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -630,6 +703,13 @@ class HourglassBottleneck(CatalogSystem):
         dxdt = dxdt - 0.02 * x ** 3
         dydt = dydt - 0.05 * y ** 3
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -660,6 +740,7 @@ class OpinionPolarization(CatalogSystem):
         ]
         self.influence_radius = 1.5
         self.pressure_strength = 2.0
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -696,6 +777,13 @@ class OpinionPolarization(CatalogSystem):
         dxdt = dxdt + 0.3 * x * (1 - x ** 2 / 4)
         dydt = dydt + 0.3 * y * (1 - y ** 2 / 4)
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -727,6 +815,7 @@ class ProteinFoldingLandscape(CatalogSystem):
         }
         self.depths = [4.0, 2.0, 1.5, 2.5, 1.0]  # well depths
         self.widths = [0.3, 0.4, 0.4, 0.5, 0.8]  # well widths
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -768,6 +857,13 @@ class ProteinFoldingLandscape(CatalogSystem):
         dxdt = dxdt - 2.0 * torch.clamp(-x, min=0)
         dydt = dydt - 2.0 * torch.clamp(-y, min=0)
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -792,6 +888,7 @@ class PowerGridFrequency(CatalogSystem):
         self.D = 0.5  # damping
         self.H = 1.0  # inertia
         self.K2 = 0.3  # second harmonic coupling
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -809,6 +906,13 @@ class PowerGridFrequency(CatalogSystem):
             - self.K2 * torch.sin(2 * delta)
             - 0.1 * torch.sin(3 * delta)
         ) / self.H
+
+        # Independent rotation for transition richness
+        ddelta = ddelta + self.omega * omega
+        domega = domega - self.omega * delta
+        # Confinement to prevent divergence from rotation
+        ddelta = ddelta - 0.01 * delta ** 3
+        domega = domega - 0.01 * omega ** 3
 
         return torch.stack([ddelta, domega])
 
@@ -834,6 +938,7 @@ class AlluvialFan(CatalogSystem):
         # Stable channel positions (topographic lows)
         self.channels = [-2.0, -1.0, 0.0, 1.0, 2.0]
         self.avulsion_threshold = 2.0
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -863,6 +968,13 @@ class AlluvialFan(CatalogSystem):
         # Confinement
         dxdt = dxdt - 0.02 * x ** 3
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
+
         return torch.stack([dxdt, dydt])
 
 
@@ -888,6 +1000,7 @@ class SpinGlass2D(CatalogSystem):
         self.h1 = 0.1  # external field on spin 1
         self.h2 = -0.05  # external field on spin 2
         self.T = 0.3  # effective temperature (noise-like but deterministic)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -912,6 +1025,13 @@ class SpinGlass2D(CatalogSystem):
         # Frustrated coupling creates additional wells
         ds1dt = ds1dt + 0.4 * torch.sin(math.pi * s1) * torch.cos(math.pi * s2)
         ds2dt = ds2dt + 0.4 * torch.cos(math.pi * s1) * torch.sin(math.pi * s2)
+
+        # Independent rotation for transition richness
+        ds1dt = ds1dt + self.omega * s2
+        ds2dt = ds2dt - self.omega * s1
+        # Confinement to prevent divergence from rotation
+        ds1dt = ds1dt - 0.01 * s1 ** 3
+        ds2dt = ds2dt - 0.01 * s2 ** 3
 
         return torch.stack([ds1dt, ds2dt])
 
@@ -938,6 +1058,7 @@ class OrigamiFold(CatalogSystem):
         self.k_fold = 2.0  # fold stiffness
         self.k_flat = 0.5  # flat stiffness
         self.coupling = 1.0  # coupling between folds
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -975,6 +1096,13 @@ class OrigamiFold(CatalogSystem):
         dtheta1 = dtheta1 - 0.01 * theta1 ** 3
         dtheta2 = dtheta2 - 0.01 * theta2 ** 3
 
+        # Independent rotation for transition richness
+        dtheta1 = dtheta1 + self.omega * theta2
+        dtheta2 = dtheta2 - self.omega * theta1
+        # Confinement to prevent divergence from rotation
+        dtheta1 = dtheta1 - 0.01 * theta1 ** 3
+        dtheta2 = dtheta2 - 0.01 * theta2 ** 3
+
         return torch.stack([dtheta1, dtheta2])
 
 
@@ -1006,6 +1134,7 @@ class AttentionSwitching(CatalogSystem):
             (1.3, -0.75),
         ]
         self.bias = [0.1, 0.15, 0.05]  # bottom-up salience
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -1054,5 +1183,12 @@ class AttentionSwitching(CatalogSystem):
         # Confinement
         dxdt = dxdt - 0.02 * x ** 3
         dydt = dydt - 0.02 * y ** 3
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        # Confinement to prevent divergence from rotation
+        dxdt = dxdt - 0.01 * x ** 3
+        dydt = dydt - 0.01 * y ** 3
 
         return torch.stack([dxdt, dydt]) / self.tau

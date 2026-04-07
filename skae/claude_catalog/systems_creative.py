@@ -45,6 +45,7 @@ class KuramotoFrustrated2D(CatalogSystem):
         self.omega2 = -0.3
         self.K = 2.0
         self.alpha = math.pi / 4.0
+        self.omega_rot = 0.5
 
     @property
     def dim(self):
@@ -65,7 +66,14 @@ class KuramotoFrustrated2D(CatalogSystem):
         confine1 = -0.005 * theta1 * (theta1 / math.pi) ** 2
         confine2 = -0.005 * theta2 * (theta2 / math.pi) ** 2
 
-        return torch.stack([d1 + confine1, d2 + confine2])
+        dxdt = d1 + confine1
+        dydt = d2 + confine2
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega_rot * theta2
+        dydt = dydt - self.omega_rot * theta1
+
+        return torch.stack([dxdt, dydt])
 
 
 @register
@@ -78,6 +86,7 @@ class SNICMulti(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-2.0, 2.0), (-2.0, 2.0)], **kw)
         self.a = 1.2
         self.eps = 0.3
+        self.omega = 0.5
 
     @property
     def dim(self):
@@ -109,6 +118,10 @@ class SNICMulti(CatalogSystem):
         dxdt = dxdt - 0.01 * x * (x ** 2 + y ** 2)
         dydt = dydt - 0.01 * y * (x ** 2 + y ** 2)
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+
         return torch.stack([dxdt, dydt])
 
 
@@ -122,6 +135,7 @@ class PhaseBistableRing(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-2.0, 2.0), (-2.0, 2.0)], **kw)
         self.eps = 0.3
         self.mu = 2.0
+        self.omega_indep = 0.5
 
     @property
     def dim(self):
@@ -150,6 +164,10 @@ class PhaseBistableRing(CatalogSystem):
         sin_t = y / (r + _EPS)
         dxdt = rdot * cos_t - r * thetadot * sin_t
         dydt = rdot * sin_t + r * thetadot * cos_t
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega_indep * y
+        dydt = dydt - self.omega_indep * x
 
         return torch.stack([dxdt, dydt])
 
@@ -239,6 +257,7 @@ class PolynomialDesigned(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-3.0, 3.0), (-3.0, 3.0)], **kw)
         self.alpha = 0.3
         self.beta = -0.3
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -259,6 +278,10 @@ class PolynomialDesigned(CatalogSystem):
         scale_y = 1.0 / (1.0 + 0.02 * y ** 2)
         dxdt = dxdt * scale_x
         dydt = dydt * scale_y
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 
@@ -305,6 +328,7 @@ class SelkovModified(CatalogSystem):
         self.b = 0.6
         self.c = 0.15
         self.K = 1.5
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -324,6 +348,10 @@ class SelkovModified(CatalogSystem):
         dxdt = dxdt - 0.001 * x ** 3
         dydt = dydt - 0.001 * y ** 3
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+
         return torch.stack([dxdt, dydt])
 
 
@@ -339,6 +367,7 @@ class BrusselatorMulti(CatalogSystem):
         self.B = 3.0  # beyond Hopf bifurcation
         self.D = 0.5
         self.L = 2.0
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -359,6 +388,10 @@ class BrusselatorMulti(CatalogSystem):
         # Soft confinement
         dxdt = dxdt - 0.005 * torch.clamp(x - 5.0, min=0.0) ** 2
         dydt = dydt - 0.005 * torch.clamp(y - 5.0, min=0.0) ** 2
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 
@@ -432,6 +465,7 @@ class MazePotential(CatalogSystem):
 
     def __init__(self, dt=0.05, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
+        self.omega = 1.0
 
         # 4 room wells at quadrant centers
         self.room_centers = torch.tensor(
@@ -518,6 +552,10 @@ class MazePotential(CatalogSystem):
         # Quadratic confinement
         dxdt = dxdt - 0.1 * x * torch.clamp(x ** 2 + y ** 2 - 4.0, min=0.0)
         dydt = dydt - 0.1 * y * torch.clamp(x ** 2 + y ** 2 - 4.0, min=0.0)
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 
@@ -650,6 +688,7 @@ class CompetitiveMemory(CatalogSystem):
     def __init__(self, dt=0.03, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
         self.sigma = 1.0
+        self.omega = 1.0
         # 5 patterns: 4 corners + center
         self.patterns = torch.tensor(
             [
@@ -698,6 +737,10 @@ class CompetitiveMemory(CatalogSystem):
         dxdt = dxdt - 0.01 * x ** 3
         dydt = dydt - 0.01 * y ** 3
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+
         return torch.stack([dxdt, dydt])
 
 
@@ -711,6 +754,7 @@ class IntermittentBurst(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
         self.mu = 0.3
         self.eps = 0.5
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -744,6 +788,10 @@ class IntermittentBurst(CatalogSystem):
         dxdt = dxdt - conf * x
         dydt = dydt - conf * y
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+
         return torch.stack([dxdt, dydt])
 
 
@@ -763,6 +811,7 @@ class MultiScroll2D(CatalogSystem):
         self.breakpoints = torch.tensor([1.0], dtype=torch.float64)
         # Smoothness parameter for tanh approximation of |x|
         self.k = 10.0
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -806,6 +855,10 @@ class MultiScroll2D(CatalogSystem):
         # Soft confinement
         dxdt = dxdt - 0.01 * x ** 3
         dydt = dydt - 0.01 * y ** 3
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 

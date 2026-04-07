@@ -58,6 +58,7 @@ class ToggleSwitch3Gene(CatalogSystem):
         )
         self.well_depth = 2.0
         self.well_width = 1.0  # Gaussian width
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -84,6 +85,10 @@ class ToggleSwitch3Gene(CatalogSystem):
         conf_str = 0.02
         dxdt = dxdt - conf_str * x * r2
         dydt = dydt - conf_str * y * r2
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 
@@ -114,6 +119,7 @@ class CompetitiveExclusion3(CatalogSystem):
         )
         # Base fitness
         self.base = torch.tensor([0.2, 0.0, -0.1], dtype=torch.float64)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -135,6 +141,10 @@ class CompetitiveExclusion3(CatalogSystem):
 
         du = u * (fitness[0] - f_bar)
         dv = v * (fitness[1] - f_bar)
+
+        # Independent rotation for transition richness
+        du = du + self.omega * v
+        dv = dv - self.omega * u
 
         return torch.stack([du, dv])
 
@@ -166,6 +176,7 @@ class EcosystemTipping(CatalogSystem):
         )
         self.depths = torch.tensor([2.5, 2.0, 2.5], dtype=torch.float64)
         self.widths = torch.tensor([0.9, 0.8, 0.9], dtype=torch.float64)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -190,6 +201,10 @@ class EcosystemTipping(CatalogSystem):
         r2 = V ** 2 + W ** 2
         dV = dV - 0.02 * V * r2
         dW = dW - 0.02 * W * r2
+
+        # Independent rotation for transition richness
+        dV = dV + self.omega * W
+        dW = dW - self.omega * V
 
         return torch.stack([dV, dW])
 
@@ -282,6 +297,7 @@ class WilsonCowanMulti(CatalogSystem):
         )
         self.depths = torch.tensor([2.0, 2.0, 1.8], dtype=torch.float64)
         self.widths = torch.tensor([0.9, 0.9, 0.8], dtype=torch.float64)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -312,6 +328,10 @@ class WilsonCowanMulti(CatalogSystem):
         dE = dE - 0.015 * E * r2
         dI = dI - 0.015 * I * r2
 
+        # Independent rotation for transition richness
+        dE = dE + self.omega * I
+        dI = dI - self.omega * E
+
         return torch.stack([dE, dI])
 
 
@@ -330,6 +350,7 @@ class Predator2Prey(CatalogSystem):
 
     def __init__(self, dt=0.02, **kw):
         super().__init__(dt=dt, ic_box=[(-1.0, 1.0), (0.1, 2.0)], **kw)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -373,6 +394,10 @@ class Predator2Prey(CatalogSystem):
         du = du + _soft_confine(u, scale=1.5, strength=0.05)
         dv = dv + _soft_confine(v - 1.0, scale=3.0, strength=0.02)
 
+        # Independent rotation for transition richness
+        du = du + self.omega * v
+        dv = dv - self.omega * u
+
         return torch.stack([du, dv])
 
 
@@ -394,6 +419,7 @@ class BistableReactor(CatalogSystem):
 
     def __init__(self, dt=0.05, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
+        self.omega = 1.0
         # Three reactor states well-separated
         self.wells = torch.tensor(
             [[-1.5, -1.2],  # cold / low conversion
@@ -428,6 +454,10 @@ class BistableReactor(CatalogSystem):
         dxdt = dxdt - 0.02 * x * r2
         dydt = dydt - 0.02 * y * r2
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+
         return torch.stack([dxdt, dydt])
 
 
@@ -453,6 +483,7 @@ class DuffingTripleWell(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-2.0, 2.0), (-2.0, 2.0)], **kw)
         self.a = 0.3
         self.delta = 0.5
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -465,6 +496,9 @@ class DuffingTripleWell(CatalogSystem):
         dydt = -dVdx - self.delta * y
         dxdt = dxdt + _soft_confine(x, scale=4.0, strength=0.003)
         dydt = dydt + _soft_confine(y, scale=4.0, strength=0.003)
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
         return torch.stack([dxdt, dydt])
 
 
@@ -488,6 +522,7 @@ class OverdampedMagnetic(CatalogSystem):
         )
         self.m = torch.tensor([1.0, 1.0, 1.0, 1.0], dtype=torch.float64)
         self.eps_reg = 0.3
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -504,6 +539,9 @@ class OverdampedMagnetic(CatalogSystem):
 
         dx = force[0] + _soft_confine(state[0], scale=5.0, strength=0.01)
         dy = force[1] + _soft_confine(state[1], scale=5.0, strength=0.01)
+        # Independent rotation for transition richness
+        dx = dx + self.omega * state[1]
+        dy = dy - self.omega * state[0]
         return torch.stack([dx, dy])
 
 
@@ -533,6 +571,7 @@ class JosephsonJunction(CatalogSystem):
         self.alpha = 0.6
         self.beta = 0.4
         self.gamma_harm = 0.25
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -547,6 +586,9 @@ class JosephsonJunction(CatalogSystem):
               + self.gamma_harm * torch.sin(3.0 * phi)
               - self.alpha * v)
         dv = dv + _soft_confine(v, scale=3.0, strength=0.01)
+        # Independent rotation for transition richness
+        dphi = dphi + self.omega * v
+        dv = dv - self.omega * phi
         return torch.stack([dphi, dv])
 
     def step(self, state):
@@ -584,6 +626,7 @@ class ElasticNetwork(CatalogSystem):
         )
         self.well_depth = 1.5
         self.well_width = 0.7
+        self.omega = 0.8
 
     @property
     def dim(self):
@@ -609,6 +652,10 @@ class ElasticNetwork(CatalogSystem):
         dx = dx - 0.015 * state[0] * r2
         dy = dy - 0.015 * state[1] * r2
 
+        # Independent rotation for transition richness
+        dx = dx + self.omega * state[1]
+        dy = dy - self.omega * state[0]
+
         return torch.stack([dx, dy])
 
 
@@ -629,6 +676,7 @@ class BuckledBeam(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-2.0, 2.0), (-2.0, 2.0)], **kw)
         self.lam = 2.0
         self.mu = 0.1
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -639,7 +687,12 @@ class BuckledBeam(CatalogSystem):
         r2 = x ** 2 + y ** 2
         dVdx = 4.0 * x * (x ** 2 - 1.0) + 2.0 * self.lam * x * y ** 2 + 4.0 * self.mu * x * r2
         dVdy = 4.0 * y * (y ** 2 - 1.0) + 2.0 * self.lam * x ** 2 * y + 4.0 * self.mu * y * r2
-        return torch.stack([-dVdx, -dVdy])
+        dxdt = -dVdx
+        dydt = -dVdy
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+        return torch.stack([dxdt, dydt])
 
 
 # ===================================================================
@@ -662,6 +715,7 @@ class CuspCatastropheFlow(CatalogSystem):
 
     def __init__(self, dt=0.03, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -690,6 +744,10 @@ class CuspCatastropheFlow(CatalogSystem):
         da = da + _soft_confine(a, scale=4.0, strength=0.005)
         db = db + _soft_confine(b, scale=4.0, strength=0.005)
 
+        # Independent rotation for transition richness
+        da = da + self.omega * b
+        db = db - self.omega * a
+
         return torch.stack([da, db])
 
 
@@ -712,6 +770,7 @@ class PitchforkImperfect(CatalogSystem):
 
     def __init__(self, dt=0.03, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -732,6 +791,10 @@ class PitchforkImperfect(CatalogSystem):
         r2 = x ** 2 + y ** 2
         dxdt = dxdt - 0.01 * x * r2
         dydt = dydt - 0.01 * y * r2
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 
@@ -754,6 +817,7 @@ class SwallowtailFlow(CatalogSystem):
     def __init__(self, dt=0.02, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.0, 2.0)], **kw)
         self.c = 0.6   # coupling strength
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -773,6 +837,10 @@ class SwallowtailFlow(CatalogSystem):
 
         dxdt = dxdt + _soft_confine(x, scale=3.5, strength=0.005)
         dydt = dydt + _soft_confine(y, scale=3.5, strength=0.005)
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
 
@@ -794,6 +862,7 @@ class SaddleNodeRemnant(CatalogSystem):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.0, 2.0)], **kw)
         self.r2 = 2.5   # location of outer wells
         self.alpha = 0.3  # x-y coupling
+        self.omega = 1.0
 
     @property
     def dim(self):
@@ -816,6 +885,10 @@ class SaddleNodeRemnant(CatalogSystem):
         dxdt = dxdt + _soft_confine(x, scale=3.5, strength=0.01)
         dydt = dydt + _soft_confine(y, scale=3.5, strength=0.01)
 
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
+
         return torch.stack([dxdt, dydt])
 
 
@@ -835,6 +908,7 @@ class HopfPlusWells(CatalogSystem):
     def __init__(self, dt=0.02, **kw):
         super().__init__(dt=dt, ic_box=[(-2.5, 2.5), (-2.5, 2.5)], **kw)
         self.mu = 1.5
+        self.omega = 0.5
 
         r_well = 0.5
         self.wells = torch.tensor(
@@ -873,5 +947,9 @@ class HopfPlusWells(CatalogSystem):
 
         dxdt = dxdt + _soft_confine(x, scale=4.0, strength=0.005)
         dydt = dydt + _soft_confine(y, scale=4.0, strength=0.005)
+
+        # Independent rotation for transition richness
+        dxdt = dxdt + self.omega * y
+        dydt = dydt - self.omega * x
 
         return torch.stack([dxdt, dydt])
