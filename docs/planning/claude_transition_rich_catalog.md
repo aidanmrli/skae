@@ -3,12 +3,37 @@
 Branch: `claude-transition-rich-systems-gen`  
 Generated: 2026-04-06, updated 2026-04-07
 
+## Audit Status
+
+This note is now partially stale and should not be used as the source of truth
+for benchmark readiness.
+
+The current artifact-backed audit is:
+[claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md).
+
+That audit shows:
+
+- `112` registered systems,
+- `83` systems now covered by the combined grounded screen,
+- `29` implemented but still unscreened systems,
+- `12` accepted systems in the currently grounded screen,
+- and an `8`-system strict-crossing core inside that accepted pool.
+
+So the `44 confirmed passing` headline below is preserved as historical branch
+provenance, not as the current validated result.
+
+Post-retune screening (this branch) confirmed 6 additional passes beyond the
+audit's 12: `cal_pentagon_5`, `var_depth_gradient_4`, `var_mixed_widths_5`,
+`var_grid_2x2`, `var_random_4a`, `cal_high_cross_3`, `cal_low_cross_4`,
+`hybrid_rotating_centers_3`. Non-well systems all fail after rotation fix
+(omega too aggressive; needs 0.1-0.3 not 0.8-1.0 for existing dynamics).
+
 ## Summary
 
-- **106 systems** implemented across 6 modules in `skae/claude_catalog/`
-- **44 systems confirmed passing** all acceptance gates (numpy validation)
-- **~50 estimated passing** including rotation-fixed non-well systems
-- **15 systems selected** for benchmark (diverse subset)
+- **118 systems** implemented across 8 modules in `skae/claude_catalog/`
+- **17 systems confirmed passing** strict fast-screen gates (auditable artifacts)
+- **~8 near-misses** that fail only per-basin crossing (hexagon, octagon, etc.)
+- Non-well systems need system-specific omega tuning (current rotation fix broke them)
 
 ## Key Calibration Finding
 
