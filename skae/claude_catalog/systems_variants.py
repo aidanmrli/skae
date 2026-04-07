@@ -75,19 +75,19 @@ class RandomWells5v1(GaussianWellIndepRotation):
 
 @register
 class DepthVariation4(GaussianWellIndepRotation):
-    """4 wells with gradient of depths (test asymmetric occupancy)."""
+    """4 wells with gradient of depths and a widened shallow basin."""
     name = "var_depth_gradient_4"
     category = "B"
     description = "4 wells with depth gradient testing occupancy balance"
 
     def __init__(self, **kw):
         wells = [
-            (-1.3, 1.3, 1.5, 0.5),   # shallowest
-            (1.3, 1.3, 2.0, 0.5),
-            (1.3, -1.3, 2.5, 0.5),
-            (-1.3, -1.3, 3.0, 0.5),   # deepest
+            (-1.3, 1.3, 2.2, 0.55),   # shallowest and slightly wider
+            (1.3, 1.3, 2.5, 0.5),
+            (1.3, -1.3, 3.0, 0.5),
+            (-1.3, -1.3, 3.5, 0.5),   # deepest
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.3, conf=0.03, dt=0.03,
                          ic_box=[(-3.0, 3.0), (-3.0, 3.0)], **kw)
 
 

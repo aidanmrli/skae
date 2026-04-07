@@ -114,7 +114,7 @@ class CalibratedSquare4(GaussianWellIndepRotation):
 
 @register
 class CalibratedPentagon5(GaussianWellIndepRotation):
-    """5 wells at pentagon — calibrated omega=1.0, amp=2.0."""
+    """5 wells at pentagon — calibrated omega=1.1, amp=2.0."""
     name = "cal_pentagon_5"
     category = "B"
     description = "5 balanced wells on pentagon with independent rotation"
@@ -124,29 +124,29 @@ class CalibratedPentagon5(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/5 + math.pi/2),
                   r*math.sin(2*math.pi*i/5 + math.pi/2), 2.0, 0.5)
                  for i in range(5)]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.1, conf=0.03, dt=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
 @register
 class CalibratedHexagon6(GaussianWellIndepRotation):
-    """6 wells at hexagon — calibrated omega=0.8, amp=2.0."""
+    """6 wells at hexagon — calibrated omega=1.0, amp=2.0, r=1.7."""
     name = "cal_hexagon_6"
     category = "B"
     description = "6 balanced wells on hexagon with independent rotation"
 
     def __init__(self, **kw):
-        r = 1.8
+        r = 1.7
         wells = [(r*math.cos(2*math.pi*i/6),
                   r*math.sin(2*math.pi*i/6), 2.0, 0.5)
                  for i in range(6)]
-        super().__init__(wells=wells, omega=0.8, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
 @register
 class CalibratedOctagon8(GaussianWellIndepRotation):
-    """8 wells at octagon — calibrated omega=1.2, amp=3.0."""
+    """8 wells at octagon — calibrated omega=0.90, amp=3.0."""
     name = "cal_octagon_8"
     category = "B"
     description = "8 balanced wells on octagon with independent rotation"
@@ -156,7 +156,7 @@ class CalibratedOctagon8(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/8),
                   r*math.sin(2*math.pi*i/8), 3.0, 0.5)
                  for i in range(8)]
-        super().__init__(wells=wells, omega=1.2, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=0.90, conf=0.02, dt=0.03,
                          ic_box=[(-4.0, 4.0), (-4.0, 4.0)], **kw)
 
 
