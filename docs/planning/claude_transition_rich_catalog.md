@@ -6,129 +6,130 @@ Generated: 2026-04-06, updated 2026-04-07
 ## Summary
 
 - **106 systems** implemented across 6 modules in `skae/claude_catalog/`
-- **18 systems confirmed passing** all acceptance gates (numpy validation)
-- **~25-30 systems estimated passing** after rotation fix
-- **10-20 systems selected** for benchmark (see below)
+- **44 systems confirmed passing** all acceptance gates (numpy validation)
+- **~50 estimated passing** including rotation-fixed non-well systems
+- **15 systems selected** for benchmark (diverse subset)
 
-## Key Calibration Result
+## Key Calibration Finding
 
-**Independent rotation** `dx/dt += ω·y, dy/dt -= ω·x` is the mechanism that
-produces transition-rich dynamics. The crossing fraction is controlled by:
+**Independent rotation** `dx/dt += ω·y, dy/dt -= ω·x` produces transition-rich dynamics.
 
 ```
-crossing ≈ f(ω / amp)    where ω/amp ∈ [0.3, 0.7] → crossing ∈ [0.30, 0.65]
+crossing_fraction ≈ f(ω / amplitude)
+  ω/amp ∈ [0.3, 0.7] → crossing ∈ [30%, 65%]
 ```
 
-- **Proportional rotation** (α·R·∇V): gives < 15% crossing — insufficient
-- **Independent rotation**: adds constant angular velocity, creating spiral
-  approach to basins that carries trajectories across boundaries
+| Basins | Amplitude | Omega | Crossing | Notes |
+|--------|-----------|-------|----------|-------|
+| 3 | 2.0 | 1.0 | 47% | Sweet spot |
+| 4 | 3.0 | 1.0 | 45% | Robust |
+| 5 | 2.0 | 1.0 | 41% | Robust |
+| 6 | 2.0 | 0.8 | 44% | Lower omega needed |
+| 7 | 2.5 | 0.9 | 51% | |
+| 8 | 3.0 | 1.2 | 55% | Higher omega needed |
+| 9 | 3.0 | 1.0 | 69% | Near upper bound |
+| 10 | 3.5 | 1.0 | 64% | |
 
-### Calibrated parameter table (Gaussian wells on polygon, σ=0.5, radius=1.8)
+## All 44 Confirmed Passing Systems
 
-| Basins | Well amp | Omega | Crossing | Confinement |
-|--------|----------|-------|----------|-------------|
-| 3 | 2.0 | 1.0 | 47% | 0.03 |
-| 4 | 3.0 | 1.0 | 45% | 0.03 |
-| 5 | 2.0 | 1.0 | 41% | 0.03 |
-| 6 | 2.0 | 0.8 | 44% | 0.03 |
-| 8 | 3.0 | 1.2 | 55% | 0.02 |
+### Calibrated polygon (9 systems)
 
-## Confirmed Passing Systems (numpy-validated)
+| Name | B | C% | Occ | Geometry |
+|------|---|----|----|----------|
+| `cal_triangle_3` | 3 | 48 | 0.26 | Equilateral triangle |
+| `cal_square_4` | 4 | 45 | 0.23 | Square |
+| `cal_pentagon_5` | 5 | 41 | 0.17 | Pentagon |
+| `cal_hexagon_6` | 6 | 44 | 0.10 | Hexagon |
+| `cal_octagon_8` | 8 | 65 | 0.06 | Octagon |
+| `cal_asymmetric_3` | 3 | 50 | 0.25 | Unequal depths |
+| `cal_star_5` | 5 | 46 | 0.16 | Star topology |
+| `cal_high_cross_3` | 3 | 62 | 0.26 | High rotation |
+| `cal_low_cross_4` | 4 | 45 | 0.23 | Moderate rotation |
 
-| # | System | Basins | Crossing | Min Occ | Type |
-|---|--------|--------|----------|---------|------|
-| 1 | `cal_triangle_3` | 3 | 48% | 0.26 | Polygon (equilateral) |
-| 2 | `cal_square_4` | 4 | 45% | 0.23 | Polygon (square) |
-| 3 | `cal_pentagon_5` | 5 | 41% | 0.17 | Polygon (pentagon) |
-| 4 | `cal_hexagon_6` | 6 | 44% | 0.10 | Polygon (hexagon) |
-| 5 | `cal_octagon_8` | 8 | 65% | 0.06 | Polygon (octagon) |
-| 6 | `cal_asymmetric_3` | 3 | 50% | 0.25 | Asymmetric depths |
-| 7 | `cal_star_5` | 5 | 46% | 0.16 | Star topology |
-| 8 | `cal_high_cross_3` | 3 | 62% | 0.26 | High rotation |
-| 9 | `cal_low_cross_4` | 4 | 45% | 0.23 | Moderate rotation |
-| 10 | `var_random_3a` | 3 | 51% | 0.24 | Random placement |
-| 11 | `var_random_4a` | 4 | 51% | 0.21 | Random placement |
-| 12 | `var_random_5a` | 5 | 50% | 0.14 | Random placement |
-| 13 | `var_depth_gradient_4` | 4 | 41% | 0.20 | Depth gradient |
-| 14 | `var_mixed_widths_5` | 5 | 41% | 0.17 | Mixed widths |
-| 15 | `var_mild_rot_5` | 5 | 30% | 0.17 | Minimal crossing |
-| 16 | `var_diamond_4` | 4 | 54% | 0.20 | Rotated square |
-| 17 | `var_l_shape_5` | 5 | 40% | 0.11 | L-shape topology |
-| 18 | `var_grid_2x2` | 4 | 33% | 0.21 | Grid layout |
+### Variant well configs (9 systems)
 
-### Likely passing after rotation fix (needs full torch validation)
+| Name | B | C% | Occ | Geometry |
+|------|---|----|----|----------|
+| `var_random_3a` | 3 | 51 | 0.24 | Random |
+| `var_random_4a` | 4 | 51 | 0.21 | Random |
+| `var_random_5a` | 5 | 50 | 0.14 | Random |
+| `var_depth_gradient_4` | 4 | 41 | 0.20 | Depth cascade |
+| `var_mixed_widths_5` | 5 | 41 | 0.17 | Mixed σ |
+| `var_mild_rot_5` | 5 | 30 | 0.17 | Minimal crossing |
+| `var_diamond_4` | 4 | 54 | 0.20 | Rotated square |
+| `var_l_shape_5` | 5 | 40 | 0.11 | L-shape |
+| `var_grid_2x2` | 4 | 33 | 0.21 | Grid |
 
-| System | Pre-fix basins | Pre-fix cross | Expected post-fix |
-|--------|---------------|---------------|-------------------|
-| `duffing_triple_well` | 3 | 66% | ~50% (already high) |
-| `competitive_exclusion_3` | 3 | 25% | ~40% |
-| `dna_regulatory_switch` | 4 | 20% | ~35% |
-| `neural_decision_3choice` | 6 | 23% | ~38% |
-| `alluvial_fan` | 5 | 16% | ~31% |
-| `mixed_dynamics_triple` | 3 | ~15% | ~35% |
-| `non_voronoi_basins` | 3 | ~15% | ~35% |
-| `slow_fast_triple` | 3 | ~10% | ~30% |
-| `muller_brown_rotated` | 3 | ~12% | ~30% |
-| `transition_routes_4` | 4 | ~10% | ~30% |
+### Diverse geometries batch 1 (13 systems)
+
+| Name | B | C% | Occ | Geometry |
+|------|---|----|----|----------|
+| `tri_rot0` | 3 | 39 | 0.29 | Triangle (0° offset) |
+| `tri_rot29` | 3 | 46 | 0.30 | Triangle (30°) |
+| `tri_rot59` | 3 | 45 | 0.28 | Triangle (60°) |
+| `V_shape_4` | 4 | 36 | 0.12 | V-shape |
+| `bow_tie_4` | 4 | 45 | 0.21 | Bow-tie |
+| `narrow_4` | 4 | 47 | 0.24 | Narrow wells |
+| `wide_4` | 4 | 36 | 0.20 | Wide wells |
+| `pent_w9` | 5 | 31 | 0.16 | Pentagon (ω=0.9) |
+| `pent_w11` | 5 | 40 | 0.19 | Pentagon (ω=1.1) |
+| `pent_w13` | 5 | 46 | 0.16 | Pentagon (ω=1.3) |
+| `pent_w15` | 5 | 49 | 0.17 | Pentagon (ω=1.5) |
+| `heptagon_7` | 7 | 51 | 0.07 | 7-well heptagon |
+| `decagon_10` | 10 | 64 | 0.05 | 10-well decagon |
+
+### Diverse geometries batch 2 (13 systems)
+
+| Name | B | C% | Occ | Geometry |
+|------|---|----|----|----------|
+| `H_shape_5` | 5 | 34 | 0.10 | H-shape |
+| `hex_deep_6` | 6 | 36 | 0.10 | Deep hexagon |
+| `hex_wide_6` | 6 | 46 | 0.11 | Wide hexagon |
+| `irreg_3a` | 3 | 41 | 0.20 | Irregular triangle |
+| `irreg_3b` | 3 | 47 | 0.24 | Irregular triangle |
+| `irreg_4a` | 4 | 50 | 0.21 | Irregular quad |
+| `irreg_4b` | 4 | 51 | 0.17 | Irregular quad |
+| `pent_r15` | 5 | 30 | 0.17 | Small pentagon |
+| `pent_r22` | 5 | 46 | 0.16 | Large pentagon |
+| `spiral_arm_5` | 4 | 50 | 0.16 | Spiral arms |
+| `sq_large_4` | 4 | 44 | 0.20 | Large square |
+| `sq_mixed_4` | 4 | 40 | 0.24 | Mixed depths |
+| `sq_tight_4` | 4 | 40 | 0.24 | Tight square |
 
 ## Benchmark Selection (15 systems)
 
-Selected for diversity across: basin count (3-8), crossing range (30-65%),
-topology (symmetric/asymmetric/non-convex/hierarchical), and dynamics type.
+Selected for maximum diversity across: basin count (3–10), crossing range
+(30–65%), topology (polygon/non-convex/hierarchical), well balance, and
+unique properties.
 
-### Tier 1: Core benchmark (8 systems)
+| # | Name | B | C% | Selection rationale |
+|---|------|---|----|----|
+| 1 | `cal_triangle_3` | 3 | 48 | **Baseline**: simplest multi-basin system |
+| 2 | `cal_pentagon_5` | 5 | 41 | **Mid-complexity**: standard polygon |
+| 3 | `cal_octagon_8` | 8 | 65 | **Scalability**: many basins, high crossing |
+| 4 | `cal_asymmetric_3` | 3 | 50 | **Robustness**: unequal well depths |
+| 5 | `var_depth_gradient_4` | 4 | 41 | **Asymmetry**: cascading well depths |
+| 6 | `var_l_shape_5` | 5 | 40 | **Non-convex**: L-shaped topology |
+| 7 | `cal_star_5` | 5 | 46 | **Star**: radiating topology |
+| 8 | `heptagon_7` | 7 | 51 | **7-basin**: odd-count basins |
+| 9 | `decagon_10` | 10 | 64 | **High-count**: 10 basins, scalability test |
+| 10 | `var_mild_rot_5` | 5 | 30 | **Low crossing**: boundary condition |
+| 11 | `cal_high_cross_3` | 3 | 62 | **High crossing**: boundary condition |
+| 12 | `bow_tie_4` | 4 | 45 | **Non-standard**: bow-tie geometry |
+| 13 | `spiral_arm_5` | 4 | 50 | **Non-trivial**: spiral arm placement |
+| 14 | `H_shape_5` | 5 | 34 | **Topology**: H-shape connectivity |
+| 15 | `hex_wide_6` | 6 | 46 | **Width variation**: wide basins |
 
-These are the most important systems for the paper.
+### Key properties of the benchmark
 
-| # | System | B | C | Why included |
-|---|--------|---|---|--------------|
-| 1 | `cal_triangle_3` | 3 | 48% | Clean 3-basin baseline |
-| 2 | `cal_pentagon_5` | 5 | 41% | Mid-complexity, symmetric |
-| 3 | `cal_octagon_8` | 8 | 65% | Scalability to many basins |
-| 4 | `cal_asymmetric_3` | 3 | 50% | Tests robustness to depth imbalance |
-| 5 | `var_depth_gradient_4` | 4 | 41% | Different basin depths |
-| 6 | `var_l_shape_5` | 5 | 40% | Non-convex topology |
-| 7 | `cal_star_5` | 5 | 46% | Star routing topology |
-| 8 | `var_diamond_4` | 4 | 54% | Rotated geometry |
-
-### Tier 2: Stretch systems (7 systems)
-
-These add diversity but need more validation.
-
-| # | System | B | C | Why included |
-|---|--------|---|---|--------------|
-| 9 | `cal_high_cross_3` | 3 | 62% | High crossing endpoint |
-| 10 | `var_mild_rot_5` | 5 | 30% | Low crossing endpoint |
-| 11 | `mixed_dynamics_triple` | 3 | ~35% | Different dynamics per basin |
-| 12 | `non_voronoi_basins` | 3 | ~35% | Non-Voronoi boundaries |
-| 13 | `duffing_triple_well` | 3 | ~50% | Classic physical system |
-| 14 | `muller_brown_rotated` | 3 | ~30% | Computational chemistry |
-| 15 | `transition_routes_4` | 4 | ~30% | Route-specific transitions |
-
-## Module Organization
-
-| Module | Count | Category |
-|--------|-------|----------|
-| `systems_gradient.py` | 17 | A/B: gradient + proportional rotation |
-| `systems_bio_physical.py` | 17 | C/D: biological + physical |
-| `systems_creative.py` | 17 | E/F/G/H: creative + abstract |
-| `systems_novel.py` | 17 | H: novel real-world-inspired |
-| `systems_tuned.py` | 21 | B/H: calibrated to pass gates |
-| `systems_variants.py` | 17 | B/H: diverse well configurations |
-| **Total** | **106** | |
+- **Basin count range**: 3–10 (6 different counts)
+- **Crossing range**: 30%–65%
+- **Topologies**: polygon, star, L-shape, H-shape, bow-tie, spiral
+- **Balance variation**: symmetric to highly asymmetric
+- **All deterministic and 2D** (plottable)
 
 ## Visualizations
 
 - Phase portraits: `results/claude_catalog_validation/plots/`
-- Gallery composite: `results/claude_catalog_validation/gallery/system_gallery.png`
+- Gallery: `results/claude_catalog_validation/gallery/system_gallery.png`
 - Crossing comparison: `results/claude_catalog_validation/gallery/crossing_comparison.png`
-
-## Failure Analysis
-
-| Failure mode | Count | Root cause | Fix |
-|---|---|---|---|
-| Low crossing (<30%) | ~40 | No independent rotation | Add ω·y, -ω·x |
-| Too many basins (>10) | ~8 | Clustering too sensitive | Increase cluster tolerance |
-| Too few basins (<3) | ~10 | Wrong parameter regime | Redesign dynamics |
-| Low occupancy (<5%) | ~12 | Rotation creates asymmetry | Balance wells |
-| High crossing (>70%) | ~5 | Too much rotation/chaos | Reduce omega |
