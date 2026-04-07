@@ -213,3 +213,4 @@ plots/*
 results/*
 
 .DS_Store
+slurm-*.out
