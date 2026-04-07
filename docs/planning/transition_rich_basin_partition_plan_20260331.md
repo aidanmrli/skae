@@ -1,29 +1,25 @@
 # Transition-rich basin partitioning plan
 
-_Paper planning spec for the next paper branch, March 31, 2026_
-
-_Restored on April 6, 2026 from the surviving branch docs after an accidental local deletion. This copy is consistent with the current branch state, but may not be byte-identical to the lost draft._
-
 ---
 
 ## Objective
 
-Shift the live paper-development focus from forecasting-first evidence to a branch centered on **label-light basin partitioning and classification** on deterministic toy systems.
+We have sufficient evidence for forecasting ability in the paper. We now want to focus on a new branch of experiments centered on **local basin partitioning and classification** on deterministic toy systems.
 
-The branch should answer three questions:
+The branch should do the following:
 
-1. Can a Koopman autoencoder discover reusable basin partitions without training-time basin labels?
-2. Can we build deterministic native-plot toy systems whose mechanics are simple enough to study directly in the paper?
-3. Can we report metrics that explain **why** forecasting succeeds or fails, rather than only reporting MSE?
+1. Generate toy nonlinear systems in 2D and/or 3D that have interesting non-trivial transitions between basins; each system should procedurally generate movement between basins of attraction rather than just collapsing to the local attractor from the initial condition. These toy systems should be well-characterized and we should be able to plot them. These systems might be generated with deterministic noise, but there can be freedom in generating these systems.
+2. Plot these toy systems so that we can visually inspect them.
+3. Create, inspect, and diagnose interesting and possibly new metrics that explain **why** forecasting succeeds or fails on these toy systems instead of just reporting MSE. These metrics might diagnose whether phase plots are crossing (violations since each starting point should have its own unique solution). They might also study the extent to which distinct basins in our toy systems correspond to unique supports, perhaps by studying activations. Creativity in coming up with different metrics is encouraged.
+4. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. A strong result would be if a LISTA-encoder model can perform better
+5. Loop between (3) and (4).
 
-Forecasting remains supporting evidence, but the lead open question becomes whether the learned representation identifies meaningful partitions and handles common transitions cleanly.
+The lead open question is whether the learned Koopman representation from the encoder identifies meaningful partitions and handles common transitions cleanly.
 
 ## Locked decisions
 
 | Topic | Locked choice |
 | --- | --- |
-| Forecasting role | Forecasting stays as strong supporting evidence, not the lead live branch |
-| New document type | Execution plan under `docs/planning/` |
 | Toy-system strategy | Reuse and extend `multiwell`, plus add deterministic chart-switching families |
 | Basin-count range | Accept systems with `3-10` endpoint basins |
 | Transition richness | For the frozen first-pass pair, use `0.30-0.70` as the acceptable per-endpoint-basin crossing-fraction range; for the explicit transfer family, use source-neighborhood transfer plus core-retention gates |
@@ -96,6 +92,8 @@ This family should:
 - let us test whether periodic decode/re-encode helps because the correct local affine chart changes along the trajectory.
 
 The detailed mathematical specification and implementation order live in [chart_switching_transfer_system_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/chart_switching_transfer_system_plan_20260331.md).
+
+### More new families: TODO.
 
 ## Interfaces and required artifacts
 
@@ -323,7 +321,7 @@ Do **not** rely on the following shortcuts:
 - do not treat basin-block alignment as the primary target unless a specific experiment requires it,
 - do not claim a chart-change-localization win unless the attribution read is actually positive.
 
-Prioritize **basin-support alignment**: each endpoint basin should map to a unique sparse support in latent `z`, even when trajectories pass through shared transitions.
+Prioritize **basin-support alignment**: each endpoint basin should map to a unique sparse support, even when trajectories pass through shared transitions.
 
 ## Immediate execution checklist
 
