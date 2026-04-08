@@ -246,6 +246,20 @@ class CompetitiveLVConfig:
 
 
 @dataclass
+class GatedLocalLinearConfig:
+    """Configuration for the native gated local-linear transition-rich toy."""
+
+    DT: float = 0.04
+
+
+@dataclass
+class GatedTransferLinearConfig:
+    """Configuration for the native gated transfer transition-rich toy."""
+
+    DT: float = 0.04
+
+
+@dataclass
 class DystsConfig:
     """Configuration for dysts-based environments.
     
@@ -297,6 +311,7 @@ class EnvConfig:
         [
             "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
             "lyapunov", "blended", "multiwell", "multiwell:<mode>",
+            "gated_local_linear", "gated_transfer_linear",
             "kuramoto", "hopfield", "competitive_lv", "claude:SystemName"
         ]
     
@@ -316,6 +331,8 @@ class EnvConfig:
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
     BLENDED: BlendedConfig = field(default_factory=BlendedConfig)
     MULTIWELL: MultiWellConfig = field(default_factory=MultiWellConfig)
+    GATED_LOCAL_LINEAR: GatedLocalLinearConfig = field(default_factory=GatedLocalLinearConfig)
+    GATED_TRANSFER_LINEAR: GatedTransferLinearConfig = field(default_factory=GatedTransferLinearConfig)
     KURAMOTO: KuramotoConfig = field(default_factory=KuramotoConfig)
     HOPFIELD: HopfieldConfig = field(default_factory=HopfieldConfig)
     COMPETITIVE_LV: CompetitiveLVConfig = field(default_factory=CompetitiveLVConfig)
@@ -438,6 +455,7 @@ class ModelConfig:
     # Koopman matrix structure: "dense" (full NxN), "diagonal", "block_diagonal"
     K_STRUCTURE: str = "dense"
     K_BLOCK_SIZE: int = 0  # block size for block_diagonal (0 = auto: target_size // 13)
+    K_NUM_BLOCKS: int = 0  # exact number of blocks for block_diagonal (0 = disabled)
 
     # Sub-configs
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
@@ -496,6 +514,8 @@ class Config:
             LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
             BLENDED=BlendedConfig(**env_dict.get("BLENDED", {})),
             MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
+            GATED_LOCAL_LINEAR=GatedLocalLinearConfig(**env_dict.get("GATED_LOCAL_LINEAR", {})),
+            GATED_TRANSFER_LINEAR=GatedTransferLinearConfig(**env_dict.get("GATED_TRANSFER_LINEAR", {})),
             KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
             HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
             COMPETITIVE_LV=CompetitiveLVConfig(**env_dict.get("COMPETITIVE_LV", {})),
@@ -547,6 +567,8 @@ _BUILTIN_ENV_DT_NAMES = {
     "lyapunov",
     "blended",
     "multiwell",
+    "gated_local_linear",
+    "gated_transfer_linear",
     "kuramoto",
     "hopfield",
     "competitive_lv",
@@ -562,6 +584,8 @@ def canonical_env_name(env_name: str) -> str:
     if lowered.startswith("dysts:"):
         return "dysts"
     if lowered.startswith("multiwell:"):
+        return "multiwell"
+    if lowered.startswith("multiwell_"):
         return "multiwell"
     if lowered in _BUILTIN_ENV_DT_NAMES:
         return lowered
@@ -606,6 +630,10 @@ def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None
         cfg.ENV.BLENDED.DT = dt
     elif target_env == "multiwell":
         cfg.ENV.MULTIWELL.DT = dt
+    elif target_env == "gated_local_linear":
+        cfg.ENV.GATED_LOCAL_LINEAR.DT = dt
+    elif target_env == "gated_transfer_linear":
+        cfg.ENV.GATED_TRANSFER_LINEAR.DT = dt
     elif target_env == "kuramoto":
         cfg.ENV.KURAMOTO.DT = dt
     elif target_env == "hopfield":
@@ -642,6 +670,10 @@ def get_env_dt(cfg: Config, env_name: Optional[str] = None) -> float:
         return float(cfg.ENV.BLENDED.DT)
     if target_env == "multiwell":
         return float(cfg.ENV.MULTIWELL.DT)
+    if target_env == "gated_local_linear":
+        return float(cfg.ENV.GATED_LOCAL_LINEAR.DT)
+    if target_env == "gated_transfer_linear":
+        return float(cfg.ENV.GATED_TRANSFER_LINEAR.DT)
     if target_env == "kuramoto":
         return float(cfg.ENV.KURAMOTO.DT)
     if target_env == "hopfield":

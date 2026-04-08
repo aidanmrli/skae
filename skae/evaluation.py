@@ -971,6 +971,49 @@ class EvaluationSettings:
         1000,
     )
     dysts_phase_portrait_reencode_periods: Sequence[int] = (0, 1, 100, 200, 300, 400, 500, 1000)
+    save_rollout_artifacts: bool = False
+
+
+def _save_rollout_artifacts(
+    *,
+    path: Path,
+    system: str,
+    cfg: Config,
+    settings: EvaluationSettings,
+    periodic_periods: Sequence[int],
+    init_states: torch.Tensor,
+    true_future: torch.Tensor,
+    predictions: Dict[str, torch.Tensor],
+) -> None:
+    """Persist rollout tensors for downstream diagnosis."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "system": system,
+        "seed": int(cfg.SEED),
+        "config": cfg.to_dict(),
+        "evaluation_settings": {
+            "systems": list(settings.systems),
+            "horizons": list(settings.horizons),
+            "periodic_reencode_periods": list(settings.periodic_reencode_periods),
+            "dysts_periodic_reencode_periods": list(settings.dysts_periodic_reencode_periods),
+            "batch_size": int(settings.batch_size),
+            "seed_offset": int(settings.seed_offset),
+            "save_rollout_artifacts": bool(settings.save_rollout_artifacts),
+        },
+        "periodic_periods_used": list(periodic_periods),
+        "init_states": init_states.detach().cpu().contiguous(),
+        "true_future": true_future.detach().cpu().contiguous(),
+        "true_sequences": torch.cat(
+            [init_states.detach().cpu().unsqueeze(0), true_future.detach().cpu()],
+            dim=0,
+        ).transpose(0, 1).contiguous(),
+        "predictions": {
+            mode_name: pred.detach().cpu().contiguous()
+            for mode_name, pred in predictions.items()
+        },
+    }
+    torch.save(payload, path)
 
 
 def evaluate_model(
@@ -1184,6 +1227,20 @@ def evaluate_model(
                 f"[evaluate_model] -> System '{system}': saving plots to {system_dir}",
                 flush=True,
             )
+
+            if settings.save_rollout_artifacts:
+                artifact_path = system_dir / "rollout_artifacts.pt"
+                _save_rollout_artifacts(
+                    path=artifact_path,
+                    system=system,
+                    cfg=eval_cfg,
+                    settings=settings,
+                    periodic_periods=periodic_periods,
+                    init_states=init_states,
+                    true_future=true_future_cpu,
+                    predictions=predictions,
+                )
+                files["rollout_artifacts"] = str(artifact_path)
 
             # DYSTS: phase portraits should be long and include 3D by default.
             # The qualitative plots are the main debugging signal for chaotic flows.

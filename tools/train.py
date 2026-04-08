@@ -643,6 +643,7 @@ def train(
             # Create evaluation settings
             eval_settings = EvaluationSettings()
             eval_settings.systems = [cfg.ENV.ENV_NAME]
+            eval_settings.save_rollout_artifacts = True
             if eval_profile == "smoke":
                 # Keep H1000 for compatibility checks, but reduce expensive eval breadth.
                 eval_settings.batch_size = 32
@@ -1091,6 +1092,8 @@ Examples:
                         help='Koopman matrix structure (default: dense)')
     parser.add_argument('--k_block_size', type=int, default=None,
                         help='Block size for block_diagonal K (default: auto = target_size // 13)')
+    parser.add_argument('--k_num_blocks', type=int, default=None,
+                        help='Exact number of blocks for block_diagonal K (overrides k_block_size)')
 
     # Block activation losses (for block_diagonal K)
     parser.add_argument('--block_loss', action='store_true',
@@ -1304,6 +1307,8 @@ Examples:
         print(f"Using Koopman matrix structure: {args.k_structure}")
     if args.k_block_size is not None:
         cfg.MODEL.K_BLOCK_SIZE = args.k_block_size
+    if args.k_num_blocks is not None:
+        cfg.MODEL.K_NUM_BLOCKS = args.k_num_blocks
 
     # Block activation loss config
     if args.block_loss:

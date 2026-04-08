@@ -1040,20 +1040,39 @@ class LISTAKM(KoopmanMachine):
             self.kmat_diag = nn.Parameter(torch.ones(zdim))
             print(f"  Diagonal K: {zdim} parameters")
         elif self._k_structure == "block_diagonal":
-            block_size = cfg.MODEL.K_BLOCK_SIZE
-            if block_size <= 0:
-                block_size = max(1, zdim // 13)
-            self._k_block_size = block_size
-            self._k_num_blocks = zdim // block_size
-            self._k_remainder = zdim - self._k_num_blocks * block_size
-            self.kmat_blocks = nn.ParameterList([
-                nn.Parameter(torch.eye(block_size))
-                for _ in range(self._k_num_blocks)
-            ])
-            if self._k_remainder > 0:
-                self.kmat_remainder = nn.Parameter(torch.eye(self._k_remainder))
-            print(f"  Block-diagonal K: {self._k_num_blocks} blocks of size "
-                  f"{block_size}" + (f" + remainder {self._k_remainder}" if self._k_remainder > 0 else ""))
+            requested_num_blocks = int(getattr(cfg.MODEL, "K_NUM_BLOCKS", 0))
+            self._k_block_sizes: List[int] = []
+
+            if requested_num_blocks > 0:
+                self._k_block_size = 0
+                self._k_num_blocks = requested_num_blocks
+                self._k_remainder = 0
+                self._k_block_sizes = self._split_block_sizes(zdim, requested_num_blocks)
+                self.kmat_blocks = nn.ParameterList([
+                    nn.Parameter(torch.eye(block_size))
+                    for block_size in self._k_block_sizes
+                ])
+                print(
+                    "  Block-diagonal K: "
+                    f"{requested_num_blocks} blocks with sizes {self._k_block_sizes}"
+                )
+            else:
+                block_size = cfg.MODEL.K_BLOCK_SIZE
+                if block_size <= 0:
+                    block_size = max(1, zdim // 13)
+                self._k_block_size = block_size
+                self._k_num_blocks = zdim // block_size
+                self._k_remainder = zdim - self._k_num_blocks * block_size
+                self._k_block_sizes = [block_size] * self._k_num_blocks
+                self.kmat_blocks = nn.ParameterList([
+                    nn.Parameter(torch.eye(block_size))
+                    for _ in range(self._k_num_blocks)
+                ])
+                if self._k_remainder > 0:
+                    self.kmat_remainder = nn.Parameter(torch.eye(self._k_remainder))
+                    self._k_block_sizes.append(self._k_remainder)
+                print(f"  Block-diagonal K: {self._k_num_blocks} blocks of size "
+                      f"{block_size}" + (f" + remainder {self._k_remainder}" if self._k_remainder > 0 else ""))
         else:
             # Dense (default)
             self.kmat = nn.Parameter(torch.eye(zdim))
@@ -1072,6 +1091,26 @@ class LISTAKM(KoopmanMachine):
             if self._block_loss_cfg.ONE_BLOCK_LOSS == "top1_margin":
                 print(f"    top1_margin={self._block_loss_cfg.TOP1_MARGIN}")
             print(f"    energy_norm={self._block_loss_cfg.ENERGY_NORM}")
+
+    @staticmethod
+    def _split_block_sizes(zdim: int, num_blocks: int) -> List[int]:
+        """Split a latent dimension into near-equal positive block sizes."""
+        if num_blocks <= 0:
+            raise ValueError("K_NUM_BLOCKS must be positive when enabled.")
+        if num_blocks > zdim:
+            raise ValueError(
+                f"K_NUM_BLOCKS={num_blocks} exceeds latent size TARGET_SIZE={zdim}."
+            )
+        base = zdim // num_blocks
+        remainder = zdim % num_blocks
+        return [base + (1 if block_index < remainder else 0) for block_index in range(num_blocks)]
+
+    def _block_diagonal_matrices(self) -> List[torch.Tensor]:
+        """Return all block matrices in latent order."""
+        blocks = [block for block in self.kmat_blocks]
+        if getattr(self, "_k_remainder", 0) > 0 and hasattr(self, "kmat_remainder"):
+            blocks.append(self.kmat_remainder)
+        return blocks
 
     def _init_dictionary(self, zdim: int) -> torch.Tensor:
         """Initialize dictionary as a union of orthogonal bases."""
@@ -1199,10 +1238,7 @@ class LISTAKM(KoopmanMachine):
         if self._k_structure == "diagonal":
             return torch.diag(self.kmat_diag)
         elif self._k_structure == "block_diagonal":
-            blocks = [b for b in self.kmat_blocks]
-            if self._k_remainder > 0:
-                blocks.append(self.kmat_remainder)
-            return torch.block_diag(*blocks)
+            return torch.block_diag(*self._block_diagonal_matrices())
         else:
             return self.kmat
 
@@ -1217,15 +1253,12 @@ class LISTAKM(KoopmanMachine):
         if self._k_structure == "diagonal":
             return y * self.kmat_diag
         elif self._k_structure == "block_diagonal":
-            bs = self._k_block_size
             parts = []
-            for i, block in enumerate(self.kmat_blocks):
-                yi = y[..., i * bs:(i + 1) * bs]
+            offset = 0
+            for block_size, block in zip(self._k_block_sizes, self._block_diagonal_matrices()):
+                yi = y[..., offset:offset + block_size]
                 parts.append(yi @ block)
-            if self._k_remainder > 0:
-                offset = self._k_num_blocks * bs
-                yi = y[..., offset:]
-                parts.append(yi @ self.kmat_remainder)
+                offset += block_size
             return torch.cat(parts, dim=-1)
         else:
             return y @ self.kmat
@@ -1260,26 +1293,19 @@ class LISTAKM(KoopmanMachine):
         """
         if self._k_structure != "block_diagonal":
             return None
-        bs = self._k_block_size
-        num_blocks = self._k_num_blocks
-        if num_blocks <= 0:
+        if not self._k_block_sizes:
             return None
-
-        end = num_blocks * bs
-        z_main = z[..., :end].view(*z.shape[:-1], num_blocks, bs)
-        if self._block_loss_cfg.ENERGY_NORM == "l1":
-            energies_main = z_main.abs().sum(dim=-1)
-        else:
-            energies_main = torch.norm(z_main, p=2, dim=-1)
-
-        if self._k_remainder > 0:
-            z_rem = z[..., end:]
+        energies = []
+        offset = 0
+        for block_size in self._k_block_sizes:
+            block_latents = z[..., offset:offset + block_size]
             if self._block_loss_cfg.ENERGY_NORM == "l1":
-                energy_rem = z_rem.abs().sum(dim=-1, keepdim=True)
+                block_energy = block_latents.abs().sum(dim=-1, keepdim=True)
             else:
-                energy_rem = torch.norm(z_rem, p=2, dim=-1, keepdim=True)
-            return torch.cat([energies_main, energy_rem], dim=-1)
-        return energies_main
+                block_energy = torch.norm(block_latents, p=2, dim=-1, keepdim=True)
+            energies.append(block_energy)
+            offset += block_size
+        return torch.cat(energies, dim=-1)
 
     def _block_losses_from_z(
         self, z: torch.Tensor

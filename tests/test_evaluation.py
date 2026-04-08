@@ -51,6 +51,7 @@ def test_evaluate_model_generates_outputs(tmp_path):
         periodic_reencode_periods=(2,),
         batch_size=4,
         phase_portrait_samples=2,
+        save_rollout_artifacts=True,
     )
 
     results = evaluate_model(
@@ -77,6 +78,13 @@ def test_evaluate_model_generates_outputs(tmp_path):
 
     curve_png = tmp_path / "duffing" / "mse_vs_horizon.png"
     assert curve_png.exists(), "Evaluation should write MSE curve plot"
+
+    artifact_path = tmp_path / "duffing" / "rollout_artifacts.pt"
+    assert artifact_path.exists(), "Evaluation should write rollout_artifacts.pt when enabled"
+    payload = torch.load(artifact_path, map_location="cpu")
+    assert payload["system"] == "duffing"
+    assert payload["true_sequences"].shape[0] == settings.batch_size
+    assert "no_reencode" in payload["predictions"]
 
 
 def test_estimate_learned_attractors_contracts_to_origin():

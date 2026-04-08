@@ -154,6 +154,9 @@ fi
 if [[ -n "${k_block_size}" ]]; then
   TRAIN_ARGS+=(--k_block_size "${k_block_size}")
 fi
+if [[ -n "${k_num_blocks:-}" ]]; then
+  TRAIN_ARGS+=(--k_num_blocks "${k_num_blocks}")
+fi
 if [[ -n "${lr:-}" ]]; then
   TRAIN_ARGS+=(--lr "${lr}")
 fi

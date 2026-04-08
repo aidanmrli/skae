@@ -556,6 +556,27 @@ class TestLISTAKM:
         assert hasattr(model, "encoder")
         assert not hasattr(model, "lista")
 
+    def test_block_diagonal_k_respects_explicit_block_count(self):
+        """LISTAKM block-diagonal K should support an exact requested block count."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 256
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 5
+
+        model = LISTAKM(cfg, observation_size=2)
+
+        assert model._k_block_sizes == [52, 51, 51, 51, 51]
+        assert len(model.kmat_blocks) == 5
+        assert sum(model._k_block_sizes) == 256
+
+        z = torch.randn(3, 256)
+        stepped = model.step_latent(z)
+        assert stepped.shape == z.shape
+
+        energies = model._block_energies(z)
+        assert energies is not None
+        assert energies.shape == (3, 5)
+
 
 class TestUnifiedLossInterface:
     """Tests for the unified pure-aggregation loss API."""

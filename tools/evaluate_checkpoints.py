@@ -205,6 +205,7 @@ def evaluate_checkpoint(
     # Create evaluation settings
     eval_settings = EvaluationSettings()
     eval_settings.systems = [system]
+    eval_settings.save_rollout_artifacts = True
     
     # Evaluate
     if output_dir is None:

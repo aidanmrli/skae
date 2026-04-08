@@ -169,6 +169,8 @@ def test_high_dim_env_config_from_dict_roundtrip():
     ("env_name", "expected"),
     [
         ("duffing", "duffing"),
+        ("gated_local_linear", "gated_local_linear"),
+        ("gated_transfer_linear", "gated_transfer_linear"),
         ("claude:cal_triangle_3", "claude_catalog"),
         ("multiwell:energy", "multiwell"),
         ("blended", "blended"),
@@ -186,6 +188,8 @@ def test_canonical_env_name(env_name, expected):
     "env_name",
     [
         "duffing",
+        "gated_local_linear",
+        "gated_transfer_linear",
         "claude:cal_triangle_3",
         "multiwell_rotational",
         "multiwell:energy",
