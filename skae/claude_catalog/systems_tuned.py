@@ -92,7 +92,7 @@ class CalibratedTriangle3(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/3 + math.pi/2),
                   r*math.sin(2*math.pi*i/3 + math.pi/2), 2.0, 0.5)
                  for i in range(3)]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -108,7 +108,7 @@ class CalibratedSquare4(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/4 + math.pi/4),
                   r*math.sin(2*math.pi*i/4 + math.pi/4), 3.0, 0.5)
                  for i in range(4)]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -124,7 +124,7 @@ class CalibratedPentagon5(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/5 + math.pi/2),
                   r*math.sin(2*math.pi*i/5 + math.pi/2), 2.0, 0.5)
                  for i in range(5)]
-        super().__init__(wells=wells, omega=1.1, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.1, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -140,7 +140,7 @@ class CalibratedHexagon6(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/6),
                   r*math.sin(2*math.pi*i/6), 2.0, 0.5)
                  for i in range(6)]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -156,7 +156,7 @@ class CalibratedOctagon8(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/8),
                   r*math.sin(2*math.pi*i/8), 3.0, 0.5)
                  for i in range(8)]
-        super().__init__(wells=wells, omega=0.90, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=0.90, conf=0.02,
                          ic_box=[(-4.0, 4.0), (-4.0, 4.0)], **kw)
 
 
@@ -177,7 +177,7 @@ class AsymmetricTriangle3(GaussianWellIndepRotation):
             (-1.5, -0.9, 1.5, 0.4),   # shallow, narrow
             (1.5, -0.9, 2.0, 0.5),    # medium
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.0, 3.0), (-2.5, 3.0)], **kw)
 
 
@@ -199,7 +199,7 @@ class ClusteredWells6(GaussianWellIndepRotation):
             (2.5, -0.8, 2.5, 0.4),
             (1.8, 0.0, 2.5, 0.4),
         ]
-        super().__init__(wells=wells, omega=1.2, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.2, conf=0.02,
                          ic_box=[(-4.5, 4.5), (-2.5, 2.5)], **kw)
 
 
@@ -217,7 +217,7 @@ class ChainWells4(GaussianWellIndepRotation):
             (1.0, -0.5, 2.5, 0.5),
             (3.0, 0.0, 2.5, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.01, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.01,
                          ic_box=[(-4.5, 4.5), (-2.5, 2.5)], **kw)
 
 
@@ -236,7 +236,7 @@ class CrossWells5Center(GaussianWellIndepRotation):
             (0.0, 2.2, 3.0, 0.5),
             (0.0, -2.2, 3.0, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.5, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.5, conf=0.02,
                          ic_box=[(-4.0, 4.0), (-4.0, 4.0)], **kw)
 
 
@@ -252,7 +252,7 @@ class StarTopology5(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/5 + math.pi/10),
                   r*math.sin(2*math.pi*i/5 + math.pi/10), 3.0, 0.55)
                  for i in range(5)]
-        super().__init__(wells=wells, omega=1.5, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.5, conf=0.03,
                          ic_box=[(-3.5, 3.5), (-3.5, 3.5)], **kw)
 
 
@@ -269,7 +269,7 @@ class RingCenter7(GaussianWellIndepRotation):
         for i in range(6):
             angle = 2*math.pi*i/6
             wells.append((r*math.cos(angle), r*math.sin(angle), 2.5, 0.45))
-        super().__init__(wells=wells, omega=1.0, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.02,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -287,7 +287,7 @@ class CascadingDepths4(GaussianWellIndepRotation):
             (1.5, -0.5, 2.5, 0.5),
             (2.5, -2.0, 3.0, 0.5),    # deepest
         ]
-        super().__init__(wells=wells, omega=1.2, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.2, conf=0.02,
                          ic_box=[(-3.5, 4.0), (-3.5, 3.0)], **kw)
 
 
@@ -303,7 +303,7 @@ class HighCrossingTriangle3(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/3 + math.pi/2),
                   r*math.sin(2*math.pi*i/3 + math.pi/2), 3.0, 0.5)
                  for i in range(3)]
-        super().__init__(wells=wells, omega=2.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=2.0, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -319,7 +319,7 @@ class LowCrossingSquare4(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/4 + math.pi/4),
                   r*math.sin(2*math.pi*i/4 + math.pi/4), 3.0, 0.5)
                  for i in range(4)]
-        super().__init__(wells=wells, omega=1.2, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.2, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 

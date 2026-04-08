@@ -28,7 +28,7 @@ class RandomWells3v1(GaussianWellIndepRotation):
             (1.5, -0.5, 2.0, 0.5),
             (-0.5, -1.8, 2.0, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.0, 3.5), (-3.5, 3.5)], **kw)
 
 
@@ -46,7 +46,7 @@ class RandomWells4v1(GaussianWellIndepRotation):
             (2.0, -0.5, 2.5, 0.5),
             (-0.5, -2.0, 2.5, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.5, 3.5), (-3.5, 3.5)], **kw)
 
 
@@ -65,7 +65,7 @@ class RandomWells5v1(GaussianWellIndepRotation):
             (1.0, -1.8, 2.0, 0.5),
             (-1.5, -1.0, 2.0, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.5, 3.5), (-3.5, 3.5)], **kw)
 
 
@@ -87,7 +87,7 @@ class DepthVariation4(GaussianWellIndepRotation):
             (1.3, -1.3, 3.0, 0.5),
             (-1.3, -1.3, 3.5, 0.5),   # deepest
         ]
-        super().__init__(wells=wells, omega=1.3, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.3, conf=0.03,
                          ic_box=[(-3.0, 3.0), (-3.0, 3.0)], **kw)
 
 
@@ -104,7 +104,7 @@ class MixedWidths5(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/5 + math.pi/2),
                   r*math.sin(2*math.pi*i/5 + math.pi/2), 2.0, widths[i])
                  for i in range(5)]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -124,7 +124,7 @@ class MildRotation5(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/5 + math.pi/2),
                   r*math.sin(2*math.pi*i/5 + math.pi/2), 3.0, 0.5)
                  for i in range(5)]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -140,7 +140,7 @@ class StrongRotation3(GaussianWellIndepRotation):
         wells = [(r*math.cos(2*math.pi*i/3 + math.pi/2),
                   r*math.sin(2*math.pi*i/3 + math.pi/2), 3.0, 0.5)
                  for i in range(3)]
-        super().__init__(wells=wells, omega=2.5, conf=0.04, dt=0.03,
+        super().__init__(wells=wells, omega=2.5, conf=0.04,
                          ic_box=[(-3.3, 3.3), (-3.3, 3.3)], **kw)
 
 
@@ -162,7 +162,7 @@ class DiamondWells4(GaussianWellIndepRotation):
             (0.0, -2.2, 2.5, 0.5),  # bottom
             (-2.2, 0.0, 2.5, 0.5),  # left
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.02,
                          ic_box=[(-3.5, 3.5), (-3.5, 3.5)], **kw)
 
 
@@ -181,7 +181,7 @@ class LShapeWells5(GaussianWellIndepRotation):
             (0.0, -1.5, 2.5, 0.5),
             (1.5, -1.5, 2.5, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.5, 3.5), (-3.5, 3.5)], **kw)
 
 
@@ -200,7 +200,7 @@ class TShapeWells5(GaussianWellIndepRotation):
             (0.0, 0.0, 2.5, 0.5),
             (0.0, -1.5, 2.5, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.5, 3.5), (-3.0, 3.0)], **kw)
 
 
@@ -220,7 +220,7 @@ class ZigzagWells6(GaussianWellIndepRotation):
             (1.5, 1.0, 2.5, 0.5),
             (2.5, -1.0, 2.5, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.02,
                          ic_box=[(-4.0, 4.0), (-2.5, 2.5)], **kw)
 
 
@@ -238,7 +238,7 @@ class GridWells4(GaussianWellIndepRotation):
             (-1.5, -1.5, 2.5, 0.5),
             (1.5, -1.5, 2.5, 0.5),
         ]
-        super().__init__(wells=wells, omega=1.0, conf=0.03, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.03,
                          ic_box=[(-3.0, 3.0), (-3.0, 3.0)], **kw)
 
 
@@ -254,7 +254,7 @@ class GridWells9(GaussianWellIndepRotation):
         for i in range(3):
             for j in range(3):
                 wells.append((-2.0 + 2.0*i, -2.0 + 2.0*j, 3.0, 0.45))
-        super().__init__(wells=wells, omega=1.0, conf=0.02, dt=0.03,
+        super().__init__(wells=wells, omega=1.0, conf=0.02,
                          ic_box=[(-4.0, 4.0), (-4.0, 4.0)], **kw)
 
 
