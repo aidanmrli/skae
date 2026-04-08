@@ -11,6 +11,12 @@ Problem we are solving:
 Current paper-facing approach:
 - Keep the fair `200k` benchmark packet, the hard-system packet, and the existing mechanism packet as frozen supporting evidence rather than the lead live branch.
 - Move the active paper branch to the tests-first transition-rich plan in [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md).
+- For design choices inside the next interpretability-ablation loop over plan
+  items `3` and `4`, treat
+  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
+  as the current ground-truth planning note. It lists candidate axes for
+  systematic ablations; do not treat those choices as settled evidence until
+  the corresponding experiments are run and written back into the live docs.
 - The deterministic `2D` toy suite is now locally implemented and calibrated:
   - `multiwell_strong_transition`
   - `gated_local_linear`
@@ -141,8 +147,11 @@ Outstanding problem:
   story, the `gated_transfer_linear` chart-change-localization claim is
   currently negative, and the support local-linearity read is positive but not
   sparse-specific. The remaining choice is not between broader inventories; it
-  is how to prioritize and interpret the fixed shortlist, including whether the
-  single missing LISTA `multiwell` seed is worth rerunning if
+  is how to prioritize and interpret the fixed shortlist and how to execute the
+  next systematic ablation wave defined in
+  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
+  for plan items `3` and `4`, including whether the single missing LISTA
+  `multiwell` seed is worth rerunning if
   `multiwell_strong_transition` stays paper-relevant.
 
 Assumption split:
@@ -190,6 +199,11 @@ Assumption split:
   - `multiwell_strong_transition`
   - `gated_local_linear`
   - `gated_transfer_linear`
+- The next live interpretability iteration should treat
+  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
+  as the ground-truth design inventory for the ablation axes attached to plan
+  items `3` and `4`. Those axes still need systematic execution and reduction;
+  until then, the note is design guidance rather than evidence.
 - The current system-role split is now model-backed rather than oracle-only:
   `gated_local_linear` is the clean mechanistic positive, `gated_transfer_linear`
   is the hard transfer stress test, and `multiwell_strong_transition` is the
@@ -281,6 +295,12 @@ Assumption split:
   `cal_square_4`, `checkerboard_potential`, `duffing_triple_well`,
   `snic_multi`, `transition_routes_4`, `var_depth_gradient_4`,
   `var_diamond_4`, and `var_l_shape_5`.
+- No systematic run wave from
+  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
+  has been launched yet. Treat that note as the current source of ground truth
+  for design choices on the next interpretability loop over plan items `3` and
+  `4`, and update the live docs only after each axis has been run and
+  summarized.
 - One new local catalog-audit pass is complete without changing the live queue:
   - audit note:
     [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)

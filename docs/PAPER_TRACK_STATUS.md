@@ -10,6 +10,7 @@ The paper target is now explicit:
 - keep the fair `200k` forecasting packet, the hard-system packet, and the existing mechanism packet as **decision-grade supporting evidence** rather than the lead live branch
 - move the lead live branch to **deterministic transition-rich basin partitioning and classification** on simple toy systems that we can analyze mechanistically in the paper
 - execute that branch through the tests-first plan in [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md)
+- use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the current ground-truth planning note for ablation design choices when iterating on items `3` and `4` of that transition-rich plan, and replace planning assumptions with experiment-backed conclusions once those axes are run systematically
 - prefer deterministic native-plot `2D` toy systems first, with follow-on `3D` variants only after the `2D` candidates are calibrated
 - require candidate systems to have `3-10` endpoint basins and stable long-rollout endpoint labels
 - for the frozen first-pass pair, keep the endpoint-conditioned crossing fractions in the acceptable `0.30-0.70` range
@@ -30,6 +31,12 @@ Active execution note:
 - The current lead blocker is no longer queue completion. The deterministic
   transition-rich Stage 1 screen and both dependent mechanistic passes are now
   collected, so the blocker is now claim selection and benchmark positioning.
+- The current ablation-design source of truth for the next interpretability
+  loop is
+  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
+  It should guide matrix-structure, reset, loss, and diagnostic sweeps for
+  plan items `3` and `4` until those axes are executed and written back into
+  the live docs.
 - The forward interpretability scope is now frozen to `17` systems and no
   others:
   - native transition-rich trio:
@@ -185,6 +192,10 @@ Paper-priority note:
 ### Lead live branch: deterministic transition-rich basin partitioning
 
 - The locked execution plan is [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md).
+- The current design-source companion for the unrun ablation axes is
+  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
+  Treat it as planning ground truth for the next loop over items `3` and `4`,
+  not as already-validated evidence.
 - The required test suite now exists and passes, along with the supporting calibration module [skae/transition_calibration.py](/home/mila/l/lia/skae/skae/transition_calibration.py) and the reproducible calibration entry point [tools/calibrate_transition_system.py](/home/mila/l/lia/skae/tools/calibrate_transition_system.py).
 - Two native-plot `2D` deterministic candidates are now frozen from ground-truth calibration on the fixed `17x17` grid:
   - `multiwell_strong_transition`
