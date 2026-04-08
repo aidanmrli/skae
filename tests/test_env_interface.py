@@ -282,6 +282,36 @@ def test_make_env_registry():
         assert next_state.shape == state.shape
 
 
+def test_make_env_claude_catalog_system():
+    """Claude catalog systems should be available through the standard factory."""
+    cfg = Config()
+    cfg.ENV.ENV_NAME = "claude:cal_triangle_3"
+    env = make_env(cfg)
+
+    rng = torch.Generator()
+    rng.manual_seed(42)
+    state = env.reset(rng)
+    next_state = env.step(state)
+
+    assert isinstance(env, Env)
+    assert env.observation_size == 2
+    assert state.shape == (2,)
+    assert next_state.shape == (2,)
+    assert state.dtype == torch.float32
+    assert next_state.dtype == torch.float32
+    assert torch.all(torch.isfinite(next_state))
+
+
+def test_get_available_environments_includes_claude_catalog():
+    """Environment listing should expose the Claude catalog separately."""
+    from skae.data import get_available_environments
+
+    envs = get_available_environments()
+
+    assert "claude_catalog" in envs
+    assert "cal_triangle_3" in envs["claude_catalog"]
+
+
 def test_multiwell_hd_dimension():
     """Test fixed-HD multiwell aliases produce 8D states."""
     cfg = Config()

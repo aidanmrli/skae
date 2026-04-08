@@ -8,27 +8,34 @@ Generated: 2026-04-06, updated 2026-04-07
 This note is now partially stale and should not be used as the source of truth
 for benchmark readiness.
 
-The current artifact-backed audit is:
-[claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md).
+Use these current documents instead:
 
-That audit shows:
+- grounded audit:
+  [claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
+- coauthor-facing handoff and first training packet:
+  [claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md)
+- senior-review protocol note without code-name-heavy framing:
+  [claude_catalog_senior_review_packet_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_senior_review_packet_20260407.md)
+
+The current grounded state is:
 
 - `112` registered systems,
 - `83` systems now covered by the combined grounded screen,
 - `29` implemented but still unscreened systems,
 - `12` accepted systems in the currently grounded screen,
-- and an `8`-system strict-crossing core inside that accepted pool.
+- an `8`-system strict-crossing core inside that accepted pool,
+- and a recommended first training packet of `6` strict systems with an
+  optional `3`-system second wave.
 
-So the `44 confirmed passing` headline below is preserved as historical branch
-provenance, not as the current validated result.
+The standard training stack now also accepts `--env claude:<system>`, and the
+packet launcher lives at
+[queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh).
 
-Post-retune screening (this branch) confirmed 6 additional passes beyond the
-audit's 12: `cal_pentagon_5`, `var_depth_gradient_4`, `var_mixed_widths_5`,
-`var_grid_2x2`, `var_random_4a`, `cal_high_cross_3`, `cal_low_cross_4`,
-`hybrid_rotating_centers_3`. Non-well systems all fail after rotation fix
-(omega too aggressive; needs 0.1-0.3 not 0.8-1.0 for existing dynamics).
+Everything below that cites `44 confirmed passing`, `118 systems`, or the
+branch-wide benchmark shortlist is historical branch provenance rather than the
+current validated benchmark read.
 
-## Summary
+## Historical branch summary
 
 - **118 systems** implemented across 8 modules in `skae/claude_catalog/`
 - **17 systems confirmed passing** strict fast-screen gates (auditable artifacts)

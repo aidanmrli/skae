@@ -60,6 +60,16 @@ Active execution note:
   - the implemented Claude catalog should therefore be treated as a grounded
     small benchmark pool plus retune frontier rather than as an already
     validated large benchmark packet
+  - the first paper-facing follow-up is no longer an abstract selection
+    question: the handoff now fixes a `6`-system strict packet with `3` model
+    families and `3` seeds, the standard training stack accepts
+    `--env claude:<system>`, and the packet can be launched through
+    [scripts/queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh)
+    from a compute node
+  - the same packet is now also written in senior-coauthor-facing language in
+    [docs/planning/claude_catalog_senior_review_packet_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_senior_review_packet_20260407.md),
+    so the protocol and causal comparisons are readable without relying on
+    internal system labels
 - The first frozen `2D` pair remains useful, but it is now understood as the
   secondary half of a three-system suite:
   - `gated_local_linear` is now the cleanest oracle-validated chart-switching

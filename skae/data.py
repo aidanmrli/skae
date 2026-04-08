@@ -1697,6 +1697,33 @@ class BlendedLinearSystem(Env):
         return self.matrices[basin_idx]  # [..., 2, 2]
 
 
+class ClaudeCatalogEnv(Env):
+    """Adapter exposing a Claude catalog system through the standard Env API."""
+
+    def __init__(self, cfg: Config, system_name: str):
+        super().__init__(cfg)
+        from skae.claude_catalog import ensure_catalog_registered, get_system
+
+        ensure_catalog_registered()
+        dt_override = float(cfg.ENV.CLAUDE_CATALOG.DT)
+        kwargs = {"dt": dt_override} if dt_override > 0.0 else {}
+        self.system_name = system_name
+        self.system = get_system(system_name, **kwargs)
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        return self.system.reset(rng).to(dtype=torch.float32)
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        if state.ndim > 1:
+            return torch.stack([self.step(s, action=None) for s in state], dim=0)
+        next_state = self.system.step(state.to(dtype=torch.float64))
+        return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
+
+
 # ---------------------------------------------------------------------------
 # Registry and Factory
 # ---------------------------------------------------------------------------
@@ -1742,9 +1769,13 @@ def make_env(cfg: Config) -> Env:
     For built-in environments:
         cfg.ENV.ENV_NAME should be one of: "duffing", "pendulum", "lotka_volterra",
         "lorenz63", "parabolic", "lyapunov", "blended", "multiwell",
-        "kuramoto", "hopfield", "competitive_lv",
+        "kuramoto", "hopfield", "competitive_lv", "claude:SystemName",
         "multiwell_<variant>", "multiwell_<variant>_hd"
     
+    For Claude catalog systems:
+        cfg.ENV.ENV_NAME should be "claude:SystemName"
+        (e.g., "claude:cal_triangle_3")
+
     For dysts systems:
         cfg.ENV.ENV_NAME should be "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")
         or just the system name directly (e.g., "Lorenz") if not in the built-in registry.
@@ -1759,6 +1790,10 @@ def make_env(cfg: Config) -> Env:
         ValueError: If ENV_NAME is not found in registry or dysts
     """
     env_name = cfg.ENV.ENV_NAME
+
+    if env_name.startswith("claude:"):
+        system_name = env_name.split(":", 1)[1]
+        return ClaudeCatalogEnv(cfg, system_name)
     
     # Check for explicit dysts prefix
     if env_name.startswith("dysts:"):
@@ -1785,6 +1820,8 @@ def make_env(cfg: Config) -> Env:
     raise ValueError(
         f"Unknown environment '{env_name}'. "
         f"Built-in environments: {list(_ENV_REGISTRY.keys())}. "
+        "For Claude catalog systems, use 'claude:SystemName' "
+        "(e.g., 'claude:cal_triangle_3'). "
         f"For dysts systems, use 'dysts:SystemName' (e.g., 'dysts:Lorenz')."
     )
 
@@ -1829,12 +1866,22 @@ def get_available_environments() -> dict:
     """Get information about all available environments.
     
     Returns:
-        Dictionary with 'builtin' and 'dysts' keys listing available systems.
+        Dictionary with 'builtin', 'claude_catalog', and 'dysts' keys listing
+        available systems.
     """
     result = {
-        "builtin": list(_ENV_REGISTRY.keys()),
+        "builtin": sorted(_ENV_REGISTRY.keys()),
+        "claude_catalog": [],
         "dysts": [],
     }
+
+    try:
+        from skae.claude_catalog import ensure_catalog_registered, list_systems
+
+        ensure_catalog_registered()
+        result["claude_catalog"] = list_systems()
+    except ImportError:
+        pass
     
     try:
         from skae.benchmarks.dysts_adapter import get_dysts_systems, is_dysts_available

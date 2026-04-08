@@ -45,6 +45,15 @@ Current paper-facing approach:
   - the implemented catalog should now be treated as a grounded small benchmark
     pool plus a retune frontier, not as an already validated `44`-system
     benchmark packet
+  - the first coauthor-facing follow-up packet is now explicit in
+    [docs/planning/claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md):
+    `6` strict systems x `3` model families x `3` seeds, with standard
+    training-stack support through `--env claude:<system>` plus a manifest,
+    task builder, and compute-node launcher
+  - a senior-review protocol note now also exists in
+    [docs/planning/claude_catalog_senior_review_packet_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_senior_review_packet_20260407.md),
+    which states the same packet in descriptive terms rather than internal code
+    names
 - The first two systems pass the current endpoint-conditioned transition gate
   on the fixed `17x17` screening grid, but they are now understood as partial
   positives under that calibration:
@@ -183,6 +192,12 @@ Assumption split:
   deciding whether the grounded Claude-catalog pass pool is already a good
   enough benchmark backbone or whether we still need one of the conceptually
   richer elite designs.
+- That Claude-catalog choice is no longer blocked on missing infrastructure:
+  the first packet is now concretely specified as a `6 x 3 x 3` matrix and can
+  be queued through
+  [scripts/queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh).
+  The remaining decision is whether that packet is worth compute now, not how
+  to wire it into the standard training stack.
 - One Stage 1 cell is still missing from the collected matrix:
   `lista_dense_promoted_stage4` on `multiwell_strong_transition`, seed `2`
   (array task `9135303_20` failed). Decide whether that rerun is worth doing
@@ -257,6 +272,16 @@ Assumption split:
     accepted systems across `83` screened systems, with an `8`-system
     strict-crossing core, not the stale `44 confirmed passing` headline in the
     older branch note
+- No Claude-catalog training packet has been launched yet, but the immediate
+  follow-up is now queue-ready:
+  - handoff / packet definition:
+    [docs/planning/claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md)
+  - manifest:
+    [claude_catalog_packet_manifest.py](/home/mila/l/lia/skae/skae/benchmarks/claude_catalog_packet_manifest.py)
+  - task builder:
+    [build_claude_catalog_packet_tasks.py](/home/mila/l/lia/skae/tools/build_claude_catalog_packet_tasks.py)
+  - compute-node queue launcher:
+    [queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh)
 - The completed transition-rich execution chain is:
   - Stage 1 array `9135303`: finished with `26/27` completed tasks and one
     failed cell, `9135303_20 = lista_dense_promoted_stage4 x multiwell_strong_transition x seed_2`

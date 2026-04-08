@@ -279,6 +279,17 @@ class DystsConfig:
 
 
 @dataclass
+class ClaudeCatalogConfig:
+    """Configuration for Claude transition-rich catalog environments.
+
+    Use ENV_NAME="claude:SystemName" to select a registered catalog system.
+    DT <= 0 keeps the system's intrinsic default timestep.
+    """
+
+    DT: float = 0.0
+
+
+@dataclass
 class EnvConfig:
     """Environment configuration.
     
@@ -286,10 +297,14 @@ class EnvConfig:
         [
             "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
             "lyapunov", "blended", "multiwell", "multiwell:<mode>",
-            "kuramoto", "hopfield", "competitive_lv"
+            "kuramoto", "hopfield", "competitive_lv", "claude:SystemName"
         ]
     
-    For dysts systems, set ENV_NAME to "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
+    For Claude catalog systems, set ENV_NAME to
+    "claude:SystemName" (e.g., "claude:cal_triangle_3").
+
+    For dysts systems, set ENV_NAME to
+    "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
     The DYSTS config section can be used to customize dysts system behavior.
     """
     ENV_NAME: str = "duffing"
@@ -304,6 +319,7 @@ class EnvConfig:
     KURAMOTO: KuramotoConfig = field(default_factory=KuramotoConfig)
     HOPFIELD: HopfieldConfig = field(default_factory=HopfieldConfig)
     COMPETITIVE_LV: CompetitiveLVConfig = field(default_factory=CompetitiveLVConfig)
+    CLAUDE_CATALOG: ClaudeCatalogConfig = field(default_factory=ClaudeCatalogConfig)
     DYSTS: DystsConfig = field(default_factory=DystsConfig)
 
 
@@ -483,6 +499,7 @@ class Config:
             KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
             HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
             COMPETITIVE_LV=CompetitiveLVConfig(**env_dict.get("COMPETITIVE_LV", {})),
+            CLAUDE_CATALOG=ClaudeCatalogConfig(**env_dict.get("CLAUDE_CATALOG", {})),
             DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
         )
         
@@ -533,12 +550,15 @@ _BUILTIN_ENV_DT_NAMES = {
     "kuramoto",
     "hopfield",
     "competitive_lv",
+    "claude_catalog",
 }
 
 
 def canonical_env_name(env_name: str) -> str:
     """Normalize an environment name for config-level routing."""
     lowered = env_name.lower()
+    if lowered.startswith("claude:"):
+        return "claude_catalog"
     if lowered.startswith("dysts:"):
         return "dysts"
     if lowered.startswith("multiwell:"):
@@ -547,6 +567,17 @@ def canonical_env_name(env_name: str) -> str:
         return lowered
     # Unknown names are treated as dysts because make_env() falls back to Dysts.
     return "dysts"
+
+
+def _get_claude_catalog_default_dt(env_name: str) -> float:
+    """Read the intrinsic dt for a Claude catalog environment name."""
+    if not env_name.lower().startswith("claude:"):
+        raise ValueError(f"Expected 'claude:SystemName', got '{env_name}'.")
+    system_name = env_name.split(":", 1)[1]
+    from skae.claude_catalog import ensure_catalog_registered, get_system
+
+    ensure_catalog_registered()
+    return float(get_system(system_name).dt)
 
 
 def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None) -> None:
@@ -581,6 +612,8 @@ def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None
         cfg.ENV.HOPFIELD.DT = dt
     elif target_env == "competitive_lv":
         cfg.ENV.COMPETITIVE_LV.DT = dt
+    elif target_env == "claude_catalog":
+        cfg.ENV.CLAUDE_CATALOG.DT = dt
     else:
         raise ValueError(f"Unsupported environment for dt override: '{env_name or cfg.ENV.ENV_NAME}'")
 
@@ -615,6 +648,10 @@ def get_env_dt(cfg: Config, env_name: Optional[str] = None) -> float:
         return float(cfg.ENV.HOPFIELD.DT)
     if target_env == "competitive_lv":
         return float(cfg.ENV.COMPETITIVE_LV.DT)
+    if target_env == "claude_catalog":
+        if cfg.ENV.CLAUDE_CATALOG.DT > 0.0:
+            return float(cfg.ENV.CLAUDE_CATALOG.DT)
+        return _get_claude_catalog_default_dt(env_name or cfg.ENV.ENV_NAME)
     raise ValueError(f"Unsupported environment for dt lookup: '{env_name or cfg.ENV.ENV_NAME}'")
 
 

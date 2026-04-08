@@ -25,6 +25,7 @@ DEFAULT_SYSTEM_KEYS = (
     "gated_transfer_linear",
 )
 DEFAULT_FORMATS = ("png", "svg", "pdf")
+DEFAULT_LAYOUT = "overview"
 
 
 def integrate_rk4(
@@ -64,6 +65,14 @@ def parse_formats_arg(value: str | None) -> tuple[str, ...]:
     if unknown:
         raise ValueError(f"Unknown formats: {unknown}. Expected subset of {sorted(allowed)}.")
     return tuple(formats)
+
+
+def validate_layout(value: str) -> str:
+    cleaned = value.strip().lower()
+    allowed = {"overview", "catalog"}
+    if cleaned not in allowed:
+        raise ValueError(f"Unknown layout: {value!r}. Expected one of {sorted(allowed)}.")
+    return cleaned
 
 
 def _as_batch(state: torch.Tensor) -> tuple[torch.Tensor, bool]:
@@ -671,6 +680,183 @@ def _save_formats(fig, stem: Path, formats: Iterable[str]) -> list[Path]:
     return output_paths
 
 
+def _system_centers(system: PlotSystem) -> np.ndarray:
+    centers = getattr(system, "points_2d", None)
+    if centers is None:
+        return np.zeros((0, 2), dtype=np.float32)
+    if isinstance(centers, torch.Tensor):
+        return centers.detach().cpu().numpy()
+    return np.asarray(centers, dtype=np.float32)
+
+
+def plot_system_catalog_portrait(
+    system: PlotSystem,
+    output_dir: Path,
+    *,
+    grid_points: int,
+    trajectory_length: int,
+    start_points_per_axis: int,
+    formats: tuple[str, ...],
+) -> list[Path]:
+    x, y, u, v, _ = _compute_field(system, grid_points=grid_points)
+    trajectories = _generate_trajectories(
+        system,
+        points_per_axis=start_points_per_axis,
+        trajectory_length=trajectory_length,
+    )
+    centers = _system_centers(system)
+    if centers.size:
+        n_basins = int(centers.shape[0])
+    else:
+        sample_point = torch.tensor([[0.0, 0.0]], dtype=torch.float32)
+        n_basins = int(system.basin_label(sample_point).max().item()) + 1
+    cmap = plt.get_cmap("tab10", max(n_basins, 1))
+    colors = [cmap(i) for i in range(n_basins)]
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    traj_ax, field_ax, basin_ax = axes
+
+    n_plot = min(100, len(trajectories))
+    if n_plot > 0:
+        indices = np.random.RandomState(42).choice(len(trajectories), n_plot, replace=False)
+    else:
+        indices = np.array([], dtype=int)
+    for index in indices:
+        trajectory = trajectories[int(index)]
+        endpoint_label = int(
+            system.basin_label(torch.tensor(trajectory[-1], dtype=torch.float32)).item()
+        )
+        color = colors[endpoint_label] if endpoint_label >= 0 else "gray"
+        alpha = 0.3 if endpoint_label >= 0 else 0.12
+        traj_ax.plot(
+            trajectory[:, 0],
+            trajectory[:, 1],
+            color=color,
+            alpha=alpha,
+            linewidth=0.5,
+        )
+    if centers.size:
+        for basin_index, center in enumerate(centers):
+            traj_ax.plot(
+                center[0],
+                center[1],
+                "X",
+                color=colors[basin_index],
+                markersize=12,
+                markeredgecolor="black",
+                markeredgewidth=1.5,
+                zorder=10,
+            )
+    system.plot_guides(traj_ax)
+    traj_ax.set_title(f"Trajectories (N={n_plot})", fontsize=11)
+    traj_ax.set_xlabel("$x_1$")
+    traj_ax.set_ylabel("$x_2$")
+    traj_ax.set_xlim(-float(system.init_range), float(system.init_range))
+    traj_ax.set_ylim(-float(system.init_range), float(system.init_range))
+    traj_ax.set_aspect("equal", adjustable="box")
+    traj_ax.grid(True, alpha=0.3)
+
+    speed = np.sqrt(u ** 2 + v ** 2)
+    field_ax.streamplot(
+        x[:, 0],
+        y[0, :],
+        u.T,
+        v.T,
+        color=np.log1p(speed).T,
+        cmap="viridis",
+        linewidth=0.8,
+        density=1.5,
+        arrowsize=0.8,
+    )
+    if centers.size:
+        for center in centers:
+            field_ax.plot(
+                center[0],
+                center[1],
+                "X",
+                color="red",
+                markersize=12,
+                markeredgecolor="black",
+                markeredgewidth=1.5,
+                zorder=10,
+            )
+    system.plot_guides(field_ax)
+    field_ax.set_title("Vector field", fontsize=11)
+    field_ax.set_xlabel("$x_1$")
+    field_ax.set_ylabel("$x_2$")
+    field_ax.set_xlim(-float(system.init_range), float(system.init_range))
+    field_ax.set_ylim(-float(system.init_range), float(system.init_range))
+    field_ax.set_aspect("equal", adjustable="box")
+    field_ax.grid(True, alpha=0.3)
+
+    x_fine = np.linspace(-float(system.init_range), float(system.init_range), 80)
+    y_fine = np.linspace(-float(system.init_range), float(system.init_range), 80)
+    mesh_x, mesh_y = np.meshgrid(x_fine, y_fine)
+    grid_points_xy = torch.tensor(
+        np.stack([mesh_x.ravel(), mesh_y.ravel()], axis=1),
+        dtype=torch.float32,
+    )
+    basin_map = (
+        system.basin_label(grid_points_xy)
+        .reshape(mesh_x.shape)
+        .detach()
+        .cpu()
+        .numpy()
+    )
+    region_cmap = ListedColormap(colors[:n_basins])
+    basin_ax.pcolormesh(
+        mesh_x,
+        mesh_y,
+        basin_map,
+        cmap=region_cmap,
+        alpha=0.3,
+        shading="auto",
+    )
+    for index in indices[:50]:
+        trajectory = trajectories[int(index)]
+        endpoint_label = int(
+            system.basin_label(torch.tensor(trajectory[-1], dtype=torch.float32)).item()
+        )
+        if endpoint_label < 0:
+            continue
+        basin_ax.plot(
+            trajectory[:, 0],
+            trajectory[:, 1],
+            color=colors[endpoint_label],
+            alpha=0.4,
+            linewidth=0.3,
+        )
+    if centers.size:
+        for basin_index, center in enumerate(centers):
+            basin_ax.plot(
+                center[0],
+                center[1],
+                "X",
+                color=colors[basin_index],
+                markersize=12,
+                markeredgecolor="black",
+                markeredgewidth=1.5,
+                zorder=10,
+            )
+    system.plot_guides(basin_ax)
+    basin_ax.set_title("Basin map + trajectories", fontsize=11)
+    basin_ax.set_xlabel("$x_1$")
+    basin_ax.set_ylabel("$x_2$")
+    basin_ax.set_xlim(-float(system.init_range), float(system.init_range))
+    basin_ax.set_ylim(-float(system.init_range), float(system.init_range))
+    basin_ax.set_aspect("equal", adjustable="box")
+    basin_ax.grid(True, alpha=0.3)
+
+    fig.suptitle(system.title, fontsize=13, fontweight="bold")
+    plt.tight_layout()
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stem = output_dir / system.key
+    output_paths = _save_formats(fig, stem, formats=formats)
+    plt.close(fig)
+    return output_paths
+
+
 def plot_system_overview(
     system: PlotSystem,
     output_dir: Path,
@@ -755,12 +941,26 @@ def plot_selected_systems(
     trajectory_length: int,
     start_points_per_axis: int,
     formats: tuple[str, ...],
+    layout: str = DEFAULT_LAYOUT,
 ) -> list[Path]:
+    layout = validate_layout(layout)
     output_paths: list[Path] = []
     for system_key in systems:
         system = build_system(system_key)
+        if layout == "overview":
+            output_paths.extend(
+                plot_system_overview(
+                    system,
+                    output_dir,
+                    grid_points=grid_points,
+                    trajectory_length=trajectory_length,
+                    start_points_per_axis=start_points_per_axis,
+                    formats=formats,
+                )
+            )
+            continue
         output_paths.extend(
-            plot_system_overview(
+            plot_system_catalog_portrait(
                 system,
                 output_dir,
                 grid_points=grid_points,
@@ -789,6 +989,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--trajectory_length", type=int, default=120)
     parser.add_argument("--start_points_per_axis", type=int, default=6)
     parser.add_argument(
+        "--layout",
+        type=str,
+        default=DEFAULT_LAYOUT,
+        help="Figure layout: overview or catalog.",
+    )
+    parser.add_argument(
         "--formats",
         type=str,
         default="png,svg,pdf",
@@ -809,6 +1015,7 @@ def main() -> None:
         trajectory_length=int(args.trajectory_length),
         start_points_per_axis=int(args.start_points_per_axis),
         formats=formats,
+        layout=args.layout,
     )
 
 

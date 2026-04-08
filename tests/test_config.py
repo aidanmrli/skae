@@ -169,6 +169,7 @@ def test_high_dim_env_config_from_dict_roundtrip():
     ("env_name", "expected"),
     [
         ("duffing", "duffing"),
+        ("claude:cal_triangle_3", "claude_catalog"),
         ("multiwell:energy", "multiwell"),
         ("blended", "blended"),
         ("kuramoto", "kuramoto"),
@@ -185,6 +186,7 @@ def test_canonical_env_name(env_name, expected):
     "env_name",
     [
         "duffing",
+        "claude:cal_triangle_3",
         "multiwell_rotational",
         "multiwell:energy",
         "blended",
@@ -200,3 +202,11 @@ def test_apply_env_dt_override_sets_expected_bucket(env_name):
     apply_env_dt_override(cfg, dt=0.123, env_name=env_name)
 
     assert get_env_dt(cfg, env_name=env_name) == pytest.approx(0.123)
+
+
+def test_get_env_dt_uses_claude_default_when_not_overridden():
+    """Claude catalog env dt should fall back to the system's intrinsic default."""
+    cfg = get_default_config()
+    cfg.ENV.ENV_NAME = "claude:cal_triangle_3"
+
+    assert get_env_dt(cfg) == pytest.approx(0.03)

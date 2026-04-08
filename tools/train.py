@@ -5,7 +5,7 @@ This script provides a complete training pipeline for learning Koopman operator
 representations of dynamical systems using PyTorch.
 
 Usage:
-    python train.py --config generic_sparse --env duffing --num_steps 20000
+    uv run python tools/train.py --config generic_sparse --env duffing --num_steps 20000
 
 Or use it programmatically:
     from train import train
@@ -957,14 +957,17 @@ def main():
         epilog="""
 Examples:
   # Train on built-in environment
-  python train.py --config generic_sparse --env duffing --num_steps 10000
+  uv run python tools/train.py --config generic_sparse --env duffing --num_steps 10000
 
   # Train on dysts chaotic system
-  python train.py --config lista --env dysts:Lorenz --num_steps 10000
-  python train.py --config lista --env dysts:Chua --target_size 1024
+  uv run python tools/train.py --config lista --env dysts:Lorenz --num_steps 10000
+  uv run python tools/train.py --config lista --env dysts:Chua --target_size 1024
 
-  # List available dysts systems
-  python train.py --list-dysts
+  # Train on Claude transition-rich catalog system
+  uv run python tools/train.py --config generic_sparse --env claude:cal_triangle_3 --num_steps 10000
+
+  # List available environments
+  uv run python tools/train.py --list-envs
         """
     )
     
@@ -980,6 +983,8 @@ Examples:
                              'lorenz63, parabolic, lyapunov, blended, '
                              'kuramoto, hopfield, competitive_lv, '
                              'multiwell, multiwell:<mode>, multiwell_*_hd. '
+                             'For Claude catalog systems: use "claude:SystemName" '
+                             '(e.g., "claude:cal_triangle_3"). '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
     parser.add_argument('--env_dt', type=float, default=None,
                         help='Override the integration timestep for the active environment')
@@ -1017,8 +1022,8 @@ Examples:
                         help='Decay rate for extra dimensions in embed mode')
     
     # Dysts utilities
-    parser.add_argument('--list-dysts', action='store_true',
-                        help='List all available dysts systems and exit')
+    parser.add_argument('--list-dysts', '--list-envs', dest='list_dysts', action='store_true',
+                        help='List built-in, Claude catalog, and dysts environments and exit')
     parser.add_argument('--standardize', action='store_true',
                         help='Standardize dysts data (zero mean, unit variance). Recommended for dysts systems.')
     parser.add_argument('--dysts_ic_noise_scale', type=float, default=None,
@@ -1185,7 +1190,7 @@ Examples:
     # Handle --list-dysts
     if args.list_dysts:
         print("\n" + "=" * 60)
-        print("AVAILABLE DYSTS SYSTEMS")
+        print("AVAILABLE ENVIRONMENTS")
         print("=" * 60)
         try:
             from skae.data import get_available_environments
@@ -1194,6 +1199,19 @@ Examples:
             print(f"\nBuilt-in environments ({len(envs['builtin'])}):")
             for env in envs['builtin']:
                 print(f"  {env}")
+
+            print(f"\nClaude catalog systems ({len(envs['claude_catalog'])}):")
+            if envs['claude_catalog']:
+                systems = envs['claude_catalog']
+                for i in range(0, len(systems), 4):
+                    row = systems[i:i+4]
+                    print("  " + "  ".join(f"{s:<20}" for s in row))
+                print(
+                    "\nUsage: --env claude:SystemName "
+                    '(e.g., --env claude:cal_triangle_3)'
+                )
+            else:
+                print("  (Claude catalog not available)")
             
             print(f"\nDysts systems ({len(envs['dysts'])}):")
             if envs['dysts']:
