@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from skae.benchmarks.transition_rich_basin_partition_manifest import (
     TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE,
+    TRANSITION_RICH_BASIN_PARTITION_H1000_THRESHOLD,
+    TRANSITION_RICH_BASIN_PARTITION_MAX_HALVINGS,
     TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS,
     TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH,
     TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE,
     get_transition_rich_basin_count,
     get_transition_rich_basin_partition_model,
     resolve_transition_rich_default_dt,
+    transition_rich_dt_halving_schedule,
     transition_rich_basin_partition_manifest_jsonable,
     transition_rich_basin_partition_models,
     transition_rich_basin_partition_systems,
@@ -26,6 +29,8 @@ def test_transition_rich_basin_partition_manifest_shape():
     assert TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE == 256
     assert TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE == 256
     assert TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH == 8
+    assert TRANSITION_RICH_BASIN_PARTITION_H1000_THRESHOLD == 50.0
+    assert TRANSITION_RICH_BASIN_PARTITION_MAX_HALVINGS == 6
 
 
 def test_transition_rich_basin_partition_known_defaults():
@@ -34,6 +39,7 @@ def test_transition_rich_basin_partition_known_defaults():
     assert get_transition_rich_basin_partition_model(
         "lista_blockdiag_basin_partition"
     ).use_basin_count_for_blocks
+    assert transition_rich_dt_halving_schedule("gated_local_linear", max_halvings=2) == [0.04, 0.02, 0.01]
 
 
 def test_transition_rich_basin_partition_manifest_jsonable():
@@ -42,4 +48,5 @@ def test_transition_rich_basin_partition_manifest_jsonable():
     assert payload["num_steps"] == 200_000
     assert len(payload["systems"]) == 17
     assert len(payload["models"]) == 2
+    assert payload["h1000_threshold"] == 50.0
     assert any(item["system_key"] == "gated_transfer_linear" for item in payload["systems"])

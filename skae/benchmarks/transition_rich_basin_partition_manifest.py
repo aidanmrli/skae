@@ -13,6 +13,8 @@ TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE = 256
 TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE = 256
 TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH = 8
 TRANSITION_RICH_BASIN_PARTITION_SEEDS: Sequence[int] = (0, 1, 2)
+TRANSITION_RICH_BASIN_PARTITION_H1000_THRESHOLD = 50.0
+TRANSITION_RICH_BASIN_PARTITION_MAX_HALVINGS = 6
 
 
 @dataclass(frozen=True)
@@ -252,6 +254,12 @@ def get_transition_rich_basin_count(system_key: str) -> int:
     return int(get_transition_rich_basin_partition_system(system_key).basin_count)
 
 
+def transition_rich_dt_halving_schedule(system_key: str, *, max_halvings: int) -> List[float]:
+    """Return the default-dt halving schedule for a shortlist system."""
+    default_dt = resolve_transition_rich_default_dt(system_key)
+    return [default_dt / float(2 ** pass_index) for pass_index in range(max_halvings + 1)]
+
+
 def transition_rich_basin_partition_manifest_jsonable() -> Dict[str, object]:
     """Return a JSON-serializable snapshot of the fixed shortlist and recipe."""
     return {
@@ -260,6 +268,8 @@ def transition_rich_basin_partition_manifest_jsonable() -> Dict[str, object]:
         "target_size": TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE,
         "sequence_length": TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH,
         "seeds": list(TRANSITION_RICH_BASIN_PARTITION_SEEDS),
+        "h1000_threshold": TRANSITION_RICH_BASIN_PARTITION_H1000_THRESHOLD,
+        "max_halvings": TRANSITION_RICH_BASIN_PARTITION_MAX_HALVINGS,
         "systems": [
             {
                 **asdict(spec),

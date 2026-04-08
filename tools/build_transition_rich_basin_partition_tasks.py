@@ -8,7 +8,7 @@ import csv
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, Iterable, List, Sequence, Tuple
 
 from skae.benchmarks.transition_rich_basin_partition_manifest import (
     TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE,
@@ -38,6 +38,20 @@ def _parse_int_csv(raw: str | None, default: Sequence[int]) -> List[int]:
     return [int(item) for item in _parse_csv_list(raw)]
 
 
+def _read_dt_table(path: Path, value_column: str) -> Dict[Tuple[str, str], float]:
+    dt_map: Dict[Tuple[str, str], float] = {}
+    with path.open("r", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        for row in reader:
+            model_variant = str(row.get("model_variant", "")).strip()
+            system_key = str(row.get("system_key", "")).strip()
+            value = row.get(value_column)
+            if not model_variant or not system_key or value in (None, ""):
+                continue
+            dt_map[(model_variant, system_key)] = float(value)
+    return dt_map
+
+
 def _selected_system_specs(args: argparse.Namespace) -> List[TransitionRichBasinPartitionSystem]:
     if args.systems_csv:
         return [
@@ -59,6 +73,16 @@ def _selected_model_specs(args: argparse.Namespace) -> List[TransitionRichBasinP
 def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
     systems = _selected_system_specs(args)
     models = _selected_model_specs(args)
+    dt_map: Dict[Tuple[str, str], float] = {}
+    if args.dt_table is not None:
+        dt_map = _read_dt_table(Path(args.dt_table), value_column=args.dt_column)
+        if not args.systems_csv:
+            allowed_systems = {system_key for _, system_key in dt_map.keys()}
+            systems = [spec for spec in systems if spec.system_key in allowed_systems]
+        if not args.model_variants_csv:
+            allowed_models = {model_variant for model_variant, _ in dt_map.keys()}
+            models = [spec for spec in models if spec.variant in allowed_models]
+
     seeds = _parse_int_csv(
         args.seeds_csv,
         [int(seed) for seed in TRANSITION_RICH_BASIN_PARTITION_SEEDS],
@@ -68,7 +92,11 @@ def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
     task_id = 0
     for model in models:
         for system in systems:
-            env_dt = resolve_transition_rich_default_dt(system.system_key)
+            env_dt = dt_map.get((model.variant, system.system_key))
+            if args.dt_table is not None and env_dt is None:
+                continue
+            if env_dt is None:
+                env_dt = resolve_transition_rich_default_dt(system.system_key)
             k_num_blocks = system.basin_count if model.use_basin_count_for_blocks else ""
             for seed in seeds:
                 rows.append(
@@ -181,6 +209,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seeds_csv", default=None, help="Optional comma-separated seeds.")
     parser.add_argument("--eval_profile", default="full", help="Evaluation profile to embed in task rows.")
+    parser.add_argument(
+        "--dt_table",
+        default=None,
+        help="Optional TSV with per-arm dt values keyed by model_variant and system_key.",
+    )
+    parser.add_argument(
+        "--dt_column",
+        default="requested_dt",
+        help="Column to read from --dt_table.",
+    )
     return parser.parse_args()
 
 
@@ -191,8 +229,16 @@ def main() -> None:
     _write_tsv(output_tsv, rows)
 
     if args.output_manifest_json:
-        systems = _selected_system_specs(args)
-        models = _selected_model_specs(args)
+        selected_system_keys = {str(row["system_key"]) for row in rows}
+        selected_model_variants = {str(row["model_variant"]) for row in rows}
+        systems = [
+            spec for spec in _selected_system_specs(args)
+            if spec.system_key in selected_system_keys
+        ]
+        models = [
+            spec for spec in _selected_model_specs(args)
+            if spec.variant in selected_model_variants
+        ]
         payload = _manifest_payload(
             phase_label=args.phase_label,
             systems=systems,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 from argparse import Namespace
 
 from tools.build_transition_rich_basin_partition_tasks import (
@@ -21,6 +22,8 @@ def _base_args() -> Namespace:
         model_variants_csv=None,
         seeds_csv=None,
         eval_profile="full",
+        dt_table=None,
+        dt_column="requested_dt",
     )
 
 
@@ -72,3 +75,41 @@ def test_transition_rich_basin_partition_manifest_payload_tracks_metadata():
     ]
     assert payload["selected_systems"][0]["basin_count"] == 3
     assert payload["selected_models"][1]["use_basin_count_for_blocks"]
+
+
+def test_transition_rich_basin_partition_dt_table_filters_to_requested_arms(tmp_path):
+    dt_table = tmp_path / "requested_dt.tsv"
+    with dt_table.open("w", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=["model_variant", "system_key", "requested_dt"],
+            delimiter="\t",
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "model_variant": "lista_dense_basin_partition",
+                "system_key": "gated_local_linear",
+                "requested_dt": "0.02",
+            }
+        )
+        writer.writerow(
+            {
+                "model_variant": "lista_blockdiag_basin_partition",
+                "system_key": "claude:transition_routes_4",
+                "requested_dt": "0.01",
+            }
+        )
+
+    args = _base_args()
+    args.seeds_csv = "0"
+    args.dt_table = str(dt_table)
+
+    rows = _build_rows(args)
+
+    assert len(rows) == 2
+    assert {(row["model_variant"], row["system_key"]) for row in rows} == {
+        ("lista_dense_basin_partition", "gated_local_linear"),
+        ("lista_blockdiag_basin_partition", "claude:transition_routes_4"),
+    }
+    assert {row["env_dt"] for row in rows} == {0.02, 0.01}
