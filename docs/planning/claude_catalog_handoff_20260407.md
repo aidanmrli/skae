@@ -31,6 +31,26 @@ tools.
 Read this as a grounded small benchmark pool plus a retune/screening frontier,
 not as a validated large benchmark packet.
 
+## Status note for the current branch
+
+This document no longer defines the active follow-up packet for the branch.
+Forward interpretability experiments are now restricted to a fixed `17`-system
+shortlist:
+
+- native transition-rich trio:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`
+- Claude-catalog subset:
+  `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+  `var_l_shape_5`
+
+Use this handoff for implementation/audit context only. The older `6`-system
+packet recommendation later in this file has been superseded as the live branch
+scope.
+
 ### Module layout
 
 | Module | Branch role |
@@ -131,7 +151,7 @@ That means the catalog should currently be read as:
 - one grounded non-well relaxed outlier,
 - plus a real but still incomplete retune frontier.
 
-## What needs to be done
+## Active branch scope
 
 ### Paper-facing role of this catalog
 
@@ -143,156 +163,58 @@ packet:
 - `gated_transfer_linear` is the transfer stress test
 - `multiwell_strong_transition` is a weaker secondary toy
 
-The Claude catalog is best used as a **benchmark-expansion and control family**
-that asks whether basin-support alignment survives changes in:
+The Claude catalog is therefore a supporting/control family for this branch,
+and its active scope is now frozen to the `14` systems below.
 
-- symmetry versus asymmetry
-- convex versus non-convex geometry
-- ordinary rotated boundaries versus explicit route reuse
-- pure multiwell systems versus hybrid or non-well mechanisms
-- basin count
+### Active Claude-catalog subset
 
-### Recommendation: do not brute-force all registered systems
-
-Brute-forcing LISTA and control models over the full `112`-system registry is
-not a good use of compute. Most currently accepted systems share the same
-independent-rotation-plus-wells mechanism, so all-systems training would add
-many near-duplicate rows without adding much causal evidence.
-
-The better move is to train on a deliberately chosen subset that spans the
-distinct **basin-support alignment failure modes** we actually care about.
-
-### Recommended subset
-
-If we only want a minimal Claude-catalog follow-up, use these `3`:
-
-| System | Role in the paper |
-|--------|-------------------|
-| `cal_triangle_3` | Minimal symmetric control |
-| `var_diamond_4` | Clean geometry-mismatch / rotated-separatrix case |
-| `transition_routes_4` | Explicit route-reuse benchmark |
-
-If we want the recommended first real training packet, use these `6` strict
-systems:
-
-| System | Why it earns a training slot |
-|--------|------------------------------|
-| `cal_triangle_3` | Baseline: simplest grounded positive with clean geometry |
-| `cal_pentagon_5` | Mid-count polygon control without adding a new mechanism confound |
-| `var_depth_gradient_4` | Best simple asymmetry and occupancy-skew stress test |
-| `var_diamond_4` | Best grounded oblique-boundary / rotated-separatrix system |
-| `var_l_shape_5` | Best grounded non-convex geometry case |
-| `transition_routes_4` | Best grounded explicit route-choice / shared-corridor system |
-
-If we want to expand beyond `6`, stop at `9` before doing any broader sweep and
-add these as the second wave:
-
-| System | Why it is worth adding |
+| System | Why it stays in scope |
 |--------|------------------------|
-| `hybrid_state_dep_rot_5` | Strict-pass hybrid mechanism, so it tests whether the story survives a non-pure-well transport rule |
-| `cal_hexagon_6` | First grounded higher-basin stress test even though it is only relaxed-pass |
-| `snic_multi` | Best grounded non-well outlier if we want one clearly different mechanistic family |
+| `arrested_spiral` | Spiral-slowdown mechanism that is not just another rotated multiwell |
+| `cal_asymmetric_3` | Simple asymmetry control |
+| `cal_high_cross_3` | Deliberately high-crossing control |
+| `cal_hexagon_6` | Grounded relaxed-pass higher-basin polygon stress test |
+| `cal_octagon_8` | High-basin near-miss kept in scope explicitly despite failing the current screen |
+| `cal_pentagon_5` | Mid-count polygon control |
+| `cal_square_4` | Clean square baseline with one weak-basin caveat under the strict gate |
+| `checkerboard_potential` | More grid-like/alternating geometry than the polygon family |
+| `duffing_triple_well` | Physically motivated triple-well near-miss worth studying directly |
+| `snic_multi` | Non-well mechanistic outlier |
+| `transition_routes_4` | Explicit route-choice / shared-corridor benchmark |
+| `var_depth_gradient_4` | Interpretable asymmetric-occupancy stress test |
+| `var_diamond_4` | Rotated-separatrix geometry mismatch |
+| `var_l_shape_5` | Non-convex geometry case |
 
-### Systems to deprioritize for now
+This subset intentionally mixes:
 
-- `cal_square_4`: too redundant once `var_diamond_4` and `transition_routes_4`
-  are in the packet
-- `cal_star_5`: interesting, but less causally clean than the L-shape and route
-  systems
-- `cal_asymmetric_3`: useful, but lower leverage once `var_depth_gradient_4`
-  already covers asymmetry in a richer way
-- random or boundary-tuned variants such as `cal_high_cross_3`, `cal_low_cross_4`,
-  `var_random_*`, and similar parameter-perturbation controls: these are useful
-  later for robustness, not for the first coauthor-facing packet
+- grounded strict passes from the audit:
+  `cal_asymmetric_3`, `cal_pentagon_5`, `transition_routes_4`,
+  `var_depth_gradient_4`, `var_diamond_4`, `var_l_shape_5`
+- grounded relaxed accepted systems:
+  `cal_hexagon_6`, `cal_square_4`, `snic_multi`
+- additional chosen systems outside the older `6`-system packet:
+  `arrested_spiral`, `cal_high_cross_3`, `cal_octagon_8`,
+  `checkerboard_potential`, `duffing_triple_well`
 
-### If we spend more screening or retuning budget
+### What not to do
 
-Only a few next steps look worth it:
+- Do not reopen full-catalog or conceptual-inventory selection for this branch.
+- Do not treat the older `6`-system packet or optional second-wave language as
+  the live recommendation anymore.
+- Do not use the older packet tooling as the scope definition without updating
+  it first.
 
-1. Retune `cal_octagon_8`, because it is the cleanest remaining screened
-   high-basin target.
-2. Screen or refresh only the unscreened systems that add new mechanism value,
-   especially `non_voronoi_basins` and `hybrid_rotating_centers_3`.
-3. Do **not** spend early budget on more near-duplicate polygon or random-layout
-   variants.
+### Historical packet tooling
 
-The practical recommendation is therefore:
+The standard training stack still accepts `--env claude:<system_name>`, and the
+older `6`-system packet tooling remains on disk. It should now be read as
+historical scaffolding rather than the active shortlist definition:
 
-- main mechanistic paper story: existing calibrated trio
-- Claude-catalog training packet: `6` strict systems above
-- optional extension packet: add the `3` second-wave systems above
-- extra retune work only if we specifically need a stronger `6+`-basin control
-
-### Immediate training packet
-
-If we actually launch runs now, the first packet should stay small and use the
-same paper-facing model family we already trust elsewhere:
-
-- systems:
-  `claude:cal_triangle_3`,
-  `claude:cal_pentagon_5`,
-  `claude:var_depth_gradient_4`,
-  `claude:var_diamond_4`,
-  `claude:var_l_shape_5`,
-  `claude:transition_routes_4`
-- seeds: `0,1,2`
-- sequence length: `8`
-- target size: `256`
-- budget: `200k` steps
-- models:
-  `generic_sparse_ns200k_best`,
-  `generic_sparse_sc0_ns200k_best`,
-  `lista_dense_promoted_stage4`
-
-Use the following recipe mapping when converting those paper labels into CLI
-arguments:
-
-| Paper label | Base config / key overrides |
-| --- | --- |
-| `generic_sparse_ns200k_best` | `--config generic_sparse --num_steps 200000 --lr 1e-4 --k_matrix_lr 1e-5 --weight_decay 1e-4 --reconst_coeff 0.03 --pred_coeff 1.0 --sparsity_coeff 0.0025 --target_size 256 --sequence_length 8` |
-| `generic_sparse_sc0_ns200k_best` | same as `generic_sparse_ns200k_best`, but `--sparsity_coeff 0.0` |
-| `lista_dense_promoted_stage4` | `--config lista_parity_generic_sparse --num_steps 200000 --lr 5e-5 --k_matrix_lr 5e-6 --weight_decay 1e-4 --reconst_coeff 0.03 --pred_coeff 1.0 --sparsity_coeff 0.003 --target_size 256 --sequence_length 8 --lista_alpha 0.15 --lista_num_loops 1 --lista_final_op relu --k_structure dense` |
-
-Example command template:
-
-Run the actual command only inside a compute allocation, not on the login
-node.
-
-```bash
-uv run python tools/train.py \
-  --config generic_sparse \
-  --env claude:cal_triangle_3 \
-  --num_steps 200000 \
-  --target_size 256 \
-  --sequence_length 8 \
-  --lr 1e-4 \
-  --k_matrix_lr 1e-5 \
-  --weight_decay 1e-4 \
-  --reconst_coeff 0.03 \
-  --pred_coeff 1.0 \
-  --sparsity_coeff 0.0025 \
-  --seed 0
-```
-
-Recommended full-packet launch:
-
-Submit the queue launcher itself through SLURM so the task-building Python
-steps also run on a compute node:
-
-```bash
-sbatch scripts/queue_claude_catalog_packet.sh
-```
-
-Do not broaden beyond that `6 x 3 x 3` matrix until we know whether the
-catalog actually adds something beyond the existing transition-rich trio.
-
-Runnable packet files:
-
-- manifest:
+- historical manifest:
   `skae/benchmarks/claude_catalog_packet_manifest.py`
-- task builder:
+- historical task builder:
   `tools/build_claude_catalog_packet_tasks.py`
-- queue launcher:
+- historical queue launcher:
   `scripts/queue_claude_catalog_packet.sh`
 
 ## Related documents

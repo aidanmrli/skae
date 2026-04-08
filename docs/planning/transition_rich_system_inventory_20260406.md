@@ -13,6 +13,23 @@ accepted into this inventory only if it is structurally consistent with the
 branch criterion, but every accepted system still needs the usual fixed-grid
 calibration pass before it can be treated as a benchmark.
 
+Status note (April 7 scope freeze):
+
+This file is now historical design-screening provenance only. The active branch
+experiments are frozen to a fixed `17`-system shortlist and do not use the
+broader `16`-system shortlist or `8`-system elite subset below as the live
+scope:
+
+- native transition-rich trio:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`
+- Claude-catalog subset:
+  `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+  `var_l_shape_5`
+
 Implementation-oriented elite sketches:
 
 - [transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md)
@@ -63,15 +80,14 @@ Soft calibration gates to verify later:
 - Candidate concepts reviewed: `100`
 - Accepted into the design inventory: `63`
 - Rejected or held out: `37`
-- Shortlisted for likely benchmark follow-up: `16`
-- Elite shortlist for the first serious implementation pass: `8`
+- Historical shortlist for likely benchmark follow-up: `16`
+- Historical elite shortlist for the then-planned first serious implementation pass: `8`
 
-Current outstanding problem:
+Current status note:
 
-- We no longer lack candidate systems. The next bottleneck is selecting `10-20`
-  systems worth actual implementation and calibration in the current restored
-  worktree, and making sure the shortlist spans genuinely different mechanism
-  classes rather than many near-duplicates of the same corridor idea.
+- The broader selection problem described in this inventory is now closed for
+  the active branch. Keep this file as background/provenance only; do not use
+  it to expand the run scope beyond the fixed shortlist above.
 
 ## Accepted Systems
 
@@ -207,7 +223,7 @@ ring/hub/lane templates.
 | Twelve-basin hypergrid / dendritic 14-basin lattice / 12plus wedge mesh | Too crowded for the intended `3-10` clean-benchmark window |
 | Chaotic saddle endpoint / chaotic flow claim | Does not match the stable endpoint-basin requirement |
 
-## Proposed Benchmark Shortlist
+## Historical Benchmark Shortlist
 
 This is a revised `16`-system shortlist after the higher-novelty second pass.
 The aim is to keep enough diversity to build a real benchmark family while
@@ -232,7 +248,7 @@ avoiding many near-duplicates of the same corridor template.
 | Medium | Six-basin bipartite bridge | `6` | Modular transfer benchmark | Good for partition reuse at the module level rather than only local hops |
 | Medium | Oblique-trench hex | `6` | Shared-manifold transport benchmark | Adds a clean trench/sliding-manifold mechanism missing from the current suite |
 
-## Elite Shortlist
+## Historical Elite Shortlist
 
 This is the stricter `8`-system subset that currently looks most worth actual
 implementation if we want a smaller, more coherent benchmark packet instead of
@@ -249,14 +265,14 @@ just a larger candidate pool.
 | Rotating barrier-4 | Strongest moving-separatrix / dynamic-boundary stress test |
 | Arc DAG4 | Cleanest causal transition-graph benchmark in the whole inventory |
 
-Current recommendation:
+Historical recommendation at the time:
 
 - If we only implement `4`, take one each from:
   clean control, bottleneck/graph, warped geometry, and moving-boundary or
   slow-fast.
 - If we implement `8`, use the elite subset above as the first complete pass.
 
-## Systems Not Shortlisted For First Implementation
+## Historical Systems Not Shortlisted For First Implementation
 
 These are still worth keeping in reserve, but they do not look like first-wave
 implementation priorities:
@@ -271,7 +287,7 @@ implementation priorities:
   separatrix systems, and multi-rung cusp ladders, because their main risk is
   calibration brittleness rather than conceptual weakness
 
-## Suggested next implementation order
+## Historical Suggested Next Implementation Order
 
 1. Add one clean positive control:
    triangle central gate and sectors, or sector relay-4.

@@ -10,23 +10,58 @@ Companion design-inventory file for the current restored worktree:
 Companion audit of the already implemented Claude catalog:
 [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md).
 
+Active scope note:
+
+The branch experiment scope is now frozen. Forward interpretability
+experiments should use only the fixed `17`-system shortlist already recorded in
+[docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md) and
+[docs/PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md):
+
+- native transition-rich trio:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`
+- Claude-catalog subset:
+  `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+  `var_l_shape_5`
+
+Do not use this plan document to reopen broader system-generation or
+system-selection scope for the current branch.
+
 ## Motivation
 
 The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that for these systems with multiple basins of attraction, finite-dimensional Koopman-invariant subspaces cannot provide a globally exact linear representation across all basins simultaneously. In a multistable finite-dimensional system, we might be able to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes.
 
 ## Objective
 
-We have sufficient evidence for forecasting ability in the paper. We now want to focus on a new branch of experiments centered on **local basin partitioning and classification** on deterministic toy systems.
+We have sufficient evidence for forecasting ability in the paper. We now want
+to focus on a new branch of experiments centered on **local basin partitioning
+and classification** on deterministic toy systems.
+
+The system set for this branch is no longer open-ended. The objective is to use
+the fixed shortlist above as the full forward experiment scope, not to keep
+expanding the candidate pool.
 
 The branch should do the following:
 
-1. Generate toy nonlinear systems in 2D and/or 3D that have interesting non-trivial transitions between basins; each system should procedurally generate movement between basins of attraction rather than just collapsing to the local attractor from the initial condition. These toy systems should be well-characterized and we should be able to plot them. These systems might be generated with deterministic noise, but there can be freedom in generating these systems.
-2. Plot these toy systems so that we can visually inspect them.
-3. Create, inspect, and diagnose interesting and possibly new metrics that explain **why** forecasting succeeds or fails on these toy systems instead of just reporting MSE. These metrics might diagnose whether phase plots are crossing (violations since each starting point should have its own unique solution). They might also study the extent to which distinct basins in our toy systems correspond to unique supports, perhaps by studying activations. Creativity in coming up with different metrics is encouraged.
-4. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. A strong result would be if a LISTA-encoder model can perform better
-5. Loop between (3) and (4).
+1. Treat the fixed `17`-system shortlist as the full branch scope and avoid
+   adding new systems unless the branch objectives are explicitly changed in the
+   live docs.
+2. Plot these systems so that we can visually inspect them.
+3. Create, inspect, and diagnose metrics that explain **why** forecasting
+   succeeds or fails on these systems instead of just reporting MSE. These
+   metrics may diagnose phase-plot crossings, partition reuse, support
+   structure, and transition handling.
+4. Investigate whether different kinds of Koopman autoencoder can discover
+   reusable basin partitions without training-time basin labels.
+5. Loop between (3) and (4) on the fixed shortlist rather than reopening
+   candidate generation by default.
 
-The lead open question is whether the learned Koopman representation from the encoder identifies meaningful partitions and handles common transitions cleanly.
+The lead open question is whether the learned Koopman representation from the
+encoder identifies meaningful partitions and handles common transitions cleanly
+across this fixed shortlist.
 
 ## Tests first
 
@@ -58,7 +93,8 @@ The required implementation order is fixed:
 
 ### Candidate-system screening
 
-Before any model training, screen candidate parameters offline from a fixed initial-condition box.
+Before any model training on a shortlisted system, screen candidate parameters
+offline from a fixed initial-condition box.
 
 Each candidate must be evaluated on:
 
@@ -66,6 +102,10 @@ Each candidate must be evaluated on:
 - endpoint-basin occupancy,
 - region paths,
 - crossing fractions.
+
+For the current branch, "candidate" means parameterizations or calibration
+variants of the already chosen systems above, not wholly new benchmark-system
+ideas.
 
 ### Acceptance gates
 

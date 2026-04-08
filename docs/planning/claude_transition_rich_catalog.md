@@ -24,12 +24,27 @@ The current grounded state is:
 - `29` implemented but still unscreened systems,
 - `12` accepted systems in the currently grounded screen,
 - an `8`-system strict-crossing core inside that accepted pool,
-- and a recommended first training packet of `6` strict systems with an
-  optional `3`-system second wave.
+- and a broader accepted-pool / retune-frontier story that is now provenance
+  rather than the live experiment definition.
+
+The active forward experiment scope is now the fixed `17`-system branch
+shortlist:
+
+- native transition-rich trio:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`
+- Claude-catalog subset:
+  `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+  `var_l_shape_5`
 
 The standard training stack now also accepts `--env claude:<system>`, and the
-packet launcher lives at
-[queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh).
+older packet launcher lives at
+[queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh),
+but that launcher reflects the superseded `6`-system packet rather than the
+current fixed shortlist.
 
 Everything below that cites `44 confirmed passing`, `118 systems`, or the
 branch-wide benchmark shortlist is historical branch provenance rather than the

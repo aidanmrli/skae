@@ -15,16 +15,26 @@ Current paper-facing approach:
   - `multiwell_strong_transition`
   - `gated_local_linear`
   - `gated_transfer_linear`
-- The current restored worktree now also has a broader follow-up design pool in
-  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md):
-  a first-pass pool of `45` candidates has now been expanded to `63` accepted
-  systems across `100` reviewed concepts after a stricter higher-novelty second
-  pass; `37` systems were rejected or held out, and the benchmark-expansion
-  shortlist has been revised to `16` systems with an `8`-system elite subset
-  plus implementation-oriented elite sketches in
-  [docs/planning/transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md)
-  and companion conceptual shortlist / atlas / card figures under
-  [docs/figures/transition_rich_inventory_20260406](/home/mila/l/lia/skae/docs/figures/transition_rich_inventory_20260406).
+- The active system shortlist for all forward interpretability experiments is
+  now fixed to `17` systems and no others:
+  - native transition-rich trio:
+    `multiwell_strong_transition`, `gated_local_linear`,
+    `gated_transfer_linear`
+  - Claude-catalog subset:
+    `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+    `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+    `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+    `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+    `var_l_shape_5`
+- The broader design inventory in
+  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md),
+  the elite sketches in
+  [docs/planning/transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md),
+  and the companion conceptual figures under
+  [docs/figures/transition_rich_inventory_20260406](/home/mila/l/lia/skae/docs/figures/transition_rich_inventory_20260406)
+  now serve as historical design-space provenance only. Their broader
+  `16`-system / `8`-system shortlists are no longer the live experiment scope
+  for this branch.
 - The worktree now also has an artifact-backed audit of the already implemented
   Claude catalog in
   [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
@@ -45,15 +55,19 @@ Current paper-facing approach:
   - the implemented catalog should now be treated as a grounded small benchmark
     pool plus a retune frontier, not as an already validated `44`-system
     benchmark packet
-  - the first coauthor-facing follow-up packet is now explicit in
+  - for forward experiments on this branch, use only the fixed `14`-system
+    Claude-catalog subset listed above rather than the broader grounded pass
+    pool
+  - the older first coauthor-facing follow-up packet in
     [docs/planning/claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md):
     `6` strict systems x `3` model families x `3` seeds, with standard
     training-stack support through `--env claude:<system>` plus a manifest,
-    task builder, and compute-node launcher
+    task builder, and compute-node launcher, is now superseded as an active
+    recommendation and should be read as historical packet-design provenance
   - a senior-review protocol note now also exists in
     [docs/planning/claude_catalog_senior_review_packet_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_senior_review_packet_20260407.md),
-    which states the same packet in descriptive terms rather than internal code
-    names
+    which now records that same supersession in descriptive terms rather than
+    internal code names
 - The first two systems pass the current endpoint-conditioned transition gate
   on the fixed `17x17` screening grid, but they are now understood as partial
   positives under that calibration:
@@ -117,23 +131,19 @@ What stays live here:
 - The most recent paper-critical repairs that changed seed coverage, provenance, or paper positioning.
 
 Outstanding problem:
-- No toy-system design blocker remains, and the first trained-model read is no
-  longer pending. The lead paper blocker is now benchmark positioning and claim
-  selection:
-  `gated_local_linear` is a clean mechanistic positive, `gated_transfer_linear`
-  is a strong transfer-oriented forecasting stress test, `multiwell_strong_transition`
-  is not yet clean enough to anchor the story, the `gated_transfer_linear`
-  chart-change-localization claim is currently negative, and the support
-  local-linearity read is positive but not sparse-specific. The remaining
-  question is now twofold: whether to demote `multiwell_strong_transition`,
-  rerun the single missing LISTA `multiwell` seed only if that system stays
-  paper-relevant, and whether the next benchmark expansion should come from
-  the conceptual shortlist in
-  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md)
-  or from a repaired subset of the already implemented Claude catalog now
-  audited in
-  [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
-  before making a stronger causal chart-switch claim.
+- No toy-system design blocker remains, and system selection is no longer open.
+  The active interpretability branch is now frozen to the `17` systems listed
+  above. The lead paper blocker is turning that fixed shortlist into a clean
+  narrative and disciplined run order:
+  `gated_local_linear` is a clean mechanistic positive,
+  `gated_transfer_linear` is a strong transfer-oriented forecasting stress
+  test, `multiwell_strong_transition` is not yet clean enough to anchor the
+  story, the `gated_transfer_linear` chart-change-localization claim is
+  currently negative, and the support local-linearity read is positive but not
+  sparse-specific. The remaining choice is not between broader inventories; it
+  is how to prioritize and interpret the fixed shortlist, including whether the
+  single missing LISTA `multiwell` seed is worth rerunning if
+  `multiwell_strong_transition` stays paper-relevant.
 
 Assumption split:
 - Training/deployment target: basin count and basin labels are unknown.
@@ -187,17 +197,18 @@ Assumption split:
 - The already implemented Claude catalog is now audited rather than assumed:
   the current saved artifacts now support `112` registered systems, `83`
   screened rows, `29` unscreened systems, `12` accepted passes, and an
-  `8`-system strict-crossing core. The active
-  benchmark-expansion problem is therefore not concept generation alone; it is
-  deciding whether the grounded Claude-catalog pass pool is already a good
-  enough benchmark backbone or whether we still need one of the conceptually
-  richer elite designs.
-- That Claude-catalog choice is no longer blocked on missing infrastructure:
-  the first packet is now concretely specified as a `6 x 3 x 3` matrix and can
-  be queued through
-  [scripts/queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh).
-  The remaining decision is whether that packet is worth compute now, not how
-  to wire it into the standard training stack.
+  `8`-system strict-crossing core. That broader pool is now provenance rather
+  than an open selector: the active Claude subset for forward experiments is
+  fixed to `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`, and
+  `var_l_shape_5`.
+- The earlier `6 x 3 x 3` Claude-catalog packet and its queue tooling remain
+  useful historical infrastructure, but they are no longer the live branch
+  definition. If Claude-catalog runs are queued next, they should be restricted
+  to the fixed subset above rather than the broader accepted pool or the
+  conceptual design inventory.
 - One Stage 1 cell is still missing from the collected matrix:
   `lista_dense_promoted_stage4` on `multiwell_strong_transition`, seed `2`
   (array task `9135303_20` failed). Decide whether that rerun is worth doing
@@ -248,20 +259,28 @@ Assumption split:
   saved artifacts still do not support treating the catalog as a validated
   large benchmark packet.
 - Project implications:
-  the paper should not promise a repaired `44`-system implemented benchmark,
-  but it can now legitimately discuss a grounded `12`-system Claude-catalog
-  accepted pool, with an `8`-system strict core, as a possible benchmark
-  backbone or control family.
+  the paper should not promise a repaired `44`-system implemented benchmark.
+  It can legitimately cite the grounded `12`-system Claude-catalog accepted
+  pool, with an `8`-system strict core, as provenance for why the chosen
+  Claude subset is technically grounded. But the audit no longer defines the
+  active experiment scope by itself; forward branch experiments are restricted
+  to the fixed `14` chosen Claude systems.
 - Next steps:
-  retune the new near-miss controls first, then decide whether the paper
-  benchmark should come from the existing calibrated trio, the grounded
-  Claude-catalog pass pool plus retuned extensions, or the conceptual elite
-  designs.
+  use the audit to annotate the chosen Claude subset by status, then plan or
+  interpret runs only on the fixed `17`-system branch shortlist rather than
+  reopening broader catalog or conceptual-inventory selection.
 
 ## Queue Status
 
 - No live paper-critical forecasting or hard-system queue remains.
 - No live paper-critical transition-rich queue remains either.
+- The active forward experimental scope is now frozen to `17` systems:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`, `arrested_spiral`, `cal_asymmetric_3`,
+  `cal_high_cross_3`, `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`,
+  `cal_square_4`, `checkerboard_potential`, `duffing_triple_well`,
+  `snic_multi`, `transition_routes_4`, `var_depth_gradient_4`,
+  `var_diamond_4`, and `var_l_shape_5`.
 - One new local catalog-audit pass is complete without changing the live queue:
   - audit note:
     [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
@@ -272,15 +291,17 @@ Assumption split:
     accepted systems across `83` screened systems, with an `8`-system
     strict-crossing core, not the stale `44 confirmed passing` headline in the
     older branch note
-- No Claude-catalog training packet has been launched yet, but the immediate
-  follow-up is now queue-ready:
-  - handoff / packet definition:
+- No Claude-catalog training packet has been launched yet. The existing
+  `claude_catalog_packet` manifest/task-builder/queue launcher still encode the
+  superseded `6`-system recommendation and should now be treated as historical
+  scaffolding rather than the active scope definition:
+  - historical handoff / packet note:
     [docs/planning/claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md)
-  - manifest:
+  - historical manifest:
     [claude_catalog_packet_manifest.py](/home/mila/l/lia/skae/skae/benchmarks/claude_catalog_packet_manifest.py)
-  - task builder:
+  - historical task builder:
     [build_claude_catalog_packet_tasks.py](/home/mila/l/lia/skae/tools/build_claude_catalog_packet_tasks.py)
-  - compute-node queue launcher:
+  - historical compute-node queue launcher:
     [queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh)
 - The completed transition-rich execution chain is:
   - Stage 1 array `9135303`: finished with `26/27` completed tasks and one

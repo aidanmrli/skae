@@ -1,28 +1,28 @@
-# Claude Catalog: Senior-Review Follow-Up Packet
+# Claude Catalog: Senior-Review Scope Note
 
 Date: 2026-04-07
 
-This note is the senior-coauthor-facing version of the Claude-catalog follow-up
-recommendation. It is written to make the experimental choice and causal
-comparison clear without depending on internal system code names in the main
-protocol description.
+This note records the senior-coauthor-facing scope for the Claude-catalog part
+of the branch. It replaces the older `6`-system follow-up recommendation as the
+current scope note.
 
-## Decision to make
+## Active branch scope
 
-The question is not whether the implemented catalog is large. The question is
-whether a **small, grounded benchmark-expansion packet** should be added to the
-paper to test whether basin-support alignment survives beyond the existing
-three-system mechanistic toy suite.
+The overall branch experiment shortlist is now fixed to `17` systems:
 
-The recommended answer is:
+- existing native transition-rich trio:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`
+- Claude-catalog subset:
+  `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+  `var_l_shape_5`
 
-- keep the existing three-system transition-rich suite as the lead mechanistic
-  story
-- use a small Claude-catalog packet only as a benchmark-expansion and control
-  family
-- start with a deliberately chosen `6`-system packet rather than a broad sweep
+This note concerns the `14` Claude-catalog members of that fixed shortlist.
 
-## Current grounded state
+## Why this is the right Claude subset
 
 The implemented catalog is real, but still selective rather than broad:
 
@@ -31,127 +31,76 @@ The implemented catalog is real, but still selective rather than broad:
 - `12` systems currently pass the official acceptance rule
 - `8` of those `12` remain inside the strict per-basin crossing band
 
-That is enough to justify a **small follow-up packet**. It is not enough to
-justify writing the catalog as a validated large benchmark family.
+That grounding is useful, but it no longer defines the active packet by
+itself. The active Claude subset is chosen to mix:
 
-## Recommended first packet
+- grounded controls that already clear the current screen
+- one grounded non-well outlier
+- several additional systems we explicitly want to study even though they were
+  not part of the older recommended `6`-system packet
 
-The first packet should contain `6` systems chosen to span the main structural
-failure modes we care about.
+## Active Claude-catalog systems
 
-| Descriptive label | Basin count | What it isolates |
+| Descriptive label | Internal environment | What it isolates |
 | --- | --- | --- |
-| Three-basin symmetric triangle | `3` | Minimal clean control with visible symmetry |
-| Five-basin symmetric pentagon | `5` | More basins without changing the core mechanism |
-| Four-basin depth-graded layout | `4` | Simple asymmetry and occupancy skew |
-| Four-basin rotated diamond | `4` | Boundary geometry that departs from the visible nearest-center picture |
-| Five-basin L-shaped layout | `5` | Non-convex basin geometry |
-| Four-basin shared-corridor routes | `4` | Explicit route reuse and bottleneck structure |
+| Arrested spiral | `claude:arrested_spiral` | Spiral-slowdown transport rather than simple rotated wells |
+| Three-basin asymmetric control | `claude:cal_asymmetric_3` | Simple asymmetry |
+| Three-basin high-crossing control | `claude:cal_high_cross_3` | High-crossing control regime |
+| Six-basin symmetric hexagon | `claude:cal_hexagon_6` | Higher-basin polygon stress test that currently clears only the relaxed gate |
+| Eight-basin symmetric octagon | `claude:cal_octagon_8` | High-basin near miss kept in scope explicitly despite failing the current screen |
+| Five-basin symmetric pentagon | `claude:cal_pentagon_5` | Mid-count polygon control |
+| Four-basin symmetric square | `claude:cal_square_4` | Clean square baseline with one strict-gate caveat |
+| Checkerboard potential | `claude:checkerboard_potential` | Alternating/grid-like geometry |
+| Duffing triple well | `claude:duffing_triple_well` | Physically motivated triple-well mechanism |
+| SNIC multistable system | `claude:snic_multi` | Non-well mechanistic outlier |
+| Four-basin shared-corridor routes | `claude:transition_routes_4` | Explicit route reuse and bottleneck structure |
+| Four-basin depth-graded layout | `claude:var_depth_gradient_4` | Asymmetry and occupancy skew |
+| Four-basin rotated diamond | `claude:var_diamond_4` | Rotated-separatrix geometry mismatch |
+| Five-basin L-shaped layout | `claude:var_l_shape_5` | Non-convex basin geometry |
 
-This packet is useful because it asks whether the same learned representation
-continues to work when we change:
+## Causal protocol
 
-- basin count
-- symmetry versus asymmetry
-- convex versus non-convex geometry
-- ordinary rotated boundaries versus explicit route reuse
-
-## Exact causal protocol
-
-The intended comparison is a strict matched-family packet, not a broad search.
-
-Compare the following three model families on all `6` systems:
+For any forward Claude-catalog experiment on this branch, keep the same matched
+three-family comparison already used elsewhere:
 
 - **Sparse MLP anchor**
 - **Zero-sparsity MLP control**
 - **Dense LISTA comparator**
 
-Hold the following fixed across the whole packet:
+Hold fixed the usual paper-facing recipe unless a document explicitly says
+otherwise:
 
 - training budget: `200k` optimization steps
 - latent width: `256`
 - training horizon: `H = 8`
 - batch size: `256`
 - seeds: `0, 1, 2`
-- system-specific step size: use the default stable step size already assigned
-  to each benchmark system
-- checkpoint rule and forecasting evaluation: keep exactly the same paper-facing
-  training and evaluation protocol used in the existing `200k` packet
+- system-specific step size: the default stable step size for each system
 
-The causal comparisons are:
+The causal question is no longer “which Claude systems should we study?” The
+question is how these fixed chosen systems differ in symmetry, geometry,
+crossing regime, and mechanism, and whether those differences change the
+representation story.
 
-- **Sparse MLP anchor vs zero-sparsity MLP control**:
-  does explicit sparsity improve reusable basin-support structure beyond the
-  same MLP architecture without the sparsity penalty?
-- **Sparse MLP anchor vs dense LISTA comparator**:
-  does the LISTA-style encoder help on these transition-rich control systems
-  under the same budget and same front-end width?
-- **Pattern across the six systems**:
-  are the gains robust across symmetry changes, geometric mismatch, non-convex
-  support, and explicit route reuse?
-
-## How to interpret outcomes
-
-- If the sparse MLP anchor beats the zero-sparsity control on the rotated,
-  non-convex, or shared-corridor systems, that strengthens the claim that
-  explicit sparsity helps recover reusable local partitions.
-- If the sparse and zero-sparsity MLPs tie while both outperform dense LISTA,
-  then the packet is still useful as a benchmark/control family, but it does
-  not strengthen a sparse-specific mechanism claim.
-- If all models degrade mainly on the rotated-diamond, L-shaped, and
-  shared-corridor systems, those systems become useful hard controls even if
-  they do not become new main-text positives.
-- If only the symmetric polygon controls are strong positives, the catalog
-  should stay in a supporting/control role rather than become a major paper
-  family.
-
-## What not to do yet
+## What not to do
 
 - Do not run the full registered catalog.
-- Do not spend the first follow-up budget on near-duplicate polygon variants or
-  random-layout perturbations.
-- Do not expand to higher-basin systems before we know whether the `6`-system
-  packet adds meaningful paper signal.
+- Do not treat the older `6`-system packet or optional second-wave language as
+  the current plan.
+- Do not use the existing packet manifest/task-builder/launcher as the scope
+  definition without updating them first; they record the superseded `6`-system
+  packet.
 
-## Optional second wave
+## Historical tooling note
 
-Only expand beyond the first `6` systems if the first packet clearly adds paper
-value. The next three systems to add are:
-
-- a strict-pass hybrid transport system
-- a relaxed-pass six-basin polygon stress test
-- a relaxed-pass non-well multistable outlier
-
-These add mechanistic breadth, but they are not the first thing to run.
-
-## Internal mapping for implementers
-
-The descriptive packet above maps to the following internal environment names:
-
-| Descriptive label | Internal environment |
-| --- | --- |
-| Three-basin symmetric triangle | `claude:cal_triangle_3` |
-| Five-basin symmetric pentagon | `claude:cal_pentagon_5` |
-| Four-basin depth-graded layout | `claude:var_depth_gradient_4` |
-| Four-basin rotated diamond | `claude:var_diamond_4` |
-| Five-basin L-shaped layout | `claude:var_l_shape_5` |
-| Four-basin shared-corridor routes | `claude:transition_routes_4` |
-
-The model-family mapping is:
-
-| Senior-review name | Internal variant |
-| --- | --- |
-| Sparse MLP anchor | `generic_sparse_ns200k_best` |
-| Zero-sparsity MLP control | `generic_sparse_sc0_ns200k_best` |
-| Dense LISTA comparator | `lista_dense_promoted_stage4` |
-
-The implementation-side queue path is:
+The older packet scaffolding is still on disk, but it is now historical
+infrastructure rather than the active scope definition:
 
 - packet handoff:
   [claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md)
-- packet manifest:
+- historical packet manifest:
   [claude_catalog_packet_manifest.py](/home/mila/l/lia/skae/skae/benchmarks/claude_catalog_packet_manifest.py)
-- task builder:
+- historical task builder:
   [build_claude_catalog_packet_tasks.py](/home/mila/l/lia/skae/tools/build_claude_catalog_packet_tasks.py)
-- SLURM launcher:
+- historical SLURM launcher:
   [queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh)

@@ -10,6 +10,15 @@ into implementation-oriented mechanism sketches. These are still design notes,
 not calibrated environments, but they are concrete enough to guide actual
 system implementation in the restored worktree.
 
+Status note (April 7 scope freeze):
+
+These sketches are now historical design-provenance notes rather than the live
+experiment scope. The active branch experiments are restricted to the fixed
+`17`-system shortlist recorded in
+[docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md) and
+[docs/PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md).
+Do not use the elite subset below as the current run plan.
+
 Each sketch includes:
 
 - a compact mathematical construction

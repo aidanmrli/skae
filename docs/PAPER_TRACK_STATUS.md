@@ -30,18 +30,25 @@ Active execution note:
 - The current lead blocker is no longer queue completion. The deterministic
   transition-rich Stage 1 screen and both dependent mechanistic passes are now
   collected, so the blocker is now claim selection and benchmark positioning.
-- The current restored worktree now also has a follow-up design inventory in
-  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md):
-  the first `45`-system design pool has now been expanded to `63` accepted
-  systems across `100` reviewed concepts after a stricter higher-novelty second
-  pass; `37` systems were rejected or held out, the shortlist is now `16`
-  systems with an `8`-system elite subset, and conceptual comparison figures
-  plus implementation-oriented elite sketches in
-  [docs/planning/transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md);
-  the conceptual comparison figures live under
+- The forward interpretability scope is now frozen to `17` systems and no
+  others:
+  - native transition-rich trio:
+    `multiwell_strong_transition`, `gated_local_linear`,
+    `gated_transfer_linear`
+  - Claude-catalog subset:
+    `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+    `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+    `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+    `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+    `var_l_shape_5`
+- The conceptual inventory in
+  [docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md),
+  the elite sketches in
+  [docs/planning/transition_rich_elite_system_sketches_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_elite_system_sketches_20260406.md),
+  and the companion figures under
   [docs/figures/transition_rich_inventory_20260406](/home/mila/l/lia/skae/docs/figures/transition_rich_inventory_20260406)
-  if we decide that the paper needs a cleaner localization benchmark than the
-  present three-system suite.
+  now serve as historical design-space provenance only. Do not use their
+  broader `16`-system / `8`-system shortlists as the live experiment scope.
 - The worktree now also has an artifact-backed audit of the already
   implemented Claude catalog in
   [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)
@@ -60,16 +67,16 @@ Active execution note:
   - the implemented Claude catalog should therefore be treated as a grounded
     small benchmark pool plus retune frontier rather than as an already
     validated large benchmark packet
-  - the first paper-facing follow-up is no longer an abstract selection
-    question: the handoff now fixes a `6`-system strict packet with `3` model
-    families and `3` seeds, the standard training stack accepts
-    `--env claude:<system>`, and the packet can be launched through
-    [scripts/queue_claude_catalog_packet.sh](/home/mila/l/lia/skae/scripts/queue_claude_catalog_packet.sh)
-    from a compute node
-  - the same packet is now also written in senior-coauthor-facing language in
+  - use that audit to describe what is grounded and what remains frontier
+  - do not treat the older `6`-system packet in
+    [docs/planning/claude_catalog_handoff_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_handoff_20260407.md)
+    as the active recommendation; forward Claude-catalog experiments are now
+    restricted to the fixed `14`-system subset above
+  - the same supersession is now also written in senior-coauthor-facing
+    language in
     [docs/planning/claude_catalog_senior_review_packet_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_senior_review_packet_20260407.md),
-    so the protocol and causal comparisons are readable without relying on
-    internal system labels
+    so the protocol and active scope are readable without relying on internal
+    code names
 - The first frozen `2D` pair remains useful, but it is now understood as the
   secondary half of a three-system suite:
   - `gated_local_linear` is now the cleanest oracle-validated chart-switching
@@ -124,11 +131,11 @@ Active execution note:
 - The remaining clearly undercovered older mechanism artifacts are corrected competitive-LV support alignment under [results/zero_sparse_mechanisms_20260321/competitive_lv_representation_followup/support_alignment](/home/mila/l/lia/skae/results/zero_sparse_mechanisms_20260321/competitive_lv_representation_followup/support_alignment) with only seeds `0,1,2`, and the direct Kuramoto mode-support audit with only `5` seeds per root and sampling strategy; neither is the lead paper blocker anymore.
 - Do not queue another broad benchmark or hard-system rerun by default. The
   immediate work is to turn the collected transition-rich read into a clean
-  paper claim and decide whether the single missing dense-LISTA `multiwell`
-  seed, the grounded `12`-system Claude-catalog accepted pool plus the
-  remaining retuned near
-  misses, or a cleaner conceptually designed chart-localization benchmark is
-  actually worth follow-up budget.
+  paper claim and plan any next runs only on the fixed `17`-system shortlist
+  above. Do not reopen broader conceptual-inventory or full Claude-catalog
+  selection for this branch; the only remaining selection question is the run
+  order within the fixed shortlist and whether the single missing dense-LISTA
+  `multiwell` seed is worth finishing.
 
 LISTA follow-up priority note:
 - The highest-leverage LISTA follow-up is no longer hypothetical. The compact recurring-support local-linearity study has already been executed on `multiwell_strong_transition` and targeted smaller-`dt` `kuramoto`, and the corrected `competitive_lv` branch is now explicitly out of scope because the repaired clustering rerun stayed negative.

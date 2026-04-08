@@ -13,6 +13,18 @@ The goal is not to generate more concepts. The goal is to answer a simpler and
 more important question for the paper: what does the current worktree actually
 support as a benchmark-ready implemented system set?
 
+Status note (April 7 scope freeze):
+
+This audit remains the source of truth for what is implemented and grounded,
+but it is not the current experiment selector. Forward interpretability
+experiments are restricted to the fixed `17`-system shortlist in
+[docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md); within the
+Claude catalog, the in-scope systems are `arrested_spiral`,
+`cal_asymmetric_3`, `cal_high_cross_3`, `cal_hexagon_6`, `cal_octagon_8`,
+`cal_pentagon_5`, `cal_square_4`, `checkerboard_potential`,
+`duffing_triple_well`, `snic_multi`, `transition_routes_4`,
+`var_depth_gradient_4`, `var_diamond_4`, and `var_l_shape_5`.
+
 Companion audit figure:
 
 - [claude_catalog_audit_atlas.png](/home/mila/l/lia/skae/docs/figures/claude_catalog_audit_20260407/claude_catalog_audit_atlas.png)
@@ -168,27 +180,21 @@ designs.
 - The implemented Claude catalog is no longer only a **retune and screening
   backlog**; it now contains a grounded `12`-system accepted pool, with an
   `8`-system strict-crossing core plus a small retune frontier.
-- The immediate paper-quality move is now to decide whether that grounded pass
-  pool is already a good enough benchmark backbone or whether the paper still
-  needs one of the conceptually richer elite designs from the separate design
-  inventory.
-- The benchmark packet could now come from:
-  - the existing calibrated three-system suite,
-  - the newly grounded Claude-catalog pass pool,
-  - a retuned extension of that Claude-catalog pass pool,
-  - or one of the new elite designs in the conceptual inventory.
+- The immediate paper-quality move is now to use this audit to describe the
+  status of the fixed chosen Claude subset rather than to reopen broad packet
+  selection.
+- The broader accepted pool, retune frontier, and conceptual inventory remain
+  provenance/background, not the live experiment scope.
 
 ## Recommended next steps
 
-1. Treat the current grounded Claude-catalog shortlist as a `12`-system
-   accepted pool with an `8`-system strict-crossing core, not as the stale
-   `44 confirmed passing` set.
-2. Retune `cal_octagon_8` first, because it is now the cleanest remaining
-   screened high-basin control that misses only on crossing behavior.
-3. Screen the remaining unscreened priority systems above through the same
-   `fast_screen_catalog.py` pipeline so the implemented catalog uses one
-   validation convention throughout.
-4. Decide whether the paper benchmark should be built around the grounded
-   Claude-catalog pass pool, or whether that pool should instead serve as the
-   control backbone while the more novel challenge systems come from the
-   conceptual elite inventory.
+1. Use the accepted-pool and retune-frontier labels in this audit to annotate
+   the fixed chosen Claude subset.
+2. If additional Claude-catalog runs are launched on this branch, restrict them
+   to `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+   `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+   `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+   `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`, and
+   `var_l_shape_5`.
+3. Treat broader retuning and unscreened screening as optional background work,
+   not the active branch default.
