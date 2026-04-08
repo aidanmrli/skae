@@ -1,7 +1,7 @@
 # Experiments (Core)
 
 Date: April 7, 2026
-Paper-critical live queue status last refreshed: `2026-04-07 EDT`
+Paper-critical live queue status last refreshed: `2026-04-07 22:47 EDT`
 
 ## Current Status Summary
 
@@ -9,6 +9,21 @@ Problem we are solving:
 - Build deterministic, transition-rich toy systems where learned latent supports can define reusable, label-light basin partitions, and use those systems to explain why forecasting succeeds or fails.
 
 Current paper-facing approach:
+- The first live LISTA basin-partition sweep on the fixed `17`-system shortlist
+  is now running at each system's default `dt` under
+  [transition_rich_basin_partition_20260407](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407).
+- The automatic `dt`-halving rescue chain is also queued: if an arm fails the
+  `H1000 best-periodic < 50` gate at its default `dt`, it will rerun at
+  `dt / 2`, then `dt / 4`, up to `6` halvings.
+- The first manual native-system audit already says default `dt` is not the
+  current blocker on the native trio:
+  dense and block-diagonal LISTA both clear the rescue gate on
+  `gated_local_linear`, `gated_transfer_linear`, and
+  `multiwell_strong_transition`.
+- The dominant observed failure mode is instead free-rollout transition
+  pathology: the inspected checkpoints keep support groups basin-pure, but they
+  still hallucinate too many basin transitions and switch supports too often in
+  `no_reencode` rollouts.
 - Keep the fair `200k` benchmark packet, the hard-system packet, and the existing mechanism packet as frozen supporting evidence rather than the lead live branch.
 - Move the active paper branch to the tests-first transition-rich plan in [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md).
 - For design choices inside the next interpretability-ablation loop over plan
@@ -139,16 +154,22 @@ What stays live here:
 Outstanding problem:
 - No toy-system design blocker remains, and system selection is no longer open.
   The active interpretability branch is now frozen to the `17` systems listed
-  above. The lead paper blocker is turning that fixed shortlist into a clean
-  narrative and disciplined run order:
-  `gated_local_linear` is a clean mechanistic positive,
+  above. The lead paper blocker is no longer default-`dt` selection on the
+  native trio; the first manual read already shows all six native
+  dense/block-diagonal LISTA arms below the `H1000 best-periodic < 50` rescue
+  gate at their default `dt`. The current blocker is whether the fixed
+  shortlist yields transition-faithful reusable supports rather than only good
+  periodic-refresh MSE:
+  `gated_local_linear` remains the clean mechanistic positive,
   `gated_transfer_linear` is a strong transfer-oriented forecasting stress
-  test, `multiwell_strong_transition` is not yet clean enough to anchor the
+  test, `multiwell_strong_transition` is still not clean enough to anchor the
   story, the `gated_transfer_linear` chart-change-localization claim is
-  currently negative, and the support local-linearity read is positive but not
-  sparse-specific. The remaining choice is not between broader inventories; it
-  is how to prioritize and interpret the fixed shortlist and how to execute the
-  next systematic ablation wave defined in
+  currently negative, the support local-linearity read is positive but not
+  sparse-specific, and the new native-trio rollout diagnostics show systematic
+  support switching and invented basin crossings in free rollout. The remaining
+  choice is not between broader inventories; it is how to prioritize and
+  interpret the fixed shortlist and how to execute the next systematic ablation
+  wave defined in
   [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
   for plan items `3` and `4`, including whether the single missing LISTA
   `multiwell` seed is worth rerunning if
@@ -245,6 +266,71 @@ Assumption split:
 
 ## Recent Paper-Critical Result
 
+### April 7, 2026: initial default-`dt` LISTA basin-partition read on the native trio
+
+- Concrete result(s):
+  the first six manually evaluated native-system checkpoints from the live
+  `17 x 2 x 1` LISTA sweep all already satisfy the `dt`-rescue gate at each
+  system's default step size under `H1000 best-periodic < 50`.
+  - `gated_local_linear`
+    - dense: `H1000 best-periodic = 1.5437e-03`
+    - block-diagonal: `H1000 best-periodic = 1.7160e-03`
+  - `gated_transfer_linear`
+    - dense: `H1000 best-periodic = 1.2213`
+    - block-diagonal: `H1000 best-periodic = 6.7939e-01`
+  - `multiwell_strong_transition`
+    - dense: `H1000 best-periodic = 5.8041e-01`
+    - block-diagonal: `H1000 best-periodic = 4.4335e-02`
+  - the manual diagnostic root is
+    [manual_eval](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407/manual_eval)
+- Result in experimental context:
+  these are checkpoint-by-checkpoint manual evaluations run on compute nodes
+  while the live arrays are still training and before any natural
+  `evaluation_best/.../rollout_artifacts.pt` outputs have appeared from the
+  live sweep. The purpose was to test the new default-`dt` then halve-`dt`
+  rescue rule early on the native trio, and to use the new rollout-diagnostics
+  stack to identify failure modes beyond MSE.
+  - `gated_local_linear`:
+    both variants pass the gate, but `no_reencode` remains poor and predicted
+    basin crossing fraction is `1.0` versus true `0.0`; block-diagonal raises
+    basin endpoint accuracy from `0.03` to `0.34` but inflates basin
+    transition-count MAE from `4.76` to `102.56`
+  - `gated_transfer_linear`:
+    both variants pass the gate; block-diagonal improves best-periodic `H1000`,
+    basin transition-count MAE (`14.79` versus `30.12`), and support-switch
+    count (`55.33` versus `303.64`), but both still predict basin crossing
+    fraction `1.0` versus true `0.15`
+  - `multiwell_strong_transition`:
+    both variants pass the gate; block-diagonal sharply improves best-periodic
+    `H1000` (`4.4335e-02` versus `5.8041e-01`), while dense is slightly better
+    on basin transition-count MAE (`10.31` versus `12.89`) and support-switch
+    count (`30.06` versus `33.93`)
+- Interpretation:
+  on the native trio, the new live branch is not currently bottlenecked by
+  default `dt` under the user's acceptance rule. The stronger recurring problem
+  is free-rollout transition fidelity: predicted basin crossing fraction is
+  `1.0` on every inspected native checkpoint, while the true crossing fraction
+  is much smaller (`0.0` for `gated_local_linear`, `0.15` for
+  `gated_transfer_linear`, `0.13` for `multiwell_strong_transition`). Support
+  groups remain basin-pure in every inspected native arm, so the main failure is
+  not support contamination but unstable support switching and invented
+  transitions.
+- Project implications:
+  the paper should not frame smaller `dt` as the primary explanation for early
+  native-system failures. The current evidence points instead to a more precise
+  narrative: default `dt` is already adequate for best-periodic `H1000` on the
+  native trio, but LISTA still struggles to preserve transition-faithful free
+  rollouts and stable support paths. This makes the rollout-diagnostics stack
+  central to the paper story and makes `gated_transfer_linear` versus
+  `gated_local_linear` a useful contrast between forecasting success and
+  transition-path failure.
+- Next steps:
+  wait for the first natural live-sweep `rollout_artifacts.pt` outputs, then
+  confirm whether the same transition-path pathology appears on the Claude
+  subset and on the eventually selected `dt`-rescue reruns. If the live sweep
+  keeps matching this native-trio pattern, write the wrap-up around
+  transition-fidelity failure rather than around step-size rescue.
+
 ### April 7, 2026: implemented Claude-catalog audit
 
 - Concrete result:
@@ -287,7 +373,9 @@ Assumption split:
 ## Queue Status
 
 - No live paper-critical forecasting or hard-system queue remains.
-- No live paper-critical transition-rich queue remains either.
+- One live paper-critical transition-rich queue is active:
+  the one-seed `17 x 2` LISTA basin-partition sweep at default `dt`, plus the
+  dependency-chained `dt`-rescue continuation.
 - The active forward experimental scope is now frozen to `17` systems:
   `multiwell_strong_transition`, `gated_local_linear`,
   `gated_transfer_linear`, `arrested_spiral`, `cal_asymmetric_3`,
@@ -295,12 +383,24 @@ Assumption split:
   `cal_square_4`, `checkerboard_potential`, `duffing_triple_well`,
   `snic_multi`, `transition_routes_4`, `var_depth_gradient_4`,
   `var_diamond_4`, and `var_l_shape_5`.
-- No systematic run wave from
-  [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
-  has been launched yet. Treat that note as the current source of ground truth
-  for design choices on the next interpretability loop over plan items `3` and
-  `4`, and update the live docs only after each axis has been run and
-  summarized.
+- Default-`dt` sweep status:
+  - launcher `9190857`: completed `0:0`
+  - first array `9190869`: `16` tasks still running and `18` tasks failed and
+    were rerouted
+  - rerun array `9192341`: the `18` rerouted tasks are all currently running
+  - scratch result root:
+    [transition_rich_basin_partition_20260407](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407)
+- `dt`-rescue chain status:
+  - launcher `9193402`: completed `0:0`
+  - dependent collector/resolve chain `9193424-9193443`: all pending on
+    dependency release
+  - dependent rescue arrays `9193426`, `9193429`, `9193432`, `9193435`,
+    `9193438`, `9193441`: all pending on dependency release
+- Natural live-sweep rollout artifacts are not available yet:
+  no `evaluation_best/.../rollout_artifacts.pt` files have appeared under the
+  live result roots so far.
+- Manual native-system diagnostics already exist under:
+  [manual_eval](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407/manual_eval)
 - One new local catalog-audit pass is complete without changing the live queue:
   - audit note:
     [docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md)

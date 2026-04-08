@@ -1,7 +1,7 @@
 # Paper Track Status
 
 Date: April 7, 2026
-Paper-critical live queue status last refreshed: `2026-04-07 EDT`
+Paper-critical live queue status last refreshed: `2026-04-07 22:47 EDT`
 
 ## Goal
 
@@ -28,9 +28,25 @@ The paper target is now explicit:
 Active execution note:
 - The forecasting packet is now decision-grade, and the raw-source seed-statistics companion report is in [docs/PAPER_SEED_STATISTICS_20260331.md](/home/mila/l/lia/skae/docs/PAPER_SEED_STATISTICS_20260331.md). It verifies raw-vs-collector agreement and records the remaining raw finite-value coverage gaps explicitly.
 - The benchmark best-periodic packet is still seed-clean at the raw finite-value level. The residual finite-value forecasting gaps are narrower: fixed-cadence late-horizon Hopfield and embedded-multiwell rows, corrected `4`-basin CLV block-diagonal LISTA, and repaired Hopfield `N=64` block-diagonal MLP.
-- The current lead blocker is no longer queue completion. The deterministic
-  transition-rich Stage 1 screen and both dependent mechanistic passes are now
-  collected, so the blocker is now claim selection and benchmark positioning.
+- A live one-seed `17 x 2` LISTA basin-partition sweep at default `dt` is now
+  running under
+  [transition_rich_basin_partition_20260407](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407),
+  with the `dt`-rescue continuation already dependency-chained behind it.
+- Natural live-sweep `evaluation_best/.../rollout_artifacts.pt` outputs have
+  not appeared yet; the current native-trio read comes from manual compute-node
+  reevaluation of saved checkpoints under
+  [manual_eval](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407/manual_eval).
+- The first manual native-system read from that live sweep already says the
+  native trio is not bottlenecked by default `dt` under the current user-facing
+  rescue rule: dense and block-diagonal LISTA both clear `H1000 best-periodic <
+  50` on `gated_local_linear`, `gated_transfer_linear`, and
+  `multiwell_strong_transition`.
+- The current lead blocker is therefore narrower than queue completion or
+  step-size rescue: it is whether the live branch can deliver
+  transition-faithful reusable supports rather than merely good periodic-refresh
+  MSE. The manual native-trio rollout diagnostics already show the current
+  failure mode sharply: basin-pure support groups, but excessive support
+  switching and hallucinated basin crossings in `no_reencode` rollout.
 - The current ablation-design source of truth for the next interpretability
   loop is
   [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
@@ -196,6 +212,20 @@ Paper-priority note:
   [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
   Treat it as planning ground truth for the next loop over items `3` and `4`,
   not as already-validated evidence.
+- The first live LISTA basin-partition sweep on the fixed `17`-system shortlist
+  is now active at each system's default `dt`, with a dependency-chained
+  `dt`-halving rescue continuation if any arm fails `H1000 best-periodic < 50`.
+- The first manual native-trio audit from that sweep already narrows the paper
+  story:
+  - all six dense/block-diagonal native arms pass the default-`dt` rescue gate
+  - `gated_local_linear` remains the clean mechanistic positive, but both
+    variants still hallucinate basin crossings in free rollout
+  - `gated_transfer_linear` is the strongest current transition-fidelity stress
+    test: block-diagonal helps on best-periodic `H1000` and transition-count
+    MAE, but both variants still predict crossing fraction `1.0` versus true
+    `0.15`
+  - `multiwell_strong_transition` also clears the rescue gate at default `dt`,
+    so its role remains “weaker secondary toy” rather than “step-size failure”
 - The required test suite now exists and passes, along with the supporting calibration module [skae/transition_calibration.py](/home/mila/l/lia/skae/skae/transition_calibration.py) and the reproducible calibration entry point [tools/calibrate_transition_system.py](/home/mila/l/lia/skae/tools/calibrate_transition_system.py).
 - Two native-plot `2D` deterministic candidates are now frozen from ground-truth calibration on the fixed `17x17` grid:
   - `multiwell_strong_transition`
