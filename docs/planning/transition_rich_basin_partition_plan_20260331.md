@@ -48,16 +48,12 @@ The branch should do the following:
 
 1. Treat the fixed `17`-system shortlist as the full branch scope and avoid
    adding new systems unless the branch objectives are explicitly changed in the
-   live docs.
-2. Plot these systems so that we can visually inspect them.
-3. Create, inspect, and diagnose metrics that explain **why** forecasting
-   succeeds or fails on these systems instead of just reporting MSE. These
-   metrics may diagnose phase-plot crossings, partition reuse, support
-   structure, and transition handling.
-4. Investigate whether different kinds of Koopman autoencoder can discover
-   reusable basin partitions without training-time basin labels.
-5. Loop between (3) and (4) on the fixed shortlist rather than reopening
-   candidate generation by default.
+   live docs. (DONE)
+2. Plot these systems so that we can visually inspect them. (DONE)
+3. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. This involves training and evaluating the various kinds of Koopman autoencoders on these systems. For now, we should use LISTA-based encoders for the Koopman autoencoder, and try both dense Koopman transition matrices and block-diagonal Koopman transition matrices. In this case, it is appropriate to use the ground truth number of basins to set the number of blocks, but keep the latent size at 256. We will expand this analysis to MLP encoders once we have good performance on LISTA-based encoders. 
+**IMPORTANT NOTE:** When we evaluate the model on unseen trajectories, I want to save the ground truth trajectories AND the predicted trajectories so that we can do diagnosis on the performance of the model in part 4.
+4. Create, inspect, and diagnose metrics that explain **why** forecasting succeeds or fails on these systems instead of just reporting MSE. These metrics may diagnose phase-plot crossings, partition reuse, support structure, and transition handling. We should reuse the cached 
+5. Loop between (3) and (4) on the fixed shortlist.
 
 The lead open question is whether the learned Koopman representation from the
 encoder identifies meaningful partitions and handles common transitions cleanly
