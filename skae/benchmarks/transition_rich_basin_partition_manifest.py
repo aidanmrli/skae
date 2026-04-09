@@ -1,4 +1,9 @@
-"""Manifest for the fixed transition-rich basin-partition LISTA sweep."""
+"""Manifest for the fixed transition-rich basin-partition LISTA sweep.
+
+This is the live interpretability-diagnostic recipe. Use `20k` training steps
+while the shortlist, metrics, and model choices are still being diagnosed, and
+reserve `200k` only for the final locked paper-facing rerun.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,7 @@ from typing import Dict, List, Optional, Sequence
 from skae.config import Config, get_env_dt
 
 
-TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS = 200_000
+TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS = 20_000
 TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE = 256
 TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE = 256
 TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH = 8

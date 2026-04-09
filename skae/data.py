@@ -2218,7 +2218,12 @@ class ClaudeCatalogEnv(Env):
 
     def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
         if state.ndim > 1:
-            return torch.stack([self.step(s, action=None) for s in state], dim=0)
+            batch = state.to(dtype=torch.float64)
+            try:
+                next_state = torch.vmap(self.system.step)(batch)
+            except RuntimeError:
+                next_state = torch.stack([self.system.step(s) for s in batch], dim=0)
+            return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
         next_state = self.system.step(state.to(dtype=torch.float64))
         return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
 

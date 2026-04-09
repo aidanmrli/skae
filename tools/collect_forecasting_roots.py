@@ -194,9 +194,12 @@ def _read_env_dt_from_cfg(cfg_data: Dict) -> Optional[float]:
         "lyapunov": "LYAPUNOV",
         "blended": "BLENDED",
         "multiwell": "MULTIWELL",
+        "gated_local_linear": "GATED_LOCAL_LINEAR",
+        "gated_transfer_linear": "GATED_TRANSFER_LINEAR",
         "kuramoto": "KURAMOTO",
         "hopfield": "HOPFIELD",
         "competitive_lv": "COMPETITIVE_LV",
+        "claude_catalog": "CLAUDE_CATALOG",
     }
     key = key_map.get(target_env)
     if key is None:

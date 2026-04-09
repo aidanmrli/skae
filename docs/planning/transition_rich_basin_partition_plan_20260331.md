@@ -38,6 +38,14 @@ experiments should use only the fixed `17`-system shortlist already recorded in
 Do not use this plan document to reopen broader system-generation or
 system-selection scope for the current branch.
 
+Training-budget policy for this plan:
+
+- while objective items `3-5` are still diagnostic and metric-building, use
+  `20000` optimization steps for forward interpretability runs on the fixed
+  shortlist
+- reserve `200000`-step training for the final confirmatory paper rerun only,
+  after the shortlist, metrics, and model recipe are locked
+
 ## Motivation
 
 The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that for these systems with multiple basins of attraction, finite-dimensional Koopman-invariant subspaces cannot provide a globally exact linear representation across all basins simultaneously. In a multistable finite-dimensional system, we might be able to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes.
@@ -58,14 +66,15 @@ The branch should do the following:
    adding new systems unless the branch objectives are explicitly changed in the
    live docs. (DONE)
 2. Plot these systems so that we can visually inspect them. (DONE)
-3. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. This involves training and evaluating the various kinds of Koopman autoencoders on these systems. For now, we should use LISTA-based encoders for the Koopman autoencoder, and try both dense Koopman transition matrices and block-diagonal Koopman transition matrices. In this case, it is appropriate to use the ground truth number of basins to set the number of blocks, but keep the latent size at 256. We will expand this analysis to MLP encoders once we have good performance on LISTA-based encoders. For current ablation choices inside this LISTA-first phase, use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the ground-truth design note for matrix-family, reset-policy, shared-block, block-count, and related structural sweeps until those axes are actually run and reduced.
+3. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. The main branch comparison is now dense LISTA, block-diagonal LISTA, and a matched standard MLP encoder control on the same fixed `17` systems. The primary report for this branch should be basin-separation quality rather than raw forecasting MSE alone. For the LISTA arms, it is appropriate to use the ground truth number of basins to set the number of blocks, while keeping the latent size at `256`. For current design choices inside the LISTA side of this comparison, use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the ground-truth design note for matrix-family, reset-policy, shared-block, block-count, and related structural sweeps until those axes are actually run and reduced.
 **IMPORTANT NOTE:** When we evaluate the model on unseen trajectories, I want to save the ground truth trajectories AND the predicted trajectories so that we can do diagnosis on the performance of the model in part 4.
 4. Create, inspect, and diagnose metrics that explain **why** forecasting succeeds or fails on these systems instead of just reporting MSE. These metrics may diagnose phase-plot crossings, partition reuse, support structure, and transition handling. We should reuse the cached or saved ground truth trajectories and the predicted trajectories from the evaluation in order to diagnose and inspect these metrics, and create visualizations for visual inspection. Use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the ground-truth design source for the current metric, loss, trigger, and diagnostic ablation choices attached to this loop, and promote an axis from design note to live branch conclusion only after it has been tested systematically.
 5. Loop between (3) and (4) on the fixed shortlist, testing the axes in [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) systematically rather than ad hoc.
 
 The lead open question is whether the learned Koopman representation from the
-encoder identifies meaningful partitions and handles common transitions cleanly
-across this fixed shortlist.
+encoder identifies meaningful basin-aligned partitions across this fixed
+shortlist, and whether LISTA does so more strongly than the matched standard
+MLP encoder control.
 
 ## Tests first
 

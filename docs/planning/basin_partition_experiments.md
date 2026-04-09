@@ -7,13 +7,21 @@ Status note:
   [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md).
 - It records candidate axes to test systematically on the interpretability
   branch.
+- Use `20000` training steps as the working diagnostic budget for forward
+  interpretability runs on the fixed `17`-system shortlist while the metrics
+  and model recipe are still being set. Reserve `200000` only for the final
+  locked paper rerun.
+- This note is the LISTA-side design inventory for the fixed `17`-system
+  branch. The branch-level paper claim is still LISTA versus a matched
+  standard MLP encoder control on basin-separation metrics; do not read this
+  note as redefining the branch as LISTA-only.
 - Replace design assumptions here with experiment-backed conclusions once the
   relevant runs have been completed and written back into
   [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md),
   [docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md), and
   [docs/PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md).
 
-Let me restate the setup in the narrow form you want.
+Let me restate the LISTA side of the setup in the narrow form you want.
 
 You want **one** sparse LISTA-style encoder (E), **one** linear latent transition (K), a linear dictionary decoder (D), and **periodic or event-triggered re-encoding** so that the effective forecast map is nonlinear even though the latent propagator is linear:
 [

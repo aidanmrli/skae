@@ -1,14 +1,21 @@
 # Paper Track Status
 
-Date: April 7, 2026
-Paper-critical live queue status last refreshed: `2026-04-07 22:47 EDT`
+Date: April 8, 2026
+Paper-critical live queue status last refreshed: `2026-04-08 23:21 EDT`
 
 ## Goal
 
 The paper target is now explicit:
 
-- keep the fair `200k` forecasting packet, the hard-system packet, and the existing mechanism packet as **decision-grade supporting evidence** rather than the lead live branch
-- move the lead live branch to **deterministic transition-rich basin partitioning and classification** on simple toy systems that we can analyze mechanistically in the paper
+- make the lead live branch a fixed-`17` basin-separation comparison:
+  can LISTA encoders separate basins with reusable sparse supports on the
+  selected systems, and do they do so more strongly than a matched standard
+  MLP encoder control?
+- keep the fair `200k` forecasting packet, the hard-system packet, and the
+  existing mechanism packet as **decision-grade supporting evidence** rather
+  than the lead live branch
+- execute that branch on deterministic transition-rich toy systems and the
+  fixed Claude subset that we can analyze mechanistically in the paper
 - execute that branch through the tests-first plan in [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md)
 - use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the current ground-truth planning note for ablation design choices when iterating on items `3` and `4` of that transition-rich plan, and replace planning assumptions with experiment-backed conclusions once those axes are run systematically
 - prefer deterministic native-plot `2D` toy systems first, with follow-on `3D` variants only after the `2D` candidates are calibrated
@@ -18,9 +25,19 @@ The paper target is now explicit:
 - distinguish **endpoint basin** from **finite-horizon transition**; the new branch is intentionally transition-rich even though endpoint basins remain well defined
 - write **tests before any system-specific code**, then calibrate toy systems before queueing model sweeps
 - keep training-time method design label-free: do not assume known basin counts or basin labels outside benchmark diagnostics
-- prioritize metrics that explain partition reuse, local predictive structure, and transition failure modes over MSE-only reporting
-- keep the matched zero-sparsity MLP as the main causal control whenever we ask whether explicit sparsity itself matters
+- prioritize basin-support alignment, support-view clustering, recurring-support
+  reuse, and local predictive structure over MSE-only reporting
+- keep the matched standard MLP encoder control as the main causal comparator
+  on this branch; use the zero-sparsity / no-LISTA MLP when isolating the
+  encoder effect directly
+- do not treat chart-switch localization or sparse-only mechanism claims as the
+  branch acceptance criterion; those are supporting context, while the live
+  branch question is basin separation on the fixed `17` systems
 - treat **`200k` as the only main-text training budget** for the frozen benchmark and hard-system supporting packets
+- use **`20k` as the working training budget** for forward interpretability and
+  metric-diagnosis runs on the fixed `17`-system shortlist while the recipe is
+  still moving, and reserve `200k` on that branch for the final locked
+  confirmatory rerun only
 - treat the dense LISTA Stage 1-4 chain as **appendix-only comparator-selection provenance**
 - treat the historical MLP `+ block_diagonal K` fairness controls as **invalidated** and replace them with the repaired March 17/19 rerun summaries; full audit: [docs/mlp_block_k_audit_20260317.md](/home/mila/l/lia/skae/docs/mlp_block_k_audit_20260317.md)
 - keep the reproduction-grade senior-coauthor handoff packet in [docs/review_main_results_tables_20260314.md](/home/mila/l/lia/skae/docs/review_main_results_tables_20260314.md) and [docs/review_main_results_tables_20260314.tex](/home/mila/l/lia/skae/docs/review_main_results_tables_20260314.tex) as the exact source for the frozen supporting packets
@@ -28,25 +45,58 @@ The paper target is now explicit:
 Active execution note:
 - The forecasting packet is now decision-grade, and the raw-source seed-statistics companion report is in [docs/PAPER_SEED_STATISTICS_20260331.md](/home/mila/l/lia/skae/docs/PAPER_SEED_STATISTICS_20260331.md). It verifies raw-vs-collector agreement and records the remaining raw finite-value coverage gaps explicitly.
 - The benchmark best-periodic packet is still seed-clean at the raw finite-value level. The residual finite-value forecasting gaps are narrower: fixed-cadence late-horizon Hopfield and embedded-multiwell rows, corrected `4`-basin CLV block-diagonal LISTA, and repaired Hopfield `N=64` block-diagonal MLP.
-- A live one-seed `17 x 2` LISTA basin-partition sweep at default `dt` is now
-  running under
+- The one-seed `17 x 2` LISTA basin-partition sweep at default `dt` was
+  launched under
   [transition_rich_basin_partition_20260407](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407),
-  with the `dt`-rescue continuation already dependency-chained behind it.
+  with the `dt`-rescue continuation already dependency-chained behind it. That
+  April 7 default-source queue used the older `200k` training budget and
+  should now be read as a legacy long-budget LISTA root rather than the
+  forward default. The submitted rescue task tables in that same chain were
+  rewritten to `20k`.
+- Forward interpretability queues should now use `20000` training steps while
+  we are still diagnosing model behavior and choosing the right metrics; only
+  the final locked paper rerun on this branch should return to `200000`.
+- The overnight dependency chain behind that root is now effectively complete
+  through pass `6`, and its scientific consequence is stronger default-`dt`
+  evidence rather than smaller-`dt` rescue evidence:
+  [collect_pass0](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260407/collect_pass0/forecasting_summary.md)
+  already reports `17/17` good systems at `H1000` for both dense and
+  block-diagonal LISTA on the fixed shortlist, and the rescue-only `20k`
+  reruns keep all `16/16` rerun systems below the same gate by system median
+  for both roots.
+- The same overnight chain also exposed a queueing / collection bug rather
+  than a scientific need for more halving: the collector preserved `env_dt`
+  only for `multiwell_strong_transition`, so the resolver kept re-emitting
+  default-`dt` task tables for `gated_*` and `claude:*` arms. That collector
+  gap is now fixed locally in
+  [collect_forecasting_roots.py](/home/mila/l/lia/skae/tools/collect_forecasting_roots.py).
+  Do not interpret the completed overnight waves as evidence for a
+  smaller-`dt` effect.
 - Natural live-sweep `evaluation_best/.../rollout_artifacts.pt` outputs have
   not appeared yet; the current native-trio read comes from manual compute-node
   reevaluation of saved checkpoints under
   [manual_eval](/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407/manual_eval).
 - The first manual native-system read from that live sweep already says the
   native trio is not bottlenecked by default `dt` under the current user-facing
-  rescue rule: dense and block-diagonal LISTA both clear `H1000 best-periodic <
-  50` on `gated_local_linear`, `gated_transfer_linear`, and
-  `multiwell_strong_transition`.
-- The current lead blocker is therefore narrower than queue completion or
-  step-size rescue: it is whether the live branch can deliver
-  transition-faithful reusable supports rather than merely good periodic-refresh
-  MSE. The manual native-trio rollout diagnostics already show the current
-  failure mode sharply: basin-pure support groups, but excessive support
-  switching and hallucinated basin crossings in `no_reencode` rollout.
+  rescue rule, and it already gives the branch's key positive signal:
+  support groups remain basin-pure in every inspected dense / block-diagonal
+  LISTA arm.
+- The current lead blocker is therefore no longer queue completion,
+  step-size rescue, or the LISTA reduction itself. The remaining blocker is
+  the matched standard-MLP comparison on the same fixed-`17` protocol,
+  together with a clean paper decision about how to write the new negative
+  local-linearity read.
+- Step-size rescue should therefore no longer be written as an open blocker on
+  the one-seed LISTA shortlist. The current queue-era evidence already says the
+  fixed `17`-system LISTA packet is operationally fine at default `dt`; what
+  remains missing is the matched standard-MLP contrast and any follow-up
+  ablation needed to explain why high-purity recurring supports still fail the
+  stronger local-linearity test.
+- Do not write this branch as if it needs to prove the stronger
+  chart-switch-localization claim or a sparse-only mechanism claim. Those
+  older questions are supporting context; the paper decision for this branch is
+  whether LISTA gives cleaner basin-separated support structure than the
+  standard MLP control on the fixed shortlist.
 - The current ablation-design source of truth for the next interpretability
   loop is
   [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
@@ -148,9 +198,9 @@ Active execution note:
     stronger localization claim on true chart-change windows is negative
   - `multiwell_strong_transition` is not a clean forecasting positive at the
     paper `200k` budget
-- The support local-linearity pass is a real positive across the suite, but the
-  matched zero-sparsity MLP is also strong, so the current mechanism claim is
-  about reusable local partitions rather than about explicit sparsity alone.
+- The support local-linearity pass is encouraging supporting evidence for the
+  branch, but it should be read as prior mechanism context rather than as the
+  final fixed-`17` LISTA-versus-MLP reduction.
 - The remaining clearly undercovered older mechanism artifacts are corrected competitive-LV support alignment under [results/zero_sparse_mechanisms_20260321/competitive_lv_representation_followup/support_alignment](/home/mila/l/lia/skae/results/zero_sparse_mechanisms_20260321/competitive_lv_representation_followup/support_alignment) with only seeds `0,1,2`, and the direct Kuramoto mode-support audit with only `5` seeds per root and sampling strategy; neither is the lead paper blocker anymore.
 - Do not queue another broad benchmark or hard-system rerun by default. The
   immediate work is to turn the collected transition-rich read into a clean
@@ -160,8 +210,12 @@ Active execution note:
   order within the fixed shortlist and whether the single missing dense-LISTA
   `multiwell` seed is worth finishing.
 
-LISTA follow-up priority note:
-- The highest-leverage LISTA follow-up is no longer hypothetical. The compact recurring-support local-linearity study has already been executed on `multiwell_strong_transition` and targeted smaller-`dt` `kuramoto`, and the corrected `competitive_lv` branch is now explicitly out of scope because the repaired clustering rerun stayed negative.
+Historical mechanism-context note:
+- This note is supporting background, not the fixed-`17` branch acceptance test.
+  The compact recurring-support local-linearity study has already been executed
+  on `multiwell_strong_transition` and targeted smaller-`dt` `kuramoto`, and
+  the corrected `competitive_lv` branch is now explicitly out of scope because
+  the repaired clustering rerun stayed negative.
 - The first-pass read narrows rather than broadens the LISTA claim: multiwell shows reusable support-conditioned local dynamics for all three roots, but coverage stays below the planned acceptance gate and thresholded `generic_sparse` remains competitive, especially on one-step fits; Kuramoto is a clean negative with no retained recurring support groups on any evaluated seed.
 - Corrected CLV has now failed the same filter more decisively than the first summary suggested. It did not clear the support-view clustering gate, it kept negative cosine separation on every clean `4`-basin paper root, and its discovered support-view cluster counts collapse to `5/2/1` across seeds rather than a stable `4`.
 - Expanded plan: [docs/planning/lista_narrative_strengthening_followups_20260313.md](/home/mila/l/lia/skae/docs/planning/lista_narrative_strengthening_followups_20260313.md)
@@ -188,7 +242,7 @@ For drafting, compress the completed evidence into the family map below rather t
 
 | Family | Merge these experiments | Main paper question | Writing rule |
 |---|---|---|---|
-| **Transition-rich basin partitioning** | tests-first toy-system calibration; transition-rich `multiwell` bridge extension; new `gated_local_linear` family; `gated_transfer_linear` chart-switching transfer family; transition diagnostics; deterministic flow-consistency / flow-branching read; recurring-support local-linearity reuse metrics | Can learned supports define reusable, label-light partitions on deterministic systems with common transitions, while preserving deterministic flow consistency? | This is the lead live family. Write it around the collected trained-model read: `gated_local_linear` as the clean mechanistic positive, `gated_transfer_linear` as the hard transfer stress test, and `multiwell_strong_transition` as a weaker secondary toy unless it is rescued by a targeted follow-up. |
+| **Transition-rich basin partitioning** | tests-first toy-system calibration; fixed `17`-system shortlist; dense / block-diagonal LISTA live sweep; matched standard-MLP control; transition diagnostics; deterministic flow-consistency / flow-branching read; recurring-support local-linearity reuse metrics | Do LISTA encoders define reusable basin-aligned sparse supports on the fixed `17` systems, and is that basin separation stronger than for a matched standard MLP encoder? | This is the lead live family. Write it around basin separation first: count the systems where LISTA support views are basin-pure and reusable, use `gated_local_linear` as the clean positive anchor, treat `gated_transfer_linear` and the Claude subset as stress tests, and report the standard MLP control as the main contrast. |
 | **Cross-system forecasting** | fair `200k` benchmark checkpoint family; matched zero-sparsity MLP benchmark extension; full-benchmark block-diagonal dense-opt transfer | What is the benchmark headline versus the MLP anchor once the dense comparator is fixed, and does explicit sparsity help beyond the same MLP with `lambda_sparse=0`? | Cite the fair `200k` benchmark as the supporting quantitative anchor. Do not let it crowd out the new transition-rich branch. |
 | **Hard-system forecasting** | `dt`-rescue audit; focused smaller-`dt` Kuramoto/Hopfield follow-ups; long-horizon reevaluation of those same checkpoints; Kuramoto robustness/dimension sweeps; matched hard-system parity; matched block-diagonal fairness controls; higher-basin Hopfield / CLV robustness probes; matched zero-sparsity MLP hard-system extension | Where do step size, structure, and the sparsity penalty help, and where do LISTA families still fail? | Write this as one connected limitation/support family, not as a separate live execution branch. |
 | **Basin-support and mechanism** | broad support-alignment audit; label-free clustering v2; direct Kuramoto mode-support audit; corrected `competitive_lv` representation follow-up; March 13 recurring-support local-linearity; matched zero-sparsity MLP mechanism extension | When do sparse supports align with basins and support local linear reasoning, and do those effects persist without an explicit sparsity penalty? | Use this as prior context and as the metric starting point for the new transition-rich branch. |
@@ -212,20 +266,52 @@ Paper-priority note:
   [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
   Treat it as planning ground truth for the next loop over items `3` and `4`,
   not as already-validated evidence.
+- Training-budget policy for this live branch:
+  use `20000` steps for forward interpretability diagnosis while the metrics
+  and recipe are still being set; reserve `200000` only for the final locked
+  paper-facing rerun.
+- The branch should be written around basin separation on the fixed `17`
+  systems, not around best-periodic forecasting.
+- It should also not be written as a chart-switch-localization or sparse-only
+  mechanism branch. Those are supporting side questions, not the branch
+  acceptance criterion.
+- The already-running April 7 queue is LISTA-only evidence. The matched
+  standard MLP encoder control is still required before the intended fixed-`17`
+  branch claim is decision-grade.
+- The overnight continuation strengthens the same point: default `dt` is
+  already adequate on the one-seed LISTA shortlist, and the repeated overnight
+  `20k` reruns should be read as additional default-`dt` robustness checks
+  rather than as smaller-`dt` rescue evidence.
+- A paper-facing local reduction of the finished LISTA shortlist now exists
+  under
+  [basin_support_metrics_20260408_v3](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260407/basin_support_metrics_20260408_v3).
+  The canonical prose definition note for these metrics is
+  [docs/transition_rich_basin_support_metric_definitions.md](/home/mila/l/lia/skae/docs/transition_rich_basin_support_metric_definitions.md).
+  Its branch-level read is clear:
+  - mean support-group purity is `0.9883` for block-diagonal LISTA and
+    `0.9961` for dense LISTA
+  - mean retained-trajectory coverage is `0.8729` and `0.8787`, with
+    `15/17` systems above the `0.60` coverage gate for both roots
+  - local `H=20` NRMSE beats the matched global fit on `0/17` systems for
+    both roots
+  - local `H=20` NRMSE beats the shuffled baseline on `0/17`
+    block-diagonal systems and `1/17` dense systems, and that lone dense win
+    is `claude:duffing_triple_well` at only `0.1172` coverage
+  - the current LISTA packet therefore supports a basin-pure recurring-support
+    claim much more strongly than a local-linearity mechanism claim
 - The first live LISTA basin-partition sweep on the fixed `17`-system shortlist
-  is now active at each system's default `dt`, with a dependency-chained
+  was launched at each system's default `dt`, with a dependency-chained
   `dt`-halving rescue continuation if any arm fails `H1000 best-periodic < 50`.
-- The first manual native-trio audit from that sweep already narrows the paper
-  story:
+  That already-launched April 7 sweep predates the new `20k` diagnostic-budget
+  policy and should not be treated as the forward default.
+- The older manual native-trio audit remains useful supporting detail, but it
+  should now be subordinated to the full fixed-`17` reduction above:
   - all six dense/block-diagonal native arms pass the default-`dt` rescue gate
-  - `gated_local_linear` remains the clean mechanistic positive, but both
-    variants still hallucinate basin crossings in free rollout
-  - `gated_transfer_linear` is the strongest current transition-fidelity stress
-    test: block-diagonal helps on best-periodic `H1000` and transition-count
-    MAE, but both variants still predict crossing fraction `1.0` versus true
-    `0.15`
-  - `multiwell_strong_transition` also clears the rescue gate at default `dt`,
-    so its role remains “weaker secondary toy” rather than “step-size failure”
+  - support groups remain basin-pure in every inspected native LISTA arm
+  - `gated_local_linear` and `gated_transfer_linear` stay high-coverage purity
+    positives
+  - `multiwell_strong_transition` remains the weakest native case because
+    coverage is still below the `0.60` gate
 - The required test suite now exists and passes, along with the supporting calibration module [skae/transition_calibration.py](/home/mila/l/lia/skae/skae/transition_calibration.py) and the reproducible calibration entry point [tools/calibrate_transition_system.py](/home/mila/l/lia/skae/tools/calibrate_transition_system.py).
 - Two native-plot `2D` deterministic candidates are now frozen from ground-truth calibration on the fixed `17x17` grid:
   - `multiwell_strong_transition`

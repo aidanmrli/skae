@@ -26,8 +26,8 @@ def test_claude_catalog_packet_default_matrix():
 
     assert len(rows) == 6 * 3 * 3
     assert {row["model_variant"] for row in rows} == {
-        "generic_sparse_ns200k_best",
-        "generic_sparse_sc0_ns200k_best",
+        "generic_sparse_ns20k_best",
+        "generic_sparse_sc0_ns20k_best",
         "lista_dense_promoted_stage4",
     }
     assert {row["system_group"] for row in rows} == {"strict_core"}
@@ -39,7 +39,7 @@ def test_claude_catalog_packet_custom_subset_uses_requested_systems_and_models()
     """System/model overrides should narrow the task table without changing recipe fields."""
     args = _base_args()
     args.systems_csv = "claude:cal_triangle_3,claude:transition_routes_4"
-    args.model_variants_csv = "generic_sparse_sc0_ns200k_best"
+    args.model_variants_csv = "generic_sparse_sc0_ns20k_best"
     args.seeds_csv = "1"
 
     rows = _build_rows(args)
@@ -49,7 +49,7 @@ def test_claude_catalog_packet_custom_subset_uses_requested_systems_and_models()
         "claude:cal_triangle_3",
         "claude:transition_routes_4",
     }
-    assert {row["model_variant"] for row in rows} == {"generic_sparse_sc0_ns200k_best"}
+    assert {row["model_variant"] for row in rows} == {"generic_sparse_sc0_ns20k_best"}
     assert {row["seed"] for row in rows} == {1}
     assert {row["sparsity_coeff"] for row in rows} == {0.0}
     assert {row["env_dt"] for row in rows} == {0.03}
@@ -59,7 +59,7 @@ def test_claude_catalog_packet_manifest_payload_tracks_selected_metadata():
     """Manifest payload should preserve descriptive metadata for the queued subset."""
     args = _base_args()
     args.systems_csv = "claude:cal_triangle_3,claude:transition_routes_4"
-    args.model_variants_csv = "generic_sparse_ns200k_best,lista_dense_promoted_stage4"
+    args.model_variants_csv = "generic_sparse_ns20k_best,lista_dense_promoted_stage4"
     args.seeds_csv = "0,2"
 
     payload = _manifest_payload(
@@ -77,7 +77,7 @@ def test_claude_catalog_packet_manifest_payload_tracks_selected_metadata():
         "claude:transition_routes_4",
     ]
     assert payload["models"] == [
-        "generic_sparse_ns200k_best",
+        "generic_sparse_ns20k_best",
         "lista_dense_promoted_stage4",
     ]
     assert payload["packet_recipe"]["sequence_length"] == 8

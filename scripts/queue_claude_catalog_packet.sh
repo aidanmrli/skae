@@ -6,7 +6,7 @@
 #
 # Optional env vars:
 #   SYSTEMS_CSV=claude:cal_triangle_3,claude:transition_routes_4
-#   MODEL_VARIANTS_CSV=generic_sparse_ns200k_best,lista_dense_promoted_stage4
+#   MODEL_VARIANTS_CSV=generic_sparse_ns20k_best,lista_dense_promoted_stage4
 #   SEEDS_CSV=0,1,2
 #   INCLUDE_SECOND_WAVE=1
 #
@@ -58,8 +58,8 @@ INCLUDE_SECOND_WAVE="${INCLUDE_SECOND_WAVE:-0}"
 EVAL_PROFILE="${EVAL_PROFILE:-full}"
 HORIZONS_CSV="${HORIZONS_CSV:-100,500,1000}"
 
-SPARSE_LABEL="generic_sparse_ns200k_best"
-ZERO_LABEL="generic_sparse_sc0_ns200k_best"
+SPARSE_LABEL="generic_sparse_ns20k_best"
+ZERO_LABEL="generic_sparse_sc0_ns20k_best"
 DENSE_LABEL="lista_dense_promoted_stage4"
 
 mkdir -p "${TASK_DIR}" "${ROOT_SPEC_DIR}" "${COLLECT_DIR}" "${COMPARE_DIR}"

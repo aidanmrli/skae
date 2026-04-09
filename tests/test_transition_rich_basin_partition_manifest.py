@@ -25,7 +25,7 @@ def test_transition_rich_basin_partition_manifest_shape():
 
     assert len(systems) == 17
     assert len(models) == 2
-    assert TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS == 200_000
+    assert TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS == 20_000
     assert TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE == 256
     assert TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE == 256
     assert TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH == 8
@@ -45,7 +45,7 @@ def test_transition_rich_basin_partition_known_defaults():
 def test_transition_rich_basin_partition_manifest_jsonable():
     payload = transition_rich_basin_partition_manifest_jsonable()
 
-    assert payload["num_steps"] == 200_000
+    assert payload["num_steps"] == 20_000
     assert len(payload["systems"]) == 17
     assert len(payload["models"]) == 2
     assert payload["h1000_threshold"] == 50.0

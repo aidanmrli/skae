@@ -1,12 +1,13 @@
 """Manifest for the first Claude catalog training packet.
 
-This packet is intentionally small. It operationalizes the paper-facing
-recommendation from the Claude catalog handoff:
+This packet is intentionally small. It operationalizes a compact
+interpretability-diagnostic recipe:
 
 - start with the strict six-system core
 - use the same three model families already used for the paper branch
-- keep the `200k`, `target_size=256`, `sequence_length=8`, `seed in {0,1,2}`
-  recipe fixed
+- keep the `20k`, `target_size=256`, `sequence_length=8`, `seed in {0,1,2}`
+  recipe fixed while the interpretability metrics and final protocol are still
+  being set; reserve `200k` only for the final paper-facing rerun
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from typing import Dict, List, Optional, Sequence
 from skae.config import Config, get_env_dt
 
 
-CLAUDE_CATALOG_PACKET_NUM_STEPS = 200_000
+CLAUDE_CATALOG_PACKET_NUM_STEPS = 20_000
 CLAUDE_CATALOG_PACKET_BATCH_SIZE = 256
 CLAUDE_CATALOG_PACKET_TARGET_SIZE = 256
 CLAUDE_CATALOG_PACKET_SEQUENCE_LENGTH = 8
@@ -123,7 +124,7 @@ CLAUDE_CATALOG_PACKET_SECOND_WAVE_SYSTEMS: Sequence[ClaudeCatalogPacketSystem] =
 
 CLAUDE_CATALOG_PACKET_MODELS: Sequence[ClaudeCatalogPacketModel] = (
     ClaudeCatalogPacketModel(
-        variant="generic_sparse_ns200k_best",
+        variant="generic_sparse_ns20k_best",
         config_name="generic_sparse",
         num_steps=CLAUDE_CATALOG_PACKET_NUM_STEPS,
         lr=1e-4,
@@ -135,7 +136,7 @@ CLAUDE_CATALOG_PACKET_MODELS: Sequence[ClaudeCatalogPacketModel] = (
         sparsity_coeff=0.0025,
     ),
     ClaudeCatalogPacketModel(
-        variant="generic_sparse_sc0_ns200k_best",
+        variant="generic_sparse_sc0_ns20k_best",
         config_name="generic_sparse",
         num_steps=CLAUDE_CATALOG_PACKET_NUM_STEPS,
         lr=1e-4,

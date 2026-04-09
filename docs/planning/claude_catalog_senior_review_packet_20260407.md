@@ -1,6 +1,6 @@
 # Claude Catalog: Senior-Review Scope Note
 
-Date: 2026-04-07
+Date: 2026-04-08
 
 This note records the senior-coauthor-facing scope for the Claude-catalog part
 of the branch. It replaces the older `6`-system follow-up recommendation as the
@@ -67,10 +67,12 @@ three-family comparison already used elsewhere:
 - **Zero-sparsity MLP control**
 - **Dense LISTA comparator**
 
-Hold fixed the usual paper-facing recipe unless a document explicitly says
+Hold fixed the usual diagnostic recipe unless a document explicitly says
 otherwise:
 
-- training budget: `200k` optimization steps
+- training budget: `20k` optimization steps while interpretability metrics and
+  protocol details are still being set; reserve `200k` only for the final
+  paper-facing rerun once the branch recipe is locked
 - latent width: `256`
 - training horizon: `H = 8`
 - batch size: `256`
