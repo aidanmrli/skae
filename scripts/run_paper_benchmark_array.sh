@@ -142,11 +142,80 @@ TRAIN_ARGS=(
 if [[ -n "${lista_alpha}" ]]; then
   TRAIN_ARGS+=(--lista_alpha "${lista_alpha}")
 fi
+if [[ -n "${hard_init_oversample:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_oversample "${hard_init_oversample}")
+fi
+if [[ -n "${hard_init_fraction:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_fraction "${hard_init_fraction}")
+fi
+if [[ -n "${hard_init_pool_size:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_pool_size "${hard_init_pool_size}")
+fi
+if [[ -n "${hard_init_num_candidates:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_num_candidates "${hard_init_num_candidates}")
+fi
+if [[ -n "${hard_init_probe_steps:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_probe_steps "${hard_init_probe_steps}")
+fi
+if [[ -n "${hard_init_num_perturbations:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_num_perturbations "${hard_init_num_perturbations}")
+fi
+if [[ -n "${hard_init_perturb_scale:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_perturb_scale "${hard_init_perturb_scale}")
+fi
+if [[ -n "${hard_init_transient_window:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_transient_window "${hard_init_transient_window}")
+fi
+if [[ -n "${hard_init_transient_weight:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_transient_weight "${hard_init_transient_weight}")
+fi
+if [[ -n "${hard_init_jitter_scale:-}" ]]; then
+  TRAIN_ARGS+=(--hard_init_jitter_scale "${hard_init_jitter_scale}")
+fi
 if [[ -n "${lista_num_loops}" ]]; then
   TRAIN_ARGS+=(--lista_num_loops "${lista_num_loops}")
 fi
+if [[ -n "${lista_use_momentum:-}" ]]; then
+  TRAIN_ARGS+=(--lista_use_momentum "${lista_use_momentum}")
+fi
+if [[ -n "${lista_momentum_beta:-}" ]]; then
+  TRAIN_ARGS+=(--lista_momentum_beta "${lista_momentum_beta}")
+fi
+if [[ -n "${lista_linear_encoder}" ]]; then
+  TRAIN_ARGS+=(--lista_linear_encoder "${lista_linear_encoder}")
+fi
 if [[ -n "${lista_final_op}" ]]; then
   TRAIN_ARGS+=(--lista_final_op "${lista_final_op}")
+fi
+if [[ -n "${lista_precode_mode:-}" ]]; then
+  TRAIN_ARGS+=(--lista_precode_mode "${lista_precode_mode}")
+fi
+if [[ -n "${lista_precode_residual_scale:-}" ]]; then
+  TRAIN_ARGS+=(--lista_precode_residual_scale "${lista_precode_residual_scale}")
+fi
+if [[ -n "${lista_adaptive_thresholds:-}" ]]; then
+  TRAIN_ARGS+=(--lista_adaptive_thresholds "${lista_adaptive_thresholds}")
+fi
+if [[ -n "${lista_alpha_residual_coeff:-}" ]]; then
+  TRAIN_ARGS+=(--lista_alpha_residual_coeff "${lista_alpha_residual_coeff}")
+fi
+if [[ -n "${lista_alpha_prior_coeff:-}" ]]; then
+  TRAIN_ARGS+=(--lista_alpha_prior_coeff "${lista_alpha_prior_coeff}")
+fi
+if [[ -n "${lista_groupwise_thresholds:-}" ]]; then
+  TRAIN_ARGS+=(--lista_groupwise_thresholds "${lista_groupwise_thresholds}")
+fi
+if [[ -n "${encoder_group_shrinkage:-}" ]]; then
+  TRAIN_ARGS+=(--encoder_group_shrinkage "${encoder_group_shrinkage}")
+fi
+if [[ -n "${encoder_group_threshold_scale:-}" ]]; then
+  TRAIN_ARGS+=(--encoder_group_threshold_scale "${encoder_group_threshold_scale}")
+fi
+if [[ -n "${encoder_topk_groups:-}" ]]; then
+  TRAIN_ARGS+=(--encoder_topk_groups "${encoder_topk_groups}")
+fi
+if [[ -n "${decoder_coherence_weight}" ]]; then
+  TRAIN_ARGS+=(--decoder_coherence_weight "${decoder_coherence_weight}")
 fi
 if [[ -n "${k_structure}" ]]; then
   TRAIN_ARGS+=(--k_structure "${k_structure}")
@@ -156,6 +225,114 @@ if [[ -n "${k_block_size}" ]]; then
 fi
 if [[ -n "${k_num_blocks:-}" ]]; then
   TRAIN_ARGS+=(--k_num_blocks "${k_num_blocks}")
+fi
+if [[ "${block_loss:-0}" == "1" ]]; then
+  TRAIN_ARGS+=(--block_loss)
+fi
+if [[ -n "${block_one_block_loss:-}" ]]; then
+  TRAIN_ARGS+=(--block_one_block_loss "${block_one_block_loss}")
+fi
+if [[ -n "${block_one_block_weight:-}" ]]; then
+  TRAIN_ARGS+=(--block_one_block_weight "${block_one_block_weight}")
+fi
+if [[ -n "${block_top1_margin:-}" ]]; then
+  TRAIN_ARGS+=(--block_top1_margin "${block_top1_margin}")
+fi
+if [[ -n "${block_balance_loss:-}" ]]; then
+  TRAIN_ARGS+=(--block_balance_loss "${block_balance_loss}")
+fi
+if [[ -n "${block_balance_weight:-}" ]]; then
+  TRAIN_ARGS+=(--block_balance_weight "${block_balance_weight}")
+fi
+if [[ -n "${block_energy_norm:-}" ]]; then
+  TRAIN_ARGS+=(--block_energy_norm "${block_energy_norm}")
+fi
+if [[ -n "${hyperlista_c_theta:-}" ]]; then
+  TRAIN_ARGS+=(--hyperlista_c_theta "${hyperlista_c_theta}")
+fi
+if [[ -n "${hyperlista_c_beta:-}" ]]; then
+  TRAIN_ARGS+=(--hyperlista_c_beta "${hyperlista_c_beta}")
+fi
+if [[ -n "${hyperlista_c_ss:-}" ]]; then
+  TRAIN_ARGS+=(--hyperlista_c_ss "${hyperlista_c_ss}")
+fi
+if [[ -n "${hyperlista_use_ss:-}" ]]; then
+  TRAIN_ARGS+=(--hyperlista_use_ss "${hyperlista_use_ss}")
+fi
+if [[ -n "${hyperlista_use_momentum:-}" ]]; then
+  TRAIN_ARGS+=(--hyperlista_use_momentum "${hyperlista_use_momentum}")
+fi
+if [[ -n "${eval_use_dynamics_prior:-}" ]]; then
+  TRAIN_ARGS+=(--eval_use_dynamics_prior "${eval_use_dynamics_prior}")
+fi
+if [[ -n "${eval_event_trigger_proj_threshold:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_proj_threshold "${eval_event_trigger_proj_threshold}")
+fi
+if [[ -n "${eval_event_trigger_ambiguity_threshold:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_ambiguity_threshold "${eval_event_trigger_ambiguity_threshold}")
+fi
+if [[ -n "${eval_event_trigger_spillover_threshold:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_spillover_threshold "${eval_event_trigger_spillover_threshold}")
+fi
+if [[ -n "${eval_event_trigger_support_margin_min_ratio:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_support_margin_min_ratio "${eval_event_trigger_support_margin_min_ratio}")
+fi
+if [[ -n "${eval_event_trigger_support_threshold:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_support_threshold "${eval_event_trigger_support_threshold}")
+fi
+if [[ -n "${eval_event_trigger_min_dwell:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_min_dwell "${eval_event_trigger_min_dwell}")
+fi
+if [[ -n "${eval_event_trigger_max_interval:-}" ]]; then
+  TRAIN_ARGS+=(--eval_event_trigger_max_interval "${eval_event_trigger_max_interval}")
+fi
+if [[ "${structured:-0}" == "1" ]]; then
+  TRAIN_ARGS+=(--structured)
+fi
+if [[ -n "${structured_d_global:-}" ]]; then
+  TRAIN_ARGS+=(--d_global "${structured_d_global}")
+fi
+if [[ -n "${structured_num_basins:-}" ]]; then
+  TRAIN_ARGS+=(--num_basins "${structured_num_basins}")
+fi
+if [[ -n "${structured_d_basin:-}" ]]; then
+  TRAIN_ARGS+=(--d_basin "${structured_d_basin}")
+fi
+if [[ -n "${lambda_global:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_global "${lambda_global}")
+fi
+if [[ -n "${lambda_local:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_local "${lambda_local}")
+fi
+if [[ -n "${lambda_exclusivity:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_exclusivity "${lambda_exclusivity}")
+fi
+if [[ -n "${lambda_sparsity:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_sparsity "${lambda_sparsity}")
+fi
+if [[ -n "${lambda_entropy:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_entropy "${lambda_entropy}")
+fi
+if [[ -n "${lambda_dominance:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_dominance "${lambda_dominance}")
+fi
+if [[ -n "${lambda_temporal:-}" ]]; then
+  TRAIN_ARGS+=(--lambda_temporal "${lambda_temporal}")
+fi
+if [[ -n "${excl_warmup_steps:-}" ]]; then
+  TRAIN_ARGS+=(--excl_warmup_steps "${excl_warmup_steps}")
+fi
+if [[ "${soft_block:-0}" == "1" ]]; then
+  TRAIN_ARGS+=(--soft_block)
+fi
+if [[ -n "${soft_block_num_blocks:-}" ]]; then
+  TRAIN_ARGS+=(--soft_block_num_blocks "${soft_block_num_blocks}")
+fi
+if [[ -n "${soft_block_weight:-}" ]]; then
+  TRAIN_ARGS+=(--soft_block_weight "${soft_block_weight}")
+fi
+if [[ -n "${soft_block_norm:-}" ]]; then
+  TRAIN_ARGS+=(--soft_block_norm "${soft_block_norm}")
 fi
 if [[ -n "${lr:-}" ]]; then
   TRAIN_ARGS+=(--lr "${lr}")

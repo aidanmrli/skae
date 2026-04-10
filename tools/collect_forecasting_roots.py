@@ -140,7 +140,7 @@ def _candidate_system_keys(eval_data: Dict) -> List[str]:
     for key, value in eval_data.items():
         if not isinstance(key, str) or not isinstance(value, dict):
             continue
-        if "modes" in value or "best_periodic" in value:
+        if "modes" in value or "best_periodic" in value or "best_reset" in value:
             keys.append(key)
     return sorted(keys)
 
@@ -277,6 +277,10 @@ def _extract_row(
         best_periodic = _safe_float(best.get("mean"))
         best_periodic_per_dim = _safe_float(best.get("per_dim_mean"))
         best_mode = best.get("mode")
+        best_reset = system_data.get("best_reset", {}).get(str(horizon), {})
+        best_reset_mean = _safe_float(best_reset.get("mean"))
+        best_reset_per_dim = _safe_float(best_reset.get("per_dim_mean"))
+        best_reset_mode = best_reset.get("mode")
 
         row[f"h{horizon}_no_reencode_mean"] = no_re
         row[f"h{horizon}_no_reencode_per_dim_mean"] = no_re_per_dim
@@ -285,6 +289,9 @@ def _extract_row(
         row[f"h{horizon}_best_periodic_mean"] = best_periodic
         row[f"h{horizon}_best_periodic_per_dim_mean"] = best_periodic_per_dim
         row[f"h{horizon}_best_periodic_mode"] = best_mode
+        row[f"h{horizon}_best_reset_mean"] = best_reset_mean
+        row[f"h{horizon}_best_reset_per_dim_mean"] = best_reset_per_dim
+        row[f"h{horizon}_best_reset_mode"] = best_reset_mode
 
         if best_periodic is not None and no_re is not None and no_re > 0.0:
             row[f"h{horizon}_ratio_best_over_no_re"] = best_periodic / no_re
@@ -294,6 +301,15 @@ def _extract_row(
             row[f"h{horizon}_ratio_best_over_every_step"] = best_periodic / every_step
         else:
             row[f"h{horizon}_ratio_best_over_every_step"] = None
+
+        if best_reset_mean is not None and no_re is not None and no_re > 0.0:
+            row[f"h{horizon}_ratio_best_reset_over_no_re"] = best_reset_mean / no_re
+        else:
+            row[f"h{horizon}_ratio_best_reset_over_no_re"] = None
+        if best_reset_mean is not None and every_step is not None and every_step > 0.0:
+            row[f"h{horizon}_ratio_best_reset_over_every_step"] = best_reset_mean / every_step
+        else:
+            row[f"h{horizon}_ratio_best_reset_over_every_step"] = None
 
     return row
 

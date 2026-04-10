@@ -80,39 +80,199 @@ def rollout_no_reencode(model: KoopmanMachine, x0: torch.Tensor, horizon: int) -
     return torch.stack(predictions, dim=0)
 
 
-@torch.no_grad()
-def rollout_every_step_reencode(
-    model: KoopmanMachine,
-    x0: torch.Tensor,
-    horizon: int,
+def _normalized_projection_gap(
+    reencoded_latent: torch.Tensor,
+    predicted_latent: torch.Tensor,
+    eps: float = 1e-8,
 ) -> torch.Tensor:
-    """Roll out the Koopman dynamics with reencoding at every step."""
+    """Return per-sample normalized projection gaps."""
+    numerator = torch.norm(reencoded_latent - predicted_latent, dim=-1)
+    denominator = torch.norm(predicted_latent, dim=-1).clamp(min=eps)
+    return numerator / denominator
 
-    model.eval()
-    device = next(model.parameters()).device
-    state = x0.to(device)
-    predictions: List[torch.Tensor] = []
 
-    for _ in range(horizon):
-        state = model.step_env(state)
-        predictions.append(state)
+def _reencode_latent(
+    model: KoopmanMachine,
+    predicted_state: torch.Tensor,
+    predicted_latent: torch.Tensor,
+    *,
+    use_dynamics_prior: bool,
+) -> torch.Tensor:
+    """Reencode a predicted state, optionally warm-started by the predicted latent."""
+    latent_prior = predicted_latent if use_dynamics_prior else None
+    return model.encode_with_prior(predicted_state, latent_prior=latent_prior)
 
-        if not torch.isfinite(state).all():
-            nan_frame = torch.full_like(state, torch.nan)
-            predictions.extend([nan_frame] * (horizon - len(predictions)))
-            break
 
-    return torch.stack(predictions, dim=0)
+def _empty_rollout_diagnostics(
+    *,
+    horizon: int,
+    batch_size: int,
+    device: torch.device,
+) -> Dict[str, torch.Tensor]:
+    """Allocate empty diagnostics for reset-aware rollout modes."""
+    return {
+        "projection_gap": torch.full((horizon, batch_size), torch.nan, device=device),
+        "ambiguity_score": torch.full((horizon, batch_size), torch.nan, device=device),
+        "spillover_score": torch.full((horizon, batch_size), torch.nan, device=device),
+        "support_margin_ratio": torch.full((horizon, batch_size), torch.nan, device=device),
+        "reset_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+        "threshold_trigger_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+        "interval_trigger_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+        "proj_trigger_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+        "ambiguity_trigger_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+        "spillover_trigger_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+        "support_margin_trigger_mask": torch.zeros((horizon, batch_size), dtype=torch.bool, device=device),
+    }
+
+
+def _event_trigger_group_slices(model: KoopmanMachine) -> Optional[Tuple[slice, ...]]:
+    """Infer latent group slices for ambiguity/spillover triggers."""
+
+    if all(hasattr(model, attr) for attr in ("d_global", "num_basins", "d_basin")):
+        d_global = int(getattr(model, "d_global"))
+        num_basins = int(getattr(model, "num_basins"))
+        d_basin = int(getattr(model, "d_basin"))
+        return tuple(
+            slice(d_global + basin_index * d_basin, d_global + (basin_index + 1) * d_basin)
+            for basin_index in range(num_basins)
+        )
+
+    k_structure = getattr(model, "_k_structure", None)
+    if k_structure == "block_diagonal":
+        sizes = tuple(int(block_size) for block_size in getattr(model, "_k_block_sizes", ()))
+    else:
+        sizes = tuple(int(block_size) for block_size in getattr(model, "_soft_block_sizes", ()))
+    if not sizes:
+        return None
+
+    offset = 0
+    group_slices: List[slice] = []
+    for block_size in sizes:
+        group_slices.append(slice(offset, offset + block_size))
+        offset += block_size
+    return tuple(group_slices)
+
+
+def _group_energies_from_slices(
+    z: torch.Tensor,
+    group_slices: Sequence[slice],
+) -> Optional[torch.Tensor]:
+    """Compute L2 group energies for the provided latent slices."""
+
+    if not group_slices:
+        return None
+    energies = [
+        torch.norm(z[..., group_slice], p=2, dim=-1, keepdim=True)
+        for group_slice in group_slices
+    ]
+    return torch.cat(energies, dim=-1)
+
+
+def _support_margin_ratio(
+    z: torch.Tensor,
+    *,
+    support_threshold: float,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """Return min-active-to-threshold ratios used for support-fragility triggers."""
+
+    threshold = max(float(support_threshold), eps)
+    z_abs = z.abs()
+    active_mask = z_abs > threshold
+    min_active = torch.where(
+        active_mask,
+        z_abs,
+        torch.full_like(z_abs, float("inf")),
+    ).min(dim=-1).values
+    has_active = active_mask.any(dim=-1)
+    min_active = torch.where(has_active, min_active, torch.zeros_like(min_active))
+    return min_active / threshold
+
+
+def _compute_event_trigger_scores(
+    model: KoopmanMachine,
+    latent: torch.Tensor,
+    predicted_latent: torch.Tensor,
+    reencoded_latent: torch.Tensor,
+    *,
+    support_threshold: float,
+    eps: float = 1e-8,
+) -> Dict[str, torch.Tensor]:
+    """Compute label-free event-trigger scores from the current rollout state."""
+
+    batch_shape = predicted_latent.shape[:-1]
+    empty_score = torch.full(batch_shape, torch.nan, device=predicted_latent.device, dtype=predicted_latent.dtype)
+    scores: Dict[str, torch.Tensor] = {
+        "projection_gap": _normalized_projection_gap(reencoded_latent, predicted_latent, eps=eps),
+        "ambiguity_score": empty_score.clone(),
+        "spillover_score": empty_score.clone(),
+        "support_margin_ratio": _support_margin_ratio(
+            predicted_latent,
+            support_threshold=support_threshold,
+            eps=eps,
+        ),
+    }
+
+    group_slices = _event_trigger_group_slices(model)
+    if group_slices:
+        current_energies = _group_energies_from_slices(latent, group_slices)
+        next_energies = _group_energies_from_slices(predicted_latent, group_slices)
+        if current_energies is not None and next_energies is not None:
+            next_total = next_energies.sum(dim=-1, keepdim=True).clamp(min=eps)
+            next_probs = next_energies / next_total
+            scores["ambiguity_score"] = 1.0 - next_probs.max(dim=-1).values
+
+            dominant_group = current_energies.argmax(dim=-1, keepdim=True)
+            dominant_next_energy = next_energies.gather(dim=-1, index=dominant_group).squeeze(-1)
+            scores["spillover_score"] = 1.0 - dominant_next_energy / next_total.squeeze(-1)
+
+    return scores
+
+
+def _format_event_threshold_tag(value: float | int) -> str:
+    """Format thresholds for compact metric/mode names."""
+
+    return str(value).replace("-", "m").replace(".", "p")
+
+
+def _event_trigger_mode_name(settings: "EvaluationSettings") -> str:
+    """Build a stable mode name for the configured event-trigger policy."""
+
+    if (
+        settings.event_trigger_ambiguity_threshold is None
+        and settings.event_trigger_spillover_threshold is None
+        and settings.event_trigger_support_margin_min_ratio is None
+    ):
+        if settings.event_trigger_proj_threshold is not None:
+            return f"event_proj_{_format_event_threshold_tag(settings.event_trigger_proj_threshold)}"
+        if settings.event_trigger_max_interval > 0:
+            return f"event_interval_{int(settings.event_trigger_max_interval)}"
+        return "event_trigger"
+
+    parts: List[str] = []
+    if settings.event_trigger_proj_threshold is not None:
+        parts.append(f"proj_{_format_event_threshold_tag(settings.event_trigger_proj_threshold)}")
+    if settings.event_trigger_ambiguity_threshold is not None:
+        parts.append(f"amb_{_format_event_threshold_tag(settings.event_trigger_ambiguity_threshold)}")
+    if settings.event_trigger_spillover_threshold is not None:
+        parts.append(f"spill_{_format_event_threshold_tag(settings.event_trigger_spillover_threshold)}")
+    if settings.event_trigger_support_margin_min_ratio is not None:
+        parts.append(f"margin_{_format_event_threshold_tag(settings.event_trigger_support_margin_min_ratio)}")
+    if settings.event_trigger_max_interval > 0:
+        parts.append(f"maxint_{int(settings.event_trigger_max_interval)}")
+    return "event_hybrid_" + "_".join(parts)
 
 
 @torch.no_grad()
-def rollout_periodic_reencode(
+def _rollout_periodic_reencode_with_diagnostics(
     model: KoopmanMachine,
     x0: torch.Tensor,
     horizon: int,
     period: int,
-) -> torch.Tensor:
-    """Roll out the Koopman dynamics with periodic reencoding every *period* steps."""
+    *,
+    use_dynamics_prior: bool = False,
+) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+    """Periodic-reset rollout plus projection-gap diagnostics."""
 
     if period <= 0:
         raise ValueError("period must be a positive integer")
@@ -122,22 +282,258 @@ def rollout_periodic_reencode(
     x0 = x0.to(device)
 
     latent = model.encode(x0)
+    batch_size = int(x0.shape[0])
+    diagnostics = _empty_rollout_diagnostics(horizon=horizon, batch_size=batch_size, device=device)
     predictions: List[torch.Tensor] = []
 
     for step in range(horizon):
-        latent = model.step_latent(latent)
-        x_pred = model.decode(latent)
-        predictions.append(x_pred)
+        predicted_latent = model.step_latent(latent)
+        predicted_state = model.decode(predicted_latent)
+        predictions.append(predicted_state)
 
-        if not torch.isfinite(x_pred).all():
-            nan_frame = torch.full_like(x_pred, torch.nan)
+        if not torch.isfinite(predicted_state).all():
+            nan_frame = torch.full_like(predicted_state, torch.nan)
             predictions.extend([nan_frame] * (horizon - len(predictions)))
             break
 
-        if (step + 1) % period == 0:
-            latent = model.encode(x_pred)
+        reencoded_latent = _reencode_latent(
+            model,
+            predicted_state,
+            predicted_latent,
+            use_dynamics_prior=use_dynamics_prior,
+        )
+        diagnostics["projection_gap"][step] = _normalized_projection_gap(
+            reencoded_latent, predicted_latent
+        )
 
-    return torch.stack(predictions, dim=0)
+        should_reset = (step + 1) % period == 0
+        if should_reset:
+            diagnostics["reset_mask"][step] = True
+            latent = reencoded_latent
+        else:
+            latent = predicted_latent
+
+    return torch.stack(predictions, dim=0), diagnostics
+
+
+@torch.no_grad()
+def rollout_every_step_reencode(
+    model: KoopmanMachine,
+    x0: torch.Tensor,
+    horizon: int,
+    *,
+    use_dynamics_prior: bool = False,
+) -> torch.Tensor:
+    """Roll out the Koopman dynamics with reencoding at every step."""
+    predictions, _ = _rollout_periodic_reencode_with_diagnostics(
+        model,
+        x0,
+        horizon,
+        period=1,
+        use_dynamics_prior=use_dynamics_prior,
+    )
+    return predictions
+
+
+@torch.no_grad()
+def rollout_periodic_reencode(
+    model: KoopmanMachine,
+    x0: torch.Tensor,
+    horizon: int,
+    period: int,
+    *,
+    use_dynamics_prior: bool = False,
+) -> torch.Tensor:
+    """Roll out the Koopman dynamics with periodic reencoding every *period* steps."""
+    predictions, _ = _rollout_periodic_reencode_with_diagnostics(
+        model,
+        x0,
+        horizon,
+        period=period,
+        use_dynamics_prior=use_dynamics_prior,
+    )
+    return predictions
+
+
+@torch.no_grad()
+def rollout_event_trigger_reencode(
+    model: KoopmanMachine,
+    x0: torch.Tensor,
+    horizon: int,
+    proj_threshold: Optional[float],
+    *,
+    ambiguity_threshold: Optional[float] = None,
+    spillover_threshold: Optional[float] = None,
+    support_margin_min_ratio: Optional[float] = None,
+    support_threshold: float = 1e-3,
+    min_dwell: int = 0,
+    max_interval: int = 0,
+    use_dynamics_prior: bool = False,
+) -> torch.Tensor:
+    """Roll out with hybrid event-triggered reencoding."""
+    predictions, _ = _rollout_event_trigger_reencode_with_diagnostics(
+        model,
+        x0,
+        horizon,
+        proj_threshold=proj_threshold,
+        ambiguity_threshold=ambiguity_threshold,
+        spillover_threshold=spillover_threshold,
+        support_margin_min_ratio=support_margin_min_ratio,
+        support_threshold=support_threshold,
+        min_dwell=min_dwell,
+        max_interval=max_interval,
+        use_dynamics_prior=use_dynamics_prior,
+    )
+    return predictions
+
+
+@torch.no_grad()
+def _rollout_event_trigger_reencode_with_diagnostics(
+    model: KoopmanMachine,
+    x0: torch.Tensor,
+    horizon: int,
+    proj_threshold: Optional[float],
+    *,
+    ambiguity_threshold: Optional[float] = None,
+    spillover_threshold: Optional[float] = None,
+    support_margin_min_ratio: Optional[float] = None,
+    support_threshold: float = 1e-3,
+    min_dwell: int = 0,
+    max_interval: int = 0,
+    use_dynamics_prior: bool = False,
+) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+    """Hybrid event-triggered rollout plus reset diagnostics."""
+
+    if proj_threshold is not None and proj_threshold < 0.0:
+        raise ValueError("proj_threshold must be non-negative")
+    if ambiguity_threshold is not None and ambiguity_threshold < 0.0:
+        raise ValueError("ambiguity_threshold must be non-negative")
+    if spillover_threshold is not None and spillover_threshold < 0.0:
+        raise ValueError("spillover_threshold must be non-negative")
+    if support_margin_min_ratio is not None and support_margin_min_ratio < 0.0:
+        raise ValueError("support_margin_min_ratio must be non-negative")
+    if support_threshold < 0.0:
+        raise ValueError("support_threshold must be non-negative")
+    if min_dwell < 0:
+        raise ValueError("min_dwell must be non-negative")
+    if max_interval < 0:
+        raise ValueError("max_interval must be non-negative")
+    if (
+        proj_threshold is None
+        and ambiguity_threshold is None
+        and spillover_threshold is None
+        and support_margin_min_ratio is None
+        and max_interval <= 0
+    ):
+        raise ValueError("At least one event-trigger threshold or max_interval must be set")
+    if (
+        ambiguity_threshold is not None or spillover_threshold is not None
+    ) and _event_trigger_group_slices(model) is None:
+        raise ValueError(
+            "ambiguity/spillover triggers require block-diagonal, soft-block, or structured basin groups"
+        )
+
+    model.eval()
+    device = next(model.parameters()).device
+    x0 = x0.to(device)
+
+    latent = model.encode(x0)
+    batch_size = int(x0.shape[0])
+    steps_since_reset = torch.zeros(batch_size, dtype=torch.long, device=device)
+    diagnostics = _empty_rollout_diagnostics(horizon=horizon, batch_size=batch_size, device=device)
+    predictions: List[torch.Tensor] = []
+
+    for step in range(horizon):
+        predicted_latent = model.step_latent(latent)
+        predicted_state = model.decode(predicted_latent)
+        predictions.append(predicted_state)
+
+        if not torch.isfinite(predicted_state).all():
+            nan_frame = torch.full_like(predicted_state, torch.nan)
+            predictions.extend([nan_frame] * (horizon - len(predictions)))
+            break
+
+        reencoded_latent = _reencode_latent(
+            model,
+            predicted_state,
+            predicted_latent,
+            use_dynamics_prior=use_dynamics_prior,
+        )
+        scores = _compute_event_trigger_scores(
+            model,
+            latent,
+            predicted_latent,
+            reencoded_latent,
+            support_threshold=support_threshold,
+        )
+        projection_gap = scores["projection_gap"]
+        diagnostics["projection_gap"][step] = projection_gap
+        diagnostics["ambiguity_score"][step] = scores["ambiguity_score"]
+        diagnostics["spillover_score"][step] = scores["spillover_score"]
+        diagnostics["support_margin_ratio"][step] = scores["support_margin_ratio"]
+
+        next_steps_since_reset = steps_since_reset + 1
+        dwell_mask = next_steps_since_reset > min_dwell
+        proj_trigger = (
+            projection_gap > proj_threshold
+            if proj_threshold is not None
+            else torch.zeros_like(projection_gap, dtype=torch.bool)
+        )
+        ambiguity_score = scores["ambiguity_score"]
+        ambiguity_trigger = (
+            ambiguity_score > ambiguity_threshold
+            if ambiguity_threshold is not None
+            else torch.zeros_like(projection_gap, dtype=torch.bool)
+        )
+        spillover_score = scores["spillover_score"]
+        spillover_trigger = (
+            spillover_score > spillover_threshold
+            if spillover_threshold is not None
+            else torch.zeros_like(projection_gap, dtype=torch.bool)
+        )
+        support_margin_ratio = scores["support_margin_ratio"]
+        support_margin_trigger = (
+            support_margin_ratio < support_margin_min_ratio
+            if support_margin_min_ratio is not None
+            else torch.zeros_like(projection_gap, dtype=torch.bool)
+        )
+        proj_trigger = proj_trigger & dwell_mask
+        ambiguity_trigger = ambiguity_trigger & dwell_mask
+        spillover_trigger = spillover_trigger & dwell_mask
+        support_margin_trigger = support_margin_trigger & dwell_mask
+        threshold_trigger = (
+            proj_trigger
+            | ambiguity_trigger
+            | spillover_trigger
+            | support_margin_trigger
+        )
+        interval_trigger = (
+            next_steps_since_reset >= max_interval
+            if max_interval > 0
+            else torch.zeros_like(threshold_trigger)
+        )
+        should_reset = threshold_trigger | interval_trigger
+
+        diagnostics["proj_trigger_mask"][step] = proj_trigger
+        diagnostics["ambiguity_trigger_mask"][step] = ambiguity_trigger
+        diagnostics["spillover_trigger_mask"][step] = spillover_trigger
+        diagnostics["support_margin_trigger_mask"][step] = support_margin_trigger
+        diagnostics["threshold_trigger_mask"][step] = threshold_trigger
+        diagnostics["interval_trigger_mask"][step] = interval_trigger
+        diagnostics["reset_mask"][step] = should_reset
+
+        latent = torch.where(
+            should_reset.unsqueeze(-1),
+            reencoded_latent,
+            predicted_latent,
+        )
+        steps_since_reset = torch.where(
+            should_reset,
+            torch.zeros_like(next_steps_since_reset),
+            next_steps_since_reset,
+        )
+
+    return torch.stack(predictions, dim=0), diagnostics
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +582,14 @@ def _cumulative_mse_curve(per_step_values: torch.Tensor) -> List[float]:
     with torch.no_grad():
         curve = torch.nanmean(cumulative / steps.view(-1, 1), dim=1)
     return curve.cpu().tolist()
+
+
+def _safe_float_for_best(value: object) -> Optional[float]:
+    """Return a finite float or ``None`` for best-mode summaries."""
+    if value is None:
+        return None
+    out = float(value)
+    return out if math.isfinite(out) else None
 
 
 # ---------------------------------------------------------------------------
@@ -821,6 +1225,8 @@ def _make_km_env_n_step(
     x: torch.Tensor,
     length: int,
     reencode_at_every: int,
+    *,
+    use_dynamics_prior: bool = False,
 ) -> torch.Tensor:
     """Torch analogue of notebooks/koopman_copy.py::make_km_env_n_step."""
     device = next(model.parameters()).device
@@ -828,12 +1234,14 @@ def _make_km_env_n_step(
 
     with torch.no_grad():
         if reencode_at_every == 1:
-            traj = []
-            state = x
-            for _ in range(length):
-                state = model.step_env(state)
-                traj.append(state.detach().cpu())
-            return torch.stack(traj, dim=0)
+            traj, _ = _rollout_periodic_reencode_with_diagnostics(
+                model,
+                x,
+                length,
+                period=1,
+                use_dynamics_prior=use_dynamics_prior,
+            )
+            return traj.detach().cpu()
         elif reencode_at_every == 0:
             latents = []
             latent = model.encode(x)
@@ -844,24 +1252,14 @@ def _make_km_env_n_step(
             latents_stack = torch.stack(latents, dim=0)
             return model.decode(latents_stack).detach().cpu()
         else:
-            assert length % reencode_at_every == 0, (
-                "length must be divisible by reencode_at_every when > 1"
+            traj, _ = _rollout_periodic_reencode_with_diagnostics(
+                model,
+                x,
+                length,
+                period=reencode_at_every,
+                use_dynamics_prior=use_dynamics_prior,
             )
-            state = x
-            num_slices = length // reencode_at_every
-            chunks: List[torch.Tensor] = []
-            for _ in range(num_slices):
-                latent = model.encode(state)
-                chunk_states = []
-                z = latent
-                for _ in range(reencode_at_every):
-                    z = model.step_latent(z)
-                    decoded = model.decode(z)
-                    chunk_states.append(decoded.detach().cpu())
-                chunk = torch.stack(chunk_states, dim=0)
-                chunks.append(chunk)
-                state = chunk[-1].to(device)
-            return torch.cat(chunks, dim=0)
+            return traj.detach().cpu()
 
     raise RuntimeError("Failed to generate Koopman rollout")
 
@@ -893,7 +1291,13 @@ def _save_jax_style_phase_portraits(
 
     trajectories = {}
     for period in reencode_periods:
-        traj = _make_km_env_n_step(model, init_states, length, period)
+        traj = _make_km_env_n_step(
+            model,
+            init_states,
+            length,
+            period,
+            use_dynamics_prior=settings.use_dynamics_prior,
+        )
         trajectories[period] = traj  # [length, batch, obs_dim] on CPU
 
     num_modes = len(reencode_periods)
@@ -971,6 +1375,14 @@ class EvaluationSettings:
         1000,
     )
     dysts_phase_portrait_reencode_periods: Sequence[int] = (0, 1, 100, 200, 300, 400, 500, 1000)
+    use_dynamics_prior: bool = False
+    event_trigger_proj_threshold: Optional[float] = None
+    event_trigger_ambiguity_threshold: Optional[float] = None
+    event_trigger_spillover_threshold: Optional[float] = None
+    event_trigger_support_margin_min_ratio: Optional[float] = None
+    event_trigger_support_threshold: float = 1e-3
+    event_trigger_min_dwell: int = 0
+    event_trigger_max_interval: int = 0
     save_rollout_artifacts: bool = False
 
 
@@ -984,6 +1396,7 @@ def _save_rollout_artifacts(
     init_states: torch.Tensor,
     true_future: torch.Tensor,
     predictions: Dict[str, torch.Tensor],
+    mode_diagnostics: Dict[str, Dict[str, torch.Tensor]],
 ) -> None:
     """Persist rollout tensors for downstream diagnosis."""
 
@@ -997,6 +1410,30 @@ def _save_rollout_artifacts(
             "horizons": list(settings.horizons),
             "periodic_reencode_periods": list(settings.periodic_reencode_periods),
             "dysts_periodic_reencode_periods": list(settings.dysts_periodic_reencode_periods),
+            "use_dynamics_prior": bool(settings.use_dynamics_prior),
+            "event_trigger_proj_threshold": (
+                None
+                if settings.event_trigger_proj_threshold is None
+                else float(settings.event_trigger_proj_threshold)
+            ),
+            "event_trigger_ambiguity_threshold": (
+                None
+                if settings.event_trigger_ambiguity_threshold is None
+                else float(settings.event_trigger_ambiguity_threshold)
+            ),
+            "event_trigger_spillover_threshold": (
+                None
+                if settings.event_trigger_spillover_threshold is None
+                else float(settings.event_trigger_spillover_threshold)
+            ),
+            "event_trigger_support_margin_min_ratio": (
+                None
+                if settings.event_trigger_support_margin_min_ratio is None
+                else float(settings.event_trigger_support_margin_min_ratio)
+            ),
+            "event_trigger_support_threshold": float(settings.event_trigger_support_threshold),
+            "event_trigger_min_dwell": int(settings.event_trigger_min_dwell),
+            "event_trigger_max_interval": int(settings.event_trigger_max_interval),
             "batch_size": int(settings.batch_size),
             "seed_offset": int(settings.seed_offset),
             "save_rollout_artifacts": bool(settings.save_rollout_artifacts),
@@ -1011,6 +1448,13 @@ def _save_rollout_artifacts(
         "predictions": {
             mode_name: pred.detach().cpu().contiguous()
             for mode_name, pred in predictions.items()
+        },
+        "mode_diagnostics": {
+            mode_name: {
+                key: value.detach().cpu().contiguous()
+                for key, value in diagnostics.items()
+            }
+            for mode_name, diagnostics in mode_diagnostics.items()
         },
     }
     torch.save(payload, path)
@@ -1106,12 +1550,21 @@ def evaluate_model(
         init_states_device = init_states.to(device)
 
         predictions: Dict[str, torch.Tensor] = {}
+        mode_diagnostics: Dict[str, Dict[str, torch.Tensor]] = {}
         print(
             f"[evaluate_model] -> System '{system}': running rollout modes...",
             flush=True,
         )
         predictions["no_reencode"] = rollout_no_reencode(model, init_states_device, max_horizon)
-        predictions["every_step"] = rollout_every_step_reencode(model, init_states_device, max_horizon)
+        every_step_predictions, every_step_diagnostics = _rollout_periodic_reencode_with_diagnostics(
+            model,
+            init_states_device,
+            max_horizon,
+            period=1,
+            use_dynamics_prior=settings.use_dynamics_prior,
+        )
+        predictions["every_step"] = every_step_predictions
+        mode_diagnostics["every_step"] = every_step_diagnostics
 
         # Use extended reencode periods for dysts systems
         is_dysts = system.lower().startswith("dysts:")
@@ -1121,15 +1574,59 @@ def evaluate_model(
         )
         for period in periodic_periods:
             mode_name = f"periodic_{period}"
-            predictions[mode_name] = rollout_periodic_reencode(
+            periodic_predictions, periodic_diagnostics = _rollout_periodic_reencode_with_diagnostics(
                 model,
                 init_states_device,
                 max_horizon,
                 period=period,
+                use_dynamics_prior=settings.use_dynamics_prior,
             )
+            predictions[mode_name] = periodic_predictions
+            mode_diagnostics[mode_name] = periodic_diagnostics
+
+        if (
+            settings.event_trigger_proj_threshold is not None
+            or settings.event_trigger_ambiguity_threshold is not None
+            or settings.event_trigger_spillover_threshold is not None
+            or settings.event_trigger_support_margin_min_ratio is not None
+            or settings.event_trigger_max_interval > 0
+        ):
+            mode_name = _event_trigger_mode_name(settings)
+            event_predictions, event_diagnostics = _rollout_event_trigger_reencode_with_diagnostics(
+                model,
+                init_states_device,
+                max_horizon,
+                proj_threshold=(
+                    None
+                    if settings.event_trigger_proj_threshold is None
+                    else float(settings.event_trigger_proj_threshold)
+                ),
+                ambiguity_threshold=(
+                    None
+                    if settings.event_trigger_ambiguity_threshold is None
+                    else float(settings.event_trigger_ambiguity_threshold)
+                ),
+                spillover_threshold=(
+                    None
+                    if settings.event_trigger_spillover_threshold is None
+                    else float(settings.event_trigger_spillover_threshold)
+                ),
+                support_margin_min_ratio=(
+                    None
+                    if settings.event_trigger_support_margin_min_ratio is None
+                    else float(settings.event_trigger_support_margin_min_ratio)
+                ),
+                support_threshold=float(settings.event_trigger_support_threshold),
+                min_dwell=int(settings.event_trigger_min_dwell),
+                max_interval=int(settings.event_trigger_max_interval),
+                use_dynamics_prior=settings.use_dynamics_prior,
+            )
+            predictions[mode_name] = event_predictions
+            mode_diagnostics[mode_name] = event_diagnostics
 
         mode_metrics: Dict[str, Dict] = {}
         periodic_summary: Dict[str, Dict[str, float]] = {str(h): {} for h in settings.horizons}
+        best_reset_summary: Dict[str, Dict[str, float]] = {str(h): {} for h in settings.horizons}
         per_step_errors: Dict[str, torch.Tensor] = {}
 
         # Convert ground truth to match predictions for metric computation
@@ -1196,6 +1693,35 @@ def evaluate_model(
                 "l2_error_curve": per_step_error.cpu().tolist(),
                 "l2_error_curve_per_dim": per_step_error_per_dim.cpu().tolist(),
             }
+            diagnostics = mode_diagnostics.get(mode_name)
+            if diagnostics:
+                reset_mask = diagnostics["reset_mask"].float()
+                mode_metrics[mode_name]["reset_rate_mean"] = float(reset_mask.mean().item())
+                mode_metrics[mode_name]["reset_count_mean"] = float(reset_mask.sum(dim=0).mean().item())
+                diagnostic_summary = {
+                    "projection_gap": "projection_gap_mean",
+                    "ambiguity_score": "ambiguity_score_mean",
+                    "spillover_score": "spillover_score_mean",
+                    "support_margin_ratio": "support_margin_ratio_mean",
+                }
+                for diagnostic_key, metric_key in diagnostic_summary.items():
+                    values = diagnostics[diagnostic_key]
+                    finite_values = values[torch.isfinite(values)]
+                    mode_metrics[mode_name][metric_key] = (
+                        float(finite_values.mean().item()) if finite_values.numel() > 0 else None
+                    )
+
+                trigger_summary = {
+                    "threshold_trigger_mask": "threshold_trigger_rate_mean",
+                    "interval_trigger_mask": "interval_trigger_rate_mean",
+                    "proj_trigger_mask": "proj_trigger_rate_mean",
+                    "ambiguity_trigger_mask": "ambiguity_trigger_rate_mean",
+                    "spillover_trigger_mask": "spillover_trigger_rate_mean",
+                    "support_margin_trigger_mask": "support_margin_trigger_rate_mean",
+                }
+                for trigger_key, metric_key in trigger_summary.items():
+                    trigger_mask = diagnostics[trigger_key].float()
+                    mode_metrics[mode_name][metric_key] = float(trigger_mask.mean().item())
 
         # Determine best periodic reencoding period per horizon
         best_periodic: Dict[str, Dict[str, float]] = {}
@@ -1214,6 +1740,42 @@ def evaluate_model(
             best_periodic[horizon_key] = {
                 "mode": best_mode_name,
                 "mean": best_mode[1],
+                "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
+                "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
+            }
+
+            if best_mode_name in mode_metrics:
+                best_reset_summary[horizon_key][best_mode_name] = best_mode[1]
+
+        for horizon in settings.horizons:
+            horizon_key = str(horizon)
+            if system == "parabolic" and horizon > 100:
+                continue
+
+            for mode_name, mode_data in mode_metrics.items():
+                if mode_name == "no_reencode":
+                    continue
+                horizon_metrics = mode_data.get("horizons", {}).get(horizon_key)
+                if horizon_metrics is None:
+                    continue
+                mean_value = _safe_float_for_best(horizon_metrics.get("mean"))
+                if mean_value is None:
+                    continue
+                best_reset_summary[horizon_key][mode_name] = mean_value
+
+        best_reset: Dict[str, Dict[str, float]] = {}
+        for horizon in settings.horizons:
+            horizon_key = str(horizon)
+            if system == "parabolic" and horizon > 100:
+                continue
+            candidates = best_reset_summary[horizon_key]
+            if not candidates:
+                continue
+            best_mode_name, best_mean = min(candidates.items(), key=lambda item: item[1])
+            best_horizon_metrics = mode_metrics.get(best_mode_name, {}).get("horizons", {}).get(horizon_key, {})
+            best_reset[horizon_key] = {
+                "mode": best_mode_name,
+                "mean": best_mean,
                 "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
                 "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
             }
@@ -1239,6 +1801,7 @@ def evaluate_model(
                     init_states=init_states,
                     true_future=true_future_cpu,
                     predictions=predictions,
+                    mode_diagnostics=mode_diagnostics,
                 )
                 files["rollout_artifacts"] = str(artifact_path)
 
@@ -1343,6 +1906,7 @@ def evaluate_model(
         results[system] = {
             "modes": mode_metrics,
             "best_periodic": best_periodic,
+            "best_reset": best_reset,
             "files": files,
         }
 
@@ -1361,6 +1925,7 @@ __all__ = [
     "EvaluationSettings",
     "evaluate_model",
     "rollout_every_step_reencode",
+    "rollout_event_trigger_reencode",
     "rollout_no_reencode",
     "rollout_periodic_reencode",
 ]

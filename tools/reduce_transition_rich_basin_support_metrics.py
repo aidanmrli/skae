@@ -33,6 +33,7 @@ import torch
 from skae.benchmarks.transition_rich_basin_partition_manifest import (
     get_transition_rich_basin_count,
 )
+from skae.checkpoint_compat import load_model_state_dict_compat
 from skae.config import Config
 from skae.data import VectorWrapper, make_env
 from skae.model import make_model
@@ -195,7 +196,7 @@ def _load_checkpoint_model(
 
     env = make_env(cfg)
     model = make_model(cfg, env.observation_size)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    load_model_state_dict_compat(model, checkpoint["model_state_dict"])
     model = model.to(device)
     model.eval()
     return cfg, env, model

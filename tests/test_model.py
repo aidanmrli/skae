@@ -2,7 +2,7 @@
 
 import torch
 import pytest
-from skae.config import get_config, Config
+from skae.config import get_config
 import skae.model as model_module
 from skae.model import (
     MLPCoder,
@@ -230,6 +230,260 @@ class TestLISTA:
         
         with pytest.raises(AssertionError):
             LISTA(cfg, xdim, wrong_Wd_init)
+
+    def test_final_op_shrink_keeps_signed_coefficients(self):
+        """Signed LISTA outputs should remain signed when FINAL_OP='shrink'."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 3
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.5
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        Wd_init = torch.eye(3)
+        lista = LISTA(cfg, 3, Wd_init, L_override=1.0)
+        z = lista(torch.tensor([[-2.0, 1.0, 0.25]]))
+
+        assert z.shape == (1, 3)
+        assert z[0, 0] < 0.0
+        assert z[0, 1] > 0.0
+        assert torch.isclose(z[0, 2], torch.tensor(0.0))
+
+    def test_final_op_sign_split_preserves_sign_in_nonnegative_coordinates(self):
+        """Sign-split LISTA should emit paired positive/negative coordinates."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.5
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+
+        Wd_init = torch.eye(2)
+        lista = LISTA(cfg, 2, Wd_init, L_override=1.0)
+        z = lista(torch.tensor([[-2.0, 1.0]]))
+
+        assert z.shape == (1, 4)
+        assert torch.all(z >= 0.0)
+        assert torch.allclose(z[0], torch.tensor([0.0, 0.5, 1.5, 0.0]))
+
+    def test_sign_split_latent_prior_is_unsplit_before_refinement(self):
+        """Sign-split warm starts should be converted back to signed internal codes."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 1
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+
+        Wd_init = torch.eye(2)
+        lista = LISTA(cfg, 2, Wd_init, L_override=1.0)
+        with torch.no_grad():
+            lista.S.copy_(torch.eye(2))
+
+        z = lista(
+            torch.zeros(1, 2),
+            latent_prior=torch.tensor([[1.0, 0.0, 0.0, 2.0]]),
+        )
+
+        assert torch.allclose(z, torch.tensor([[1.0, 0.0, 0.0, 2.0]]))
+
+    def test_group_topk_selection_zeros_nonselected_groups(self):
+        """LISTA group-first selection should keep only the top-k groups."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 2
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+        cfg.MODEL.ENCODER.LISTA.TOPK_GROUPS = 1
+
+        Wd_init = torch.eye(4)
+        lista = LISTA(cfg, 4, Wd_init, L_override=1.0)
+        z = lista(torch.tensor([[3.0, 3.0, 1.0, 1.0]]))
+
+        assert torch.allclose(z, torch.tensor([[3.0, 3.0, 0.0, 0.0]]))
+
+    def test_group_shrinkage_suppresses_weak_groups_before_elementwise_shrink(self):
+        """Sparse-group shrinkage should zero weak groups and retain strong ones."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 2
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.5
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+        cfg.MODEL.ENCODER.LISTA.GROUP_SHRINKAGE = True
+        cfg.MODEL.ENCODER.LISTA.GROUP_THRESHOLD_SCALE = 1.0
+
+        Wd_init = torch.eye(4)
+        lista = LISTA(cfg, 4, Wd_init, L_override=1.0)
+        z = lista(torch.tensor([[0.4, 0.3, 2.0, 0.0]]))
+
+        assert torch.allclose(z, torch.tensor([[0.0, 0.0, 1.0, 0.0]]), atol=1e-6)
+
+    def test_group_aware_lista_rejects_sign_split(self):
+        """Group-aware LISTA is currently only supported for signed/nonnegative base codes."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 2
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+        cfg.MODEL.ENCODER.LISTA.GROUP_SHRINKAGE = True
+
+        with pytest.raises(ValueError, match="do not support FINAL_OP='sign_split'"):
+            LISTA(cfg, 2, torch.eye(2))
+
+    @pytest.mark.parametrize("precode_mode", ["dictionary_tied", "hybrid"])
+    def test_tied_and_hybrid_precodes_reject_sign_split(self, precode_mode):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+        cfg.MODEL.ENCODER.LISTA.PRECODE_MODE = precode_mode
+
+        with pytest.raises(ValueError, match="do not support FINAL_OP='sign_split'"):
+            LISTA(cfg, 2, torch.eye(2))
+
+    def test_adaptive_thresholds_reject_sign_split(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+        cfg.MODEL.ENCODER.LISTA.ADAPTIVE_THRESHOLDS = True
+
+        with pytest.raises(ValueError, match="do not support FINAL_OP='sign_split'"):
+            LISTA(cfg, 2, torch.eye(2))
+
+    def test_dictionary_tied_precode_matches_dictionary_projection(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 2
+        cfg.MODEL.ENCODER.LISTA.PRECODE_MODE = "dictionary_tied"
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        dict_param = torch.nn.Parameter(torch.eye(2))
+        lista = LISTA(cfg, 2, torch.eye(2), L_override=2.0, dict_param=dict_param)
+        z = lista(torch.tensor([[2.0, -4.0]]))
+
+        assert torch.allclose(z, torch.tensor([[1.0, -2.0]]))
+
+    def test_hybrid_precode_initializes_to_dictionary_tied_projection(self):
+        tied_cfg = get_config("lista")
+        tied_cfg.MODEL.TARGET_SIZE = 2
+        tied_cfg.MODEL.ENCODER.LISTA.PRECODE_MODE = "dictionary_tied"
+        tied_cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        tied_cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        tied_cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        hybrid_cfg = get_config("lista")
+        hybrid_cfg.MODEL.TARGET_SIZE = 2
+        hybrid_cfg.MODEL.ENCODER.LISTA.PRECODE_MODE = "hybrid"
+        hybrid_cfg.MODEL.ENCODER.LISTA.PRECODE_RESIDUAL_SCALE = 0.5
+        hybrid_cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        hybrid_cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        hybrid_cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        dict_param = torch.nn.Parameter(torch.eye(2))
+        tied_lista = LISTA(tied_cfg, 2, torch.eye(2), L_override=2.0, dict_param=dict_param)
+        hybrid_lista = LISTA(hybrid_cfg, 2, torch.eye(2), L_override=2.0, dict_param=dict_param)
+        x = torch.tensor([[2.0, -4.0]])
+
+        assert torch.allclose(hybrid_lista(x), tied_lista(x))
+
+    def test_groupwise_thresholds_expand_per_group(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 2
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.GROUPWISE_THRESHOLDS = True
+
+        lista = LISTA(cfg, 4, torch.eye(4), L_override=1.0)
+        with torch.no_grad():
+            lista.group_alpha.copy_(torch.tensor([2.0, 4.0]))
+
+        thresholds = lista._base_thresholds(
+            batch_shape=(1,),
+            device=torch.device("cpu"),
+            dtype=torch.float32,
+        )
+
+        assert thresholds.shape == (1, 4)
+        assert torch.allclose(thresholds[0, :2], thresholds[0, 0].expand(2))
+        assert torch.allclose(thresholds[0, 2:], thresholds[0, 2].expand(2))
+        assert thresholds[0, 2] > thresholds[0, 0]
+
+    def test_adaptive_thresholds_increase_with_prior_gap(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 2
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.ADAPTIVE_THRESHOLDS = True
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.5
+        cfg.MODEL.ENCODER.LISTA.ALPHA_PRIOR_COEFF = 1.0
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 0
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        lista = LISTA(cfg, 2, torch.eye(2), L_override=1.0)
+        x = torch.zeros(1, 2)
+        nonsparse_code = lista._compute_precode(x)
+        base = lista._compute_thresholds(x=x, nonsparse_code=nonsparse_code, latent_prior_internal=None)
+        adapted = lista._compute_thresholds(
+            x=x,
+            nonsparse_code=nonsparse_code,
+            latent_prior_internal=torch.ones(1, 2),
+        )
+
+        assert torch.all(adapted > base)
+
+    def test_momentum_changes_standard_lista_refinement(self):
+        cfg_no_momentum = get_config("lista")
+        cfg_no_momentum.MODEL.TARGET_SIZE = 1
+        cfg_no_momentum.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg_no_momentum.MODEL.ENCODER.LISTA.NUM_LOOPS = 1
+        cfg_no_momentum.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg_no_momentum.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        cfg_momentum = get_config("lista")
+        cfg_momentum.MODEL.TARGET_SIZE = 1
+        cfg_momentum.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg_momentum.MODEL.ENCODER.LISTA.NUM_LOOPS = 1
+        cfg_momentum.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg_momentum.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+        cfg_momentum.MODEL.ENCODER.LISTA.USE_MOMENTUM = True
+        cfg_momentum.MODEL.ENCODER.LISTA.MOMENTUM_BETA = 0.5
+
+        lista_no_momentum = LISTA(cfg_no_momentum, 1, torch.ones(1, 1), L_override=1.0)
+        lista_momentum = LISTA(cfg_momentum, 1, torch.ones(1, 1), L_override=1.0)
+        with torch.no_grad():
+            lista_no_momentum.S.copy_(torch.ones(1, 1))
+            lista_momentum.S.copy_(torch.ones(1, 1))
+
+        x = torch.tensor([[2.0]])
+        z_no_momentum = lista_no_momentum(x)
+        z_momentum = lista_momentum(x)
+
+        assert torch.allclose(z_no_momentum, torch.tensor([[4.0]]))
+        assert torch.allclose(z_momentum, torch.tensor([[5.0]]))
+
+    def test_latent_prior_warm_start_changes_lista_refinement(self):
+        """A latent prior should change the refined sparse code."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 3
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 1
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        Wd_init = torch.eye(3)
+        lista = LISTA(cfg, 3, Wd_init, L_override=2.0)
+        x = torch.zeros(1, 3)
+        z_no_prior = lista(x)
+        z_with_prior = lista(x, latent_prior=torch.ones(1, 3))
+
+        assert torch.allclose(z_no_prior, torch.zeros_like(z_no_prior))
+        assert torch.all(z_with_prior > 0.0)
 
 
 class TestGenericKM:
@@ -532,6 +786,17 @@ class TestLISTAKM:
         model = LISTAKM(cfg, observation_size=2)
         assert isinstance(model.encoder, LISTA)
 
+    def test_listakm_passes_live_decoder_dictionary_to_lista(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.ENCODER_TYPE = "lista"
+        cfg.MODEL.ENCODER.LISTA.PRECODE_MODE = "dictionary_tied"
+
+        model = LISTAKM(cfg, observation_size=2)
+
+        assert isinstance(model.encoder, LISTA)
+        assert model.encoder.dict_param is model.dict
+
     def test_listakm_builds_hyperlista_encoder_when_encoder_type_hyperlista(self):
         """LISTAKM should build HyperLISTA encoder for ENCODER_TYPE='hyperlista'."""
         cfg = get_config("lista")
@@ -576,6 +841,132 @@ class TestLISTAKM:
         energies = model._block_energies(z)
         assert energies is not None
         assert energies.shape == (3, 5)
+
+    def test_listakm_sign_split_uses_paired_decoder_atoms(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+        model = LISTAKM(cfg, observation_size=2)
+
+        assert model._uses_sign_split_latent
+        assert model._encoder_target_size == 4
+        assert model.dict.shape == (8, model._internal_obs_size)
+        assert torch.allclose(model.dict[:4], -model.dict[4:], atol=1e-6)
+
+    def test_soft_block_penalty_adds_off_block_regularization(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.RES_COEFF = 0.0
+        cfg.MODEL.RECONST_COEFF = 0.0
+        cfg.MODEL.PRED_COEFF = 0.0
+        cfg.MODEL.SPARSITY_COEFF = 0.0
+        cfg.MODEL.USE_HOMOGENEOUS = False
+        cfg.MODEL.SOFT_BLOCK.ENABLED = True
+        cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS = 2
+        cfg.MODEL.SOFT_BLOCK.WEIGHT = 0.2
+        model = LISTAKM(cfg, observation_size=2)
+
+        with torch.no_grad():
+            model.kmat.copy_(
+                torch.tensor(
+                    [
+                        [1.0, 1.0, 2.0, 0.0],
+                        [0.0, 1.0, 0.0, 0.0],
+                        [3.0, 0.0, 1.0, 0.0],
+                        [0.0, 0.0, 0.0, 1.0],
+                    ]
+                )
+            )
+
+        penalty, ratio = model._soft_block_penalty()
+        assert penalty is not None
+        assert ratio is not None
+        assert torch.isclose(penalty, torch.tensor(5.0), atol=1e-6)
+        assert torch.isclose(ratio, torch.tensor(0.5), atol=1e-6)
+
+        loss, metrics = model.loss(
+            x_pred=torch.zeros(2, 1, 2),
+            x_true=torch.zeros(2, 1, 2),
+            z_pred=torch.zeros(2, 1, 4),
+            z_true=torch.zeros(2, 1, 4),
+            reconstruction_error=torch.tensor(0.0),
+            sparsity_latent=torch.zeros(2, 1, 4),
+        )
+        assert torch.isclose(loss, torch.tensor(1.0), atol=1e-6)
+        assert metrics["soft_block_penalty"] == pytest.approx(5.0, abs=1e-6)
+        assert metrics["soft_block_off_block_ratio"] == pytest.approx(0.5, abs=1e-6)
+
+    def test_decoder_coherence_penalty_adds_dictionary_regularization(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 2
+        cfg.MODEL.RES_COEFF = 0.0
+        cfg.MODEL.RECONST_COEFF = 0.0
+        cfg.MODEL.PRED_COEFF = 0.0
+        cfg.MODEL.SPARSITY_COEFF = 0.0
+        cfg.MODEL.USE_HOMOGENEOUS = False
+        cfg.MODEL.DECODER_COHERENCE_WEIGHT = 0.25
+        model = LISTAKM(cfg, observation_size=2)
+
+        with torch.no_grad():
+            model.dict.copy_(torch.tensor([[1.0, 0.0], [1.0, 0.0]]))
+
+        penalty, max_offdiag = model._decoder_coherence_penalty()
+        assert penalty is not None
+        assert max_offdiag is not None
+        assert torch.isclose(penalty, torch.tensor(2.0), atol=1e-6)
+        assert torch.isclose(max_offdiag, torch.tensor(1.0), atol=1e-6)
+
+        loss, metrics = model.loss(
+            x_pred=torch.zeros(2, 1, 2),
+            x_true=torch.zeros(2, 1, 2),
+            z_pred=torch.zeros(2, 1, 2),
+            z_true=torch.zeros(2, 1, 2),
+            reconstruction_error=torch.tensor(0.0),
+            sparsity_latent=torch.zeros(2, 1, 2),
+        )
+        assert torch.isclose(loss, torch.tensor(0.5), atol=1e-6)
+        assert metrics["decoder_coherence_penalty"] == pytest.approx(2.0, abs=1e-6)
+        assert metrics["decoder_coherence_max_offdiag"] == pytest.approx(1.0, abs=1e-6)
+
+    def test_decoder_coherence_penalty_collapses_signsplit_pairs(self):
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "sign_split"
+        cfg.MODEL.DECODER_COHERENCE_WEIGHT = 1.0
+        cfg.MODEL.USE_HOMOGENEOUS = False
+        model = LISTAKM(cfg, observation_size=2)
+
+        with torch.no_grad():
+            model.dict.copy_(
+                torch.tensor(
+                    [
+                        [1.0, 0.0],
+                        [0.0, 1.0],
+                        [-1.0, 0.0],
+                        [0.0, -1.0],
+                    ]
+                )
+            )
+
+        penalty, max_offdiag = model._decoder_coherence_penalty()
+        assert penalty is not None
+        assert max_offdiag is not None
+        assert torch.isclose(penalty, torch.tensor(0.0), atol=1e-6)
+        assert torch.isclose(max_offdiag, torch.tensor(0.0), atol=1e-6)
+
+    def test_structured_listakm_rejects_soft_block_penalty(self):
+        cfg = get_config("lista_parity_generic_sparse")
+        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
+        cfg.MODEL.STRUCTURED.ENABLED = True
+        cfg.MODEL.STRUCTURED.D_GLOBAL = 2
+        cfg.MODEL.STRUCTURED.NUM_BASINS = 2
+        cfg.MODEL.STRUCTURED.D_BASIN = 2
+        cfg.MODEL.SOFT_BLOCK.ENABLED = True
+        cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS = 2
+        cfg.MODEL.SOFT_BLOCK.WEIGHT = 1e-4
+
+        with pytest.raises(ValueError, match="does not support soft block"):
+            StructuredLISTAKM(cfg, observation_size=2)
 
 
 class TestUnifiedLossInterface:

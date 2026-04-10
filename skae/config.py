@@ -344,10 +344,21 @@ class EnvConfig:
 class ListaConfig:
     """LISTA encoder-specific configuration."""
     NUM_LOOPS: int = 5  # LISTA iterations
+    USE_MOMENTUM: bool = False  # add heavy-ball momentum between LISTA refinement steps
+    MOMENTUM_BETA: float = 0.0  # fixed LISTA momentum coefficient when USE_MOMENTUM is enabled
     L: float = 1e3  # Lipschitz constant estimate
     ALPHA: float = 0.1  # sparsity threshold
     LINEAR_ENCODER: bool = False  # use MLP vs linear encoder
-    FINAL_OP: str = "relu"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
+    FINAL_OP: str = "relu"  # final nonlinearity in LISTA loop: ["shrink", "relu", "sign_split"]
+    GROUP_SHRINKAGE: bool = False  # apply sparse-group shrinkage over inferred latent groups
+    GROUP_THRESHOLD_SCALE: float = 1.0  # group threshold multiplier relative to elementwise threshold
+    TOPK_GROUPS: int = 0  # keep only the top-k groups before within-group thresholding (0 disables)
+    PRECODE_MODE: str = "auto"  # ["auto", "free_mlp", "linear", "dictionary_tied", "hybrid"]
+    PRECODE_RESIDUAL_SCALE: float = 0.1  # residual MLP scale for hybrid pre-code
+    ADAPTIVE_THRESHOLDS: bool = False  # use per-sample thresholds based on residual/prior mismatch
+    ALPHA_RESIDUAL_COEFF: float = 0.0  # coefficient on reconstruction residual term in adaptive threshold
+    ALPHA_PRIOR_COEFF: float = 0.0  # coefficient on latent-prior mismatch term in adaptive threshold
+    GROUPWISE_THRESHOLDS: bool = False  # learn separate base thresholds per inferred latent group
 
 
 @dataclass
@@ -370,6 +381,9 @@ class HyperListaConfig:
     MAG_RATIO: float = 0.1           # Threshold for support size approximation
     LEARN_HYPERPARAMS: bool = True   # Whether c_theta, c_beta, c_ss are learnable
     PINV_CACHE_MODE: str = "none"    # Pseudo-inverse caching mode; "none" recomputes every forward
+    GROUP_SHRINKAGE: bool = False    # apply sparse-group shrinkage over inferred latent groups
+    GROUP_THRESHOLD_SCALE: float = 1.0  # group threshold multiplier relative to adaptive theta
+    TOPK_GROUPS: int = 0             # keep only the top-k groups before within-group thresholding (0 disables)
 
 
 @dataclass
@@ -414,6 +428,16 @@ class BlockLossConfig:
 
 
 @dataclass
+class SoftBlockConfig:
+    """Penalty configuration for soft block-sparse dense Koopman matrices."""
+
+    ENABLED: bool = False
+    NUM_BLOCKS: int = 0                # exact number of near-equal latent blocks
+    NORM: str = "l1"                   # ["l1", "fro"]
+    WEIGHT: float = 0.0
+
+
+@dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
     ENCODER_TYPE: str = "lista"  # from ["lista", "hyperlista"]
@@ -448,6 +472,7 @@ class ModelConfig:
     PRED_COEFF: float = 0.0  # prediction loss weight
     SPARSITY_COEFF: float = 1e-3  # sparsity loss weight (L1 regularization)
     HOMOGENEOUS_COEFF: float = 1.0  # homogeneous coordinate consistency loss weight
+    DECODER_COHERENCE_WEIGHT: float = 0.0  # weight on normalized dictionary off-diagonal Gram penalty
     
     # Homogeneous coordinates: append 1 to input, enables implicit bias learning
     USE_HOMOGENEOUS: bool = False
@@ -462,11 +487,34 @@ class ModelConfig:
     DECODER: DecoderConfig = field(default_factory=DecoderConfig)
     STRUCTURED: StructuredLatentConfig = field(default_factory=StructuredLatentConfig)
     BLOCK_LOSS: BlockLossConfig = field(default_factory=BlockLossConfig)
+    SOFT_BLOCK: SoftBlockConfig = field(default_factory=SoftBlockConfig)
 
 
 @dataclass
 class TrainConfig:
     """Training configuration."""
+    @dataclass
+    class HardInitOversampleConfig:
+        """Training-only oversampling of hard initial conditions near separatrices.
+
+        The hardness score is computed without basin labels from two black-box
+        signals that are available for every environment in this branch:
+        sensitivity to small perturbations and lingering late-time transient
+        motion over a short probe rollout.
+        """
+
+        ENABLED: bool = False
+        FRACTION: float = 0.5
+        POOL_SIZE: int = 1024
+        NUM_CANDIDATES: int = 4096
+        PROBE_STEPS: int = 32
+        NUM_PERTURBATIONS: int = 4
+        PERTURB_SCALE: float = 0.04
+        TRANSIENT_WINDOW: int = 8
+        TRANSIENT_WEIGHT: float = 0.5
+        JITTER_SCALE: float = 0.25
+        BUILD_CHUNK_SIZE: int = 128
+
     NUM_STEPS: int = 2_000  # total training steps (epochs)
     BATCH_SIZE: int = 256
     DATA_SIZE: int = 256 * 8  # total dataset size
@@ -481,6 +529,9 @@ class TrainConfig:
     # Unified horizon-based training parameter.
     # H=1 matches former pairwise behavior.
     SEQUENCE_LENGTH: int = 1
+    HARD_INIT_OVERSAMPLE: HardInitOversampleConfig = field(
+        default_factory=HardInitOversampleConfig
+    )
 
 @dataclass
 class Config:
@@ -534,14 +585,25 @@ class Config:
         
         structured = StructuredLatentConfig(**model_dict.get("STRUCTURED", {}))
         block_loss = BlockLossConfig(**model_dict.get("BLOCK_LOSS", {}))
-        model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS"]})
+        soft_block = SoftBlockConfig(**model_dict.get("SOFT_BLOCK", {}))
+        model = ModelConfig(**{
+            k: v
+            for k, v in model_dict.items()
+            if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS", "SOFT_BLOCK"]
+        })
         model.ENCODER = encoder
         model.DECODER = decoder
         model.STRUCTURED = structured
         model.BLOCK_LOSS = block_loss
+        model.SOFT_BLOCK = soft_block
         
         train_dict = config_dict.get("TRAIN", {})
-        train = TrainConfig(**train_dict)
+        train = TrainConfig(
+            **{k: v for k, v in train_dict.items() if k != "HARD_INIT_OVERSAMPLE"}
+        )
+        train.HARD_INIT_OVERSAMPLE = TrainConfig.HardInitOversampleConfig(
+            **train_dict.get("HARD_INIT_OVERSAMPLE", {})
+        )
         
         return cls(
             SEED=config_dict.get("SEED", 0),

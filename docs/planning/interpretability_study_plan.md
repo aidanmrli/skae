@@ -1,3 +1,18 @@
+Status note as of `2026-04-09`:
+
+- The reducer-side evaluation tooling for support-freeze rollouts, switch-
+  timing summaries, effective-Jacobian/operator-family summaries, and the
+  visual diagnostic suite is implemented locally.
+- On the fixed `17`-system live branch, use `1` seed by default for
+  interpretability diagnostics while ranking methods and metrics. Promote a
+  shortlisted effect to multi-seed confirmation only after the seed-`0`
+  result looks strong enough to matter for the paper.
+- The remaining gap in this study plan is now primarily experimental rather
+  than infrastructural: rerun those diagnostics on the fixed shortlist roots
+  and decide whether the honest paper claim lands at exact-support reuse, at
+  support-family / dominant-group alignment, or at a weaker but still useful
+  symmetry-aware operator-family alignment.
+
 I would make the study answer **three separate questions**, not one:
 
 1. **Does support identify basin?**
@@ -54,7 +69,16 @@ Keep the architecture fixed except for the axes that matter to the hypothesis:
 
 LISTA itself is a learned approximation to sparse coding/ISTA, and Chen et al.’s LISTA-SS variant explicitly biases the inference toward crisp large-magnitude supports. That makes support-selection variants useful **ablations**: if unique basin supports only appear after aggressive support selection, then the support interpretability is being manufactured rather than naturally discovered. Periodic reencoding is also worth treating as a core axis, since Fathi et al. introduced it precisely as an inference-time correction for long-horizon latent drift. 
 
-I would train every setting with multiple random seeds. Because sparse dictionaries are only identifiable up to sign/permutation, raw support IDs are not comparable across runs unless you align atoms or groups post hoc. So after training, align models across seeds with a Hungarian matching based on decoder-atom correlations and basin-conditioned activation maps. Without this step, apparent instability across runs may just be the usual sign/permutation ambiguity rather than a real interpretability failure. 
+For the live fixed-`17` diagnostic branch, I would not train every setting
+with multiple random seeds up front. I would use one seed first to rank
+candidate axes cheaply, then rerun only the strongest shortlisted effects with
+multiple seeds. Because sparse dictionaries are only identifiable up to
+sign/permutation, raw support IDs are not comparable across runs unless you
+align atoms or groups post hoc. So once a setting is promoted to multi-seed
+confirmation, align models across seeds with a Hungarian matching based on
+decoder-atom correlations and basin-conditioned activation maps. Without this
+step, apparent instability across runs may just be the usual sign/permutation
+ambiguity rather than a real interpretability failure.
 
 ## 4) Diagnose whether supports identify basins
 
@@ -89,6 +113,8 @@ This is the cleanest quantitative test of your ideal outcome.
 
 Exact support may be too brittle. So cluster supports by Jaccard distance, Hamming distance, or dominant group (g(x)), then repeat the same metrics with a support-family label (C) instead of exact support (S).
 
+For symmetric or near-symmetric systems, I would also repeat that analysis after aligning decoder atoms across basins or seeds. If two basins use supports that are the same up to a permutation, sign flip, or other simple symmetry-aligned relabeling, that should count as one aligned support family rather than as a false failure of reuse.
+
 This lets you distinguish:
 
 * **strong result**: one exact support per basin,
@@ -109,7 +135,9 @@ That matters because the model may only learn unique supports **near the attract
 
 This is the most important part.
 
-With one global (K), the support only matters interpretably if it selects a distinct local linear law. I would test that in **two different ways**.
+With one global (K), the support only matters interpretably if it selects a distinct local linear law. I would test that in **several complementary ways**.
+
+One important caution: do **not** make “different basins must have clearly different eigenvalues” part of the success criterion. Two basins can share very similar local spectra while differing mainly in orientation, symmetry transform, or the chart used by the encoder to represent the same intrinsic local law. Pan and Duraisamy make the symmetry point in a Koopman setting for multiple disjoint invariant sets, and Salova et al. show that symmetry can organize Koopman spectra and block structure without forcing each invariant set to look unrelated in raw coordinates. ([arXiv][1], [arXiv][3])
 
 ### A. Support-conditioned operators in latent space
 
@@ -151,7 +179,48 @@ I would report:
 
 You want (\Delta_{\text{between}}\gg \Delta_{\text{within}}).
 
-### B. Does the learned (K) itself respect the supports?
+Before interpreting those raw distances, I would separate three cases explicitly:
+[
+A_{b_1}\approx A_{b_2},
+\qquad
+A_{b_2}\approx Q^{-1}A_{b_1}Q,
+\qquad
+A_{b_1}\not\sim A_{b_2}.
+]
+
+These correspond to:
+
+* essentially the same local law,
+* the same local law up to a change of basis or symmetry transform,
+* genuinely different local laws.
+
+That distinction matters because two basins can have nearly identical attraction rates but rotated eigendirections. In that case their fitted local operators may be **similar matrices** rather than obviously different ones.
+
+### B. Operator equivalence up to similarity
+
+So I would not compare basin-conditioned or support-conditioned operators only with
+[
+|A_b-A_{b'}|_F.
+]
+
+I would also compare them after the best restricted alignment:
+[
+d_{\mathrm{sim}}(A_b,A_{b'})
+=
+\min_{Q\in \mathcal Q}
+|A_{b'}-Q^{-1}A_bQ|_F,
+]
+where (\mathcal Q) is a restricted class of transforms.
+
+For these toy systems, I would try:
+
+* orthogonal (Q) first, to capture rotated or reflected eigendirections,
+* signed permutation (Q), to capture latent-axis relabeling,
+* optionally general invertible (Q), but I would treat that as a weaker and less interpretable equivalence notion.
+
+If raw distance is large but aligned distance is small, then the two basins do **not** have different intrinsic local dynamics; they have similar dynamics written in different coordinates. I would repeat the same comparison for support-conditioned operators (A_c), not just basin-conditioned ones.
+
+### C. Does the learned (K) itself respect the supports?
 
 For each support (s), define the masked operator
 [
@@ -163,7 +232,7 @@ Then compare (K^{(s)}) to the post-hoc fitted (A_s). If these are close, then th
 
 This is the most direct answer to your interpretability goal.
 
-### C. Effective state-space Jacobians
+### D. Effective state-space Jacobians
 
 A very strong additional test is to differentiate the learned one-step predictor in state space:
 [
@@ -180,6 +249,18 @@ J_{\hat f}(x)=\frac{\partial \hat f}{\partial x}(x).
 ]
 
 If support really selects a local linearization, then states with the same support should have similar (J_{\hat f}(x)), and Jacobians should differ much more across basins than within a basin. Near each fixed point, you can even compare (J_{\hat f}(x^\star_b)) to the true Jacobian of the toy system there. This gives you an interpretable state-space notion of “learned local linearization,” not just a latent one.
+
+I would also report **spectral similarity** separately from **directional similarity**. For each learned local operator or effective Jacobian, record:
+
+* eigenvalues,
+* leading eigenvector directions,
+* and principal angles between invariant subspaces when the spectrum is repeated or nearly repeated.
+
+In `2D`, a simple directional metric is the angle between normalized leading eigenvectors:
+[
+\theta(b,b')=\arccos\!\bigl(|v_b^\top v_{b'}|\bigr).
+]
+Use the absolute value because eigenvectors are sign-ambiguous. This lets you call a pair “same contraction rates, different orientation” rather than incorrectly collapsing it into “same local linearization.”
 
 ## 6) Diagnose support stability and switching on trajectories
 
@@ -227,6 +308,13 @@ These are the most interpretable tests.
 
 For each basin (b), define a canonical support or group template (s_b^\star), for example the most common support deep inside that basin.
 
+For symmetry-related basins, I would define that template in two ways:
+
+* a raw canonical support template,
+* and an alignment-aware template after Hungarian matching on decoder atoms.
+
+That lets you distinguish unrelated supports from supports that are the same up to permutation or sign.
+
 Then for a state (x) in basin (b), build:
 
 [
@@ -267,15 +355,15 @@ I would use this rubric.
 
 ### Strong success
 
-Deep inside each basin, one exact support dominates; (H(B\mid S)) and (H(S\mid B)) are both low; support-conditioned operators are tight within basin and distinct across basins; support switches align with control-induced basin changes.
+Deep inside each basin, one exact support dominates; (H(B\mid S)) and (H(S\mid B)) are both low; support-conditioned operators are tight within basin and distinct across basins even after checking for simple similarity transforms; support switches align with control-induced basin changes.
 
 ### Partial success
 
-Each basin has a unique dominant group or a small support family, but not one exact support. Supports within the same family induce nearly the same local operator. This still supports the “support selects local linearization” story, just at the family/group level rather than the exact-support level.
+Each basin has a unique dominant group, a small support family, or a symmetry-aligned support class, but not one exact support. Supports within the same family induce nearly the same local operator, or operators that become nearly the same after a simple orthogonal or signed-permutation alignment. This still supports the “support selects local linearization” story, just at the family/group or aligned-equivalence level rather than the exact-support level.
 
 ### Failure
 
-The same supports appear in multiple basins, supports change frequently within a single basin, or support-conditioned operators do not separate by basin. In that case the model may still forecast well, but it is not learning the interpretable basin-specific support mechanism you want.
+The same supports appear in multiple basins, supports change frequently within a single basin, or support-conditioned operators do not separate by basin even after symmetry-aware / basis-aware alignment analysis. In that case the model may still forecast well, but it is not learning the interpretable basin-specific support mechanism you want.
 
 ## 10) The single most important methodological choice
 
@@ -284,23 +372,28 @@ I would not make **exact support uniqueness** the sole criterion.
 I would make the primary claim:
 
 [
-\text{basin} ;\longrightarrow; \text{support family / dominant group} ;\longrightarrow; \text{distinct local operator}.
+\text{basin}
+\;\longrightarrow\;
+\text{support family / dominant group / aligned support class}
+\;\longrightarrow\;
+\text{distinct local operator family}.
 ]
 
 That is the right target because:
 
 * exact sparse supports are basis-dependent,
 * dictionaries have sign/permutation ambiguity,
+* symmetry-related basins may share intrinsic local laws up to a simple transform,
 * and multistable Koopman structure may naturally be stitched from local pieces rather than represented by one perfectly rigid support per basin. 
 
 If I had to pick only **three** diagnostics, I would pick:
 
 1. (H(B\mid S)) and (H(S\mid B)) deep inside basins,
 2. support-switch alignment on controlled transfers,
-3. support-conditioned operator separation (A_c) vs basin-conditioned (A_b).
+3. support-conditioned operator separation (A_c) vs basin-conditioned (A_b), using both raw distance and similarity-aligned distance.
 
 Those three together tell you whether the encoder is learning **supports that are basin-specific, temporally meaningful, and actually tied to distinct learned linearizations**.
 
 [1]: https://arxiv.org/pdf/2304.11860 "On the lifting and reconstruction of nonlinear systems with multiple invariant sets"
 [2]: https://arxiv.org/abs/2310.15386?utm_source=chatgpt.com "Course Correcting Koopman Representations"
-
+[3]: https://arxiv.org/abs/1904.11472 "Koopman Operator and its Approximations for Systems with Symmetries"

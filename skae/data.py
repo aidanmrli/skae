@@ -201,6 +201,220 @@ class VectorWrapper(Wrapper):
         return sequences.transpose(0, 1)
 
 
+def _manual_seed_generator(seed: int) -> torch.Generator:
+    """Return a CPU generator seeded deterministically from an integer."""
+    return torch.Generator().manual_seed(int(seed))
+
+
+def _infer_reset_bounds(env: Env) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Infer axis-aligned reset bounds for a black-box environment.
+
+    The fixed transition-rich shortlist exposes either an `init_range` scalar or
+    a Claude-catalog `ic_box`. For generic environments we fall back to an
+    empirical bounding box from deterministic reset samples.
+    """
+
+    base_env = env.unwrapped
+    if hasattr(base_env, "init_range"):
+        init_range = float(getattr(base_env, "init_range"))
+        dim = int(base_env.observation_size)
+        low = torch.full((dim,), -init_range, dtype=torch.float32)
+        high = torch.full((dim,), init_range, dtype=torch.float32)
+        return low, high
+
+    system = getattr(base_env, "system", None)
+    if system is not None and hasattr(system, "ic_box"):
+        ic_box = list(getattr(system, "ic_box"))
+        low = torch.tensor([float(lo) for lo, _ in ic_box], dtype=torch.float32)
+        high = torch.tensor([float(hi) for _, hi in ic_box], dtype=torch.float32)
+        return low, high
+
+    samples = []
+    for sample_idx in range(64):
+        samples.append(base_env.reset(_manual_seed_generator(10_000 + sample_idx)).float())
+    batch = torch.stack(samples, dim=0)
+    low = batch.min(dim=0).values
+    high = batch.max(dim=0).values
+    padding = 0.05 * (high - low).clamp_min(1e-3)
+    return low - padding, high + padding
+
+
+def build_hard_initial_condition_pool(
+    env: Env,
+    *,
+    pool_size: int,
+    num_candidates: int,
+    probe_steps: int,
+    num_perturbations: int,
+    perturb_scale: float,
+    transient_window: int,
+    transient_weight: float,
+    chunk_size: int,
+    seed: int,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Build a pool of hard initial conditions using a uniform black-box score.
+
+    Each candidate is scored by:
+    1. how much small perturbations spread apart after a short rollout
+    2. how much motion remains late in that rollout (long transient proxy)
+
+    This approximates separatrix proximity and slow settling without relying on
+    training-time basin labels or basin counts.
+    """
+
+    candidate_count = max(1, int(num_candidates))
+    pool_size = max(1, min(int(pool_size), candidate_count))
+    probe_steps = max(1, int(probe_steps))
+    num_perturbations = max(0, int(num_perturbations))
+    transient_window = max(1, min(int(transient_window), probe_steps))
+    chunk_size = max(1, int(chunk_size))
+    transient_weight = float(transient_weight)
+
+    base_env = env.unwrapped
+    low, high = _infer_reset_bounds(base_env)
+    span = (high - low).clamp_min(1e-6)
+    box_diag = torch.linalg.vector_norm(span).clamp_min(1e-6)
+    perturb_std = float(perturb_scale) * span
+    perturb_norm = torch.linalg.vector_norm(perturb_std).clamp_min(1e-6)
+
+    candidate_states = []
+    base_seed = int(seed)
+    for candidate_idx in range(candidate_count):
+        candidate_states.append(
+            base_env.reset(_manual_seed_generator(base_seed + candidate_idx)).float()
+        )
+    candidates = torch.stack(candidate_states, dim=0)
+
+    scorer_env = VectorWrapper(base_env, batch_size=1)
+    low_batch = low.unsqueeze(0).unsqueeze(0)
+    high_batch = high.unsqueeze(0).unsqueeze(0)
+    scores = torch.empty(candidate_count, dtype=torch.float32)
+    noise_rng = _manual_seed_generator(base_seed + 1_000_000)
+
+    with torch.no_grad():
+        for start in range(0, candidate_count, chunk_size):
+            stop = min(candidate_count, start + chunk_size)
+            chunk = candidates[start:stop]
+            batch_n, state_dim = chunk.shape
+
+            if num_perturbations > 0:
+                noise = torch.randn(
+                    batch_n,
+                    num_perturbations,
+                    state_dim,
+                    generator=noise_rng,
+                    dtype=chunk.dtype,
+                ) * perturb_std.view(1, 1, -1).to(dtype=chunk.dtype)
+                rollout_init = torch.cat([chunk.unsqueeze(1), chunk.unsqueeze(1) + noise], dim=1)
+            else:
+                rollout_init = chunk.unsqueeze(1)
+            rollout_init = torch.maximum(torch.minimum(rollout_init, high_batch), low_batch)
+            flat_init = rollout_init.reshape(-1, state_dim)
+            rollout = generate_sequence_window(
+                scorer_env.step,
+                flat_init,
+                window_length=probe_steps,
+            )
+            rollout = rollout.reshape(probe_steps + 1, batch_n, rollout_init.shape[1], state_dim)
+            endpoints = rollout[-1]
+            tail_start = rollout[-1 - transient_window]
+
+            if num_perturbations > 0:
+                sensitivity = (
+                    torch.linalg.vector_norm(endpoints[:, 1:] - endpoints[:, :1], dim=-1).mean(dim=1)
+                    / perturb_norm
+                )
+            else:
+                sensitivity = torch.zeros(batch_n, dtype=torch.float32)
+
+            late_motion = (
+                torch.linalg.vector_norm(endpoints - tail_start, dim=-1).mean(dim=1) / box_diag
+            )
+            scores[start:stop] = sensitivity.float() + transient_weight * late_motion.float()
+
+    top_scores, top_indices = torch.topk(scores, k=pool_size, largest=True, sorted=True)
+    return candidates[top_indices], top_scores
+
+
+class HardInitialConditionWrapper(Wrapper):
+    """Training-time oversampling wrapper for separatrix-adjacent initial states."""
+
+    def __init__(self, env: Env, cfg: Config):
+        super().__init__(env)
+        settings = cfg.TRAIN.HARD_INIT_OVERSAMPLE
+        self.enabled = bool(settings.ENABLED)
+        self.fraction = float(settings.FRACTION)
+        self.jitter_scale = float(settings.JITTER_SCALE)
+        self.low, self.high = _infer_reset_bounds(env.unwrapped)
+        self.hard_pool = torch.empty(
+            (0, env.observation_size),
+            dtype=torch.float32,
+        )
+        self.hard_scores = torch.empty(0, dtype=torch.float32)
+        if not self.enabled:
+            return
+        self.hard_pool, self.hard_scores = build_hard_initial_condition_pool(
+            env.unwrapped,
+            pool_size=int(settings.POOL_SIZE),
+            num_candidates=int(settings.NUM_CANDIDATES),
+            probe_steps=int(settings.PROBE_STEPS),
+            num_perturbations=int(settings.NUM_PERTURBATIONS),
+            perturb_scale=float(settings.PERTURB_SCALE),
+            transient_window=int(settings.TRANSIENT_WINDOW),
+            transient_weight=float(settings.TRANSIENT_WEIGHT),
+            chunk_size=int(settings.BUILD_CHUNK_SIZE),
+            seed=int(cfg.SEED) + 2_000_000,
+        )
+        top = self.hard_scores[: min(5, self.hard_scores.numel())].tolist()
+        print(
+            "[hard-init] built pool "
+            f"(size={self.hard_pool.shape[0]}, fraction={self.fraction:.2f}, "
+            f"top_scores={[round(float(item), 3) for item in top]})",
+            flush=True,
+        )
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if (
+            not self.enabled
+            or self.hard_pool.numel() == 0
+            or self.fraction <= 0.0
+        ):
+            return self.env.reset(rng)
+
+        if rng is None:
+            rng = torch.Generator()
+        use_hard = torch.rand(1, generator=rng).item() < self.fraction
+        if not use_hard:
+            return self.env.reset(rng)
+
+        index = int(
+            torch.randint(
+                low=0,
+                high=self.hard_pool.shape[0],
+                size=(1,),
+                generator=rng,
+            ).item()
+        )
+        state = self.hard_pool[index].clone()
+        span = (self.high - self.low).clamp_min(1e-6)
+        jitter_std = self.jitter_scale * 0.04 * span
+        if self.jitter_scale > 0.0:
+            jitter = torch.randn(
+                state.shape,
+                generator=rng,
+                dtype=state.dtype,
+            ) * jitter_std.to(dtype=state.dtype)
+            state = state + jitter
+        return torch.maximum(torch.minimum(state, self.high), self.low)
+
+
+def wrap_training_env(env: Env, cfg: Config) -> Env:
+    """Apply training-only environment wrappers without touching eval/reset defaults."""
+    if bool(cfg.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED):
+        return HardInitialConditionWrapper(env, cfg)
+    return env
+
+
 # ---------------------------------------------------------------------------
 # Dysts trajectory cache for training
 # ---------------------------------------------------------------------------

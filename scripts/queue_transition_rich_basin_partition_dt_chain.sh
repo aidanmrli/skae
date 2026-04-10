@@ -10,6 +10,8 @@
 #
 # Optional env vars:
 #   SEEDS_CSV=0
+#   MODEL_VARIANTS_CSV=lista_blockdiag_basin_partition,mlp_sparse_basin_partition_control
+#   NUM_STEPS_OVERRIDE=200000
 #   EVAL_PROFILE=full
 #   MAX_HALVINGS=6
 #   MIN_SEEDS=1
@@ -52,6 +54,7 @@ RESOLVE_DIR="${RESOLVE_DIR:-${RESULTS_DIR}/dt_resolution}"
 DEFAULT_TSV="${TASK_DIR}/transition_rich_basin_partition.tsv"
 MANIFEST_JSON="${TASK_DIR}/transition_rich_basin_partition_manifest.json"
 SEEDS_CSV="${SEEDS_CSV:-}"
+MODEL_VARIANTS_CSV="${MODEL_VARIANTS_CSV:-}"
 EVAL_PROFILE="${EVAL_PROFILE:-full}"
 MAX_HALVINGS="${MAX_HALVINGS:-6}"
 MIN_SEEDS="${MIN_SEEDS:-1}"
@@ -62,17 +65,19 @@ mkdir -p "${TASK_DIR}" "${ROOT_SPEC_DIR}" "${RESOLVE_DIR}"
 
 if [[ -n "${SEEDS_CSV}" ]]; then
   IFS=',' read -r -a SEED_VALUES <<< "${SEEDS_CSV}"
-  NUM_SEEDS="${#SEED_VALUES[@]}"
+NUM_SEEDS="${#SEED_VALUES[@]}"
 else
   NUM_SEEDS=3
 fi
-MAX_RESCUE_TASKS=$((17 * 2 * NUM_SEEDS))
+NUM_STEPS_OVERRIDE="${NUM_STEPS_OVERRIDE:-}"
 
 write_root_specs() {
   local output_file="$1"
   local max_rescue_pass="$2"
+  shift 2
+  local labels=("$@")
   : > "${output_file}"
-  for model_variant in lista_dense_basin_partition lista_blockdiag_basin_partition; do
+  for model_variant in "${labels[@]}"; do
     echo "${model_variant}=${BASE_OUT}/transition_rich_basin_partition/${model_variant}" >> "${output_file}"
     local pass_index
     for ((pass_index=1; pass_index<=max_rescue_pass; pass_index++)); do
@@ -87,12 +92,37 @@ BUILD_ARGS=(
   --phase_label transition_rich_basin_partition
   --eval_profile "${EVAL_PROFILE}"
 )
+if [[ -n "${NUM_STEPS_OVERRIDE}" ]]; then
+  BUILD_ARGS+=(--num_steps_override "${NUM_STEPS_OVERRIDE}")
+fi
 if [[ -n "${SEEDS_CSV}" ]]; then
   BUILD_ARGS+=(--seeds_csv "${SEEDS_CSV}")
 fi
+if [[ -n "${MODEL_VARIANTS_CSV}" ]]; then
+  BUILD_ARGS+=(--model_variants_csv "${MODEL_VARIANTS_CSV}")
+fi
 uv run python tools/build_transition_rich_basin_partition_tasks.py "${BUILD_ARGS[@]}"
 
-write_root_specs "${ROOT_SPEC_DIR}/transition_rich_collect_pass0_roots.txt" 0
+mapfile -t SELECTED_LABELS < <(
+  uv run python - "${DEFAULT_TSV}" <<'PY'
+import csv
+import sys
+
+with open(sys.argv[1], newline="") as handle:
+    labels = sorted({row["model_variant"] for row in csv.DictReader(handle, delimiter="\t")})
+for label in labels:
+    print(label)
+PY
+)
+
+if (( ${#SELECTED_LABELS[@]} == 0 )); then
+  echo "No model variants found in ${DEFAULT_TSV}"
+  exit 1
+fi
+
+MAX_RESCUE_TASKS=$((17 * ${#SELECTED_LABELS[@]} * NUM_SEEDS))
+
+write_root_specs "${ROOT_SPEC_DIR}/transition_rich_collect_pass0_roots.txt" 0 "${SELECTED_LABELS[@]}"
 
 if [[ -n "${DEFAULT_ARRAY_JOB_IDS_CSV}" ]]; then
   DEFAULT_DEPENDENCY="afterany:${DEFAULT_ARRAY_JOB_IDS_CSV//,/:}"
@@ -125,6 +155,8 @@ for ((pass_index=0; pass_index<MAX_HALVINGS; pass_index++)); do
     MAX_HALVINGS="${MAX_HALVINGS}" \
     THRESHOLD="${THRESHOLD}" \
     MIN_SEEDS="${MIN_SEEDS}" \
+    NUM_STEPS_OVERRIDE="${NUM_STEPS_OVERRIDE}" \
+    MODEL_VARIANTS_CSV="${MODEL_VARIANTS_CSV}" \
     NEXT_TASK_TSV="${NEXT_TASK_TSV}" \
     MANIFEST_JSON="${MANIFEST_JSON}" \
     SEEDS_CSV="${SEEDS_CSV}" \
@@ -137,7 +169,7 @@ for ((pass_index=0; pass_index<MAX_HALVINGS; pass_index++)); do
       sbatch --dependency=afterany:"${RESOLVE_JOB_ID}" --array=0-$((MAX_RESCUE_TASKS - 1)) scripts/run_paper_benchmark_array.sh | awk '{print $4}'
   )
 
-  write_root_specs "${ROOT_SPEC_DIR}/transition_rich_collect_pass${next_pass}_roots.txt" "${next_pass}"
+  write_root_specs "${ROOT_SPEC_DIR}/transition_rich_collect_pass${next_pass}_roots.txt" "${next_pass}" "${SELECTED_LABELS[@]}"
   PREV_COLLECT_ID=$(
     ROOT_SPECS_FILE="${ROOT_SPEC_DIR}/transition_rich_collect_pass${next_pass}_roots.txt" \
     OUT_DIR="${RESULTS_DIR}/collect_pass${next_pass}" \
@@ -153,6 +185,8 @@ FINAL_RESOLVE_ID=$(
   MAX_HALVINGS="${MAX_HALVINGS}" \
   THRESHOLD="${THRESHOLD}" \
   MIN_SEEDS="${MIN_SEEDS}" \
+  NUM_STEPS_OVERRIDE="${NUM_STEPS_OVERRIDE}" \
+  MODEL_VARIANTS_CSV="${MODEL_VARIANTS_CSV}" \
   NEXT_TASK_TSV="${TASK_DIR}/transition_rich_unused.tsv" \
   MANIFEST_JSON="${MANIFEST_JSON}" \
   SEEDS_CSV="${SEEDS_CSV}" \
@@ -165,3 +199,6 @@ echo "Default source: ${DEFAULT_JOB_LABEL}"
 echo "Collect pass0: ${COLLECT_JOB_ID}"
 echo "Final collect dependency chain head: ${PREV_COLLECT_ID}"
 echo "Final resolve: ${FINAL_RESOLVE_ID}"
+if [[ -n "${NUM_STEPS_OVERRIDE}" ]]; then
+  echo "NUM_STEPS_OVERRIDE: ${NUM_STEPS_OVERRIDE}"
+fi

@@ -46,6 +46,36 @@ Training-budget policy for this plan:
 - reserve `200000`-step training for the final confirmatory paper rerun only,
   after the shortlist, metrics, and model recipe are locked
 
+Execution status note as of April 9, 2026:
+
+- the fixed-`17` shortlist packet ladder `v1-v6` is now complete through
+  train, collect, resolve, and interpretability reduction
+- `v5` was the sign-split shortlist tier:
+  hard block-diagonal and dense soft-block LISTA families with sign-split
+  codes, `2` versus `4` LISTA refinement loops, doubled block-count variants,
+  and latent-size sweeps including `p=64` and `p=128`
+- `v6` was the identifiability follow-up to `v5`:
+  the same sign-split shortlist families with either a restrained linear
+  pre-code, a decoder-coherence penalty, or both; here decoder coherence means
+  penalizing off-diagonal similarity among normalized decoder atoms so the
+  decoder dictionary has fewer redundant atoms and fewer interchangeable exact
+  supports
+- the current shortlist interpretability winner is
+  `lista_dense_softblock_signsplit_p64_basin_partition` from `v5`, but
+  own-basin canonical exact-support projection still hurts badly, so the
+  branch does not yet support the strongest one-canonical-chart-per-basin
+  claim
+- the main missing paper-side step is now the matched `v1` sparse MLP
+  comparison on the same study-plan metrics, not additional queue completion
+- if one more LISTA-only packet is run, keep it narrow and center it on the
+  remaining high-value method-side items from the design notes:
+  adaptive or blockwise thresholds, group-aware shrinkage, richer reset
+  triggers, and dictionary-tied or hybrid pre-codes
+- the main remaining evaluation-side work from the interpretability study plan
+  is freeze-support rollout testing, controlled-transfer switch-timing
+  diagnostics, basis-aware support-conditioned Jacobian or operator-family
+  analysis, and the paper visual-diagnostic suite
+
 ## Motivation
 
 The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that for these systems with multiple basins of attraction, finite-dimensional Koopman-invariant subspaces cannot provide a globally exact linear representation across all basins simultaneously. In a multistable finite-dimensional system, we might be able to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes.
@@ -151,6 +181,31 @@ These are the first metrics to report in the new branch because they do **not** 
 | Transition specificity | cross-over-within error ratio | Tests whether a support-defined model works better inside its own group than outside it |
 
 These metrics should reuse the recurring-support local-linearity tooling wherever possible.
+
+### Basis-aware local-law diagnostics
+
+Do **not** require different basins to have clearly different eigenvalues as a
+success criterion. Two basins can share very similar local spectra while
+differing mainly in orientation, symmetry transform, or the encoder chart used
+to represent the same intrinsic local law.
+
+For operator-family and Jacobian analyses, distinguish three cases explicitly:
+
+- essentially the same local law
+- the same local law up to a simple alignment or symmetry transform
+- genuinely different local laws
+
+The evaluation pass for those diagnostics should therefore report:
+
+- raw operator distance and similarity-aligned operator distance for
+  basin-conditioned and support-conditioned local fits
+- spectral similarity and directional similarity separately, e.g. eigenvalue
+  gaps plus eigendirection or invariant-subspace angles
+- support-family uniqueness both before and after decoder-atom alignment on
+  symmetric or near-symmetric systems
+
+On symmetric shortlist systems, treat “same law up to permutation, sign, or
+rotation/reflection” as a special case to interpret, not as automatic failure.
 
 ### Transition diagnostics
 

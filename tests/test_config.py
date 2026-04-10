@@ -165,6 +165,22 @@ def test_high_dim_env_config_from_dict_roundtrip():
     assert loaded.MODEL.OBS_LOSS_DIM_NORMALIZATION == "dim"
 
 
+def test_hard_init_oversample_roundtrip():
+    """Training hard-init oversampling config should survive dict roundtrip."""
+    cfg = get_default_config()
+    cfg.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED = True
+    cfg.TRAIN.HARD_INIT_OVERSAMPLE.FRACTION = 0.75
+    cfg.TRAIN.HARD_INIT_OVERSAMPLE.NUM_CANDIDATES = 2048
+    cfg.TRAIN.HARD_INIT_OVERSAMPLE.TRANSIENT_WEIGHT = 0.8
+
+    loaded = Config.from_dict(cfg.to_dict())
+
+    assert loaded.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED is True
+    assert loaded.TRAIN.HARD_INIT_OVERSAMPLE.FRACTION == pytest.approx(0.75)
+    assert loaded.TRAIN.HARD_INIT_OVERSAMPLE.NUM_CANDIDATES == 2048
+    assert loaded.TRAIN.HARD_INIT_OVERSAMPLE.TRANSIENT_WEIGHT == pytest.approx(0.8)
+
+
 @pytest.mark.parametrize(
     ("env_name", "expected"),
     [

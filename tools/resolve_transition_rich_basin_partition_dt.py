@@ -37,6 +37,12 @@ def _safe_float(value: object) -> Optional[float]:
     return None
 
 
+def _parse_csv_list(raw: Optional[str]) -> List[str]:
+    if raw is None:
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
 def _read_rows(path: Path) -> List[Dict[str, object]]:
     with path.open("r", newline="") as handle:
         return list(csv.DictReader(handle))
@@ -83,6 +89,13 @@ def _median_metric(rows: List[Dict[str, object]], column: str) -> Optional[float
     return median(values) if values else None
 
 
+def _median_gate_metric(rows: List[Dict[str, object]]) -> Tuple[Optional[float], str]:
+    best_reset = _median_metric(rows, "h1000_best_reset_mean")
+    if best_reset is not None:
+        return best_reset, "h1000_best_reset_mean"
+    return _median_metric(rows, "h1000_best_periodic_mean"), "h1000_best_periodic_mean"
+
+
 def _write_tsv(path: Path, rows: List[Dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -102,6 +115,7 @@ def resolve_rows(
     current_pass: int,
     max_halvings: int,
     min_seeds: int,
+    model_variants: Optional[List[str]] = None,
 ) -> Tuple[List[Dict[str, object]], List[Dict[str, object]], Dict[str, object]]:
     latest = _latest_rows_by_arm_dt_seed(rows)
     by_arm_dt: Dict[Tuple[str, str, float], List[Dict[str, object]]] = defaultdict(list)
@@ -118,12 +132,15 @@ def resolve_rows(
         "arms": [],
     }
 
-    model_specs = {
-        spec.variant: spec
+    selected_model_variants = set(model_variants or [])
+    filtered_model_specs = [
+        spec
         for spec in transition_rich_basin_partition_models()
-    }
+        if not selected_model_variants or spec.variant in selected_model_variants
+    ]
+    model_specs = {spec.variant: spec for spec in filtered_model_specs}
 
-    for model_spec in transition_rich_basin_partition_models():
+    for model_spec in filtered_model_specs:
         for system_spec in transition_rich_basin_partition_systems():
             schedule = transition_rich_dt_halving_schedule(
                 system_spec.system_key,
@@ -139,11 +156,12 @@ def resolve_rows(
                     (model_spec.variant, system_spec.system_key, _dt_key(dt)),
                     [],
                 )
-                median_h1000 = _median_metric(rows_for_dt, "h1000_best_periodic_mean")
+                median_h1000, gate_metric_name = _median_gate_metric(rows_for_dt)
                 row_summary = {
                     "dt": dt,
                     "seed_count": len(rows_for_dt),
-                    "median_h1000_best_periodic_mean": median_h1000,
+                    "gate_metric_name": gate_metric_name,
+                    "median_h1000_gate_mean": median_h1000,
                     "accepted": bool(
                         len(rows_for_dt) >= min_seeds
                         and median_h1000 is not None
@@ -240,6 +258,11 @@ def parse_args() -> argparse.Namespace:
         default=1,
         help="Minimum number of seeds required before judging a dt arm.",
     )
+    parser.add_argument(
+        "--model_variants_csv",
+        default=None,
+        help="Optional comma-separated model variants to resolve.",
+    )
     return parser.parse_args()
 
 
@@ -255,6 +278,7 @@ def main() -> None:
         current_pass=args.current_pass,
         max_halvings=args.max_halvings,
         min_seeds=args.min_seeds,
+        model_variants=_parse_csv_list(args.model_variants_csv),
     )
 
     selected_tsv = output_dir / "selected_dt.tsv"

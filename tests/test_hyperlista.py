@@ -278,6 +278,35 @@ class TestHyperLISTAShrinkOperators:
         assert result[0, 2] == 0.0
         assert result[0, 3] == 0.0
 
+    def test_group_structure_masks_to_topk_groups(self):
+        cfg = get_config("hyperlista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 2
+        cfg.MODEL.ENCODER.HYPERLISTA.GROUP_SHRINKAGE = True
+        cfg.MODEL.ENCODER.HYPERLISTA.GROUP_THRESHOLD_SCALE = 1.0
+        cfg.MODEL.ENCODER.HYPERLISTA.TOPK_GROUPS = 1
+
+        dict_param = torch.nn.Parameter(torch.randn(4, 3))
+        hyperlista = HyperLISTA(cfg, 3, dict_param)
+
+        x = torch.tensor([[3.0, 3.0, 2.0, 2.0]])
+        theta = torch.tensor([[1.0]])
+        result = hyperlista._apply_group_structure(x, theta)
+
+        assert torch.all(result[..., 2:] == 0.0)
+        assert torch.all(result[..., :2] > 0.0)
+
+    def test_group_aware_hyperlista_requires_group_structure(self):
+        cfg = get_config("hyperlista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "dense"
+        cfg.MODEL.ENCODER.HYPERLISTA.GROUP_SHRINKAGE = True
+
+        dict_param = torch.nn.Parameter(torch.randn(4, 3))
+        with pytest.raises(ValueError, match="requires structured, block-diagonal, or soft-block"):
+            HyperLISTA(cfg, 3, dict_param)
+
     def test_pinv_refresh_uses_current_dictionary_values(self):
         cfg = get_config("hyperlista")
         cfg.MODEL.TARGET_SIZE = 4

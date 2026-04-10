@@ -88,3 +88,72 @@ def test_transition_rich_dt_resolution_accepts_first_good_halving():
         and row["system_key"] == "gated_local_linear"
     ]
     assert matching_requests == []
+
+
+def test_transition_rich_dt_resolution_filters_to_requested_model_variants():
+    selected_rows, request_rows, _report = resolve_rows(
+        [
+            {
+                "root_label": "lista_dense_basin_partition",
+                "system_key": "gated_local_linear",
+                "env_dt": "0.04",
+                "seed_name": "seed_0",
+                "run_id": "20260407_000001",
+                "run_dir": "/tmp/dense_default_run",
+                "h1000_best_periodic_mean": "75.0",
+            },
+            {
+                "root_label": "lista_blockdiag_basin_partition",
+                "system_key": "gated_local_linear",
+                "env_dt": "0.04",
+                "seed_name": "seed_0",
+                "run_id": "20260407_000002",
+                "run_dir": "/tmp/blockdiag_default_run",
+                "h1000_best_periodic_mean": "75.0",
+            },
+        ],
+        threshold=50.0,
+        current_pass=0,
+        max_halvings=2,
+        min_seeds=1,
+        model_variants=["lista_blockdiag_basin_partition"],
+    )
+
+    assert all(row["model_variant"] == "lista_blockdiag_basin_partition" for row in selected_rows)
+    assert all(row["model_variant"] == "lista_blockdiag_basin_partition" for row in request_rows)
+
+
+def test_transition_rich_dt_resolution_prefers_best_reset_gate_when_available():
+    selected_rows, request_rows, _report = resolve_rows(
+        [
+            {
+                "root_label": "lista_dense_projgap_trigger_basin_partition",
+                "system_key": "gated_local_linear",
+                "env_dt": "0.04",
+                "seed_name": "seed_0",
+                "run_id": "20260409_000001",
+                "run_dir": "/tmp/default_run",
+                "h1000_best_periodic_mean": "75.0",
+                "h1000_best_reset_mean": "40.0",
+            }
+        ],
+        threshold=50.0,
+        current_pass=0,
+        max_halvings=2,
+        min_seeds=1,
+        model_variants=["lista_dense_projgap_trigger_basin_partition"],
+    )
+
+    arm = _find_arm(
+        selected_rows,
+        model_variant="lista_dense_projgap_trigger_basin_partition",
+        system_key="gated_local_linear",
+    )
+    assert arm["selected_dt"] == 0.04
+    assert arm["status"] == "accepted_default"
+    matching_requests = [
+        row for row in request_rows
+        if row["model_variant"] == "lista_dense_projgap_trigger_basin_partition"
+        and row["system_key"] == "gated_local_linear"
+    ]
+    assert matching_requests == []

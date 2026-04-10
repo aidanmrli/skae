@@ -11,6 +11,10 @@ Status note:
   interpretability runs on the fixed `17`-system shortlist while the metrics
   and model recipe are still being set. Reserve `200000` only for the final
   locked paper rerun.
+- Use `1` seed as the default budget for live interpretability ablations on
+  the fixed `17`-system shortlist while design questions are still open. Only
+  promote an axis to `3` seeds after the seed-`0` run looks strong enough to
+  deserve paper-facing robustness confirmation.
 - This note is the LISTA-side design inventory for the fixed `17`-system
   branch. The branch-level paper claim is still LISTA versus a matched
   standard MLP encoder control on basin-separation metrics; do not read this
@@ -20,6 +24,21 @@ Status note:
   [docs/planning/transition_rich_basin_partition_plan_20260331.md](/home/mila/l/lia/skae/docs/planning/transition_rich_basin_partition_plan_20260331.md),
   [docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md), and
   [docs/PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md).
+- Local implementation status as of `2026-04-09`: the evaluation/training
+  plumbing now supports hybrid event-triggered reencoding with projection-gap,
+  group-ambiguity, off-block-spillover, and support-margin scores plus
+  min-dwell and max-interval controls. The encoder stack also now supports
+  group-aware sparse-group shrinkage and top-`k` group-first support
+  selection for block-diagonal, soft-block, and structured latent layouts,
+  plus sample-dependent LISTA thresholds, groupwise base thresholds over
+  inferred latent groups, dictionary-tied or hybrid pre-codes tied to the
+  live decoder dictionary, and fixed-beta momentum LISTA refinement. The
+  transition-rich manifest now exposes shortlist variants for block-diagonal
+  adaptive/groupwise-threshold LISTA, dense soft-block dictionary-tied /
+  hybrid-precode LISTA, sign-split momentum LISTA on the current
+  block-diagonal and dense-`p64` shortlist roots, and a stronger sign-split
+  dense-`p64` soft-block weight sweep. These axes still need shortlist runs
+  before this note can promote them from design axis to branch conclusion.
 
 Let me restate the LISTA side of the setup in the narrow form you want.
 
@@ -132,6 +151,11 @@ For identifiability, I would explicitly compare:
   ]
 * Whether different basins map to different dominant groups.
 * Whether a single trajectory keeps a stable dominant group.
+* Raw versus similarity-aligned distances between basin-conditioned or support-conditioned local operators, so rotated or reflected local laws are not misread as intrinsically different.
+* Spectral similarity versus directional similarity, i.e. eigenvalue gaps together with eigendirection or invariant-subspace angles.
+* On symmetric systems, support-family uniqueness before and after decoder-atom alignment, so permutation/sign-related supports are not counted as unrelated by default.
+
+I would **not** require different basins to have clearly different eigenvalues as part of the success criterion. Two basins can share local rates while differing mainly in orientation or symmetry-related charting.
 
 If you want one hypothesis up front: for your autonomous toys, I would expect **hard block-diagonal** to be strongest for interpretability, and **soft block-sparse** to be the best overall compromise.
 
@@ -469,6 +493,16 @@ One refinement step may be too shallow, especially near separatrices or after lo
 
 I would test 1, 2, and 4 LISTA steps. I would also test a momentum version. LISTA variants with support selection, adaptive thresholds, and momentum all exist precisely because convergence speed and robustness matter; HyperLISTA argues momentum helps convergence and generalization to unseen sparsity patterns, while support selection and EBT improve convergence/adaptivity in LISTA-style models. ([arXiv][4])
 
+Implementation status as of `2026-04-09`:
+- Standard LISTA now supports a fixed-beta heavy-ball momentum term between
+  refinement steps.
+- The transition-rich shortlist manifest includes runnable sign-split
+  momentum arms on both the forecast-retaining block-diagonal root and the
+  dense soft-block `p64` root.
+- What remains open here is whether momentum actually improves the
+  forecast-versus-support-compression frontier on the fixed shortlist, not
+  whether the code path exists.
+
 ### D. Make thresholds sample-dependent
 
 A single global threshold (\alpha/L) is unlikely to be optimal everywhere in phase space.
@@ -492,6 +526,16 @@ L_b = |D_{G_b}^\top D_{G_b}|_2.
 ]
 
 EBT-LISTA’s point is that thresholding should adapt to the sample and reconstruction error, not be globally shared across all inputs. ([ar5iv][5])
+
+Implementation status as of `2026-04-09`:
+- The local LISTA stack now supports both adaptive residual/prior-gap
+  thresholds and groupwise learned base thresholds over inferred latent
+  groups.
+- The transition-rich shortlist manifest includes a runnable
+  `lista_blockdiag_adaptive_groupwise_threshold_basin_partition` arm.
+- What remains open here is evidence, not plumbing: the new threshold modes
+  still need shortlist runs and comparison against the current `v5` /
+  matched-MLP paper frontier.
 
 ### E. Make the shrinkage group-aware
 
@@ -537,6 +581,17 @@ For identifiability experiments, I would explicitly compare:
 
 If the MLP is too expressive, it can bypass the sparse-coding bias and you stop learning something interpretable.
 
+Implementation status as of `2026-04-09`:
+- Standard LISTA now supports explicit `free_mlp`, `linear`,
+  `dictionary_tied`, and `hybrid` pre-code modes, with the tied and hybrid
+  modes reading the live decoder dictionary during training and evaluation.
+- The transition-rich shortlist manifest includes runnable
+  `lista_dense_softblock_dict_tied_precode_basin_partition` and
+  `lista_dense_softblock_hybrid_precode_basin_partition` arms.
+- These are still unrun on the fixed shortlist, so the design question is now
+  whether they materially reduce within-basin support fragmentation without
+  giving back too much forecasting or matched-MLP separation.
+
 ## 5) Other things I think are important
 
 ### Latent dimension is a real axis, not a nuisance hyperparameter
@@ -572,6 +627,9 @@ Then evaluate:
 * within-trajectory group stability,
 * trigger score vs separatrix distance,
 * forecast error stratified by distance to separatrix.
+* raw versus similarity-aligned distances for basin-conditioned local operators or Jacobians,
+* eigenvalue similarity versus leading-eigendirection angle at attractors,
+* support-family uniqueness up to decoder-atom alignment on symmetric or near-symmetric systems.
 
 That gives you a clean identifiability study even if training is fully unsupervised.
 
@@ -588,6 +646,18 @@ So I would intentionally oversample those regions.
 ### If some toy systems are symmetric, exploit that
 
 Pan and Duraisamy specifically discuss symmetry among invariant sets. If you build symmetric toys, it is worth testing whether corresponding blocks can be tied by permutation or sign symmetry, or whether an untied model rediscovers equivalent blocks on its own. That is a very strong identifiability probe. ([arXiv][6])
+
+For those systems, I would explicitly align dominant support templates by Hungarian matching on decoder atoms, then compare:
+
+* support overlap before and after alignment,
+* local operators before and after the same alignment,
+* whether the pair looks unrelated, symmetry-related, or genuinely basin-specific.
+
+That keeps “same intrinsic law in different coordinates” from being mislabeled as a failure of interpretability.
+
+### Treat same-spectrum / different-direction systems as a stress test
+
+Within the fixed shortlist, flag any symmetric or near-symmetric systems whose attractor Jacobians have similar eigenvalues but rotated eigendirections. Those are the right stress tests for whether the encoder is learning basin identity rather than only local stiffness or time scale. If a future follow-on branch extends the system catalog, make that pattern an explicit benchmark family rather than an accidental edge case.
 
 ## My recommended experiment order
 

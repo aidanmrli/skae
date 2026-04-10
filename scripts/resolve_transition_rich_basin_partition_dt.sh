@@ -12,9 +12,11 @@
 #   MAX_HALVINGS=6
 #   THRESHOLD=50
 #   MIN_SEEDS=1
+#   NUM_STEPS_OVERRIDE=200000
 #   NEXT_TASK_TSV=<path for next rescue task table>
 #   MANIFEST_JSON=<optional manifest snapshot path>
 #   SEEDS_CSV=<comma-separated seeds>
+#   MODEL_VARIANTS_CSV=<comma-separated model variants>
 #   EVAL_PROFILE=full
 #
 #SBATCH --job-name=resolve_tr_bp
@@ -47,9 +49,11 @@ CURRENT_PASS="${CURRENT_PASS:?CURRENT_PASS is required}"
 MAX_HALVINGS="${MAX_HALVINGS:-6}"
 THRESHOLD="${THRESHOLD:-50}"
 MIN_SEEDS="${MIN_SEEDS:-1}"
+NUM_STEPS_OVERRIDE="${NUM_STEPS_OVERRIDE:-}"
 NEXT_TASK_TSV="${NEXT_TASK_TSV:-${OUT_DIR}/next_tasks.tsv}"
 MANIFEST_JSON="${MANIFEST_JSON:-${OUT_DIR}/transition_rich_manifest.json}"
 SEEDS_CSV="${SEEDS_CSV:-}"
+MODEL_VARIANTS_CSV="${MODEL_VARIANTS_CSV:-}"
 EVAL_PROFILE="${EVAL_PROFILE:-full}"
 
 echo "============================================="
@@ -61,6 +65,8 @@ echo "CURRENT_PASS: ${CURRENT_PASS}"
 echo "MAX_HALVINGS: ${MAX_HALVINGS}"
 echo "THRESHOLD: ${THRESHOLD}"
 echo "MIN_SEEDS: ${MIN_SEEDS}"
+echo "NUM_STEPS_OVERRIDE: ${NUM_STEPS_OVERRIDE:-<default>}"
+echo "MODEL_VARIANTS_CSV: ${MODEL_VARIANTS_CSV:-<all>}"
 echo "============================================="
 
 uv run python tools/resolve_transition_rich_basin_partition_dt.py \
@@ -69,7 +75,8 @@ uv run python tools/resolve_transition_rich_basin_partition_dt.py \
   --current_pass "${CURRENT_PASS}" \
   --max_halvings "${MAX_HALVINGS}" \
   --threshold "${THRESHOLD}" \
-  --min_seeds "${MIN_SEEDS}"
+  --min_seeds "${MIN_SEEDS}" \
+  --model_variants_csv "${MODEL_VARIANTS_CSV}"
 
 if (( CURRENT_PASS < MAX_HALVINGS )); then
   REQUEST_TSV="${OUT_DIR}/dt_rescue_request_pass$((CURRENT_PASS + 1)).tsv"
@@ -81,8 +88,14 @@ if (( CURRENT_PASS < MAX_HALVINGS )); then
     --dt_table "${REQUEST_TSV}"
     --dt_column requested_dt
   )
+  if [[ -n "${NUM_STEPS_OVERRIDE}" ]]; then
+    BUILD_ARGS+=(--num_steps_override "${NUM_STEPS_OVERRIDE}")
+  fi
   if [[ -n "${SEEDS_CSV}" ]]; then
     BUILD_ARGS+=(--seeds_csv "${SEEDS_CSV}")
+  fi
+  if [[ -n "${MODEL_VARIANTS_CSV}" ]]; then
+    BUILD_ARGS+=(--model_variants_csv "${MODEL_VARIANTS_CSV}")
   fi
   uv run python tools/build_transition_rich_basin_partition_tasks.py "${BUILD_ARGS[@]}"
 fi

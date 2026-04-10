@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build task tables for the fixed transition-rich basin-partition LISTA sweep."""
+"""Build task tables for the fixed transition-rich basin-partition packet."""
 
 from __future__ import annotations
 
@@ -73,6 +73,7 @@ def _selected_model_specs(args: argparse.Namespace) -> List[TransitionRichBasinP
 def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
     systems = _selected_system_specs(args)
     models = _selected_model_specs(args)
+    num_steps_override = int(args.num_steps_override) if args.num_steps_override is not None else None
     dt_map: Dict[Tuple[str, str], float] = {}
     if args.dt_table is not None:
         dt_map = _read_dt_table(Path(args.dt_table), value_column=args.dt_column)
@@ -97,7 +98,51 @@ def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
                 continue
             if env_dt is None:
                 env_dt = resolve_transition_rich_default_dt(system.system_key)
-            k_num_blocks = system.basin_count if model.use_basin_count_for_blocks else ""
+            target_size = (
+                int(model.target_size)
+                if model.target_size is not None
+                else TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE
+            )
+            k_num_blocks: object = ""
+            if model.use_basin_count_for_blocks:
+                k_num_blocks = (
+                    system.basin_count * model.basin_count_block_multiplier
+                    + model.basin_count_block_offset
+                )
+            structured_num_basins: object = ""
+            if model.use_basin_count_for_structured_num_basins:
+                structured_num_basins = system.basin_count
+            elif model.structured:
+                structured_num_basins = (
+                    model.structured_num_basins if model.structured_num_basins is not None else ""
+                )
+            structured_d_basin: object = (
+                model.structured_d_basin if model.structured_d_basin is not None else ""
+            )
+            if model.structured_use_remaining_target:
+                if model.structured_d_global is None:
+                    raise ValueError(
+                        f"{model.variant} requests structured remaining-target sizing without structured_d_global"
+                    )
+                if structured_num_basins in ("", 0):
+                    raise ValueError(
+                        f"{model.variant} requests structured remaining-target sizing without a basin count"
+                    )
+                remaining = target_size - int(model.structured_d_global)
+                if remaining <= 0 or remaining % int(structured_num_basins) != 0:
+                    raise ValueError(
+                        f"{model.variant} cannot evenly split remaining target size {remaining} "
+                        f"across {structured_num_basins} basins"
+                    )
+                structured_d_basin = remaining // int(structured_num_basins)
+            soft_block_num_blocks: object = ""
+            if model.use_basin_count_for_soft_block_num_blocks:
+                soft_block_num_blocks = (
+                    system.basin_count * model.soft_block_num_blocks_multiplier
+                    + model.soft_block_num_blocks_offset
+                )
+            elif model.soft_block_num_blocks is not None:
+                soft_block_num_blocks = model.soft_block_num_blocks
             for seed in seeds:
                 rows.append(
                     {
@@ -112,20 +157,231 @@ def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
                         "env_name": system.env_name,
                         "basin_count": system.basin_count,
                         "seed": seed,
-                        "num_steps": model.num_steps,
+                        "num_steps": (
+                            num_steps_override if num_steps_override is not None else model.num_steps
+                        ),
                         "batch_size": TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE,
-                        "target_size": TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE,
+                        "target_size": target_size,
                         "sequence_length": TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH,
+                        "hard_init_oversample": (
+                            str(model.hard_init_oversample).lower()
+                            if model.hard_init_oversample is not None
+                            else ""
+                        ),
+                        "hard_init_fraction": (
+                            model.hard_init_fraction if model.hard_init_fraction is not None else ""
+                        ),
+                        "hard_init_pool_size": (
+                            model.hard_init_pool_size if model.hard_init_pool_size is not None else ""
+                        ),
+                        "hard_init_num_candidates": (
+                            model.hard_init_num_candidates
+                            if model.hard_init_num_candidates is not None
+                            else ""
+                        ),
+                        "hard_init_probe_steps": (
+                            model.hard_init_probe_steps if model.hard_init_probe_steps is not None else ""
+                        ),
+                        "hard_init_num_perturbations": (
+                            model.hard_init_num_perturbations
+                            if model.hard_init_num_perturbations is not None
+                            else ""
+                        ),
+                        "hard_init_perturb_scale": (
+                            model.hard_init_perturb_scale
+                            if model.hard_init_perturb_scale is not None
+                            else ""
+                        ),
+                        "hard_init_transient_window": (
+                            model.hard_init_transient_window
+                            if model.hard_init_transient_window is not None
+                            else ""
+                        ),
+                        "hard_init_transient_weight": (
+                            model.hard_init_transient_weight
+                            if model.hard_init_transient_weight is not None
+                            else ""
+                        ),
+                        "hard_init_jitter_scale": (
+                            model.hard_init_jitter_scale
+                            if model.hard_init_jitter_scale is not None
+                            else ""
+                        ),
                         "res_coeff": model.res_coeff,
                         "reconst_coeff": model.reconst_coeff,
                         "pred_coeff": model.pred_coeff,
                         "sparsity_coeff": model.sparsity_coeff,
-                        "lista_alpha": model.lista_alpha,
-                        "lista_num_loops": model.lista_num_loops,
-                        "lista_final_op": model.lista_final_op,
+                        "lista_alpha": model.lista_alpha if model.lista_alpha is not None else "",
+                        "lista_num_loops": (
+                            model.lista_num_loops if model.lista_num_loops is not None else ""
+                        ),
+                        "lista_use_momentum": (
+                            str(model.lista_use_momentum).lower()
+                            if model.lista_use_momentum is not None
+                            else ""
+                        ),
+                        "lista_momentum_beta": (
+                            model.lista_momentum_beta
+                            if model.lista_momentum_beta is not None
+                            else ""
+                        ),
+                        "lista_linear_encoder": (
+                            str(model.lista_linear_encoder).lower()
+                            if model.lista_linear_encoder is not None
+                            else ""
+                        ),
+                        "lista_final_op": model.lista_final_op or "",
+                        "lista_precode_mode": model.lista_precode_mode or "",
+                        "lista_precode_residual_scale": (
+                            model.lista_precode_residual_scale
+                            if model.lista_precode_residual_scale is not None
+                            else ""
+                        ),
+                        "lista_adaptive_thresholds": (
+                            str(model.lista_adaptive_thresholds).lower()
+                            if model.lista_adaptive_thresholds is not None
+                            else ""
+                        ),
+                        "lista_alpha_residual_coeff": (
+                            model.lista_alpha_residual_coeff
+                            if model.lista_alpha_residual_coeff is not None
+                            else ""
+                        ),
+                        "lista_alpha_prior_coeff": (
+                            model.lista_alpha_prior_coeff
+                            if model.lista_alpha_prior_coeff is not None
+                            else ""
+                        ),
+                        "lista_groupwise_thresholds": (
+                            str(model.lista_groupwise_thresholds).lower()
+                            if model.lista_groupwise_thresholds is not None
+                            else ""
+                        ),
+                        "encoder_group_shrinkage": (
+                            str(model.encoder_group_shrinkage).lower()
+                            if model.encoder_group_shrinkage is not None
+                            else ""
+                        ),
+                        "encoder_group_threshold_scale": (
+                            model.encoder_group_threshold_scale
+                            if model.encoder_group_threshold_scale is not None
+                            else ""
+                        ),
+                        "encoder_topk_groups": (
+                            model.encoder_topk_groups
+                            if model.encoder_topk_groups is not None
+                            else ""
+                        ),
+                        "decoder_coherence_weight": (
+                            model.decoder_coherence_weight
+                            if model.decoder_coherence_weight is not None
+                            else ""
+                        ),
                         "k_structure": model.k_structure,
                         "k_block_size": "",
                         "k_num_blocks": k_num_blocks,
+                        "block_loss": 1 if model.block_loss else 0,
+                        "block_one_block_loss": model.block_one_block_loss or "",
+                        "block_one_block_weight": (
+                            model.block_one_block_weight
+                            if model.block_one_block_weight is not None
+                            else ""
+                        ),
+                        "block_top1_margin": (
+                            model.block_top1_margin if model.block_top1_margin is not None else ""
+                        ),
+                        "block_balance_loss": model.block_balance_loss or "",
+                        "block_balance_weight": (
+                            model.block_balance_weight
+                            if model.block_balance_weight is not None
+                            else ""
+                        ),
+                        "block_energy_norm": model.block_energy_norm or "",
+                        "hyperlista_c_theta": (
+                            model.hyperlista_c_theta if model.hyperlista_c_theta is not None else ""
+                        ),
+                        "hyperlista_c_beta": (
+                            model.hyperlista_c_beta if model.hyperlista_c_beta is not None else ""
+                        ),
+                        "hyperlista_c_ss": (
+                            model.hyperlista_c_ss if model.hyperlista_c_ss is not None else ""
+                        ),
+                        "hyperlista_use_ss": (
+                            str(model.hyperlista_use_ss).lower()
+                            if model.hyperlista_use_ss is not None
+                            else ""
+                        ),
+                        "hyperlista_use_momentum": (
+                            str(model.hyperlista_use_momentum).lower()
+                            if model.hyperlista_use_momentum is not None
+                            else ""
+                        ),
+                        "eval_use_dynamics_prior": (
+                            str(model.eval_use_dynamics_prior).lower()
+                        ),
+                        "eval_event_trigger_proj_threshold": (
+                            model.eval_event_trigger_proj_threshold
+                            if model.eval_event_trigger_proj_threshold is not None
+                            else ""
+                        ),
+                        "eval_event_trigger_ambiguity_threshold": (
+                            model.eval_event_trigger_ambiguity_threshold
+                            if model.eval_event_trigger_ambiguity_threshold is not None
+                            else ""
+                        ),
+                        "eval_event_trigger_spillover_threshold": (
+                            model.eval_event_trigger_spillover_threshold
+                            if model.eval_event_trigger_spillover_threshold is not None
+                            else ""
+                        ),
+                        "eval_event_trigger_support_margin_min_ratio": (
+                            model.eval_event_trigger_support_margin_min_ratio
+                            if model.eval_event_trigger_support_margin_min_ratio is not None
+                            else ""
+                        ),
+                        "eval_event_trigger_support_threshold": (
+                            model.eval_event_trigger_support_threshold
+                            if model.eval_event_trigger_support_threshold is not None
+                            else ""
+                        ),
+                        "eval_event_trigger_min_dwell": model.eval_event_trigger_min_dwell,
+                        "eval_event_trigger_max_interval": model.eval_event_trigger_max_interval,
+                        "structured": 1 if model.structured else 0,
+                        "structured_d_global": (
+                            model.structured_d_global if model.structured_d_global is not None else ""
+                        ),
+                        "structured_num_basins": structured_num_basins,
+                        "structured_d_basin": structured_d_basin,
+                        "lambda_global": (
+                            model.lambda_global if model.lambda_global is not None else ""
+                        ),
+                        "lambda_local": (
+                            model.lambda_local if model.lambda_local is not None else ""
+                        ),
+                        "lambda_exclusivity": (
+                            model.lambda_exclusivity if model.lambda_exclusivity is not None else ""
+                        ),
+                        "lambda_sparsity": (
+                            model.lambda_sparsity if model.lambda_sparsity is not None else ""
+                        ),
+                        "lambda_entropy": (
+                            model.lambda_entropy if model.lambda_entropy is not None else ""
+                        ),
+                        "lambda_dominance": (
+                            model.lambda_dominance if model.lambda_dominance is not None else ""
+                        ),
+                        "lambda_temporal": (
+                            model.lambda_temporal if model.lambda_temporal is not None else ""
+                        ),
+                        "excl_warmup_steps": (
+                            model.excl_warmup_steps if model.excl_warmup_steps is not None else ""
+                        ),
+                        "soft_block": 1 if model.soft_block else 0,
+                        "soft_block_num_blocks": soft_block_num_blocks,
+                        "soft_block_weight": (
+                            model.soft_block_weight if model.soft_block_weight is not None else ""
+                        ),
+                        "soft_block_norm": model.soft_block_norm or "",
                         "lr": model.lr if model.lr is not None else "",
                         "k_matrix_lr": model.k_matrix_lr if model.k_matrix_lr is not None else "",
                         "weight_decay": model.weight_decay if model.weight_decay is not None else "",
@@ -163,6 +419,7 @@ def _manifest_payload(
     seeds: Iterable[int],
     task_count: int,
     eval_profile: str,
+    num_steps: int,
 ) -> Dict[str, object]:
     return {
         "experiment": "transition_rich_basin_partition",
@@ -171,7 +428,7 @@ def _manifest_payload(
         "seeds": list(seeds),
         "eval_profile": eval_profile,
         "packet_recipe": {
-            "default_num_steps": TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS,
+            "default_num_steps": num_steps,
             "batch_size": TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE,
             "target_size": TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE,
             "sequence_length": TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH,
@@ -209,6 +466,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seeds_csv", default=None, help="Optional comma-separated seeds.")
     parser.add_argument("--eval_profile", default="full", help="Evaluation profile to embed in task rows.")
+    parser.add_argument(
+        "--num_steps_override",
+        type=int,
+        default=None,
+        help="Optional global num_steps override for every emitted task row.",
+    )
     parser.add_argument(
         "--dt_table",
         default=None,
@@ -249,6 +512,11 @@ def main() -> None:
             ),
             task_count=len(rows),
             eval_profile=args.eval_profile,
+            num_steps=(
+                int(args.num_steps_override)
+                if args.num_steps_override is not None
+                else TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS
+            ),
         )
         Path(args.output_manifest_json).write_text(json.dumps(payload, indent=2))
 

@@ -55,6 +55,147 @@ def get_activation(name: str) -> nn.Module:
     return activations[name]
 
 
+def _split_group_sizes(zdim: int, num_groups: int) -> List[int]:
+    """Split a latent dimension into near-equal positive group sizes."""
+
+    if num_groups <= 0:
+        raise ValueError("num_groups must be positive")
+    if num_groups > zdim:
+        raise ValueError(f"num_groups={num_groups} exceeds latent size zdim={zdim}")
+    base = zdim // num_groups
+    remainder = zdim % num_groups
+    return [base + (1 if group_index < remainder else 0) for group_index in range(num_groups)]
+
+
+def _infer_encoder_group_slices(cfg: Config, zdim: int) -> Tuple[slice, ...]:
+    """Infer latent group slices for group-aware encoder shrinkage."""
+
+    sizes: List[int] = []
+    if cfg.MODEL.STRUCTURED.ENABLED:
+        d_global = int(cfg.MODEL.STRUCTURED.D_GLOBAL)
+        num_basins = int(cfg.MODEL.STRUCTURED.NUM_BASINS)
+        d_basin = int(cfg.MODEL.STRUCTURED.D_BASIN)
+        if d_global > 0:
+            sizes.append(d_global)
+        sizes.extend([d_basin] * num_basins)
+    elif cfg.MODEL.K_STRUCTURE == "block_diagonal":
+        requested_num_blocks = int(getattr(cfg.MODEL, "K_NUM_BLOCKS", 0))
+        if requested_num_blocks > 0:
+            sizes = _split_group_sizes(zdim, requested_num_blocks)
+        else:
+            block_size = int(getattr(cfg.MODEL, "K_BLOCK_SIZE", 0))
+            if block_size <= 0:
+                block_size = max(1, zdim // 13)
+            full_blocks = zdim // block_size
+            remainder = zdim - full_blocks * block_size
+            sizes = [block_size] * full_blocks
+            if remainder > 0:
+                sizes.append(remainder)
+    elif cfg.MODEL.SOFT_BLOCK.ENABLED and int(cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS) > 0:
+        sizes = _split_group_sizes(zdim, int(cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS))
+
+    if sum(sizes) != zdim:
+        return tuple()
+
+    offset = 0
+    group_slices: List[slice] = []
+    for group_size in sizes:
+        group_slices.append(slice(offset, offset + group_size))
+        offset += group_size
+    return tuple(group_slices)
+
+
+def _group_norms_from_slices(x: torch.Tensor, group_slices: Tuple[slice, ...]) -> torch.Tensor:
+    """Compute per-group L2 norms for the provided latent slices."""
+
+    return torch.cat(
+        [torch.norm(x[..., group_slice], p=2, dim=-1, keepdim=True) for group_slice in group_slices],
+        dim=-1,
+    )
+
+
+def _mask_to_topk_groups(
+    x: torch.Tensor,
+    group_slices: Tuple[slice, ...],
+    topk_groups: int,
+) -> torch.Tensor:
+    """Zero out all but the top-k groups (by group L2 norm) per sample."""
+
+    if topk_groups <= 0 or not group_slices:
+        return x
+
+    group_norms = _group_norms_from_slices(x, group_slices)
+    flat_norms = group_norms.reshape(-1, group_norms.shape[-1])
+    k = min(int(topk_groups), flat_norms.shape[-1])
+    if k <= 0:
+        return x
+
+    topk_idx = torch.topk(flat_norms, k=k, dim=-1, largest=True, sorted=False).indices
+    keep_mask = torch.zeros_like(flat_norms, dtype=torch.bool)
+    keep_mask.scatter_(1, topk_idx, True)
+    keep_mask = keep_mask.view(*group_norms.shape[:-1], group_norms.shape[-1])
+
+    masked_parts: List[torch.Tensor] = []
+    for group_index, group_slice in enumerate(group_slices):
+        group_keep = keep_mask[..., group_index].unsqueeze(-1)
+        group_values = x[..., group_slice]
+        masked_parts.append(torch.where(group_keep, group_values, torch.zeros_like(group_values)))
+    return torch.cat(masked_parts, dim=-1)
+
+
+def _sparse_group_shrink(
+    x: torch.Tensor,
+    theta_group: torch.Tensor | float,
+    group_slices: Tuple[slice, ...],
+) -> torch.Tensor:
+    """Apply group-lasso shrinkage independently on inferred latent groups."""
+
+    if not group_slices:
+        return x
+
+    shrunk_parts: List[torch.Tensor] = []
+    for group_slice in group_slices:
+        group_values = x[..., group_slice]
+        group_norm = torch.norm(group_values, p=2, dim=-1, keepdim=True).clamp(min=1e-8)
+        shrink_factor = torch.relu(1.0 - theta_group / group_norm)
+        shrunk_parts.append(shrink_factor * group_values)
+    return torch.cat(shrunk_parts, dim=-1)
+
+
+def _expand_group_thresholds(
+    group_thresholds: torch.Tensor,
+    group_slices: Tuple[slice, ...],
+) -> torch.Tensor:
+    """Expand per-group thresholds to one threshold per latent coordinate."""
+
+    expanded_parts: List[torch.Tensor] = []
+    for group_index, group_slice in enumerate(group_slices):
+        group_threshold = group_thresholds[..., group_index:group_index + 1]
+        group_width = group_slice.stop - group_slice.start
+        expanded_parts.append(group_threshold.expand(*group_threshold.shape[:-1], group_width))
+    return torch.cat(expanded_parts, dim=-1)
+
+
+def _reduce_thresholds_to_groups(
+    thresholds: torch.Tensor | float,
+    group_slices: Tuple[slice, ...],
+    *,
+    reference: torch.Tensor,
+) -> torch.Tensor | float:
+    """Reduce elementwise thresholds to one scalar per inferred group."""
+
+    if isinstance(thresholds, float):
+        return thresholds
+    if thresholds.ndim == 0 or thresholds.shape[-1] == 1:
+        return thresholds
+
+    group_thresholds: List[torch.Tensor] = []
+    for group_slice in group_slices:
+        group_thresholds.append(thresholds[..., group_slice].mean(dim=-1, keepdim=True))
+    reduced = torch.cat(group_thresholds, dim=-1)
+    return reduced.to(device=reference.device, dtype=reference.dtype)
+
+
 # ---------------------------------------------------------------------------
 # Network Components
 # ---------------------------------------------------------------------------
@@ -152,78 +293,340 @@ class LISTA(nn.Module):
         Wd_init: Initial dictionary matrix with shape [xdim, zdim].
     """
     
-    def __init__(self, cfg: Config, xdim: int, Wd_init: torch.Tensor, L_override: Optional[float] = None):
+    def __init__(
+        self,
+        cfg: Config,
+        xdim: int,
+        Wd_init: torch.Tensor,
+        L_override: Optional[float] = None,
+        dict_param: Optional[nn.Parameter] = None,
+    ):
         super().__init__()
         self.cfg = cfg
         self.xdim = xdim
         self.zdim = cfg.MODEL.TARGET_SIZE
         self.num_loops = cfg.MODEL.ENCODER.LISTA.NUM_LOOPS
+        self.use_momentum = bool(cfg.MODEL.ENCODER.LISTA.USE_MOMENTUM)
+        self.momentum_beta = float(cfg.MODEL.ENCODER.LISTA.MOMENTUM_BETA)
         self.alpha = cfg.MODEL.ENCODER.LISTA.ALPHA
         self.L = L_override if L_override is not None else cfg.MODEL.ENCODER.LISTA.L
-        self.use_linear_encode = cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER
+        self._legacy_linear_encoder = bool(cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER)
+        self.precode_mode = str(cfg.MODEL.ENCODER.LISTA.PRECODE_MODE).lower()
+        if self.precode_mode not in {"auto", "free_mlp", "linear", "dictionary_tied", "hybrid"}:
+            raise ValueError(
+                f"Unknown LISTA PRECODE_MODE '{self.precode_mode}'. "
+                "Expected one of ['auto', 'free_mlp', 'linear', 'dictionary_tied', 'hybrid']."
+            )
+        if self.precode_mode == "auto":
+            self.precode_mode = "linear" if self._legacy_linear_encoder else "free_mlp"
+        self.precode_residual_scale = float(cfg.MODEL.ENCODER.LISTA.PRECODE_RESIDUAL_SCALE)
+        self.use_adaptive_thresholds = bool(cfg.MODEL.ENCODER.LISTA.ADAPTIVE_THRESHOLDS)
+        self.alpha_residual_coeff = float(cfg.MODEL.ENCODER.LISTA.ALPHA_RESIDUAL_COEFF)
+        self.alpha_prior_coeff = float(cfg.MODEL.ENCODER.LISTA.ALPHA_PRIOR_COEFF)
+        self.use_groupwise_thresholds = bool(cfg.MODEL.ENCODER.LISTA.GROUPWISE_THRESHOLDS)
         requested_final_op = cfg.MODEL.ENCODER.LISTA.FINAL_OP.lower()
-        if requested_final_op not in {"shrink", "relu"}:
+        if requested_final_op not in {"shrink", "relu", "sign_split"}:
             raise ValueError(
                 f"Unknown LISTA FINAL_OP '{requested_final_op}'. "
-                "Expected one of ['shrink', 'relu']."
+                "Expected one of ['shrink', 'relu', 'sign_split']."
             )
-        if requested_final_op != "relu":
-            print(
-                f"WARNING: LISTA FINAL_OP='{requested_final_op}' requested; "
-                "forcing final operation to ReLU."
+        self.final_op = requested_final_op
+        self.base_zdim = self.zdim
+        if self.final_op == "sign_split":
+            if self.zdim % 2 != 0:
+                raise ValueError(
+                    "LISTA FINAL_OP='sign_split' requires an even TARGET_SIZE "
+                    f"(got {self.zdim})."
+                )
+            self.base_zdim = self.zdim // 2
+
+        self.use_group_shrinkage = bool(cfg.MODEL.ENCODER.LISTA.GROUP_SHRINKAGE)
+        self.group_threshold_scale = float(cfg.MODEL.ENCODER.LISTA.GROUP_THRESHOLD_SCALE)
+        self.topk_groups = int(cfg.MODEL.ENCODER.LISTA.TOPK_GROUPS)
+        if self.final_op == "sign_split" and (self.use_group_shrinkage or self.topk_groups > 0):
+            raise ValueError("LISTA group-aware shrinkage and top-k groups do not support FINAL_OP='sign_split'.")
+        if self.final_op == "sign_split" and self.precode_mode in {"dictionary_tied", "hybrid"}:
+            raise ValueError("LISTA dictionary-tied and hybrid pre-code modes do not support FINAL_OP='sign_split'.")
+        if self.final_op == "sign_split" and self.use_adaptive_thresholds:
+            raise ValueError("LISTA adaptive thresholds do not support FINAL_OP='sign_split'.")
+        self.group_slices = _infer_encoder_group_slices(cfg, self.base_zdim)
+        if (self.use_group_shrinkage or self.topk_groups > 0) and not self.group_slices:
+            raise ValueError(
+                "LISTA group-aware shrinkage requires structured, block-diagonal, or soft-block latent groups."
             )
+        if self.use_groupwise_thresholds and not self.group_slices:
+            raise ValueError(
+                "LISTA groupwise thresholds require structured, block-diagonal, or soft-block latent groups."
+            )
+        if self.use_groupwise_thresholds and self.final_op == "sign_split":
+            raise ValueError("LISTA groupwise thresholds do not support FINAL_OP='sign_split'.")
+        self.dict_param = dict_param
         
-        assert Wd_init.shape == (xdim, self.zdim), \
-            f"Wd_init shape {Wd_init.shape} doesn't match expected ({xdim}, {self.zdim})"
-        
-        if self.use_linear_encode:
+        assert Wd_init.shape == (xdim, self.base_zdim), \
+            f"Wd_init shape {Wd_init.shape} doesn't match expected ({xdim}, {self.base_zdim})"
+
+        self.register_buffer("encoder_dict_init", Wd_init.clone())
+        self.precode_module: Optional[nn.Module]
+        self.precode_residual: Optional[nn.Module] = None
+
+        if self.precode_mode == "linear":
             use_bias = cfg.MODEL.ENCODER.USE_BIAS
-            self.We = nn.Linear(xdim, self.zdim, bias=use_bias)
-            # Initialize as (1/L) * Wd^T
+            self.precode_module = nn.Linear(xdim, self.base_zdim, bias=use_bias)
             with torch.no_grad():
-                self.We.weight.copy_((1.0 / self.L) * Wd_init.T)  # [zdim, xdim]
+                self.precode_module.weight.copy_((1.0 / self.L) * Wd_init.T)
                 if use_bias:
-                    self.We.bias.zero_()
-        else:
-            self.We = MLPCoder(
+                    self.precode_module.bias.zero_()
+        elif self.precode_mode == "free_mlp":
+            self.precode_module = MLPCoder(
                 input_size=xdim,
-                target_size=self.zdim,
+                target_size=self.base_zdim,
                 hidden_layers=cfg.MODEL.ENCODER.LAYERS,
                 use_bias=cfg.MODEL.ENCODER.USE_BIAS,
                 last_relu=cfg.MODEL.ENCODER.LAST_RELU,
                 activation=cfg.MODEL.ENCODER.ACTIVATION,
             )
-        
-        S_init = torch.eye(self.zdim) - (1.0 / self.L) * (Wd_init.T @ Wd_init)
+        elif self.precode_mode == "dictionary_tied":
+            self.precode_module = None
+        elif self.precode_mode == "hybrid":
+            self.precode_module = None
+            self.precode_residual = MLPCoder(
+                input_size=xdim,
+                target_size=self.base_zdim,
+                hidden_layers=cfg.MODEL.ENCODER.LAYERS,
+                use_bias=cfg.MODEL.ENCODER.USE_BIAS,
+                last_relu=False,
+                activation=cfg.MODEL.ENCODER.ACTIVATION,
+            )
+            final_linear = None
+            for module in reversed(self.precode_residual.network):
+                if isinstance(module, nn.Linear):
+                    final_linear = module
+                    break
+            if final_linear is not None:
+                with torch.no_grad():
+                    final_linear.weight.zero_()
+                    if final_linear.bias is not None:
+                        final_linear.bias.zero_()
+        else:
+            raise RuntimeError(f"Unhandled LISTA precode mode '{self.precode_mode}'.")
+
+        S_init = torch.eye(self.base_zdim) - (1.0 / self.L) * (Wd_init.T @ Wd_init)
         self.S = nn.Parameter(S_init)
+        if self.use_groupwise_thresholds:
+            self.group_alpha = nn.Parameter(torch.full((len(self.group_slices),), float(self.alpha)))
+            group_lipschitz = []
+            for group_slice in self.group_slices:
+                group_dict = Wd_init[:, group_slice]
+                gram = group_dict.T @ group_dict
+                eigvals = torch.linalg.eigvalsh(gram)
+                group_lipschitz.append(float(eigvals.max().item()) * 1.05)
+            self.register_buffer(
+                "group_lipschitz",
+                torch.tensor(group_lipschitz, dtype=Wd_init.dtype).clamp(min=1e-8),
+            )
+        if self.use_group_shrinkage or self.topk_groups > 0:
+            print(
+                "  LISTA group-aware encoder:"
+                f" groups={len(self.group_slices)},"
+                f" group_shrinkage={self.use_group_shrinkage},"
+                f" threshold_scale={self.group_threshold_scale:.3f},"
+                f" topk_groups={self.topk_groups}"
+            )
+        if self.precode_mode in {"dictionary_tied", "hybrid"}:
+            print(
+                "  LISTA pre-code:"
+                f" mode={self.precode_mode}, residual_scale={self.precode_residual_scale:.3f}"
+            )
+        if self.use_adaptive_thresholds or self.use_groupwise_thresholds:
+            print(
+                "  LISTA thresholds:"
+                f" adaptive={self.use_adaptive_thresholds},"
+                f" groupwise={self.use_groupwise_thresholds},"
+                f" alpha_residual_coeff={self.alpha_residual_coeff:.3f},"
+                f" alpha_prior_coeff={self.alpha_prior_coeff:.3f}"
+            )
+        if self.use_momentum:
+            print(f"  LISTA momentum: beta={self.momentum_beta:.3f}")
+
+    def _split_sign(self, x: torch.Tensor) -> torch.Tensor:
+        """Map signed coefficients to nonnegative sign-split coordinates."""
+        return torch.cat([F.relu(x), F.relu(-x)], dim=-1)
+
+    def _unsplit_sign(self, x: torch.Tensor) -> torch.Tensor:
+        """Recover signed coefficients from sign-split coordinates."""
+        if x.shape[-1] != self.zdim:
+            raise ValueError(
+                "sign-split latent_prior must match the output latent shape: "
+                f"got {x.shape[-1]}, expected {self.zdim}"
+            )
+        positive, negative = torch.chunk(x, 2, dim=-1)
+        return positive - negative
+
+    def _current_dictionary(self) -> torch.Tensor:
+        """Return the current normalized encoder dictionary."""
+
+        if self.dict_param is not None:
+            dict_matrix = self.dict_param.T
+            if dict_matrix.shape[1] != self.base_zdim:
+                raise ValueError(
+                    "LISTA dictionary-tied pre-code requires decoder dictionary width "
+                    f"{self.base_zdim}, got {dict_matrix.shape[1]}"
+                )
+        else:
+            dict_matrix = self.encoder_dict_init
+        return dict_matrix / torch.norm(dict_matrix, dim=0, keepdim=True).clamp(min=1e-6)
+
+    def _compute_precode(self, x: torch.Tensor) -> torch.Tensor:
+        """Compute the encoder pre-code according to the configured mode."""
+
+        if self.precode_mode == "linear":
+            if self.precode_module is None:
+                raise RuntimeError("LISTA linear pre-code module is missing")
+            return self.precode_module(x)
+        if self.precode_mode == "free_mlp":
+            if self.precode_module is None:
+                raise RuntimeError("LISTA MLP pre-code module is missing")
+            return self.precode_module(x)
+
+        tied_precode = x @ (self._current_dictionary() / self.L)
+        if self.precode_mode == "dictionary_tied":
+            return tied_precode
+        if self.precode_mode == "hybrid":
+            if self.precode_residual is None:
+                raise RuntimeError("LISTA hybrid residual pre-code module is missing")
+            return tied_precode + self.precode_residual_scale * self.precode_residual(x)
+        raise RuntimeError(f"Unhandled LISTA pre-code mode '{self.precode_mode}'")
+
+    def _base_thresholds(
+        self,
+        *,
+        batch_shape: Tuple[int, ...],
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        """Return the base per-sample threshold tensor before adaptive terms."""
+
+        if self.use_groupwise_thresholds:
+            group_alpha = torch.relu(self.group_alpha).to(device=device, dtype=dtype)
+            group_thresholds = group_alpha / self.group_lipschitz.to(device=device, dtype=dtype)
+            group_thresholds = group_thresholds.view(*([1] * len(batch_shape)), -1)
+            return _expand_group_thresholds(group_thresholds, self.group_slices)
+        return torch.full((*batch_shape, 1), float(self.alpha / self.L), device=device, dtype=dtype)
+
+    def _decode_from_dictionary(self, z: torch.Tensor) -> torch.Tensor:
+        """Reconstruct observations from the current normalized encoder dictionary."""
+
+        return z @ self._current_dictionary().T
+
+    def _compute_thresholds(
+        self,
+        *,
+        x: torch.Tensor,
+        nonsparse_code: torch.Tensor,
+        latent_prior_internal: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        """Compute per-sample thresholds, optionally with adaptive terms."""
+
+        thresholds = self._base_thresholds(
+            batch_shape=tuple(nonsparse_code.shape[:-1]),
+            device=nonsparse_code.device,
+            dtype=nonsparse_code.dtype,
+        )
+        if not self.use_adaptive_thresholds:
+            return thresholds
+
+        u0 = shrink(nonsparse_code, thresholds)
+        reconstruction_residual = torch.norm(x - self._decode_from_dictionary(u0), dim=-1, keepdim=True)
+        if latent_prior_internal is None:
+            prior_gap = torch.zeros_like(reconstruction_residual)
+        else:
+            prior_gap = torch.norm(u0 - latent_prior_internal, dim=-1, keepdim=True)
+        adaptive_addition = (
+            self.alpha_residual_coeff * reconstruction_residual
+            + self.alpha_prior_coeff * prior_gap
+        ) / self.L
+        return thresholds + adaptive_addition
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        latent_prior: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """Forward pass: iterative soft-thresholding.
         
         Args:
             x: Input tensor of shape [..., xdim]
+            latent_prior: Optional warm-start latent for dynamics-aware reencoding.
             
         Returns:
             Sparse codes of shape [..., zdim]
         """
-        # Initial encoding
-        nonsparse_code = self.We(x)
+        latent_prior_internal: Optional[torch.Tensor] = None
+        if latent_prior is not None:
+            latent_prior = latent_prior.to(device=x.device, dtype=x.dtype)
+            expected_shape = (*x.shape[:-1], self.zdim)
+            if latent_prior.shape != expected_shape:
+                raise ValueError(
+                    "latent_prior must match the encoded shape for LISTA warm starts: "
+                    f"got {latent_prior.shape}, expected {expected_shape}"
+                )
+            latent_prior_internal = (
+                self._unsplit_sign(latent_prior) if self.final_op == "sign_split" else latent_prior
+            )
 
-        threshold = self.alpha / self.L
+        nonsparse_code = self._compute_precode(x)
+        threshold = self._compute_thresholds(
+            x=x,
+            nonsparse_code=nonsparse_code,
+            latent_prior_internal=latent_prior_internal,
+        )
 
         def apply_step(pre_act: torch.Tensor, is_final_step: bool) -> torch.Tensor:
-            # Always apply shrinkage; enforce ReLU as the final operation.
-            z = shrink(pre_act, threshold)
-            return F.relu(z) if is_final_step else z
+            structured_pre_act = pre_act
+            if self.topk_groups > 0:
+                structured_pre_act = _mask_to_topk_groups(
+                    structured_pre_act,
+                    self.group_slices,
+                    self.topk_groups,
+                )
+            if self.use_group_shrinkage:
+                structured_pre_act = _sparse_group_shrink(
+                    structured_pre_act,
+                    _reduce_thresholds_to_groups(
+                        self.group_threshold_scale * threshold,
+                        self.group_slices,
+                        reference=structured_pre_act,
+                    ),
+                    self.group_slices,
+                )
+            z = shrink(structured_pre_act, threshold)
+            if is_final_step:
+                if self.final_op == "relu":
+                    return F.relu(z)
+                if self.final_op == "sign_split":
+                    return self._split_sign(z)
+            return z
 
-        # Initialize with LISTA nonlinearity.
-        # If no loops, this initialization is also the final step.
-        z = apply_step(nonsparse_code, is_final_step=(self.num_loops == 0))
+        if latent_prior_internal is not None:
+            z = latent_prior_internal
+            z_prev = latent_prior_internal
+            num_refinement_steps = max(1, self.num_loops)
+        else:
+            # If no loops, the initialization is also the final step.
+            z = apply_step(nonsparse_code, is_final_step=(self.num_loops == 0))
+            z_prev = torch.zeros_like(z)
+            num_refinement_steps = self.num_loops
 
         # Iterative refinement
-        for loop_idx in range(self.num_loops):
-            is_final_step = loop_idx == (self.num_loops - 1)
-            z = apply_step(z @ self.S + nonsparse_code, is_final_step=is_final_step)
+        for loop_idx in range(num_refinement_steps):
+            is_final_step = loop_idx == (num_refinement_steps - 1)
+            if self.use_momentum:
+                momentum = self.momentum_beta * (z - z_prev)
+            else:
+                momentum = 0.0
+            z_next = apply_step(z @ self.S + nonsparse_code + momentum, is_final_step=is_final_step)
+            z_prev = z
+            z = z_next
         
         return z
 
@@ -276,6 +679,22 @@ class HyperLISTA(nn.Module):
         self.use_ss = hypercfg.USE_SUPPORT_SELECTION
         self.use_momentum = hypercfg.USE_MOMENTUM
         self.mag_ratio = hypercfg.MAG_RATIO
+        self.use_group_shrinkage = bool(hypercfg.GROUP_SHRINKAGE)
+        self.group_threshold_scale = float(hypercfg.GROUP_THRESHOLD_SCALE)
+        self.topk_groups = int(hypercfg.TOPK_GROUPS)
+        self.group_slices = _infer_encoder_group_slices(cfg, self.zdim)
+        if (self.use_group_shrinkage or self.topk_groups > 0) and not self.group_slices:
+            raise ValueError(
+                "HyperLISTA group-aware shrinkage requires structured, block-diagonal, or soft-block latent groups."
+            )
+        if self.use_group_shrinkage or self.topk_groups > 0:
+            print(
+                "  HyperLISTA group-aware encoder:"
+                f" groups={len(self.group_slices)},"
+                f" group_shrinkage={self.use_group_shrinkage},"
+                f" threshold_scale={self.group_threshold_scale:.3f},"
+                f" topk_groups={self.topk_groups}"
+            )
 
     def _c_theta_to_storage(self, c_theta: float) -> float:
         """Map user-facing c_theta to the stored parameter domain."""
@@ -348,8 +767,26 @@ class HyperLISTA(nn.Module):
             v = v / torch.norm(v)
         L = torch.norm(gram @ v) / torch.norm(v)
         return L * 1.05  # Safety margin
+
+    def _apply_group_structure(self, x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
+        """Apply optional group-first selection and sparse-group shrinkage."""
+
+        structured_x = x
+        if self.topk_groups > 0:
+            structured_x = _mask_to_topk_groups(structured_x, self.group_slices, self.topk_groups)
+        if self.use_group_shrinkage:
+            structured_x = _sparse_group_shrink(
+                structured_x,
+                self.group_threshold_scale * theta,
+                self.group_slices,
+            )
+        return structured_x
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        latent_prior: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """Forward pass with instance-adaptive parameters.
         
         The HyperLISTA iteration:
@@ -375,8 +812,19 @@ class HyperLISTA(nn.Module):
         
         # Initial encoding
         c = x @ W_e.T  # [..., zdim]
-        z = self._shrink(c, self.c_theta * gamma)  # Initial thresholding
+        theta_init = self.c_theta * gamma
+        c_structured = self._apply_group_structure(c, theta_init)
+        z = self._shrink(c_structured, theta_init)  # Initial thresholding
         z_prev = torch.zeros_like(z)
+        if latent_prior is not None:
+            latent_prior = latent_prior.to(device=z.device, dtype=z.dtype)
+            if latent_prior.shape != z.shape:
+                raise ValueError(
+                    "latent_prior must match the encoded shape for HyperLISTA warm starts: "
+                    f"got {latent_prior.shape}, expected {z.shape}"
+                )
+            z = latent_prior
+            z_prev = latent_prior
         
         # Get pseudo-inverse for error approximation
         D_pinv = self._get_D_pinv(D)
@@ -385,8 +833,11 @@ class HyperLISTA(nn.Module):
         if self.use_ss:
             initial_error = torch.norm(x @ D_pinv.T, p=1, dim=-1, keepdim=True) + 1e-8
         
+        # Warm-started reencoding should still perform at least one correction step.
+        num_refinement_steps = self.num_loops if latent_prior is None else max(1, self.num_loops)
+
         # Unrolled iterations
-        for k in range(self.num_loops):
+        for k in range(num_refinement_steps):
             # Compute residual and gradient step
             residual = z @ D.T - x  # [..., xdim]
             grad = residual @ W_e.T  # [..., zdim]
@@ -408,6 +859,7 @@ class HyperLISTA(nn.Module):
             # Adaptive threshold based on error approximation
             approx_error = torch.norm(residual @ D_pinv.T, p=1, dim=-1, keepdim=True) + 1e-8
             theta = self.c_theta * gamma * approx_error
+            z_tilde = self._apply_group_structure(z_tilde, theta)
             
             # Support selection
             if self.use_ss:
@@ -524,6 +976,18 @@ class KoopmanMachine(ABC, nn.Module):
             Latent codes of shape [..., target_size]
         """
         pass
+
+    def encode_with_prior(
+        self,
+        x: torch.Tensor,
+        latent_prior: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Encode observations with an optional latent warm start.
+
+        Models without dynamics-aware sparse inference simply ignore the prior.
+        """
+        del latent_prior
+        return self.encode(x)
     
     @abstractmethod
     def decode(self, y: torch.Tensor) -> torch.Tensor:
@@ -953,6 +1417,18 @@ class GenericKM(KoopmanMachine):
         """
         y = self.encoder(x)
         return self._norm_fn(y)
+
+    def encode_with_prior(
+        self,
+        x: torch.Tensor,
+        latent_prior: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Encode observations to latent space.
+
+        The generic MLP encoder does not consume latent priors.
+        """
+        del latent_prior
+        return self.encode(x)
     
     def decode(self, y: torch.Tensor) -> torch.Tensor:
         """Decode latent codes to observation space.
@@ -1004,13 +1480,25 @@ class LISTAKM(KoopmanMachine):
     
     def __init__(self, cfg: Config, observation_size: int):
         super().__init__(cfg, observation_size)
+        encoder_type = cfg.MODEL.ENCODER.ENCODER_TYPE.lower()
+        lista_final_op = cfg.MODEL.ENCODER.LISTA.FINAL_OP.lower()
+        self._uses_sign_split_latent = encoder_type == "lista" and lista_final_op == "sign_split"
+        self._encoder_target_size = self.target_size
+        if self._uses_sign_split_latent:
+            if self.target_size % 2 != 0:
+                raise ValueError(
+                    "LISTAKM sign-split latents require an even TARGET_SIZE "
+                    f"(got {self.target_size})."
+                )
+            self._encoder_target_size = self.target_size // 2
         
         # Homogeneous coordinates: augment input with constant 1
         self.use_homogeneous = cfg.MODEL.USE_HOMOGENEOUS
         self._internal_obs_size = observation_size + 1 if self.use_homogeneous else observation_size
 
         # Initialize dictionary with unit-norm columns.
-        Wd_init = self._init_dictionary(cfg.MODEL.TARGET_SIZE)
+        encoder_Wd_init = self._init_dictionary(self._encoder_target_size)
+        Wd_init = self._expand_sign_split_dictionary(encoder_Wd_init)
 
         # Register as buffer so it's saved/loaded but not updated by optimizer
         self.register_buffer('dict_init', Wd_init.clone())
@@ -1029,13 +1517,21 @@ class LISTAKM(KoopmanMachine):
             self.register_buffer('decoder_bias', torch.zeros(observation_size))
 
         # Encoder (LISTA / HyperLISTA)
-        self.encoder = self._build_encoder(cfg, self._internal_obs_size, Wd_init)
+        self.encoder = self._build_encoder(cfg, self._internal_obs_size, encoder_Wd_init)
         if self.use_homogeneous:
             print(f"  Using homogeneous coordinates: input {observation_size} -> internal {self._internal_obs_size}")
+        if self._uses_sign_split_latent:
+            print(
+                "  Using sign-split LISTA latents: "
+                f"base {self._encoder_target_size} -> output {self.target_size}"
+            )
 
         # Koopman matrix (learnable) — structure depends on cfg.MODEL.K_STRUCTURE
         self._k_structure = cfg.MODEL.K_STRUCTURE
         zdim = cfg.MODEL.TARGET_SIZE
+        self._soft_block_cfg = cfg.MODEL.SOFT_BLOCK
+        self._soft_block_sizes: List[int] = []
+        self.register_buffer("_soft_block_mask", torch.empty(0, 0, dtype=torch.bool), persistent=False)
         if self._k_structure == "diagonal":
             self.kmat_diag = nn.Parameter(torch.ones(zdim))
             print(f"  Diagonal K: {zdim} parameters")
@@ -1092,6 +1588,24 @@ class LISTAKM(KoopmanMachine):
                 print(f"    top1_margin={self._block_loss_cfg.TOP1_MARGIN}")
             print(f"    energy_norm={self._block_loss_cfg.ENERGY_NORM}")
 
+        if self._soft_block_cfg.ENABLED:
+            if self._k_structure != "dense":
+                raise ValueError("Soft block penalty requires K_STRUCTURE='dense'.")
+            if int(self._soft_block_cfg.NUM_BLOCKS) <= 0:
+                raise ValueError("SOFT_BLOCK.NUM_BLOCKS must be positive when soft block penalty is enabled.")
+            self._soft_block_sizes = self._split_block_sizes(zdim, int(self._soft_block_cfg.NUM_BLOCKS))
+            mask = torch.zeros(zdim, zdim, dtype=torch.bool)
+            offset = 0
+            for block_size in self._soft_block_sizes:
+                mask[offset:offset + block_size, offset:offset + block_size] = True
+                offset += block_size
+            self._soft_block_mask = mask
+            print(
+                "  Soft block penalty enabled: "
+                f"{len(self._soft_block_sizes)} blocks with sizes {self._soft_block_sizes}, "
+                f"norm={self._soft_block_cfg.NORM}, w={self._soft_block_cfg.WEIGHT}"
+            )
+
     @staticmethod
     def _split_block_sizes(zdim: int, num_blocks: int) -> List[int]:
         """Split a latent dimension into near-equal positive block sizes."""
@@ -1112,6 +1626,49 @@ class LISTAKM(KoopmanMachine):
             blocks.append(self.kmat_remainder)
         return blocks
 
+    def _soft_block_penalty(self) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Return off-block penalty and off-block ratio for dense soft block-sparse K."""
+        if not self._soft_block_cfg.ENABLED or self._k_structure != "dense" or not self._soft_block_sizes:
+            return None, None
+        off_mask = ~self._soft_block_mask
+        off_entries = self.kmat.masked_select(off_mask)
+        if self._soft_block_cfg.NORM == "fro":
+            penalty = off_entries.square().sum()
+            total = self.kmat.square().sum()
+        else:
+            penalty = off_entries.abs().sum()
+            total = self.kmat.abs().sum()
+        ratio = penalty / total.clamp(min=1e-8)
+        return penalty, ratio
+
+    def _decoder_atoms_for_coherence(self) -> torch.Tensor:
+        """Return normalized decoder atoms for coherence diagnostics.
+
+        Sign-split decoders carry paired positive/negative atoms that should not
+        be penalized against each other. For those models, collapse each pair
+        back to one effective atom before computing coherence.
+        """
+        atoms = self.dict
+        if self._uses_sign_split_latent:
+            half = atoms.shape[0] // 2
+            atoms = 0.5 * (atoms[:half] - atoms[half:])
+        return atoms / torch.norm(atoms, dim=1, keepdim=True).clamp(min=1e-8)
+
+    def _decoder_coherence_penalty(self) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Return off-diagonal decoder coherence penalty and max correlation."""
+        weight = float(getattr(self.cfg.MODEL, "DECODER_COHERENCE_WEIGHT", 0.0))
+        if weight <= 0.0:
+            return None, None
+        atoms = self._decoder_atoms_for_coherence()
+        if atoms.shape[0] <= 1:
+            zero = atoms.new_tensor(0.0)
+            return zero, zero
+        gram = atoms @ atoms.T
+        off_diag = gram - torch.diag_embed(torch.diagonal(gram))
+        penalty = off_diag.square().sum()
+        max_off_diag = off_diag.abs().max()
+        return penalty, max_off_diag
+
     def _init_dictionary(self, zdim: int) -> torch.Tensor:
         """Initialize dictionary as a union of orthogonal bases."""
         wd = torch.empty(self._internal_obs_size, zdim)
@@ -1129,6 +1686,12 @@ class LISTAKM(KoopmanMachine):
                 wd[:, curr:] = q[:, :remaining]
                 curr += remaining
         return wd / torch.norm(wd, dim=0, keepdim=True).clamp(min=1e-8)
+
+    def _expand_sign_split_dictionary(self, encoder_dict: torch.Tensor) -> torch.Tensor:
+        """Expand encoder atoms into paired positive/negative decoder atoms."""
+        if not self._uses_sign_split_latent:
+            return encoder_dict
+        return torch.cat([encoder_dict, -encoder_dict], dim=1)
 
     def _compute_lipschitz_constant(self, wd_init: torch.Tensor) -> float:
         """Estimate L >= spectral_norm(WdᵀWd) with power iteration."""
@@ -1148,7 +1711,13 @@ class LISTAKM(KoopmanMachine):
         if encoder_type == "lista":
             l_const = self._compute_lipschitz_constant(wd_init)
             print(f"Initialized LISTA encoder with computed Lipschitz constant L={l_const:.4f}")
-            return LISTA(cfg, internal_obs_size, wd_init, L_override=l_const)
+            return LISTA(
+                cfg,
+                internal_obs_size,
+                wd_init,
+                L_override=l_const,
+                dict_param=self.dict,
+            )
 
         if encoder_type == "hyperlista":
             print(f"Initialized HyperLISTA encoder with {cfg.MODEL.TARGET_SIZE} latent dims")
@@ -1180,6 +1749,18 @@ class LISTAKM(KoopmanMachine):
         if self.use_homogeneous:
             x = self._augment_homogeneous(x)
         return self.encoder(x)
+
+    def encode_with_prior(
+        self,
+        x: torch.Tensor,
+        latent_prior: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Encode observations with an optional latent warm start."""
+        if self.use_homogeneous:
+            x = self._augment_homogeneous(x)
+        if latent_prior is None:
+            return self.encoder(x)
+        return self.encoder(x, latent_prior=latent_prior)
     
     def _decode_full(self, y: torch.Tensor) -> torch.Tensor:
         """Decode to full internal representation (includes homogeneous coord if enabled).
@@ -1479,6 +2060,29 @@ class LISTAKM(KoopmanMachine):
             elif self.cfg.MODEL.HOMOGENEOUS_COEFF != 0.0:
                 raise ValueError("homogeneous_loss must be provided when homogeneous coordinates are enabled.")
 
+        soft_block_penalty, soft_block_ratio = self._soft_block_penalty()
+        if soft_block_penalty is not None:
+            total_loss = total_loss + self._soft_block_cfg.WEIGHT * soft_block_penalty
+            metrics.update({
+                'soft_block_penalty': float(soft_block_penalty.item()),
+                'soft_block_weight': float(self._soft_block_cfg.WEIGHT),
+                'soft_block_off_block_ratio': float(soft_block_ratio.item()) if soft_block_ratio is not None else 0.0,
+            })
+
+        decoder_coherence_penalty, decoder_coherence_max_offdiag = self._decoder_coherence_penalty()
+        if decoder_coherence_penalty is not None:
+            decoder_coherence_weight = float(self.cfg.MODEL.DECODER_COHERENCE_WEIGHT)
+            total_loss = total_loss + decoder_coherence_weight * decoder_coherence_penalty
+            metrics.update({
+                'decoder_coherence_penalty': float(decoder_coherence_penalty.item()),
+                'decoder_coherence_weight': decoder_coherence_weight,
+                'decoder_coherence_max_offdiag': (
+                    float(decoder_coherence_max_offdiag.item())
+                    if decoder_coherence_max_offdiag is not None
+                    else 0.0
+                ),
+            })
+
         metrics['loss'] = total_loss.item()
         return total_loss, metrics
 
@@ -1506,6 +2110,8 @@ class StructuredLISTAKM(LISTAKM):
     def __init__(self, cfg: Config, observation_size: int):
         # Read structured config before calling parent init
         struct_cfg = cfg.MODEL.STRUCTURED
+        if cfg.MODEL.SOFT_BLOCK.ENABLED:
+            raise ValueError("StructuredLISTAKM does not support soft block dense-K penalties.")
         self.d_global = struct_cfg.D_GLOBAL
         self.num_basins = struct_cfg.NUM_BASINS
         self.d_basin = struct_cfg.D_BASIN
