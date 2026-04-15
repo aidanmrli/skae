@@ -1,0 +1,780 @@
+{
+  "selection_basis": "best fixed-17 LISTA checkpoint per system by saved H1000 best-periodic mean across collected transition-rich forecasting rows; each selected checkpoint is then rolled out at the requested horizons using its saved H1000 best-periodic mode",
+  "systems": [
+    "multiwell_strong_transition",
+    "gated_local_linear",
+    "gated_transfer_linear",
+    "claude:arrested_spiral",
+    "claude:cal_asymmetric_3",
+    "claude:cal_high_cross_3",
+    "claude:cal_hexagon_6",
+    "claude:cal_octagon_8",
+    "claude:cal_pentagon_5",
+    "claude:cal_square_4",
+    "claude:checkerboard_potential",
+    "claude:duffing_triple_well",
+    "claude:snic_multi",
+    "claude:transition_routes_4",
+    "claude:var_depth_gradient_4",
+    "claude:var_diamond_4",
+    "claude:var_l_shape_5"
+  ],
+  "horizons": [
+    1000,
+    3000,
+    5000
+  ],
+  "batch_size": 100,
+  "rng_seed": 20260414,
+  "root_label_prefix": "lista_",
+  "rows": [
+    {
+      "system": "multiwell_strong_transition",
+      "root_label": "lista_dense_softblock_signsplit_coherence_basin_partition",
+      "seed": 9,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_v6_v7_200k_seed10_20260410/transition_rich_basin_partition/lista_dense_softblock_signsplit_coherence_basin_partition/multiwell_strong_transition/dt_0p02/seed_9/20260410-234447",
+      "env_dt": 0.02,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 589.50146484375,
+      "h500_best_periodic_mean": 3.7533478477506066e+23,
+      "h1000_best_periodic_mean": 0.018098212778568268,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.04098036512732506,
+          "shared_batch_best_periodic_std": 0.14409250020980835,
+          "num_valid": 63
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": Infinity,
+          "shared_batch_best_periodic_std": NaN,
+          "num_valid": 0
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": Infinity,
+          "shared_batch_best_periodic_std": NaN,
+          "num_valid": 0
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/multiwell_strong_transition_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "gated_local_linear",
+      "root_label": "lista_dense_softblock_signsplit_coherence_basin_partition",
+      "seed": 4,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_v6_v7_200k_seed10_20260410/transition_rich_basin_partition/lista_dense_softblock_signsplit_coherence_basin_partition/gated_local_linear/dt_0p04/seed_4/20260410-234448",
+      "env_dt": 0.04,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0004680512356571853,
+      "h500_best_periodic_mean": 0.00032946906867437065,
+      "h1000_best_periodic_mean": 0.0002990090870298445,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.00012670339492615312,
+          "shared_batch_best_periodic_std": 8.010817691683769e-05,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.00012670386058744043,
+          "shared_batch_best_periodic_std": 8.010875171748921e-05,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.00012670319119933993,
+          "shared_batch_best_periodic_std": 8.010872988961637e-05,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_local_linear_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "gated_transfer_linear",
+      "root_label": "lista_blockdiag_sparsegroup_basin_partition",
+      "seed": 7,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_v6_v7_200k_seed10_20260410/transition_rich_basin_partition/lista_blockdiag_sparsegroup_basin_partition/gated_transfer_linear/dt_0p04/seed_7/20260411-021010",
+      "env_dt": 0.04,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.03141891583800316,
+      "h500_best_periodic_mean": 0.26337867975234985,
+      "h1000_best_periodic_mean": 0.2910580039024353,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.2890908420085907,
+          "shared_batch_best_periodic_std": 1.2347499132156372,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.2891225814819336,
+          "shared_batch_best_periodic_std": 1.2347509860992432,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.2890821397304535,
+          "shared_batch_best_periodic_std": 1.234738826751709,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/gated_transfer_linear_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:arrested_spiral",
+      "root_label": "lista_dense_basin_partition",
+      "seed": 0,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407/transition_rich_basin_partition/lista_dense_basin_partition/claude_arrested_spiral/dt_0p02/seed_0/20260407-220117",
+      "env_dt": null,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0049888091161847115,
+      "h500_best_periodic_mean": 0.0014078388921916485,
+      "h1000_best_periodic_mean": 0.0009602195932529867,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.009341136552393436,
+          "shared_batch_best_periodic_std": 0.08993367105722427,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.00934111513197422,
+          "shared_batch_best_periodic_std": 0.08993349224328995,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.009341122582554817,
+          "shared_batch_best_periodic_std": 0.08993352204561234,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/arrested_spiral_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:cal_asymmetric_3",
+      "root_label": "lista_dense_basin_partition",
+      "seed": 0,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_20260407/transition_rich_basin_partition/lista_dense_basin_partition/claude_cal_asymmetric_3/dt_0p03/seed_0/20260407-222235",
+      "env_dt": null,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0011707778321579099,
+      "h500_best_periodic_mean": 0.00037932684062980115,
+      "h1000_best_periodic_mean": 0.0002785086689982563,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 9.889946522889659e-05,
+          "shared_batch_best_periodic_std": 7.65016011428088e-05,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 9.889845387078822e-05,
+          "shared_batch_best_periodic_std": 7.650064071640372e-05,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 9.889891953207552e-05,
+          "shared_batch_best_periodic_std": 7.650152110727504e-05,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_asymmetric_3_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:cal_high_cross_3",
+      "root_label": "lista_blockdiag_basin_partition",
+      "seed": 0,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_20260409_seed0_smoke_v1/transition_rich_basin_partition/lista_blockdiag_basin_partition/claude_cal_high_cross_3/dt_0p03/seed_0/20260409-012331",
+      "env_dt": 0.03,
+      "num_steps": 20000,
+      "h100_best_periodic_mean": 0.007526202592998743,
+      "h500_best_periodic_mean": 0.006228347774595022,
+      "h1000_best_periodic_mean": 0.0060895937494933605,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.3103880286216736,
+          "shared_batch_best_periodic_std": 1.1022146940231323,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.3103880286216736,
+          "shared_batch_best_periodic_std": 1.1022146940231323,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.3103880286216736,
+          "shared_batch_best_periodic_std": 1.1022146940231323,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_high_cross_3_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:cal_hexagon_6",
+      "root_label": "lista_dense_softblock_signsplit_p64_hardinit_basin_partition",
+      "seed": 8,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/rescue_pass1/lista_dense_softblock_signsplit_p64_hardinit_basin_partition/claude_cal_hexagon_6/dt_0p03/seed_8/20260409-232124",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0019696655217558146,
+      "h500_best_periodic_mean": 0.0013367475476115942,
+      "h1000_best_periodic_mean": 0.001257905038073659,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.05282662808895111,
+          "shared_batch_best_periodic_std": 0.2533051669597626,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.052826642990112305,
+          "shared_batch_best_periodic_std": 0.25330519676208496,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.052826642990112305,
+          "shared_batch_best_periodic_std": 0.25330519676208496,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_hexagon_6_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:cal_octagon_8",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 9,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_octagon_8/dt_0p03/seed_9/20260409-155106",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.007309493608772755,
+      "h500_best_periodic_mean": 0.003683893708512187,
+      "h1000_best_periodic_mean": 0.0032300895545631647,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.17176084220409393,
+          "shared_batch_best_periodic_std": 0.8217291831970215,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.17176088690757751,
+          "shared_batch_best_periodic_std": 0.8217293620109558,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.1717609167098999,
+          "shared_batch_best_periodic_std": 0.8217295408248901,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_octagon_8_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:cal_pentagon_5",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 9,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_pentagon_5/dt_0p03/seed_9/20260409-160326",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0008074840297922492,
+      "h500_best_periodic_mean": 0.0004284469468984753,
+      "h1000_best_periodic_mean": 0.0003813552903011441,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.021375484764575958,
+          "shared_batch_best_periodic_std": 0.2099573165178299,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.021375484764575958,
+          "shared_batch_best_periodic_std": 0.2099573314189911,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.02137548290193081,
+          "shared_batch_best_periodic_std": 0.2099573314189911,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_pentagon_5_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:cal_square_4",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 6,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_6/20260409-161553",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0015384164871647954,
+      "h500_best_periodic_mean": 0.0009180535562336445,
+      "h1000_best_periodic_mean": 0.0008405411499552429,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.06011596694588661,
+          "shared_batch_best_periodic_std": 0.41094717383384705,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.0601159892976284,
+          "shared_batch_best_periodic_std": 0.41094720363616943,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.06011602282524109,
+          "shared_batch_best_periodic_std": 0.4109475910663605,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:checkerboard_potential",
+      "root_label": "lista_blockdiag_signsplit_basin_partition",
+      "seed": 0,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_20260409_seed0_smoke_v5/transition_rich_basin_partition/lista_blockdiag_signsplit_basin_partition/claude_checkerboard_potential/dt_0p03/seed_0/20260409-024022",
+      "env_dt": 0.03,
+      "num_steps": 20000,
+      "h100_best_periodic_mean": 1.6641786098480225,
+      "h500_best_periodic_mean": 0.0013929464621469378,
+      "h1000_best_periodic_mean": 0.0010663268622010946,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": Infinity,
+          "shared_batch_best_periodic_std": NaN,
+          "num_valid": 0
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": Infinity,
+          "shared_batch_best_periodic_std": NaN,
+          "num_valid": 0
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": Infinity,
+          "shared_batch_best_periodic_std": NaN,
+          "num_valid": 0
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/checkerboard_potential_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:duffing_triple_well",
+      "root_label": "lista_dense_softblock_signsplit_coherence_basin_partition",
+      "seed": 2,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_v6_v7_200k_seed10_20260410/transition_rich_basin_partition/lista_dense_softblock_signsplit_coherence_basin_partition/claude_duffing_triple_well/dt_0p02/seed_2/20260410-235949",
+      "env_dt": 0.02,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0009363283752463758,
+      "h500_best_periodic_mean": 0.001023042481392622,
+      "h1000_best_periodic_mean": 0.0005921623087488115,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 5.903733836021274e-05,
+          "shared_batch_best_periodic_std": 2.9769529646728188e-05,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 3.977741471317131e-06,
+          "shared_batch_best_periodic_std": 1.8511445887270384e-07,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 3.96197674490395e-06,
+          "shared_batch_best_periodic_std": 5.217811516189386e-09,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/duffing_triple_well_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:snic_multi",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 0,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_snic_multi/dt_0p02/seed_0/20260409-162204",
+      "env_dt": 0.02,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.00015907151100691408,
+      "h500_best_periodic_mean": 7.073091546772048e-05,
+      "h1000_best_periodic_mean": 5.7778917835094035e-05,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 1.364971376460744e-05,
+          "shared_batch_best_periodic_std": 1.1122256182716228e-05,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 1.3649789252667688e-05,
+          "shared_batch_best_periodic_std": 1.1122199794044718e-05,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 1.3649762877321336e-05,
+          "shared_batch_best_periodic_std": 1.1122219802928157e-05,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/snic_multi_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:transition_routes_4",
+      "root_label": "lista_blockdiag_double_basin_partition",
+      "seed": 0,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_20260409_seed0_smoke_v2/transition_rich_basin_partition/lista_blockdiag_double_basin_partition/claude_transition_routes_4/dt_0p02/seed_0/20260409-023720",
+      "env_dt": 0.02,
+      "num_steps": 20000,
+      "h100_best_periodic_mean": 0.009730076417326927,
+      "h500_best_periodic_mean": 0.006602583918720484,
+      "h1000_best_periodic_mean": 0.006727766245603561,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.49940502643585205,
+          "shared_batch_best_periodic_std": 1.6065105199813843,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.6700676679611206,
+          "shared_batch_best_periodic_std": 1.8151193857192993,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.5764745473861694,
+          "shared_batch_best_periodic_std": 1.7224154472351074,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/transition_routes_4_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:var_depth_gradient_4",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 5,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_var_depth_gradient_4/dt_0p03/seed_5/20260409-163412",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0009998882887884974,
+      "h500_best_periodic_mean": 0.00028934344300068915,
+      "h1000_best_periodic_mean": 0.00020053386106155813,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.00011363329394953325,
+          "shared_batch_best_periodic_std": 0.00012729293666779995,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.00011363771045580506,
+          "shared_batch_best_periodic_std": 0.00012730105663649738,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.00011363764497218654,
+          "shared_batch_best_periodic_std": 0.00012729948502965271,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_depth_gradient_4_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:var_diamond_4",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 5,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_var_diamond_4/dt_0p03/seed_5/20260409-164328",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0010458261240273714,
+      "h500_best_periodic_mean": 0.002733048750087619,
+      "h1000_best_periodic_mean": 0.001540534314699471,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.2669086456298828,
+          "shared_batch_best_periodic_std": 1.3793463706970215,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.2669038474559784,
+          "shared_batch_best_periodic_std": 1.3793472051620483,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.26690390706062317,
+          "shared_batch_best_periodic_std": 1.3793474435806274,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_diamond_4_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    },
+    {
+      "system": "claude:var_l_shape_5",
+      "root_label": "lista_dense_softblock_signsplit_p64_hardinit_basin_partition",
+      "seed": 9,
+      "periodic_mode": 10,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_dense_softblock_signsplit_p64_hardinit_basin_partition/claude_var_l_shape_5/dt_0p03/seed_9/20260409-175409",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0021919573191553354,
+      "h500_best_periodic_mean": 0.0008627408533357084,
+      "h1000_best_periodic_mean": 0.0006687837303616107,
+      "shared_batch_metrics": {
+        "h1000": {
+          "shared_batch_best_periodic_mean": 0.0009788940660655499,
+          "shared_batch_best_periodic_std": 0.0011867585126310587,
+          "num_valid": 100
+        },
+        "h3000": {
+          "shared_batch_best_periodic_mean": 0.0009788940660655499,
+          "shared_batch_best_periodic_std": 0.0011867646826431155,
+          "num_valid": 100
+        },
+        "h5000": {
+          "shared_batch_best_periodic_mean": 0.0009788991883397102,
+          "shared_batch_best_periodic_std": 0.0011867653811350465,
+          "num_valid": 100
+        }
+      },
+      "metadata_json": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_lista_phase_portrait_selection.json",
+      "outputs": {
+        "h1000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_h1000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_h1000_lista_phase_portrait.pdf"
+        },
+        "h3000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_h3000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_h3000_lista_phase_portrait.pdf"
+        },
+        "h5000": {
+          "png": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_h5000_lista_phase_portrait.png",
+          "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/var_l_shape_5_h5000_lista_phase_portrait.pdf"
+        }
+      }
+    }
+  ]
+}

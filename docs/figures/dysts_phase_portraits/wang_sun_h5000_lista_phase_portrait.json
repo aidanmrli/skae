@@ -1,0 +1,88 @@
+{
+  "system": "dysts:WangSun",
+  "selection_basis": "best H5000 checkpoint among a shortlist of current matched Dysts LISTA runs, where the shortlist is ranked by saved H3000 best-periodic mean and each shortlisted run is rescored at H5000 using its saved H3000 best-periodic mode",
+  "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_0/20260309-083737",
+  "checkpoint": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_0/20260309-083737/checkpoint.pt",
+  "root_label": "dense_lista",
+  "root_display_name": "dense LISTA",
+  "seed": 0,
+  "periodic_mode": 80,
+  "horizon": 5000,
+  "batch_size": 100,
+  "rng_seed": 20260414,
+  "h3000_best_periodic_mean": 0.09700870513916016,
+  "h3000_best_periodic_mode": "periodic_80",
+  "shared_batch_h5000_best_periodic_mean": 0.675095796585083,
+  "shared_batch_h5000_best_periodic_std": 0.6389176249504089,
+  "num_valid": 100,
+  "shortlist_candidates": [
+    {
+      "root_label": "dense_lista",
+      "root_display_name": "dense LISTA",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_0/20260309-083737",
+      "seed": 0,
+      "h3000_best_periodic_mean": 0.09700870513916016,
+      "h3000_best_periodic_mode": "periodic_80"
+    },
+    {
+      "root_label": "dense_lista",
+      "root_display_name": "dense LISTA",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_3/20260309-214201",
+      "seed": 3,
+      "h3000_best_periodic_mean": 0.18467603623867035,
+      "h3000_best_periodic_mode": "periodic_100"
+    },
+    {
+      "root_label": "dense_lista",
+      "root_display_name": "dense LISTA",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_7/20260325-012707",
+      "seed": 7,
+      "h3000_best_periodic_mean": 0.22397518157958984,
+      "h3000_best_periodic_mode": "periodic_40"
+    },
+    {
+      "root_label": "dense_lista",
+      "root_display_name": "dense LISTA",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_9/20260325-012700",
+      "seed": 9,
+      "h3000_best_periodic_mean": 0.25128018856048584,
+      "h3000_best_periodic_mode": "periodic_60"
+    },
+    {
+      "root_label": "blockdiag_lista_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_3/20260324-224926",
+      "seed": 3,
+      "h3000_best_periodic_mean": 0.4305564761161804,
+      "h3000_best_periodic_mode": "periodic_20"
+    },
+    {
+      "root_label": "blockdiag_lista_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_0/20260309-124624",
+      "seed": 0,
+      "h3000_best_periodic_mean": 0.564166247844696,
+      "h3000_best_periodic_mode": "periodic_20"
+    },
+    {
+      "root_label": "dense_lista",
+      "root_display_name": "dense LISTA",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_1/20260309-083737",
+      "seed": 1,
+      "h3000_best_periodic_mean": 0.5806137323379517,
+      "h3000_best_periodic_mode": "periodic_20"
+    },
+    {
+      "root_label": "dense_lista",
+      "root_display_name": "dense LISTA",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_8/20260325-012707",
+      "seed": 8,
+      "h3000_best_periodic_mean": 0.6853895783424377,
+      "h3000_best_periodic_mode": "periodic_60"
+    }
+  ],
+  "outputs": [
+    "docs/figures/wang_sun_h5000_lista_phase_portrait.png",
+    "docs/figures/wang_sun_h5000_lista_phase_portrait.pdf"
+  ]
+}
