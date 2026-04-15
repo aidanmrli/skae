@@ -1030,7 +1030,7 @@ Examples:
     
     # Configuration
     parser.add_argument('--config', type=str, default='generic',
-                        choices=['default', 'generic', 'generic_sparse', 
+                        choices=['default', 'generic', 'generic_sparse', 'generic_no_shrink',
                                 'generic_prediction', 'lista', 'lista_nonlinear',
                                 'lista_parity_generic_sparse', 'hyperlista',
                                 'hyperlista_parity_generic_sparse'],

@@ -24,7 +24,7 @@ def test_transition_rich_basin_partition_manifest_shape():
     models = transition_rich_basin_partition_models()
 
     assert len(systems) == 17
-    assert len(models) == 46
+    assert len(models) == 48
     assert TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS == 20_000
     assert TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE == 256
     assert TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE == 256
@@ -44,10 +44,22 @@ def test_transition_rich_basin_partition_known_defaults():
     ).config_name == "generic_sparse"
     assert get_transition_rich_basin_partition_model(
         "mlp_zero_sparse_basin_partition_control"
-    ).config_name == "generic_sparse"
+    ).config_name == "generic_no_shrink"
     assert get_transition_rich_basin_partition_model(
         "mlp_zero_sparse_basin_partition_control"
     ).sparsity_coeff == 0.0
+    assert get_transition_rich_basin_partition_model(
+        "mlp_sparse_hardinit_basin_partition_control"
+    ).hard_init_oversample is True
+    assert get_transition_rich_basin_partition_model(
+        "mlp_sparse_hardinit_basin_partition_control"
+    ).hard_init_num_candidates == 4096
+    assert get_transition_rich_basin_partition_model(
+        "mlp_zero_sparse_hardinit_basin_partition_control"
+    ).config_name == "generic_no_shrink"
+    assert get_transition_rich_basin_partition_model(
+        "mlp_zero_sparse_hardinit_basin_partition_control"
+    ).hard_init_fraction == 0.5
     assert get_transition_rich_basin_partition_model(
         "lista_blockdiag_top1_balance_basin_partition"
     ).block_balance_loss == "kl_uniform"
@@ -146,6 +158,6 @@ def test_transition_rich_basin_partition_manifest_jsonable():
 
     assert payload["num_steps"] == 20_000
     assert len(payload["systems"]) == 17
-    assert len(payload["models"]) == 46
+    assert len(payload["models"]) == 48
     assert payload["h1000_threshold"] == 50.0
     assert any(item["system_key"] == "gated_transfer_linear" for item in payload["systems"])

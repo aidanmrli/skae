@@ -4,32 +4,27 @@
 Learning accurate and interpretable models of nonlinear dynamical systems remains a central problem in machine learning, scientific computing, and control. One particularly attractive direction is to seek a representation in which the nonlinear dynamics can become linear, since linear models support efficient prediction, estimation, and control while remaining amenable to classical solving tools such as linear quadratic regulators (LQR) \citep{kalman_general_1960} and model predictive control (MPC) \citep{mayne_constrained_2000, grune_nonlinear_2017}. Koopman operator theory provides this perspective: instead of evolving the state in the nonlinear dynamical system directly, it studies the evolution of observables under a linear operator acting on a lifted function space \citep{koopman_hamiltonian_1931, koopman_dynamical_1932, brunton_modern_2022}. This viewpoint has inspired a large line of literature on data-driven approximations of Koopman dynamics, such as DMD and eDMD \citep{schmid_dmd_2010, williams_datadriven_2015, williams_kernel-based_2016}, and applications of these linear predictors for nonlinear control via MPC \citep{korda_linear_2018} or LQR \citep{mamakoukas_local_2019}.
 
 The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that these systems cannot admit a single finite-dimensional global linearization \citep{lan_linearization_2013, brunton_koopman_2016}. 
-% In particular, for systems with multiple basins of attraction, finite-dimensional Koopman-invariant subspaces that contain the state cannot, in general, provide a globally exact linear representation across all basins simultaneously \citep{lan_linearization_2013, brunton_koopman_2016}. 
-In a multistable finite-dimensional system, we might be able to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. The problem goes beyond predicting trajectories within a single locally valid basin to representing dynamics that may move across qualitatively different regimes while preserving enough structure to support downstream reasoning and control.
+In a multistable finite-dimensional system, it is possible to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. The problem goes beyond predicting trajectories within a single locally valid basin to representing dynamics that may move across qualitatively different regimes while preserving enough structure to support downstream reasoning and control.
 
-Recent studies have merged Koopman theory with deep learning. Deep autoencoder-based models learn nonlinear observables jointly with latent linear dynamics, improving flexibility over hand-designed lifting functions \citep{lusch_deep_2018, azencot_forecasting_2020, shi_deep_2022}. However,  unrolling the linear dynamics in latent space over long rollouts leads to drift due to crossing of long-horizon trajectories and inability of latent space trajectory generation to capture switching dynamics between fixed points \citep{fathi_course_2023}. \citet{fathi_course_2023} proposed periodic re-encoding, which maps (decodes) the lifted latent back to the space of observables (state space) and immediately re-encodes the decoded state back to the lifted latent space. Periodic re-encoding was shown to be an effective inference-time correction mechanism, and therefore is a natural starting point for studying multistable dynamics.
+Recent studies have merged Koopman theory with deep learning. Deep autoencoder-based models learn nonlinear observables jointly with latent linear dynamics, improving flexibility over hand-designed lifting functions \citep{lusch_deep_2018, azencot_forecasting_2020, shi_deep_2022}. However, unrolling the linear dynamics in latent space over long rollouts leads to drift due to crossing of long-horizon trajectories and inability of latent space trajectory generation to capture switching dynamics between fixed points \citep{fathi_course_2023}. \citet{fathi_course_2023} proposed periodic re-encoding, which maps (decodes) the lifted latent back to the space of observables (state space) and immediately re-encodes the decoded state back to the lifted latent space. Periodic re-encoding was shown to be an effective inference-time correction mechanism, and therefore is a natural starting point for studying multistable dynamics.
 
-However, long-horizon prediction is only half of the story. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes. Sparse coding offers an appealing inductive bias for this purpose. Classical sparse coding and LISTA-style encoders produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}. In principle, the support of a sparse latent code could act as a mode variable, indicating which local linear model is active and how trajectories transition between regimes. 
+However, long-horizon prediction is only half of the story. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes. More generally, if one finite-dimensional latent is asked to represent several basins or fixed points at once, then some mechanism that induces sparse and selective latent supports may be essential so that different local linearizations do not interfere destructively. Classical sparse coding and LISTA-style encoders provide one principled way to impose that inductive bias, since they produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}. In principle, the support of a sparse latent code could act as a mode variable, indicating which local linear model is active and how trajectories transition between regimes. LISTA is therefore best viewed here as one structured realization of a broader sparsity hypothesis, not as the claim by itself.
 
 This idea is conceptually compelling, but it is not yet an empirical fact. A sparse support can align with basin structure, but it can also fragment trajectories in ways that have little to do with basins of attraction.
 We study this gap directly, and ask the following question: given only unlabeled trajectories from nonlinear systems with multiple basins of attraction, can a sparse Koopman autoencoder simultaneously provide accurate long-horizon forecasting under periodic re-encoding and a latent support structure that aligns with basin geometry? 
 
 % This is the regime that matters for the intended training and deployment setting: neither the number of basins nor the basin assignment of each trajectory is assumed known during training. We therefore treat basin labels as evaluation-time diagnostics, not training-time supervision.
 
-% Our empirical answer is deliberately narrower, but also more defensible, than the strongest version of the sparse-graph narrative. Periodic re-encoding is the reliable mechanism behind strong long-horizon forecasting. Under fair matched-budget comparisons, a generic sparse MLP encoder remains the best overall benchmark anchor by cross-system median forecasting error, while a fixed dense LISTA recipe becomes globally competitive without overtaking that anchor across horizons. Structured block-diagonal LISTA is not a universal improvement: it delivers a genuine and important rescue on the hardest Kuramoto settings at smaller step size, but this advantage is targeted rather than global and does not transfer to Hopfield, where the sparse MLP remains better. Most importantly, basin-support alignment is strongly system-dependent. We observe clear positive evidence on multiwell systems, weak evidence on Duffing, a hard negative result on Kuramoto, and only continuous-separation-without-reusable-supports on Hopfield. Good forecasting and basin-aligned sparse supports are therefore related, but not interchangeable.
-
-% This reframes the contribution of sparse Koopman modeling. The main question is not whether sparsity automatically uncovers a universal graph of basins; the evidence does not support that claim. The more useful question is when sparse, structured encoders provide a beneficial inductive bias for forecasting and when their support patterns genuinely correspond to stable dynamical regimes. Answering that question is important both scientifically and methodologically: before using sparse supports as planning nodes, switching variables, or interpretable modes, we need to know whether they are actually aligned with the dynamical partition of interest.
-
 \paragraph{Contributions.}
 We make two contributions.
 \begin{itemize}
-    % \item We formulate the forecasting-and-representation problem in the multistable regime that matters operationally: trajectories come from systems with multiple basins, but basin counts and basin labels are unavailable during training and deployment.
-    \item We provide a fair empirical comparison of the forecasting performance of  MLP encoders, LISTA encoders, and the effects of a structured block-diagonal Koopman matrix for Koopman autoencoders under periodic re-encoding.
-    \item We evaluate whether sparse latent supports align with basin structure, showing that basin-support alignment is a conditional phenomenon rather than a universal property of sparse Koopman representations. 
+    \item We study whether induced sparsity is a necessary ingredient for good finite-dimensional Koopman representations in multi-basin systems by comparing LISTA encoders, sparsity-regularized MLP encoders, and no-shrink MLP controls under matched periodic re-encoding protocols.
+    \item We evaluate whether sparse latent supports align with basin structure, and whether forecasting gains concentrate deep inside a basin rather than near a separatrix, showing that basin-support alignment is a conditional phenomenon rather than a universal property of sparse Koopman representations.
 \end{itemize}
 
-Taken together, these results position sparse Koopman autoencoders as a promising but limited tool for multistable dynamics. The strongest conclusion supported by the evidence is not that sparse supports universally solve multi-basin control, but that periodic re-encoding enables competitive long-horizon forecasting and that sparse latent structure can reveal basin organization on some systems while failing sharply on others. That is the level at which we believe the current paper should make its claim.
-
+In \cref{sec:method}, we describe the problem formulation, our methodology in sparse coding and periodic re-encoding, and training objectives. 
+In \cref{sec:experiments}, we provide a fair empirical comparison of the forecasting performance of MLP encoders versus LISTA encoders with explicit sparsity objectives under periodic re-encoding.
+Finally, we wrap up with a brief discussion detailing future work in \cref{sec:discussion}. Appendix~\ref{sec:background} provides a detailed background reading and Appendix~\ref{appendix:experimental-protocol} provides detailed experimental protocol for reproducibility.
 
 \section{Background}
 \label{sec:background}
@@ -37,7 +32,8 @@ Taken together, these results position sparse Koopman autoencoders as a promisin
 \subsection{Koopman operator theory}
 \label{sec:koopman-background}
 
-This subsection largely follows the review of \citet{brunton_modern_2022} with some changes in notation intended to make the exposition more accessible.
+This subsection largely follows the review of \citet{brunton_modern_2022} with some changes in notation. 
+% \note{It's meant to be a bit more accessible; I haven't taken measure theory. Sorry.}
 
 \paragraph{Koopman operator and observables.}
 Consider a discrete-time nonlinear dynamical system
@@ -156,6 +152,7 @@ z_t \approx \phi(x_t), \qquad z_{t+1} \approx K z_t, \qquad x_t \approx \psi(z_t
 \end{equation}
 We might do this by minimizing the following objective:
 \begin{equation}
+\label{eq:KAE-standard-objective}
 \min_{K, \phi, \psi} \sum_\mathcal{D} ||x_t - \psi(\phi(x_t)) ||_2 + \lambda \cdot || \phi(x_{t+1}) - K \phi(x_t)||_2
 \end{equation} 
 where $\lambda > 0$ is a scalar.
@@ -178,7 +175,7 @@ This contrasts with a one-shot encoding at the initial time, where the same line
 
 In the context of the result by \citet{lan_linearization_2013}, periodic re-encoding can be understood as a mechanism for switching between locally-valid linearizations as the dynamics traverse different regions or cross basin boundaries.
 Within a single basin away from the boundaries, the encoder–decoder pair should behave approximately linearly along trajectories, but near basin boundaries, the geometry of invariant sets and eigenfunctions changes rapidly: observables that were approximately Koopman-invariant in one region may no longer span an invariant subspace in the new region.
-By re-encoding at these times (or at a fixed period that is short compared to the time spent near boundaries), the model effectively refreshes the latent embedding so that the latent linear dynamics are again centered on the current part of the attractor or basin. This should help the system transition cleanly between different basins of attraction.
+By re-encoding at these times (or at a fixed period that is short compared to the time spent near boundaries), the model effectively refreshes the latent embedding so that the latent linear dynamics are again centered on the current part of the attractor or basin. This should help the system switch to a new linearized representation of the new basin.
 
 \subsection{Sparse coding}
 \label{sec:background-sparse}
@@ -202,11 +199,6 @@ Crossing a basin boundary is equivalent to changing the sparse code support to a
 This gives a natural way to build an adjacency matrix for a graph that encapsulates the nonlinear problem: nodes correspond to local regions of constant support, and edges correspond to observed transitions between supports along trajectories.
 On each node, one can learn a local Koopman linear operator and solve the associated LQR-style control problem in closed form.
 Planning trajectories from one side of the field to the other then becomes a graph traversal problem over these sparse-code regions.
-
-\paragraph{Sparse coding and dimensionality.}
-Sparse coding is not inherently ``better'' in higher dimensions; it helps when high-dimensional data lie near a union of low-dimensional subspaces and the representation is sufficiently sparse.
-In that regime, sparsity can mitigate the curse of dimensionality by reducing the effective degrees of freedom and improving interpretability.
-However, higher ambient dimension also increases sample complexity and makes support selection harder (and in our setting, can dilute basin-norm signals that drive exclusivity), so sparsity is only advantageous if the data are truly compressible and the optimization/regularization are well tuned.
 
 \paragraph{LISTA as a fast sparse encoder.}
 Classical sparse coding solves the above optimization with an iterative algorithm (e.g., ISTA/FISTA, coordinate descent), which is often too slow to use inside a learned dynamical model.
@@ -238,128 +230,224 @@ We represent the decoder as a linear dictionary $D \in \mathbb{R}^{d_x \times d_
 \section{Method}
 \label{sec:method}
 
-We study sparse Koopman autoencoders in the setting that is most relevant for multistable dynamics: trajectories are generated by systems with multiple basins of attraction, but neither the number of basins nor the basin assignment of each state is available during training or deployment. In this regime, a useful representation must satisfy two requirements simultaneously. First, it must support accurate long-horizon forecasting under periodic re-encoding. Second, its sparse support pattern should organize trajectories by local dynamical regime without requiring supervised mode labels.
+We study Koopman autoencoders in the setting that is most relevant for multistable dynamics: trajectories are generated by systems with multiple basins of attraction, but neither the number of basins nor the basin assignment of each state is available during training or deployment. 
+% The goal is for the Koopman autoencoder to learn representations that support accurate long-horizon forecasting under periodic re-encoding. 
+In this regime, a useful Koopman representation outputted from the encoder should satisfy two requirements. 
+First, the representations must support accurate long-horizon forecasting under periodic re-encoding. 
+Second, its sparse support pattern should organize trajectories by local dynamical regime without requiring supervised mode labels.
 
 \subsection{Problem Formulation}
-We observe discrete samples of an underlying continuous-time flow, written as
-\begin{equation}
-    x_t = x(t\Delta t), \qquad x_t \in \mathbb{R}^{d_x},
-\end{equation}
-and learn an encoder $\phi : \mathbb{R}^{d_x} \rightarrow \mathbb{R}^{d_z}$, a decoder $\psi : \mathbb{R}^{d_z} \rightarrow \mathbb{R}^{d_x}$, and a latent linear transition matrix $K \in \mathbb{R}^{d_z \times d_z}$. For a minibatch of $B$ training windows $\{(x_{b,t}, x_{b,t+1}, \dots, x_{b,t+L})\}_{b=1}^B$---where $B$ is the minibatch size and $b \in \{1,\dots,B\}$ indexes the training windows in that minibatch---we explicitly distinguish latents obtained by encoding states from latents obtained by applying the Koopman transition:
-\begin{equation}
-    z_{b,t+\ell}^{\mathrm{enc}} = \phi(x_{b,t+\ell}), \qquad \ell = 0,\dots,L,
-\end{equation}
-\begin{equation}
-    z_{b,t+\ell}^{\mathrm{roll}} = K^\ell z_{b,t}^{\mathrm{enc}}, \qquad
-    \hat x_{b,t+\ell} = \psi(z_{b,t+\ell}^{\mathrm{roll}}), \qquad
-    x_{b,t+\ell}^{\mathrm{rec}} = \psi(z_{b,t+\ell}^{\mathrm{enc}}),
-    \qquad \ell = 1,\dots,L .
-\end{equation}
-Thus $z^{\mathrm{enc}}$ always denotes a latent obtained by encoding a state, while $z^{\mathrm{roll}}$ always denotes a latent obtained by rolling $K$ forward from the encoded initial state.
-The learned support pattern of a latent vector is treated as a candidate regime descriptor:
-\begin{equation}
-    \operatorname{supp}_{\tau}(z) = \{ i : |z_i| \ge \tau \},
-\end{equation}
-where $\tau$ is an evaluation-time support threshold. Unless stated otherwise, the support-based analyses below apply this operator to encoded latents. In all support-based analyses below we use $\tau = 10^{-3}$.
 
-For multibasin systems, a single finite-dimensional Koopman representation is not expected to remain globally accurate across all basins. We therefore aim to learn sparse local coordinates rather than a globally exact autonomous linearization. Following Section~\ref{sec:background-reencoding}, all forecasting claims are evaluated in the periodic-reencoding regime, where the representation is refreshed as trajectories move across regions with different local dynamics.
+For each benchmark system, the underlying state evolves in continuous time according to an unknown flow or, equivalently for our purposes, a simulator-defined one-step map.  
+The learned model does not observe the continuous flow directly; instead it receives a sequence of sampled states \(x_k \in \mathbb{R}^{d_x}\), \(k=0,1,2,\dots\), related by 
+$x_{k+1} = F_{\Delta t}(x_k),$ 
+where \(F_{\Delta t}\) denotes one benchmark observation step and \(\Delta t\) is the system-specific observation interval. The forecasting problem is to predict future observation steps at the stored sampling cadence.
 
-\subsection{Model Classes}
-Our comparison is intentionally focused. We study two encoder classes, MLP and LISTA, and two latent transition structures, dense and block diagonal. This yields four relevant model variants, of which two serve as primary benchmark models and two serve as structured controls.
+The systems of interest are nonlinear and often multi-attractor or multistable. A \emph{fixed point} is a state \(x^\ast\) that remains unchanged under the dynamics, i.e. $F_{\Delta t}(x^\ast) = x^\ast,$ or, in continuous-time notation, \(f(x^\ast)=0\). More generally, the long-run behavior of a trajectory may converge not only to a fixed point but also to a
+  more general \emph{attractor} \(A\), such as a limit cycle, torus, or chaotic invariant set. The \emph{basin of attraction} of \(A\) is the set of initial
+  conditions whose trajectories converge to \(A\):
+  \begin{equation}
+      \mathcal{B}(A)
+      =
+      \left\{
+          x_0 \in \mathbb{R}^{d_x}
+          :
+          \operatorname{dist}\!\left(F_{\Delta t}^{\,k}(x_0), A\right) \to 0
+          \text{ as } k \to \infty
+      \right\}.
+  \end{equation}
+
+When multiple attractors coexist, the state space is partitioned into multiple basins of attraction. In this regime, different initial conditions can settle into different long-run dynamical modes, and different regions of state space can admit different locally valid linear approximations. 
+
+We learn an encoder $\phi : \mathbb{R}^{d_x} \rightarrow \mathbb{R}^{d_z}$, a decoder $\psi : \mathbb{R}^{d_z} \rightarrow \mathbb{R}^{d_x}$, and a latent linear transition matrix $K \in \mathbb{R}^{d_z \times d_z}$, where $d_z$ is the latent dimension. For a batch of $B$ training windows of rollout length $L$,
+$\{x_{b,k}, x_{b,k+1}, \dots, x_{b,k+L}\}_{b=1}^{B},$
+where $b$ indexes training windows and $\ell$ will denote offsets within a window,
+\todo{Fit these three equations into just two lines.}
+we encode every state once,
+\begin{equation}
+    z_{b,k+\ell}^{\mathrm{enc}} = \phi(x_{b,k+\ell}), \qquad \ell = 0, \dots, L,
+\end{equation}
+roll out the latent transition from the initial encoded state,
+\begin{equation}
+    z_{b,k+\ell}^{\mathrm{roll}} = K^\ell z_{b,k}^{\mathrm{enc}}, \qquad \ell = 1, \dots, L,
+\end{equation}
+and decode both the rollout and the encoded future latents,
+\begin{equation}
+    \hat{x}_{b,k+\ell} = \psi(z_{b,k+\ell}^{\mathrm{roll}}), \qquad
+    x_{b,k+\ell}^{\mathrm{rec}} = \psi(z_{b,k+\ell}^{\mathrm{enc}}).
+\end{equation}
+
+The cached trajectories are treated as uniformly spaced observation sequences for each system, and the forecasting task is to learn one-step evolution between adjacent stored states rather than the hidden internal steps of the numerical integrator. Accordingly, a horizon of $H$ always means $H$ observed benchmark steps. Because the observation interval is system specific, the same horizon does not correspond to identical physical time across all systems. In this report, we evaluate only forecasting accuracy; we do not assume access to basin labels, basin counts, or any other regime annotations.
+
+\subsection{Sparse coding and LISTA}
+\label{sec:background-sparse}
+
+Sparse coding seeks a representation $z$ such that $x \approx Dz$ for a learned dictionary $D : \R^{d_z} \to \R^{d_x}$, via the optimization
+\begin{equation}
+\min_z \;\; \frac{1}{2} \|x - D z\|_2^2 + \lambda \|z\|_1,
+\end{equation}
+where $\lambda > 0$ controls the sparsity of $z$ \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003}.
+The $\ell_1$ penalty induces a mapping $x \mapsto z(x)$ that is piecewise linear and piecewise constant in its support: on each region of input space, the same small set of dictionary atoms is active, and within that region, $z(x)$ depends linearly on $x$.
+Geometrically, this models the latent space as a union of lower-dimensional linear subspaces, with each subspace indexed by the support (active set) of the sparse code.
+
+
+In our setting, we want to treat the Koopman features as a sparse combination of dictionary atoms.
+The dictionary $D$ is global, and the support pattern of the sparse code $z$ acts like a mode label indicating which basin or local region we are currently in.
+Inside a region (basin of attraction) where the dynamics look locally linear, that region uses the same dictionary atoms and therefore has its own local Koopman-like dynamics.
+% Crossing a basin boundary is equivalent to changing the sparse code support to another region with a different local linear model. I felt that this was also explained nicely in Appendix D of \citet{fathi_course_2023}.
+
+% This gives a natural way to build an adjacency matrix for a graph that encapsulates the nonlinear problem: nodes correspond to local regions of constant support, and edges correspond to observed transitions between supports along trajectories.
+% On each node, one can learn a local Koopman linear operator and solve the associated LQR-style control problem in closed form.
+% Planning trajectories from one side of the field to the other then becomes a graph traversal problem over these sparse-code regions.
+
+\paragraph{LISTA as a fast sparse encoder.}
+Classical sparse coding solves the above optimization with an iterative algorithm (e.g., ISTA/FISTA, coordinate descent), which is often too slow to use inside a learned dynamical model.
+LISTA (Learned ISTA) \citep{gregor_learning_2010} replaces the iterative solver with a trainable, finite-depth network that approximates the sparse solution.
+
+In LISTA, one learns a non-linear encoder $z = f_\theta(x)$ whose architecture mimics a truncated iterative shrinkage/thresholding algorithm.
+The key nonlinearity is a component-wise shrinkage function with learned thresholds; by construction, the mapping $x \mapsto z(x)$ is explicitly piecewise affine, with regions defined by which coordinates survive thresholding.
+This builds a strong inductive bias for \emph{mode selection} into the encoder: for each $x$, only a few coordinates of $z$ are active, picking a small subset of dictionary atoms that explain the input.
+Compared to a generic nonlinear encoder where all latent coordinates can participate everywhere, LISTA-style encoders encourage a sparse, structured partition of state space into locally linear regimes.
+
+
+% \begin{algorithm}[ht]
+% \caption{LISTA Encoder (Forward Pass)}
+% \label{alg:lista}
+% \begin{algorithmic}[1]
+% \REQUIRE $x \in \mathbb{R}^{d_x}$; depth $T \in \mathbb{N}$; encoder $\phi$ with learnable parameters $W_e \in \mathbb{R}^{d_z \times d_x}$, $S \in \mathbb{R}^{d_z \times d_z}$, $\theta \in \mathbb{R}^{d_z}_{\ge 0}$
+% \ENSURE Output $z \in \mathbb{R}^{d_z}$ ($z$ is latent code $\phi(x)$)
+% \STATE $z^{(0)} \gets h_\theta (W_e x)$
+% \FOR{$t = 1$ \TO $T$}
+%     \STATE $c^{(t)} \gets W_e x + Sz^{(t-1)}$ 
+%     \STATE $z^{(t)} \gets \operatorname{h}_{\theta} \big(c^{(t)}\big)$
+% \ENDFOR
+% \RETURN $z^{(T)} = \phi(x)$
+% \end{algorithmic}
+% \end{algorithm}
+
+% We represent the decoder as a linear dictionary $D \in \mathbb{R}^{d_x \times d_z}$, so that $\hat{x} = D z$. The encoder $\phi(x)$ is implemented as a LISTA network (Alg. \ref{alg:lista}) with parameters $W_e \in \mathbb{R}^{d_z \times d_x}, S \in \mathbb{R}^{d_z \times d_z}$, and thresholds $\theta \in \mathbb{R}^{d_z}_{\ge 0}$; here $W_e$ plays the role of a learned operator analogous to $D^\top$, while $D$ is the dictionary used in reconstruction.
+
+In our implementation, the LISTA model uses the same MLP front end as the MLP baselines to produce a pre-code $c$, then applies one LISTA refinement step:
+\begin{equation}
+\label{eq:lista-refinement-step}
+u^{(0)} = \operatorname{shrink}(c, \alpha/L),
+\qquad
+z = \operatorname{ReLU}\!\bigl(\operatorname{shrink}(S u^{(0)} + c, \alpha/L)\bigr).
+\end{equation}
+where
+\begin{equation}
+\operatorname{shrink}\!\left(x, \frac{\alpha}{L}\right)
+  =
+  \operatorname{sign}(x)\,\max\!\left(|x| - \frac{\alpha}{L},\, 0\right)
+\end{equation}
+
+Here $S$ is learned, $\alpha$ is the LISTA threshold parameter, and $L$ is a Lipschitz-scale estimate computed from the decoder dictionary. The LISTA model uses a linear dictionary decoder whose atoms are normalized at decode time.
+
+\subsection{Model Families}
+
+We study two encoder classes (MLP and LISTA) and two Koopman transition matrix structures (dense and block diagonal). Combined with a $\ell_1$ sparsity penalty on the Koopman latent $z$, we have five setups, of which two serve as primary benchmarks for our methodological contributions, and three serve as controls.
 In the paper-facing benchmark, we fix the latent dimension to $d_z = 256$. For both block-diagonal variants, we use a $256 \times 256$ Koopman matrix composed of sixteen $16 \times 16$ diagonal blocks, with zeros everywhere else and no remainder block.
 
-\paragraph{MLP encoder + dense Koopman matrix.}
-The first model family uses an MLP encoder, an MLP decoder, a dense latent transition matrix $K$, and an $\ell_1$ penalty on the latent rollout. This architecture serves as a strong architecture-agnostic baseline: it encourages sparse latents, but it does not encode any explicit notion of sparse coding or block-local latent dynamics.
+\paragraph{MLP encoder.} This first model uses an MLP encoder with two hidden layers and bias terms, an linear bias-free decoder, and a dense latent transition matrix $K$. This is the most standard Koopman autoencoder model that serves as a control setup for other training alterations.
 
-\paragraph{MLP encoder + block-diagonal Koopman matrix.}
-The second model uses the same MLP encoder and decoder as the dense baseline, but replaces the latent transition with a block-diagonal matrix,
+\paragraph{MLP encoder + $\ell_1$ penalty on $z$.}
+This model family is architecturally identical to the sparse MLP baseline, but includes a small $\ell_1$ penalty on the latent rollout. This serves as a strong architecture-agnostic baseline to elucidate the benefits of sparse latents obtained through regularization, but it does not encode any explicit notion of sparse coding or block-local latent dynamics.
+
+\paragraph{MLP encoder + $\ell_1$ penalty on $z$ + block-diagonal Koopman matrix.}
+The third model uses the same MLP encoder and decoder as the dense baseline, but replaces the latent transition with a block-diagonal matrix:
 \begin{equation}
     z_{t+1} \approx K_{\mathrm{block}} z_t .
 \end{equation}
-We do not treat this model as a headline architecture. Its role is causal isolation: it tests whether any gains attributed to block-diagonal latent dynamics can already be obtained without the LISTA encoder.
+This setup isolates whether any gains attributed to block-diagonal latent dynamics for multibasin systems can be obtained without the LISTA encoder.
 
-\paragraph{LISTA encoder + dense Koopman matrix.}
-The third model replaces the MLP encoder with the LISTA encoder from Algorithm~\ref{alg:lista}. The decoder is a linear dictionary $D \in \mathbb{R}^{d_x \times d_z}$ so that $\psi(z) = Dz$, while the latent dynamics remain fully dense:
+\paragraph{LISTA encoder + $\ell_1$ penalty on $z$.}
+The fourth model adds a LISTA refinement step \eqref{eq:lista-refinement-step} to the MLP encoder with $\ell_1$ penalty on $z$. The decoder is a linear dictionary $D \in \mathbb{R}^{d_x \times d_z}$ so that $\psi(z) = Dz$, while the latent dynamics remain fully dense:
 \begin{equation}
-    z_{t+1} \approx K_{\mathrm{dense}} z_t .
+    z_{t+1} \approx K_{\mathrm{dense}} z_t.
 \end{equation}
-This comparison isolates the value of an explicitly sparse, piecewise-affine encoder while preserving global latent coupling.
+This comparison isolates the effect of an explicit sparse-coding encoder while keeping the latent dynamics unstructured.
 
-\paragraph{LISTA encoder + block-diagonal Koopman matrix.}
-The fourth model uses the same LISTA encoder and dictionary decoder, but constrains the latent transition to be block diagonal,
+\paragraph{LISTA encoder + $\ell_1$ penalty on $z$ + block-diagonal Koopman matrix.}
+The fifth model uses the same LISTA encoder and dictionary decoder, but constrains the latent transition to be block diagonal,
 \begin{equation}
     K_{\mathrm{block}}
     =
     \operatorname{blkdiag}\!\big(K^{(1)}, \dots, K^{(M)}\big).
 \end{equation}
-These blocks are model partitions, not ground-truth basins. We do \emph{not} assume that the true basin count is known, that one basin corresponds to one block, or that basin identity is available during training. The purpose of the constraint is purely inductive: it suppresses long-range latent coupling and tests whether more local latent dynamics are advantageous on systems with strongly heterogeneous local structure.
+These blocks are model partitions, not ground-truth basins. 
+We do \emph{not} assume that the true basin count is known, that one basin corresponds to one block, or that basin identity is available during training. The purpose of the constraint is purely inductive: it suppresses long-range latent coupling and tests whether more local latent dynamics are advantageous on systems with strongly heterogeneous local structure.
 
-We omit more heavily engineered variants from the main comparison because they do not improve the central scientific question: how encoder structure and latent transition structure interact in forecasting and basin recovery.
+\subsection{Periodic Re-Encoding at Test Time}
+
+At test time, we use periodic re-encoding, following the procedure of \citet{fathi_course_2023}. Starting from an encoded state $z_k = \phi(x_k)$ and a re-encoding period $m$ measured in observation steps, we roll the model forward for $m$ latent steps, forecasting
+\begin{equation}
+    \tilde{z}_{k+m} = K^m z_k, \qquad
+    \tilde{x}_{k+m} = \psi(\tilde{z}_{k+m}), \qquad
+    z_{k+m} = \phi(\tilde{x}_{k+m}),
+\end{equation}
+and then repeat this procedure over the rollout horizon. Periodic re-encoding is key to our evaluation because it gives the model a mechanism for correcting accumulated latent drift during long forecasts, effectively refreshing the Koopman representation of the current state.
+
+
 
 \subsection{Training Objective}
-\label{sec:learning-objective}
+\label{sec:training-objective}
 
-All models are trained without basin labels on fixed-length sequence windows. Let $L$ denote the training horizon. In the benchmark training code, we encode the full window once, roll out $K$ from the encoded initial latent $z_{b,t}^{\mathrm{enc}}$, decode both the rollout and the encoded future latents, and optimize four terms:
+For a batch of $B$ windows and a training horizon $L$, we optimize prediction, reconstruction, latent alignment, and sparsity terms:
 \begin{equation}
-\label{eq:paper-main-loss}
-\begin{aligned}
-\mathcal{L}_{\mathrm{pred}}
-&=
-\frac{1}{B L^2}
-\sum_{b=1}^{B}
-\sum_{\ell=1}^{L}
-\frac{\|\hat x_{b,t+\ell} - x_{b,t+\ell}\|_2}{s_x}, \\
-\mathcal{L}_{\mathrm{rec}}
-&=
-\frac{1}{B L^2}
-\sum_{b=1}^{B}
-\sum_{\ell=1}^{L}
-\frac{\|x_{b,t+\ell}^{\mathrm{rec}} - x_{b,t+\ell}\|_2}{s_x}, \\
-\mathcal{L}_{\mathrm{align}}
-&=
-\frac{1}{B L^2}
-\sum_{b=1}^{B}
-\sum_{\ell=1}^{L}
-\|z_{b,t+\ell}^{\mathrm{roll}} - z_{b,t+\ell}^{\mathrm{enc}}\|_2, \\
-\mathcal{L}_{\mathrm{sp}}
-&=
-\frac{1}{B L^2}
-\sum_{b=1}^{B}
-\sum_{\ell=1}^{L}
-\|z_{b,t+\ell}^{\mathrm{roll}}\|_1 .
-\end{aligned}
+\label{eq:loss-terms-state}
+\bar{\mathcal{L}}_{\mathrm{pred}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\frac{\|\hat{x}_{b,k+\ell} - x_{b,k+\ell}\|_2}{\sqrt{d_x}},
+\qquad
+\bar{\mathcal{L}}_{\mathrm{rec}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\frac{\|x_{b,k+\ell}^{\mathrm{rec}} - x_{b,k+\ell}\|_2}{\sqrt{d_x}},
 \end{equation}
-The total objective is
+\begin{equation}
+\label{eq:loss-terms-latent}
+\bar{\mathcal{L}}_{\mathrm{align}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\|z_{b,k+\ell}^{\mathrm{roll}} - z_{b,k+\ell}^{\mathrm{enc}}\|_2,
+\qquad
+\bar{\mathcal{L}}_{\mathrm{sp}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\|z_{b,k+\ell}^{\mathrm{roll}}\|_1.
+\end{equation}
+The total loss is
 \begin{equation}
     \mathcal{L}
     =
-    \lambda_{\mathrm{pred}} \mathcal{L}_{\mathrm{pred}}
+    \frac{1}{L}
+    \left(
+    \lambda_{\mathrm{pred}} \bar{\mathcal{L}}_{\mathrm{pred}}
     +
-    \lambda_{\mathrm{rec}} \mathcal{L}_{\mathrm{rec}}
+    \lambda_{\mathrm{rec}} \bar{\mathcal{L}}_{\mathrm{rec}}
     +
-    \lambda_{\mathrm{align}} \mathcal{L}_{\mathrm{align}}
+    \lambda_{\mathrm{align}} \bar{\mathcal{L}}_{\mathrm{align}}
     +
-    \lambda_{\mathrm{sp}} \mathcal{L}_{\mathrm{sp}} .
+    \lambda_{\mathrm{sp}} \bar{\mathcal{L}}_{\mathrm{sp}}
+    \right).
 \end{equation}
-Here $s_x = \sqrt{d_x}$ for the benchmark setting used in the code (\texttt{OBS\_LOSS\_DIM\_NORMALIZATION = sqrt\_dim}). Equivalently, the implementation first averages each norm over batch and horizon, divides the state-space terms by $s_x$, and then multiplies every main term by an additional factor $1/L$. The prediction and alignment terms enforce approximate latent linearity, the reconstruction term keeps the learned representation on the data manifold, and the sparsity term encourages support-selective latent trajectories. For the paper-benchmark variants, this four-term loss is the full training objective: optional block-usage, homogeneous-coordinate, and structured-sparsity auxiliary losses exist elsewhere in the codebase but are disabled in the benchmark configurations.
+Here $\lambda_{\mathrm{pred}}$, $\lambda_{\mathrm{rec}}$, $\lambda_{\mathrm{align}}$, and $\lambda_{\mathrm{sp}}$ are nonnegative scalar loss weights.
 
-To isolate architectural effects, we select one hyperparameter configuration per model family on a small held-out tuning subset and then freeze that configuration for the full benchmark rather than retuning separately for each system.
+The observation-space terms are normalized by $\sqrt{d_x}$ so that the same loss weights transfer across the 3-dimensional and 6-dimensional systems in the benchmark. 
+\textbf{The latent-space terms are left in their native scale because the same latent dimension is used for all systems, so scale is absorbed by the loss coefficients. }
+The prediction and alignment terms encourage latent linearity, the reconstruction term keeps the learned representation close to the data manifold, and the sparsity term encourages selective latent activations.
 
-\subsection{Forecasting Protocol}
-At test time we evaluate the model in periodic-reencoding mode. Starting from an encoded latent state $z_t^{\mathrm{enc}} = \phi(x_t)$ and a re-encoding period $m$, we forecast
-\begin{equation}
-    \tilde z_{t+m} = K^m z_t^{\mathrm{enc}}, \qquad
-    \tilde x_{t+m} = \psi(\tilde z_{t+m}), \qquad
-    z_{t+m}^{\mathrm{enc}} = \phi(\tilde x_{t+m}),
-\end{equation}
-and then repeat this procedure over the full rollout horizon. Periodic re-encoding is the relevant deployment regime in multibasin systems because it refreshes the local coordinates before the latent linear approximation drifts too far from the part of state space on which it was learned.
+\todo{Add reason why we don't just minimize the typical Koopman autoencoder objective directly \eqref{eq:KAE-standard-objective}}
 
-Our primary forecasting statistic is the horizon-$1000$ best-periodic error (\texttt{H1000 best-periodic}). For each benchmark system, training seed, and checkpoint, we evaluate periodic-reencoding rollouts over a prespecified set of re-encoding periods and report the smallest mean-squared state error at forecast horizon $1000$. The re-encoding period is the number of simulation steps between successive applications of the encoder during rollout. We use different candidate grids for the two benchmark families described in Appendix~\ref{app:benchmark-systems}. The first family consists of analytically specified systems that we implement directly in this codebase. The second family consists of systems drawn from Dysts, an external benchmark library of low-dimensional chaotic dynamical systems introduced by Gilpin and distributed with system-specific timestep and dominant-period metadata. For the analytically specified systems we evaluate periods in $\{10,25,50,100\}$, whereas for the Dysts systems, whose characteristic timescales vary much more widely across models, we use the broader grid $\{1,5,10,20,40,60,80,100,200,300,400,500,1000\}$. We report the same best-over-periods statistic at horizons $100$ and $500$, and we treat \texttt{H1000 best-periodic} $< 10$ as a practical success threshold.
+
+\section{Experiments}
+\label{sec:experiments}
+
+\note{Key hypothesis: prediction quality will degrade as the trajectory traverses one basin of attraction and moves to another -- unless the representation is "refreshed". We do not need basin labels, the forecast quality itself serves this purpose. }
 
 \subsection{Label-Free Basin Recovery Evaluation}
 \label{sec:label-free-eval}
 
-Forecasting alone does not establish that the latent representation captures regime structure. On benchmark systems with available basin labels, we therefore ask whether basin structure can be recovered from latent trajectories without using labels during training. For each checkpoint we generate $256$ trajectories, encode every timestep, and construct six trajectory-level feature views: modal support, majority support, last-step support, last-step cosine features, trajectory-mean support, and trajectory-mean cosine features. For continuous feature views we reduce dimensionality with PCA to at most $20$ dimensions before clustering.
+\todo{review this again and maybe move this to experiment section}
+
+Forecasting alone does not establish that the latent representation captures regime structure. On benchmark systems with available basin labels, we therefore ask whether basin structure can be recovered from latent trajectories without using labels during training. For each checkpoint we generate $256$ trajectories, encode every timestep, and construct six trajectory-level feature views: modal support, majority support, last-step support, last-step cosine features, trajectory-mean support, and trajectory-mean cosine features. For continuous feature views, we reduce dimensionality with PCA to at most $20$ dimensions before clustering.
 
 Clustering uses $k$-means, with the true number of basins supplied only at evaluation time. The primary score is Adjusted Rand Index (ARI). To measure support reuse directly, we also report the support-separation ratio
 \begin{equation}
@@ -370,692 +458,483 @@ Clustering uses $k$-means, with the true number of basins supplied only at evalu
 \end{equation}
 Values greater than $1$ indicate that trajectories from the same basin are closer in support space than trajectories from different basins. We prefer this ratio to simpler uniqueness counts because the latter saturate empirically and are not sufficiently discriminative.
 
-\section{Experiments and Results}
-\label{sec:experiments}
+\subsection{Dysts Dynamical Systems Benchmark}
 
-We evaluate three questions. First, under matched training budgets and matched front-end width/depth, does the LISTA encoder become globally competitive with a strong MLP baseline? Second, when additional latent structure helps, which environments benefit and why? Third, do models that forecast well also recover basin structure without supervision?
+We use a subset of 15 systems from the Dysts repository \citep{gilpin_chaos_2021, gilpin_model_2023}, which are listed in Table~\ref{tab:dysts-systems}. Dysts was introduced as an interpretable benchmark of low-dimensional chaotic differential equations and later expanded into a large-scale forecasting testbed; the collection provides canonical parameterizations, default initial conditions on the attractor(s), and system-specific temporal metadata such as the integration step and dominant period estimated from spectral analysis. 
 
-\subsection{Experimental Setup}
+In the context of this project, we only use a targeted subset of Dysts systems that are relevant to our multibasin setting. Dysts has hundreds of systems, but many systems have only one fixed point, and we are also somewhat limited by compute for this project.
 
-The main benchmark contains $29$ systems, latent dimension $d_z = 256$, sequence length $L=8$, and $3$ training seeds per system. Fourteen systems are analytically specified benchmarks: Duffing, Lotka--Volterra, the blended three-basin linear system, four $2$-dimensional multiwell variants, their four $8$-dimensional embedded counterparts, Kuramoto, Hopfield, and corrected competitive Lotka--Volterra. The remaining fifteen systems are flows drawn from Dysts \citep{gilpin_chaos_2021, gilpin_model_2023}: Dadras, Duffing, QiChen, Sakarya, SprottTorus, Chua, MultiChua, DequanLi, LuChenCheng, SanUmSrisuchinwong, WangSun, Shimizu--Morioka, LorenzCoupled, RikitakeDynamo, and Hadley. Dysts was introduced as an interpretable benchmark of low-dimensional chaotic differential equations and later expanded into a large-scale forecasting testbed; the collection provides canonical parameterizations, default initial conditions on the attractor, and system-specific temporal metadata such as the integration step and dominant period estimated from spectral analysis. These annotations make it possible to generate trajectories at system-appropriate numerical resolution while keeping characteristic timescales approximately aligned across heterogeneous attractors. In the context of this project, however, we do not attempt to reproduce the full Dysts benchmark. Instead, we use a targeted subset of Dysts systems that are relevant to our multibasin setting, because our central question is not generic chaotic forecasting but whether sparse Koopman representations can remain accurate and interpretable when trajectories evolve across multiple basins of attraction. Exact equations and parameterizations for all $29$ systems are collected in Appendix~\ref{app:benchmark-systems}; the benchmark therefore includes both an unforced $2$-dimensional Duffing oscillator and a distinct forced $3$-dimensional Dysts Duffing flow.
+The systems we used are listed in \cref{tab:dysts-systems}. They are almost entirely 3-dimensional, with one 6-dimensional coupled system, and they span more than two orders of magnitude in native observation interval. The subset therefore represents long-horizon forecasting ability across a diversity of low-dimensional nonlinear systems with different granularity, but is by no means a perfect benchmark of multibasin structure. 
 
-This mixture serves two purposes. The analytically specified systems allow us to probe specific mechanisms such as basin geometry, dimensionality, and time-step sensitivity, while the Dysts subset provides an externally curated multibasin stress test of whether a single frozen configuration transfers beyond the analytic environments. All reported results come from matched $200$k-step runs. The earlier $50$k study is used only as historical context in the appendix.
 
-For each primary model family, we select a single configuration on a small held-out tuning subset and then freeze it across the full benchmark. The global 29-system comparison centers on the two dense-transition models, namely MLP + dense Koopman and LISTA + dense Koopman. We also evaluate two LISTA + block-diagonal Koopman variants with different sparsity strengths as global structured alternatives, and we evaluate the matched MLP + block-diagonal Koopman control on corrected competitive Lotka--Volterra, rescued Kuramoto, and higher-basin Hopfield to isolate the effect of the block-diagonal transition itself. For the dense MLP-versus-LISTA benchmark, fairness means matched systems, step-size table, training budget, latent size, sequence length, and hidden-layer widths/depths in the nonlinear front end. It is not an exact parameter-count match, because LISTA also learns its recurrent matrix $S$ on top of that matched front end. All quantitative claims in the main text are restricted to horizons $H \in \{100,500,1000\}$.
+\subsection{Experimental Protocol}
+In our experiments, we train 10 seeds of a model for each system and report the interquartile mean (IQM) over these 10 seeds to reduce sensitivity to unstable seeds. We report the mean squared error (MSE) in forecasting predictions from an initial condition.
 
-\subsection{Main Benchmark: LISTA + Dense Koopman Becomes Globally Competitive Under Fair Optimization}
+All models were trained under matched budgets (10 seeds/system, fixed latent dimension, fixed optimization steps, shared checkpointing protocol); full details of the systems, data generation, hyperparameter selection, training and evaluation protocol are in Appendix~\ref{appendix:experimental-protocol}.
+
+\subsection{Long-Horizon Forecasting under Periodic Re-encoding}
+
+In this setting, we use the best periodic re-encoding period for each model and system across re-encoding periods $\{1, 5, 10, 20, 40, 60, 80, 100, 200, 300, 400, 500, 1000\}$, where ``best'' is defined as yielding the lowest MSE. Table~\ref{tab:dysts-per-system} reports the per-system seed-IQM errors at horizons $H=1000$ and $H=3000$. The win count shows how many of the 15 systems each model had the lowest MSE IQM across 10 seeds.
+
+LISTA is the strongest model overall. Its cross-system median seed-IQM is $3.85\times 10^{-3}$ at $H=1000$ and $4.72\times 10^{-2}$ at $H=3000$, compared with $4.85\times 10^{-3}$ and $7.74\times 10^{-2}$ for the sparse MLP, and $7.07\times 10^{-3}$ and $1.39\times 10^{-1}$ for the zero-sparsity MLP. This improvement can be found in most of the systems; LISTA is the best model on 12 of 15 systems at $H=1000$ and 13 of 15 systems at $H=3000$.
+
+The observed exceptions are DequanLi, where MLP+$\ell_1$ remains slightly better at both horizons; SprottTorus, where the plain MLP is best at $H=1000$ and MLP+$\ell_1$ is best at $H=3000$; and Duffing at $H=1000$, where the plain MLP is marginally lower. Even on the difficult three-dimensional Duffing system, however, LISTA is the best of the three models by $H=3000$.
+
+\begin{table*}[ht]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.12\textwidth}rrrrrr}
+\toprule
+System & $\ell_1$ MLP $H1000$ & MLP $H1000$ & LISTA $H1000$ & $\ell_1$ MLP $H3000$ & MLP $H3000$ & LISTA $H3000$ \\
+\midrule
+Dadras & 0.0111 & 0.0102 & \textbf{0.0096} & 0.4812 & 0.5590 & \textbf{0.3864} \\
+Duffing & 0.8542 & \textbf{0.8488} & 0.8522 & 2.1228 & 1.9001 & \textbf{1.8717} \\
+QiChen & 0.0042 & 0.0052 & \textbf{0.0029} & 0.0770 & 0.1753 & \textbf{0.0492} \\
+Sakarya & 0.0128 & 0.0117 & \textbf{0.0091} & 0.2266 & 0.1986 & \textbf{0.1700} \\
+SprottTorus & 0.0085 & \textbf{0.0069} & 0.0089 & \textbf{0.0914} & 0.1484 & 0.1102 \\
+Chua & 0.0018 & 0.0017 & \textbf{8.786e-04} & 0.0173 & 0.0193 & \textbf{0.0071} \\
+MultiChua & 0.0034 & 0.0048 & \textbf{0.0022} & 0.0386 & 0.0556 & \textbf{0.0331} \\
+DequanLi & \textbf{0.0048} & 0.0110 & 0.0050 & \textbf{0.0404} & 0.1388 & 0.0472 \\
+LuChenCheng & 0.0018 & 0.0024 & \textbf{8.778e-04} & 0.0176 & 0.0214 & \textbf{0.0062} \\
+SanUmSrisuchinwong & 0.0056 & 0.0040 & \textbf{0.0038} & 0.0774 & 0.0399 & \textbf{0.0354} \\
+WangSun & 0.0281 & 0.0557 & \textbf{0.0158} & 0.6715 & 1.2392 & \textbf{0.5567} \\
+ShimizuMorioka & 0.0044 & 0.0071 & \textbf{0.0016} & 0.0706 & 0.0661 & \textbf{0.0214} \\
+CoupledLorenz & 0.0272 & 0.0353 & \textbf{0.0257} & 0.9806 & 1.2007 & \textbf{0.7922} \\
+RikitakeDynamo & 0.0038 & 0.0075 & \textbf{0.0028} & 0.0826 & 0.1091 & \textbf{0.0402} \\
+Hadley & 0.0040 & 0.0035 & \textbf{0.0032} & 0.0321 & 0.0330 & \textbf{0.0230} \\
+\midrule
+Wins & 1/15 & 2/15 & \textbf{12/15} & 2/15 & 0/15 & \textbf{13/15} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Per-system Dysts benchmark comparison.} Entries are system-level seed IQMs of the best periodic re-encoding MSE for the forecasted horizon; \textit{lower is better}. Bold denotes the lowest error among the three models at the given horizon. The last row reports system-win counts at each horizon.}
+\label{tab:dysts-per-system}
+\end{table*}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{ksae-overleaf/figs/dysts_triptych_dense_lista_h3000.pdf}
+\caption{\textbf{Phase portraits showing $H=3000$ forecasts on three Dysts systems.} Each panel overlays 100 held-out ground-truth trajectories in gray with 100 LISTA forecasts in transparent color. The checkpoints are chosen so that their $H=3000$ best-periodic error is close to the corresponding system-level LISTA seed IQM, and they use periodic re-encoding every 80, 300, and 20 observation steps, respectively. The plotted coordinates are the first two state dimensions.}
+\label{fig:dysts-triptych-trajectories}
+\end{figure}
+
+Figure~\ref{fig:dysts-triptych-trajectories} complements the table with three qualitative case studies shown as overlays. SprottTorus is one of the few systems where LISTA is not the best model at $H=3000$; SanUmSrisuchinwong is a clear low-error success case; and WangSun remains difficult in absolute terms but still favours LISTA over both MLP baselines. 
+
+\subsection{Fixed-Cadence Diagnostic (could go in appendix)}
+
+The previous evaluation is revealing, but it makes a strong assumption that the evaluator has access to an oracle over re-encoding periods to find the best re-encoding period. Table~\ref{tab:dysts-fixed-cadence} therefore fixes a single cadence of 100 steps for every model and every system. The qualitative result is unchanged: LISTA remains the cross-system median-best model at every reported horizon and wins 12 of 15 systems at $H=1500$, 13 of 15 at $H=2000$ and $H=2500$, and 14 of 15 at $H=3000$ against the sparse MLP anchor. The zero-sparsity control remains consistently weaker by median error.
+
+This fixed-cadence result is important because it shows that the LISTA advantage is not only an artifact of cadence selection. The advantage survives when the evaluator is no longer allowed to adapt the re-encoding period separately for each system.
+
+\begin{table*}[ht]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrr}
+\toprule
+Horizon & $\ell_1$ MLP median IQM & MLP median IQM & LISTA median IQM & LISTA wins \\
+\midrule
+$H1500$ & 0.0131 & 0.0262 & \textbf{0.0127}  & \textbf{12/15} \\
+$H2000$ & 0.0344 & 0.0624 & \textbf{0.0247} & \textbf{13/15} \\
+$H2500$ & 0.0613 & 0.1057 & \textbf{0.0420} & \textbf{13/15} \\
+$H3000$ & 0.1277 & 0.1891 & \textbf{0.0592} & \textbf{14/15} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Fixed-cadence diagnostic on the Dysts subset.} Entries are cross-system medians of per-system seed IQM MSE under a single global periodic re-encoding cadence of 100 steps. Win counts compare each candidate to the sparse MLP setup.}
+\label{tab:dysts-fixed-cadence}
+\end{table*}
+
+\subsection{Fixed-17 Basin-Support Interpretability Study}
+\label{sec:fixed17-interpretability}
+
+The forecasting results above establish that sparse Koopman autoencoders can
+be accurate long-horizon predictors, but forecasting alone does not tell us
+whether the latent representation has learned a meaningful regime structure.
+Our interpretability study asks a complementary question: when the underlying
+system has multiple basins of attraction, does the sparse support of the latent
+code behave like an unlabeled basin indicator or local chart selector? The
+paper-side causal question is slightly broader than LISTA versus a single
+baseline: is some induced sparsity required for a finite-dimensional Koopman
+latent to carry several local linearizations at once without destructive
+interference? Classical sparse coding and LISTA produce piecewise-affine
+encoders whose active set partitions input space into a union of local
+subspaces. In a multistable dynamical system, that inductive bias is
+attractive because different basins generally admit different local
+linearizations, yet finite-dimensional Koopman theory does not support one
+globally exact linear chart spanning all basins simultaneously. Sparse support
+is therefore a plausible mechanism for stitching together local Koopman
+charts, but that hypothesis must be checked empirically rather than assumed.
+
+We evaluate this question on a fixed shortlist of $17$ deterministic
+two-dimensional transition-rich systems. The shortlist contains three native
+systems designed for explicit chart-switching stress tests
+(\texttt{multiwell\_strong\_transition}, \texttt{gated\_local\_linear}, and
+\texttt{gated\_transfer\_linear}) together with $14$ calibrated catalog
+systems (\texttt{arrested\_spiral}, \texttt{cal\_asymmetric\_3},
+\texttt{cal\_high\_cross\_3}, \texttt{cal\_hexagon\_6},
+\texttt{cal\_octagon\_8}, \texttt{cal\_pentagon\_5},
+\texttt{cal\_square\_4}, \texttt{checkerboard\_potential},
+\texttt{duffing\_triple\_well}, \texttt{snic\_multi},
+\texttt{transition\_routes\_4}, \texttt{var\_depth\_gradient\_4},
+\texttt{var\_diamond\_4}, and \texttt{var\_l\_shape\_5}). These systems were
+chosen because they provide clean phase portraits, well-defined endpoint
+basins, and a useful range of symmetries, asymmetries, and finite-horizon
+transition behaviors. Importantly, the shortlist is fixed: we do not keep
+changing the benchmark while interpreting the method. During training, the
+model does not receive basin counts or basin labels. Those quantities are used
+only at evaluation time on the benchmark systems.
+
+We judge success at three levels.
+
+\paragraph{Exact-Support Level.}
+An exact support is the literal thresholded active-set bitmask $S(x)$. At this
+level, we ask whether a support identifies basin and whether each basin reuses
+only a small number of exact supports. For a support label $S$ and benchmark
+basin label $B$, we report $H(B \mid S)$, $H(S \mid B)$, normalized mutual
+information, and the dominant-support mass
+\begin{equation}
+    U_{\mathrm{exact}}
+    =
+    \frac{1}{|\mathcal{B}|}
+    \sum_{b}
+    \max_{s} p(S=s \mid B=b).
+\end{equation}
+Low $H(B \mid S)$ means a support is basin-pure; low $H(S \mid B)$ means a
+basin reuses a small set of supports; high $U_{\mathrm{exact}}$ means each
+basin has a dominant support template.
+
+\paragraph{Support-Family and Dominant-Group Level.}
+Exact support can be too brittle, because small coefficient changes can flip a
+few active bits without changing the effective local chart. For that reason,
+we also use two coarser notions of support identity. A \emph{support family},
+denoted $F(x)$, is a cluster of exact supports that are very similar to each
+other. In the current reducer, these families are built by greedy clustering
+with a Jaccard-overlap rule on the exact support bitmasks, so two supports
+such as $\{1,4,7\}$ and $\{1,4,8\}$ can count as the same family if they
+differ only by a small atom swap rather than by a genuinely different sparse
+pattern. Thus $H(F \mid B)$ asks whether each basin reuses one small family of
+nearby supports even when it does not reuse one literal bitmask.
+
+When the latent coordinates are partitioned into explicit groups or blocks
+$G_1,\dots,G_M$, we also define the \emph{dominant latent group}
+\begin{equation}
+    G(x) = \arg\max_{m} \|z_{G_m}(x)\|_2 .
+\end{equation}
+This discards the exact within-group bit pattern and asks only which latent
+block carries the largest activation mass. Dominant-group alignment is
+therefore an even coarser success criterion than support-family alignment:
+exact support is the strongest notion, support family is the next fallback,
+and dominant latent group is the coarsest fallback. This hierarchy matters
+because exact support can be brittle. A model may fail to learn one exact
+bitmask per basin while still learning one basin-specific support family or
+one basin-specific dominant group. In the current phase-$1$ reducer, support
+families are based on raw support overlap only; symmetry-aligned family
+merging remains future work.
+
+\paragraph{Local-Law Level.}
+At the strongest mechanistic reading, support should not merely correlate with
+basin; it should select a distinct local linear law. For this we fit
+support-conditioned local operators in latent space, compute within-basin
+versus between-basin operator distances, measure support persistence and
+switch timing along trajectories, and perform intervention tests in which we
+project latents onto canonical basin supports or freeze those supports over
+multiple rollout steps. These intervention metrics are summarized by ratios
+such as own-support over baseline prediction error and freeze-support over
+baseline error, where smaller values indicate that the hypothesized support
+remains operational after the intervention.
+
+\paragraph{Basis-Aware Interpretation.}
+This interpretability protocol is intentionally basis-aware. Two basins can
+share similar local spectra while differing mainly in eigendirections,
+orientation, or symmetry transform. Accordingly, we do not define success as
+``different basin, different eigenvalues.'' Instead, we regard exact-support
+reuse as the strongest outcome, support-family or dominant-group reuse as the
+next-best outcome, and operator-family or Jacobian-family alignment as a
+weaker but still meaningful positive when different basins appear to realize
+the same intrinsic local law in different coordinates.
+
+The best-performing LISTA variants on this branch are not the original
+one-step nonnegative models. The current frontier is built around sign-split
+codes, either with a dense soft-block Koopman matrix or with a block-diagonal
+Koopman matrix, together with near-separatrix hard-initialization for the most
+promising roots. The dense soft-block sign-split model with latent dimension
+$64$ currently gives the strongest exact-support compression, while the
+block-diagonal sign-split model is the strongest forecast-retaining regime
+structure model. We also explored restrained linear pre-codes and decoder
+coherence penalties, and we have implemented but not yet finished evaluating
+deeper LISTA refinement, momentum, adaptive and groupwise thresholds,
+group-aware shrinkage, top-$k$ group-first selection, dictionary-tied or
+hybrid pre-codes, and richer event-triggered reset rules. The model recipe is
+therefore still a work in progress: the shortlist leaders are clear enough to
+interpret, but the final paper recipe is not yet frozen.
+
+\subsection{Current Interpretability Results on the Fixed-17 Test Bed}
+\label{sec:fixed17-interpretability-results}
+
+The completed evidence so far supports a consistent but nuanced picture.
+First, basin purity is easier to achieve than exact-support reuse. On the
+historical native-trio smoke reduction used to validate the new state-level
+metrics, deep-basin $H(B \mid S)$ is already approximately zero for both dense
+and block-diagonal LISTA across several support definitions, while
+$H(S \mid B)$ remains materially larger on thresholded supports. In other
+words, current supports can already tell us which basin a state belongs to
+without yet collapsing to one canonical support per basin. This distinction is
+central to the study: support-basin correlation is not sufficient evidence for
+interpretable chart reuse.
+
+Second, the first strong exact-support positive emerges only after the
+sign-split and latent-structure sweeps. On the fixed-$17$ shortlist, the best
+exact-support root from the completed \texttt{v5} packet is the dense
+soft-block sign-split model with latent dimension $64$, which achieves deep
+$H(S \mid B)=0.7719$, $U_{\mathrm{exact}}=0.8064$, and
+$H(F \mid B)=0.0521$ while still keeping $16/17$ systems below the working
+$H1000$ good-forecast gate. By contrast, the best forecast-retaining root in
+that same packet is the block-diagonal sign-split model, which reaches a
+system-median best-periodic $H1000$ error of $0.0119$ with $17/17$ good
+systems, but with weaker exact-support compression. This establishes a real
+frontier rather than a single winner: denser soft-block dynamics help exact
+support concentration, whereas harder block structure helps long-horizon
+forecast stability.
+
+Third, the subsequent identifiability-oriented modifications help only
+partially. Decoder coherence improves forecasting for some dense soft-block
+models, whereas restrained linear pre-codes reduce support fragmentation in
+some cases, but the combined \texttt{v6} follow-up does not displace the
+\texttt{v5} leaders on the overall forecast-versus-interpretability tradeoff.
+Similarly, near-separatrix hard-initialization helps the two shortlist leaders
+in different ways: it is a clearer interpretability positive for the
+block-diagonal root, but a clearer forecasting and intervention positive for
+the dense soft-block $p=64$ root. These differing behaviors support the view
+that the remaining problem is not one-dimensional. Some models fail because
+their supports are too fragmented, while others fail because their supports are
+not stable enough to remain operative under intervention.
+
+Table~\ref{tab:fixed17-interpretability-results} summarizes the current
+paper-facing comparison on the common deep-basin slice at
+\texttt{absolute:0.001}. The dense soft-block sign-split $p=64$ hard-init
+model is currently the strongest exact-support result overall: it attains the
+lowest $H(S \mid B)$, the highest $U_{\mathrm{exact}}$, and the smallest
+own-support intervention damage. The block-diagonal sign-split hard-init model
+is weaker on raw exact-support compression but substantially stronger on the
+freeze-support intervention, which suggests a more persistent long-horizon
+chart once a basin block is selected. The matched sparse MLP control is
+especially informative: although it attains a very low family entropy, its
+intervention damage is much worse. This is precisely why we do not treat
+family compression alone as sufficient evidence. A support family that looks
+compact in distribution but fails under projection or support freezing is not a
+useful local chart. The locked packet's fourth arm should be read as a
+zero-$\ell_1$ ReLU ablation: it sets the explicit sparsity penalty to zero, but
+it was still built from the \texttt{generic\_sparse} encoder template and
+therefore retains ReLU-induced shrinkage. That means it is not the decisive
+tanh no-shrink anti-sparsity baseline, but it is still scientifically useful
+because it isolates the effect of removing the explicit penalty while keeping a
+weaker architectural form of induced sparsity.
 
 \begin{table}[ht]
 \centering
-\caption{Matched-budget, width/depth-aligned $200$k benchmark summary. Entries are cross-system medians of best-periodic MSE, aggregated over the $29$ benchmark systems. Win counts compare the LISTA encoder with dense Koopman dynamics against the matched MLP baseline with dense Koopman dynamics on system-level medians. The dense MLP and dense LISTA arms share latent size and front-end hidden widths/depths, but they are not parameter-matched because LISTA also learns the recurrent matrix $S$.}
-\label{tab:main-benchmark}
-\begin{tabular}{lcccc}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrrrr}
 \toprule
-\textbf{Horizon} & \textbf{MLP + dense $K$} & \textbf{LISTA + dense $K$} & \textbf{LISTA wins} & \textbf{MLP wins} \\
+Model & $H1000$ & $H(S \mid B)$ & $U_{\mathrm{exact}}$ & $H(F \mid B)$ & own/base & freeze/base \\
 \midrule
-H100 & 3.009e-04 & 3.311e-04 & 12/29 & 17/29 \\
-H500 & 0.00567 & 0.00622 & 17/29 & 12/29 \\
-H1000 & 0.0208 & 0.0232 & 18/29 & 11/29 \\
+Blockdiag hard-init & 0.0516 & 0.3219 & 0.9646 & 0.0000 & 1.0564 & 0.2665 \\
+Dense softblock $p{=}64$ hard-init & 0.0768 & 0.0543 & 0.9923 & 0.0000 & 1.0011 & 0.1691 \\
+Sparse MLP control & 0.0608 & 0.2449 & 0.9772 & 0.0000 & 1.0165 & 0.3923 \\
+Zero-$\ell_1$ ReLU ablation & 0.0911 & 0.1530 & 0.9781 & 0.0000 & 0.9998 & 0.7162 \\
 \bottomrule
 \end{tabular}
+\caption{\textbf{Current paper-facing interpretability results on the fixed-$17$ shortlist.} All numbers are taken from the locked $10$-seed final comparison on the deep-basin \texttt{absolute:0.001} slice. $H1000$ is the system-median best-periodic forecasting error. Lower is better for all columns except $U_{\mathrm{exact}}$.}
+\label{tab:fixed17-interpretability-results}
 \end{table}
 
-Table~\ref{tab:main-benchmark} reports the central benchmark result. Under a matched $200$k-step budget, the LISTA encoder with a dense Koopman matrix is genuinely competitive with the MLP baseline across the full 29-system benchmark. The cross-system medians are close at every reported horizon, and the LISTA model wins a majority of systems at longer horizons: $17/29$ at H500 and $18/29$ at H1000. At H1000 it also leaves one additional system below the practical threshold of $10$ ($26/29$ versus $25/29$).
+The locked $10$-seed confirmatory packet now has a completed root-level
+interpretability reduction, but the only full system-by-system table that has
+been written into the manuscript so far is still the clean seed-$0$ common
+rerun. To keep the tables numeric-only, we index the systems
+as follows:
+$1=\texttt{multiwell\_strong\_transition}$,
+$2=\texttt{gated\_local\_linear}$,
+$3=\texttt{gated\_transfer\_linear}$,
+$4=\texttt{arrested\_spiral}$,
+$5=\texttt{cal\_asymmetric\_3}$,
+$6=\texttt{cal\_high\_cross\_3}$,
+$7=\texttt{cal\_hexagon\_6}$,
+$8=\texttt{cal\_octagon\_8}$,
+$9=\texttt{cal\_pentagon\_5}$,
+$10=\texttt{cal\_square\_4}$,
+$11=\texttt{checkerboard\_potential}$,
+$12=\texttt{duffing\_triple\_well}$,
+$13=\texttt{snic\_multi}$,
+$14=\texttt{transition\_routes\_4}$,
+$15=\texttt{var\_depth\_gradient\_4}$,
+$16=\texttt{var\_diamond\_4}$,
+and $17=\texttt{var\_l\_shape\_5}$.
+In Tables~\ref{tab:fixed17-system-exact} and
+\ref{tab:fixed17-system-intervention}, the three model groups are
+block-diagonal hard-init LISTA (B), dense soft-block $p=64$ hard-init LISTA
+(D), and sparse MLP control (M).
 
-The strongest conclusion is therefore about competitiveness, not replacement. LISTA + dense Koopman substantially narrows the gap suggested by the earlier $50$k study, which indicates that part of the earlier shortfall was optimization-limited rather than architectural. At the same time, the MLP + dense Koopman baseline remains best by cross-system median at H100, H500, and H1000, so we do not claim a universal dominance result for the LISTA encoder.
-
-The block-diagonal transition behaves differently. LISTA + block-diagonal Koopman is clearly weaker as a global benchmark model, with H1000 medians of $0.0555$ and $0.0477$ for the two evaluated sparsity settings. We therefore treat block-diagonal latent dynamics as a targeted inductive bias rather than a default choice for the full benchmark.
-
-\subsection{Selective Structural Gains on Hard Oscillatory Systems}
-
-We next ask where added structure is most useful. To do so, we focus on two analytically specified systems for which long-horizon forecasting is intrinsically difficult for different reasons.
-
-Kuramoto uses ring-coupled phase oscillators,
-\begin{equation}
-    \dot{\theta}_i
-    =
-    \omega_i
-    +
-    \frac{\kappa}{N}
-    \sum_{j} a_{ij} \sin(\theta_j - \theta_i),
-    \qquad i = 1,\dots,N,
-\end{equation}
-with basin labels defined by the winding number
-\begin{equation}
-    w
-    =
-    \operatorname{round}
-    \Bigg(
-        \frac{1}{2\pi}
-        \sum_{i=1}^{N}
-        \operatorname{wrap}(\theta_{i+1} - \theta_i)
-    \Bigg).
-\end{equation}
-This is a stringent test for local linear Koopman models because the relevant long-horizon structure is phase-topological rather than purely geometric. Hopfield uses a continuous neural-associative memory,
-\begin{equation}
-    \dot{x}
-    =
-    \frac{-x + W \tanh(\beta x) + b}{\tau},
-\end{equation}
-where the basin label is the stored pattern with maximal sign-overlap. Hopfield tests whether the same inductive biases remain useful in higher-dimensional continuous state spaces with many local attractors.
-
-Kuramoto provides the clearest positive case for the proposed inductive bias. At the smaller step size $dt = 0.00625$ and dimension $N=16$, the key causal question is whether the long-horizon gain comes from imposing block structure on the latent Koopman matrix, or from the combination of that local transition model with a support-selective encoder. Table~\ref{tab:kuramoto-fairness} addresses this question directly. In the matched control that keeps the MLP encoder fixed and changes only the Koopman matrix from dense to block diagonal, the H1000 median changes from $30.18$ to $31.80$, while LISTA + block-diagonal Koopman reaches $6.98$. The block-diagonal constraint therefore does not rescue long-horizon forecasting on its own. The large H1000 gain appears only when local latent dynamics are paired with an encoder that explicitly selects a sparse support.
-
-\begin{table}[ht]
+\begin{table*}[ht]
 \centering
-\caption{Matched Kuramoto control at $N=16$, $dt=0.00625$, and $200$k training steps. Entries are seed-median errors under the best periodic re-encoding schedule.}
-\label{tab:kuramoto-fairness}
-\begin{tabular}{lccc}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{r rrr rrr rrr}
 \toprule
-\textbf{Model} & \textbf{H100} & \textbf{H500} & \textbf{H1000} \\
+& \multicolumn{3}{c}{B} & \multicolumn{3}{c}{D} & \multicolumn{3}{c}{M} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+$s$ & $H(S \mid B)$ & $U_{\mathrm{exact}}$ & $H(F \mid B)$ & $H(S \mid B)$ & $U_{\mathrm{exact}}$ & $H(F \mid B)$ & $H(S \mid B)$ & $U_{\mathrm{exact}}$ & $H(F \mid B)$ \\
 \midrule
-MLP + dense $K$ & 0.0392 & 1.5851 & 30.18 \\
-MLP + block-diagonal $K$ & 0.0343 & 1.5547 & 31.80 \\
-LISTA + block-diagonal $K$ & 0.1536 & 2.6834 & 6.98 \\
+1 & 3.7448 & 0.1262 & 0.4063 & \textbf{2.2881} & \textbf{0.3874} & 0.4708 & 3.1695 & 0.1776 & \textbf{0.0452} \\
+2 & 2.3637 & 0.3462 & \textbf{0.0000} & \textbf{0.7210} & \textbf{0.7624} & \textbf{0.0000} & 1.2470 & 0.6014 & \textbf{0.0000} \\
+3 & 3.6816 & 0.1321 & \textbf{0.0000} & \textbf{1.9776} & \textbf{0.4440} & \textbf{0.0000} & 2.7844 & 0.1936 & \textbf{0.0000} \\
+4 & 0.1640 & 0.9797 & \textbf{0.0000} & \textbf{0.0776} & \textbf{0.9893} & \textbf{0.0000} & 0.0890 & 0.9889 & \textbf{0.0000} \\
+5 & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & 0.4229 & 0.9201 & \textbf{0.0000} \\
+6 & 0.2283 & 0.7839 & \textbf{0.0000} & \textbf{0.0042} & \textbf{0.9998} & \textbf{0.0000} & 0.0077 & 0.9995 & \textbf{0.0000} \\
+7 & 0.6570 & 0.9516 & 0.0166 & 0.2117 & 0.9833 & \textbf{0.0000} & \textbf{0.2092} & \textbf{0.9884} & 0.0190 \\
+8 & 0.0081 & 0.9974 & \textbf{0.0000} & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & 0.0119 & 0.9929 & \textbf{0.0000} \\
+9 & 0.1663 & 0.9793 & \textbf{0.0000} & 0.3443 & 0.9128 & \textbf{0.0000} & \textbf{0.0487} & \textbf{0.9944} & \textbf{0.0000} \\
+10 & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} \\
+11 & 1.3934 & 0.6655 & 0.3567 & \textbf{1.0415} & \textbf{0.6981} & 0.2059 & 1.3118 & 0.6749 & \textbf{0.1520} \\
+12 & 8.9318 & 0.0020 & 0.9381 & \textbf{5.9585} & \textbf{0.0223} & 0.0871 & 8.1532 & 0.0035 & \textbf{0.0000} \\
+13 & 1.0380 & 0.6202 & \textbf{0.0000} & \textbf{0.1797} & \textbf{0.9049} & \textbf{0.0000} & 0.6238 & 0.7283 & \textbf{0.0000} \\
+14 & 0.0835 & 0.9774 & \textbf{0.0000} & \textbf{0.0136} & \textbf{0.9975} & 0.0087 & 0.0414 & 0.9921 & \textbf{0.0000} \\
+15 & 0.0179 & 0.9982 & 0.0027 & \textbf{0.0122} & \textbf{0.9988} & 0.0032 & 0.1063 & 0.9867 & \textbf{0.0000} \\
+16 & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} & \textbf{0.0000} & \textbf{1.0000} & \textbf{0.0000} \\
+17 & 0.4486 & 0.9188 & 0.0060 & 0.6888 & 0.7737 & \textbf{0.0000} & \textbf{0.3398} & \textbf{0.9448} & \textbf{0.0000} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\caption{\textbf{System-by-system exact-support and family-level results on the fixed-$17$ benchmark.} Numbers come from the clean seed-$0$ common reduction on the deep-basin \texttt{absolute:0.001} slice. Lower is better for $H(S \mid B)$ and $H(F \mid B)$; higher is better for $U_{\mathrm{exact}}$. Within each system and metric, the best displayed value is bolded, with ties bolded jointly.}
+\label{tab:fixed17-system-exact}
+\end{table*}
 
-For reference, the corresponding LISTA + dense Koopman model from the original three-way $N=16$ comparison reaches H100/H500/H1000 errors of $0.2194$, $4.1222$, and $13.84$. This makes the mechanism more precise. The LISTA encoder already improves the H1000 regime relative to the MLP baseline, and the block-diagonal transition further sharpens that gain within the LISTA family.
-
-\begin{table}[ht]
+\begin{table*}[ht]
 \centering
-\caption{Kuramoto dimension sweep at $dt=0.00625$ and $200$k training steps. Entries are seed-median H1000 errors under the best periodic re-encoding schedule. The matched MLP + block-diagonal control was run only at $N=16$ and is therefore reported separately in Table~\ref{tab:kuramoto-fairness}.}
-\label{tab:kuramoto-scaling}
-\begin{tabular}{lccc}
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{r rr rr rr}
 \toprule
-\textbf{Dimension $N$} & \textbf{MLP + dense $K$} & \textbf{LISTA + dense $K$} & \textbf{LISTA + block-diagonal $K$} \\
+& \multicolumn{2}{c}{B} & \multicolumn{2}{c}{D} & \multicolumn{2}{c}{M} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+$s$ & own/base & freeze/base & own/base & freeze/base & own/base & freeze/base \\
 \midrule
-8 & 813.57 & 495.07 & 8.11 \\
-16 & 30.18 & 13.44 & 7.07 \\
-24 & 6.71 & 15.01 & 6.57 \\
-32 & 6.68 & 92.28 & 5.92 \\
-64 & 208.93 & 208.71 & 23.27 \\
+1 & 6.4748 & \textbf{0.1551} & 1.7719 & 0.3660 & \textbf{1.5779} & 0.2431 \\
+2 & \textbf{0.9422} & 0.1107 & 0.9770 & 0.2969 & 1.0060 & \textbf{0.0942} \\
+3 & 1.3430 & \textbf{0.1246} & 3.0009 & 0.6037 & \textbf{1.1570} & 0.2880 \\
+4 & \textbf{0.7889} & \textbf{0.0167} & 0.9967 & 3.1043 & 1.0003 & 0.0279 \\
+5 & \textbf{0.9226} & \textbf{0.0151} & 1.0000 & 0.1532 & 1.0010 & 0.6203 \\
+6 & \textbf{0.8861} & 0.1608 & 1.1104 & \textbf{0.1311} & 0.9819 & 0.2421 \\
+7 & 1.0431 & 0.1278 & \textbf{0.9843} & \textbf{0.0830} & 0.9958 & 0.1103 \\
+8 & 1.0003 & \textbf{0.0227} & 1.0011 & 0.0827 & \textbf{0.9879} & 0.8119 \\
+9 & \textbf{0.9565} & \textbf{0.0344} & 1.0015 & 0.0535 & 0.9974 & 0.2032 \\
+10 & 1.0183 & \textbf{0.0161} & \textbf{1.0000} & 0.0807 & 1.0135 & 0.1189 \\
+11 & 9.2855 & \textbf{0.3632} & 3.5372 & 0.8637 & \textbf{1.2138} & 2.5211 \\
+12 & 92.8411 & \textbf{2.8026} & \textbf{30.1277} & 4.4206 & 247.8659 & 8.9061 \\
+13 & \textbf{0.8389} & 0.7008 & 0.9755 & 0.8365 & 0.9776 & \textbf{0.5649} \\
+14 & \textbf{0.8820} & 0.1509 & 0.9655 & \textbf{0.0288} & 1.0031 & 0.9131 \\
+15 & 1.0187 & \textbf{0.0179} & 0.9998 & 0.0450 & \textbf{0.9975} & 0.1420 \\
+16 & \textbf{0.9545} & \textbf{0.1357} & 0.9920 & 0.2616 & 0.9991 & 0.9748 \\
+17 & 9.7345 & 0.2036 & 1.2900 & \textbf{0.0044} & \textbf{1.0312} & 1.3915 \\
 \bottomrule
 \end{tabular}
-\end{table}
-
-Table~\ref{tab:kuramoto-scaling} then asks whether this long-horizon effect survives as the oscillator count grows. It does through $N=32$: LISTA + block-diagonal Koopman remains inside the practical accuracy band for all $5/5$ seeds at $N=16$, $24$, and $32$, and it continues to outperform the other families throughout that range. The same pattern also survives a modest robustness shift: with a uniform natural-frequency spread at $N=16$, LISTA + block-diagonal Koopman reaches an H1000 error of $9.53$ under the best periodic schedule, whereas the MLP + dense Koopman baseline remains at $44.46$. Taken together, Tables~\ref{tab:kuramoto-fairness} and~\ref{tab:kuramoto-scaling} show that the positive Kuramoto result is both mechanistically specific and dimensionally nontrivial: block structure in $K$ is not sufficient in isolation, but it becomes highly effective when combined with the LISTA encoder.
-
-Hopfield is less favorable to the structured models. At $N=16$ and $dt = 0.00625$, the MLP + dense Koopman model remains best at every reported horizon, with H100/H500/H1000 errors of $0.0500$, $0.8835$, and $3.36$, compared with $0.1075$, $3.5303$, and $8.82$ for LISTA + block-diagonal Koopman. In the higher-basin fairness control, MLP + block-diagonal Koopman matches the dense-transition MLP model to within rounding at every reported horizon. At $N=64$, all model families remain far outside the practical threshold. The positive architectural effect is therefore real but selective: it is strongest on Kuramoto-like oscillatory systems and does not generalize uniformly to every hard environment.
-
-\subsection{Corrected Competitive Lotka--Volterra Is No Longer a Failure Case}
-
-The corrected competitive Lotka--Volterra environment provides an ecological multibasin benchmark in which basin identity is defined by long-run species survival. The dynamics are
-\begin{equation}
-    \dot{x}_i
-    =
-    x_i
-    \left(
-        r_i - \sum_{j=1}^{S} A_{ij} x_j
-    \right),
-    \qquad i = 1,\dots,S,
-\end{equation}
-with $x_i \ge 0$ and basin labels given by the survival bitmask $(x_i > 10^{-3})_{i=1}^{S}$ at long rollout times. This environment matters because it is a clean multi-basin system with semantically meaningful attractor structure, and because all older CLV support analyses were invalidated when the previous setup was found to be effectively one-basin.
-
-\begin{table}[ht]
-\centering
-\caption{Corrected four-basin competitive Lotka--Volterra forecasting at $200$k steps. Entries are $3$-seed median best-periodic errors; collectors report H500 and H1000. The MLP + block-diagonal Koopman row is the matched isolation control.}
-\label{tab:clv-corrected}
-\begin{tabular}{lcc}
-\toprule
-\textbf{Model} & \textbf{H500} & \textbf{H1000} \\
-\midrule
-MLP + dense $K$ & 0.0956 & 0.1254 \\
-MLP + block-diagonal $K$ & 0.0956 & 0.1254 \\
-LISTA + dense $K$ & 0.1065 & 0.1656 \\
-LISTA + block-diagonal $K$ ($\lambda_{\mathrm{sp}} = 3\times 10^{-3}$) & 0.1605 & 0.1605 \\
-LISTA + block-diagonal $K$ ($\lambda_{\mathrm{sp}} = 6\times 10^{-3}$) & 0.1451 & 0.1673 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:clv-corrected} shows that corrected CLV now fits cleanly within the main forecasting narrative. All model families remain well below the H1000 threshold, and the two MLP models are best by median error. The matched MLP + block-diagonal Koopman control is exactly tied with the dense-transition MLP model on the three-seed collector, which shows that block-diagonal latent dynamics alone are not driving the CLV result.
-
-This conclusion is reinforced by the $15$-seed extension, in which MLP + dense Koopman, MLP + block-diagonal Koopman, and LISTA + dense Koopman remain tightly clustered at H1000, with medians $0.1530$, $0.1409$, and $0.1487$, respectively. Accordingly, corrected CLV supports the forecasting claims in the main text. We do not yet use it for representation claims, since the label-free basin analyses still need to be rerun on the corrected checkpoints.
-
-\subsection{Basin Recovery Is Strongest When Basin Geometry Is Locally Expressed}
-
-We now turn to representation quality. To test whether accurate periodic-reencoding forecasts are accompanied by meaningful regime structure, we evaluate label-free basin recovery on three analytically transparent system classes.
-
-The multiwell family provides the cleanest positive setting. Let $c_1,\dots,c_M \in \mathbb{R}^2$ denote basin centers and define
-\begin{equation}
-    g(x)
-    =
-    2 \sum_{m=1}^{M}
-    \exp\!\left(-\frac{\|x-c_m\|_2^2}{\sigma^2}\right) (x-c_m).
-\end{equation}
-We study four deterministic variants:
-\begin{align}
-    \dot x &= -g(x) && \text{(gradient)}, \\
-    \dot x &= -g(x) + \alpha R g(x) && \text{(rotational)}, \\
-    \dot x &= -g(x) + \beta \sin(\|x\|_2)\,x && \text{(energy)}, \\
-    \dot x &= -g(x) + \alpha_s R g(x) + \beta_s \cos(2\|x\|_2)\,x && \text{(strong transition)},
-\end{align}
-where $R$ denotes a $90^\circ$ rotation matrix. The $8$-dimensional variants embed the same $2$-dimensional core and linearly damp the remaining coordinates. These systems are particularly informative because their basin structure is explicit and locally geometric.
-
-Duffing is the minimal two-basin multistable system,
-\begin{equation}
-    \dot{x}_1 = x_2,
-    \qquad
-    \dot{x}_2 = x_1 - x_1^3,
-\end{equation}
-which tests whether the method can recover a simple double-well partition. Kuramoto, defined above, provides the strongest counterpoint because its winding-number basins are topological rather than locally geometric.
-
-\begin{table}[ht]
-\centering
-\caption{Label-free basin recovery and support separation. The Hamming ratio is the between-basin over within-basin support distance ratio, aggregated over system-model pairs; values near $1$ indicate that supports are not basin-discriminative. Mean ARI is aggregated over feature views and seeds.}
-\label{tab:label-free-summary}
-\begin{tabular}{lcccp{0.32\linewidth}}
-\toprule
-\textbf{System class} & \textbf{Basins} & \textbf{Hamming ratio} & \textbf{Mean ARI} & \textbf{Interpretation} \\
-\midrule
-Multiwell family (8 variants) & 5 & 1.59--4.83 & 0.662--0.985 & Strong positive: both support geometry and unsupervised clustering are basin-discriminative across all variants. \\
-Duffing & 2 & 1.27--1.38 & 0.215--0.226 & Weak positive: there is some basin signal, but it is not stable enough to produce clean support-level separation. \\
-Kuramoto & 5 & 1.008--1.012 & $1.1\times10^{-4}$--$8.5\times10^{-4}$ & Negative: supports and continuous latent features are effectively non-separable by basin. \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:label-free-summary} contains the strongest representation result in the paper. On the multiwell family, label-free basin recovery is consistently strong. Across the $24$ system-model pairs in this family, mean ARI ranges from $0.662$ to $0.985$, while the support-separation ratio ranges from $1.59$ to $4.83$. These values indicate that sparse supports are not merely sparse; they are systematically reused within basins and separate distinct attractor regions without label supervision. The effect is also not confined to a single architecture: all three model families recover substantial basin structure on these systems.
-
-Duffing shows a weaker but still nonzero signal, with mean ARI around $0.22$ and support-separation ratios between $1.27$ and $1.38$. This suggests that the learned latents do contain basin information, but less cleanly than in the multiwell family.
-
-Kuramoto marks the boundary of the claim. Its support-separation ratio is essentially $1$, and ARI is numerically indistinguishable from $0$ for all three model families. Thus strong long-horizon forecasting under periodic re-encoding does \emph{not} by itself imply basin-discriminative supports. The correct interpretation is narrower and more informative: sparse supports recover basin structure most clearly when basin identity is expressed by local geometry in state space, rather than by global phase topology.
-
-\subsection{Summary of Findings}
-
-The empirical picture is coherent. Under matched optimization, task settings, and front-end width/depth, the LISTA encoder with dense latent dynamics is a genuinely competitive benchmark model across a broad 29-system suite, although this dense MLP-versus-LISTA comparison is not parameter-matched. Structured block-local latent dynamics provide an additional long-horizon advantage on Kuramoto, where the gain is large and mechanistically interpretable, but the matched MLP control shows that this advantage is not a generic consequence of block-diagonal $K$. Most importantly, sparse Koopman latents can recover basin structure without labels in systems whose basin geometry is locally expressed, as shown most clearly by the multiwell family.
-
-We therefore frame the contribution as a method for learning sparse, forecast-useful local coordinates in multibasin systems, not as a claim of globally valid autonomous linearization. All quantitative claims in this paper are restricted to periodic re-encoding and to horizons up to $1000$ steps.
-
-\appendix
-
-\section{Benchmark System Definitions}
-\label{app:benchmark-systems}
-
-This appendix records the exact benchmark systems used in the experiments. For the analytically specified systems, the equations below follow the repository implementations directly. For the Dysts subset, we use the official Dysts flow definitions together with the default parameter values stored in the benchmark metadata. The benchmark therefore contains both an unforced $2$-dimensional Duffing oscillator defined in our code and a distinct forced $3$-dimensional Duffing flow inherited from Dysts.
-
-\subsection{Analytically Specified Benchmarks}
-
-\paragraph{Duffing (unforced double-well oscillator).}
-The in-repo Duffing benchmark is the autonomous double-well system
-\begin{equation}
-    \dot{x}_1 = x_2,
-    \qquad
-    \dot{x}_2 = x_1 - x_1^3.
-\end{equation}
-It has stable wells near $(x_1,x_2) = (\pm 1, 0)$ separated by the unstable equilibrium at the origin.
-
-\paragraph{Lotka--Volterra (predator--prey).}
-The predator--prey benchmark is
-\begin{equation}
-    \dot{x}_1 = \alpha x_1 - \beta x_1 x_2,
-    \qquad
-    \dot{x}_2 = \delta x_1 x_2 - \gamma x_2,
-\end{equation}
-with $\alpha=\beta=\gamma=\delta=0.2$. This benchmark is included as a classical nonlinear forecasting system rather than as a multibasin identification task.
-
-\paragraph{Blended three-basin linear system.}
-Let the basin centers be
-\begin{equation}
-    c_1 = (2,0), \qquad c_2 = (-2,2), \qquad c_3 = (-2,-2),
-\end{equation}
-and define Gaussian weights
-\begin{equation}
-    w_i(x)
-    =
-    \frac{\exp\!\big(-\|x-c_i\|_2^2/(2\sigma^2)\big)}
-         {\sum_{j=1}^{3}\exp\!\big(-\|x-c_j\|_2^2/(2\sigma^2)\big)},
-    \qquad \sigma = 1.5 .
-\end{equation}
-The vector field is the soft blend
-\begin{equation}
-    \dot{x}
-    =
-    \sum_{i=1}^{3} w_i(x) A_i (x-c_i),
-\end{equation}
-with local linear dynamics
-\begin{equation}
-    A_1 =
-    \begin{bmatrix}
-    -0.5 & -3.0 \\
-    3.0 & -0.5
-    \end{bmatrix},
-    \quad
-    A_2 =
-    \begin{bmatrix}
-    -0.2 & 0 \\
-    0 & -5.0
-    \end{bmatrix},
-    \quad
-    A_3 =
-    \begin{bmatrix}
-    -5.0 & 0 \\
-    0 & -2.0
-    \end{bmatrix}.
-\end{equation}
-Basins are defined by the dominant mixture weight $\arg\max_i w_i(x)$.
-
-\paragraph{Multiwell family.}
-Let $c_1,\dots,c_M \in \mathbb{R}^2$ denote the attractor centers and define
-\begin{equation}
-    g(x)
-    =
-    2 \sum_{m=1}^{M}
-    \exp\!\left(-\frac{\|x-c_m\|_2^2}{\sigma^2}\right) (x-c_m),
-    \qquad \sigma = 0.7 .
-\end{equation}
-In the default $2$-dimensional benchmark, the centers are the canonical five-point layout
-\begin{equation}
-    (-1,-1),\; (1,-1),\; (-1,1),\; (1,1),\; (0,0).
-\end{equation}
-We study four deterministic variants:
-\begin{align}
-    \dot x &= -g(x) && \text{(gradient)}, \\
-    \dot x &= -g(x) + \alpha R g(x), \quad \alpha = 0.6 && \text{(rotational)}, \\
-    \dot x &= -g(x) + \beta \sin(\|x\|_2)\,x, \quad \beta = 1.2 && \text{(energy)}, \\
-    \dot x &= -g(x) + \alpha_s R g(x) + \beta_s \cos(2\|x\|_2)\,x, \quad
-    \alpha_s = 0.8,\; \beta_s = 1.0 && \text{(strong transition)},
-\end{align}
-where $R$ denotes the $90^\circ$ rotation matrix. Basin labels are determined by long-run attraction to the corresponding well.
-
-\paragraph{Embedded $8$-dimensional multiwell variants.}
-The four high-dimensional multiwell systems embed the same $2$-dimensional core into $\mathbb{R}^8$. Writing the state as $(u,\xi)$ with $u \in \mathbb{R}^2$ and $\xi \in \mathbb{R}^6$,
-\begin{equation}
-    \dot u = f_{\mathrm{mw}}(u),
-    \qquad
-    \dot \xi = -\lambda \xi,
-    \qquad \lambda = 1,
-\end{equation}
-where $f_{\mathrm{mw}}$ is one of the four $2$-dimensional multiwell vector fields above.
-
-\paragraph{Kuramoto oscillators.}
-The Kuramoto benchmark uses $N$ coupled phase oscillators,
-\begin{equation}
-    \dot{\theta}_i
-    =
-    \omega_i
-    +
-    \frac{\kappa}{N}
-    \sum_{j} a_{ij} \sin(\theta_j - \theta_i),
-    \qquad i=1,\dots,N,
-\end{equation}
-with ring coupling in the default benchmark, $\kappa=4.0$, and identical frequencies $\omega_i=0$ unless a robustness study explicitly uses a frequency spread. Basin labels are defined by the winding number
-\begin{equation}
-    w
-    =
-    \operatorname{round}
-    \Bigg(
-        \frac{1}{2\pi}
-        \sum_{i=1}^{N}
-        \operatorname{wrap}(\theta_{i+1}-\theta_i)
-    \Bigg).
-\end{equation}
-
-\paragraph{Continuous Hopfield network.}
-Let $p^{(1)},\dots,p^{(P)} \in \{-1,+1\}^{N}$ denote the stored patterns. The benchmark uses the continuous Hopfield dynamics
-\begin{equation}
-    \dot x
-    =
-    \frac{-x + W \tanh(\beta x) + b}{\tau},
-\end{equation}
-with
-\begin{equation}
-    W
-    =
-    \frac{1}{P} \sum_{\mu=1}^{P} p^{(\mu)} {p^{(\mu)}}^\top,
-    \qquad
-    \operatorname{diag}(W)=0,
-    \qquad
-    b=0.
-\end{equation}
-The default benchmark uses $N=16$, $P=4$, $\beta=1$, and $\tau=1$. Basin labels are defined by the stored pattern with maximal sign overlap with the final state.
-
-\paragraph{Corrected competitive Lotka--Volterra.}
-The ecological multibasin benchmark is
-\begin{equation}
-    \dot{x}_i
-    =
-    x_i
-    \left(
-        r_i - \sum_{j=1}^{S} A_{ij} x_j
-    \right),
-    \qquad i=1,\dots,S,
-\end{equation}
-with $S=10$, default growth rates $r_i=1$, and interaction matrix $A$ sampled according to the benchmark configuration. In the default paper-facing setting, the interactions are symmetric with diagonal entries $A_{ii}=1$ and off-diagonal entries sampled in $[0, 0.7]$. Basin labels are given by the species-survival bitmask $(x_i > 10^{-3})_{i=1}^{S}$ at long rollout times.
-
-\subsection{Dysts Benchmark Flows}
-
-All Dysts systems below use the official Dysts default parameter values. The reference in parentheses is the source citation stored in the Dysts metadata.
-
-\paragraph{Dadras.}
-\begin{equation}
-    \dot{x} = y - p x + o y z,
-    \qquad
-    \dot{y} = r y - x z + z,
-    \qquad
-    \dot{z} = c x y - e z,
-\end{equation}
-with $(c,e,o,p,r) = (2.0, 9.0, 2.7, 3.0, 1.7)$ (Dadras and Momeni, 2009).
-
-\paragraph{Dysts Duffing (forced).}
-\begin{equation}
-    \dot{x} = y,
-    \qquad
-    \dot{y} = -\delta y - \beta x - \alpha x^3 + \gamma \cos z,
-    \qquad
-    \dot{z} = \omega,
-\end{equation}
-with $(\alpha,\beta,\delta,\gamma,\omega) = (1.0, -1.0, 0.1, 0.35, 1.4)$ (Duffing, 1918).
-
-\paragraph{QiChen.}
-\begin{equation}
-    \dot{x} = a y - a x + y z,
-    \qquad
-    \dot{y} = c x + y - x z,
-    \qquad
-    \dot{z} = x y - b z,
-\end{equation}
-with $(a,b,c) = (38, 2.666, 80)$ (Qi et al., 2008).
-
-\paragraph{Sakarya.}
-\begin{equation}
-    \dot{x} = a x + h y + s y z,
-    \qquad
-    \dot{y} = -b y - p x + q x z,
-    \qquad
-    \dot{z} = c z - r x y,
-\end{equation}
-with $(a,b,c,h,p,q,r,s)=(-1.0,1.0,1.0,1.0,1.0,0.4,0.3,1.0)$ (Li et al., 2015).
-
-\paragraph{SprottTorus.}
-\begin{equation}
-    \dot{x} = y + 2xy + xz,
-    \qquad
-    \dot{y} = 1 - 2x^2 + yz,
-    \qquad
-    \dot{z} = x - x^2 - y^2
-\end{equation}
-with no additional parameters (Sprott, 2014).
-
-\paragraph{Chua.}
-Defining
-\begin{equation}
-    r(x)
-    =
-    m_1 x
-    +
-    \frac{1}{2}(m_0-m_1)\big(|x+1|-|x-1|\big),
-\end{equation}
-the Dysts Chua system is
-\begin{equation}
-    \dot{x} = \alpha (y - x - r(x)),
-    \qquad
-    \dot{y} = x - y + z,
-    \qquad
-    \dot{z} = -\beta y,
-\end{equation}
-with $(\alpha,\beta,m_0,m_1)=(15.6, 28.0, -1.142857, -0.71429)$ (Chua, 1969).
-
-\paragraph{MultiChua.}
-Defining the diode nonlinearity
-\begin{equation}
-    d(x)
-    =
-    m_5 x
-    +
-    \frac{1}{2}
-    \sum_{i=1}^{5}
-    (m_{i-1}-m_i)\big(|x+c_i|-|x-c_i|\big),
-\end{equation}
-the system is
-\begin{equation}
-    \dot{x} = a\big(y-d(x)\big),
-    \qquad
-    \dot{y} = x-y+z,
-    \qquad
-    \dot{z} = -b y,
-\end{equation}
-with $a=9$, $b=14.286$, $c=(1.0, 2.15, 3.6, 8.2, 13.0)$, and
-\begin{equation}
-    m =
-    (-0.14285714,\; 0.28571429,\; -0.57142857,\; 0.28571429,\; -0.57142857,\; 0.28571429)
-\end{equation}
-(Yalcin, Suykens, and Vandewalle).
-
-\paragraph{DequanLi.}
-\begin{equation}
-    \dot{x} = a y - a x + d x z,
-    \qquad
-    \dot{y} = k x + f y - x z,
-    \qquad
-    \dot{z} = c z + x y - \varepsilon x^2,
-\end{equation}
-with $(a,c,d,\varepsilon,f,k)=(40, 1.833, 0.16, 0.65, 20, 55)$ (Li, 2008).
-
-\paragraph{LuChenCheng.}
-\begin{equation}
-    \dot{x} = -\frac{ab}{a+b}x - yz + c,
-    \qquad
-    \dot{y} = a y + x z,
-    \qquad
-    \dot{z} = b z + x y,
-\end{equation}
-with $(a,b,c)=(-10, -4, 18.1)$ (Lu, Chen, and Cheng, 2004).
-
-\paragraph{SanUmSrisuchinwong.}
-\begin{equation}
-    \dot{x} = y - x,
-    \qquad
-    \dot{y} = -z \tanh(x),
-    \qquad
-    \dot{z} = -a + xy + |y|,
-\end{equation}
-with $a=2$ (San-Um and Srisuchinwong, 2012).
-
-\paragraph{WangSun.}
-\begin{equation}
-    \dot{x} = a x + q y z,
-    \qquad
-    \dot{y} = b x + d y - x z,
-    \qquad
-    \dot{z} = e z + f x y,
-\end{equation}
-with $(a,b,d,e,f,q)=(0.2, -0.01, -0.4, -1.0, -1.0, 1.0)$ (Wang et al., 2009).
-
-\paragraph{Shimizu--Morioka.}
-\begin{equation}
-    \dot{x} = y,
-    \qquad
-    \dot{y} = x - a y - x z,
-    \qquad
-    \dot{z} = -b z + x^2,
-\end{equation}
-with $(a,b)=(0.85, 0.5)$ (Shimizu and Morioka, 1980).
-
-\paragraph{LorenzCoupled.}
-\begin{align}
-    \dot{x}_1 &= \sigma(y_1-x_1), &
-    \dot{y}_1 &= \rho_1 x_1 - x_1 z_1 - y_1, &
-    \dot{z}_1 &= x_1 y_1 - \beta z_1, \\
-    \dot{x}_2 &= \sigma(y_2-x_2) + \varepsilon(x_1-x_2), &
-    \dot{y}_2 &= \rho_2 x_2 - x_2 z_2 - y_2, &
-    \dot{z}_2 &= x_2 y_2 - \beta z_2,
-\end{align}
-with $(\beta,\varepsilon,\rho_1,\rho_2,\sigma)=(2.667, 2.85, 35, 1.15, 10)$; the Dysts metadata additionally stores $\rho=28$ for this family (Lorenz, 1963, coupled-system variant).
-
-\paragraph{RikitakeDynamo.}
-\begin{equation}
-    \dot{x} = -\mu x + y z,
-    \qquad
-    \dot{y} = -\mu y - a x + x z,
-    \qquad
-    \dot{z} = 1 - xy,
-\end{equation}
-with $(a,\mu)=(1.0, 1.0)$ (Rikitake, 1958).
-
-\paragraph{Hadley.}
-\begin{equation}
-    \dot{x} = -y^2 - z^2 - a x + a f,
-    \qquad
-    \dot{y} = x y - b x z - y + g,
-    \qquad
-    \dot{z} = b x y + x z - z,
-\end{equation}
-with $(a,b,f,g)=(0.2, 4, 9, 1)$ (Hadley circulation model).
-
-\section{Legacy Exploratory Diagnostics}
-\label{app:additional-diagnostics}
-
-The appendix below records earlier structure-ablation and control-facing studies that were useful during development, but they are not part of the main narrative. The main claims of this draft are driven by the fair 200k benchmark, the smaller-$dt$ hard-system follow-ups, and the revised label-free clustering evaluation in the main text.
-
-\subsection{Long-Horizon Dynamics: Spectral Radius as the Key Predictor}
-
-We evaluated 25 checkpoints (5 target sizes $\times$ 5 Koopman structures including arrowhead without exclusivity) with long-horizon rollouts and eigenvalue analysis. The main result is consistent and strong: SR predicts long-horizon fate.
-
-\begin{table}[ht]
-\centering
-\caption{Representative SR--stability outcomes (no re-encoding, horizon 1000).}
-\label{tab:sr-stability}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Configuration} & \textbf{Max SR} & \textbf{H1000 MSE} & \textbf{Outcome} \\
-\midrule
-dense, ts=256 & 1.0262 & $6.78 \times 10^{17}$ & diverged \\
-block-diagonal, ts=256 & 0.9996 & $3.58$ & stable \\
-arrowhead (+excl), ts=128 & 0.9963 & $3.49$ & stable \\
-arrowhead (no excl), ts=256 & 1.0215 & $1.52 \times 10^{13}$ & diverged \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Periodic re-encoding remains an effective fallback, typically recovering bounded long-horizon error ($\sim 3.6$--$3.9$ on Lyapunov) even when open-loop rollouts diverge.
-
-\subsection{Sequence Training Does Not Stabilize Non-Diagonal Koopman Dynamics}
-
-We tested two hypotheses under sequence training: (i) longer sequence length might stabilize $K$, and (ii) loss-weight tuning might recover stability.
-
-\paragraph{Sequence-length sweep (48 runs).}
-Across $L \in \{4,8,12,16\}$, target sizes $\{64,128,256\}$, and four Koopman structures, only diagonal $K$ is frequently stable, and even that degrades as $L$ increases. Dense, block-diagonal, and arrowhead are unstable in all tested settings.
-
-\paragraph{Sequence-loss weight sweep (36 runs, block-diagonal, $L=8$, ts=128).}
-No configuration achieved strict stability: \textbf{0/36} runs had SR $< 1$; SR ranged from 1.0014 to 1.2540. Setting prediction weight to 1.0 improved SR on average but did not cross the stability boundary. Therefore, weight tuning alone is insufficient; explicit spectral control is required.
-
-\subsection{Objective Design for Basin Separability}
-
-\paragraph{Single-loss ablation (24 runs).}
-For block-diagonal $K$, usage-balance losses (\texttt{usage\_entropy}, \texttt{kl\_uniform}) consistently improve cosine separation over control, while strict one-block penalties (\texttt{low\_entropy}, \texttt{pairwise\_overlap}) often collapse.
-
-\begin{table}[ht]
-\centering
-\caption{Best cosine separation by target size in block-loss ablation.}
-\label{tab:block-loss-ablation}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Target size} & \textbf{Control sep.} & \textbf{Best loss (sep.)} & \textbf{Improvement} \\
-\midrule
-64 & 0.353 & \texttt{usage\_entropy} (0.786) & +0.433 \\
-128 & 0.238 & \texttt{kl\_uniform} (0.852) & +0.614 \\
-256 & 0.826 & \texttt{kl\_uniform} (0.884) & +0.058 \\
-512 & 0.466 & \texttt{usage\_entropy} (0.791) & +0.325 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Combined top-1 plus balance sweep (Phase 1, 72 runs, ts=256).}
-The best seed-averaged configuration (\texttt{kl\_uniform}, top1 margin 0.05, one-block weight 0.3, balance weight 1.0) reaches cosine separation 0.8826, improving over the ts=256 control (0.8256). Across 36 two-seed configurations, 23/36 beat control separation, but sensitivity remains: 8/36 configurations lose full uniqueness in at least one seed, and the worst settings collapse sharply. Thus, combined objectives can help, but the robust hyperparameter region is narrow.
-
-\subsection{Basin-to-Block Alignment vs. Basin-Unique Supports}
-
-A key distinction from earlier iterations is that our primary objective is basin-unique sparse supports, not necessarily one-basin-per-block Koopman assignment. In this framing, results are strong: at target size 256, uniqueness is frequently saturated (13/13), and separation is high.
-
-However, basin-to-block concentration from eigenvalue-correlation analyses remains highest at low capacity (e.g., concentration 0.87 at ts=64) and weak at higher capacity (around 0.10 at ts=256). This indicates that the model can achieve basin-discriminative sparse supports while distributing activity across multiple blocks. This behavior is compatible with our current objective, but it limits immediate extraction of one block per basin for controller assignment.
-
-\subsection{LQR-Readiness and Architecture Selection}
-
-The core control question is whether the learned latent regimes support \emph{reliable local LQR synthesis} under the intended label-free setting (unknown basin count/assignments at training and deployment). To test this directly, we ran a staged decision pipeline with pre-registered rules:
-\begin{itemize}
-    \item \textbf{Stage 1 (structure isolation):} compare a block-diagonal Koopman baseline against an arrowhead Koopman model \emph{without} exclusivity regularization on Lyapunov.
-    \item \textbf{Stage 2 (practical head-to-head):} compare the selected block-diagonal baseline against a practical arrowhead model \emph{with} exclusivity and structured sparsity on Lyapunov.
-    \item \textbf{Stage 3 (transfer):} repeat the Stage-2 comparison on Duffing.
-\end{itemize}
-All stages include basin-count misspecification through $B_{\text{proxy}}$ sweeps, so results do not rely on knowing the true number of basins at decision time.
-
-For clarity, the \emph{DARE feasibility rate} is the fraction of discovered regimes for which the discrete algebraic Riccati equation admits a stabilizing solution (hence an LQR gain can be computed). The \emph{closed-loop stability rate} is the fraction of discovered regimes with spectral radius $\rho(A-BK_{\text{LQR}})<1$. The \emph{closed-loop cost reduction} compares finite-horizon quadratic cost under LQR versus open loop, reported as relative improvement.
-
-\begin{table}[ht]
-\centering
-\caption{Staged LQR-readiness outcomes (label-free control metrics).}
-\label{tab:lqr-readiness}
-\begin{tabular}{p{0.24\linewidth}p{0.10\linewidth}c c c p{0.28\linewidth}}
-\toprule
-\textbf{Comparison} & \textbf{System} & \textbf{Runs} & \textbf{DARE feasibility} & \textbf{Closed-loop stability} & \textbf{Closed-loop cost reduction contrast} \\
-\midrule
-Stage 1: block-diagonal vs arrowhead (no exclusivity) & Lyapunov & 36 & 1.00 & 1.00 & Difference $= +0.0407$, 95\% CI $[-0.0888, 0.1650]$ (includes 0) \\
-Stage 2: block-diagonal vs arrowhead (with exclusivity) & Lyapunov & 144 & 1.00 & 1.00 & Difference $= -11.5930$, 95\% CI $[-34.7496, 0.0006]$ (includes 0) \\
-Stage 3: block-diagonal vs arrowhead (with exclusivity) & Duffing & 78 & 1.00 & 1.00 & Difference $= -0.0849$, 95\% CI $[-0.1100, -0.0632]$; magnitude $<0.10$ practical threshold \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-These results address one key issue unambiguously: \emph{local-regime LQR is feasible and yields stable closed-loop dynamics in the discovered regimes}. We know this because both the DARE feasibility rate and the closed-loop stability rate are 1.0 across all compared arms in both systems, including misspecified $B_{\text{proxy}}$ settings.
-
-At the same time, the architecture-selection issue is only partially resolved. Under the pre-registered decision rule (lexicographic ordering of DARE feasibility, then closed-loop stability, then closed-loop cost reduction, with a practical threshold of $+0.10$ absolute gain on feasibility or stability), no arm achieved a practical winning margin; therefore the final choice remained the simpler block-diagonal fallback.
-
-Importantly, the arrowhead model shows a \emph{favorable trend} on the closed-loop control objective: in both Stage 2 (Lyapunov) and Stage 3 (Duffing), the cost-reduction contrast is in its favor, and in Stage 3 the confidence interval excludes zero. We therefore interpret arrowhead as the current cost-oriented contender, while block-diagonal remains the conservative default pending stronger, lower-variance confirmation.
-
-Implication for the basin-switching control objective: the local-control component is now empirically supported, but the \emph{switching/gating} component remains open. The next experiments should therefore target closed-loop trajectories that cross regime boundaries, with periodic re-encoding used both as drift correction and as the mechanism that refreshes the latent regime assignment before controller switching.
-
-\subsection{Exclusivity Ablation}
-
-The arrowhead architecture pairs structured sparsity with an exclusivity regularizer that penalizes simultaneous activation of multiple basin blocks on a single input. Exclusivity was originally motivated as a mechanism to enforce one-basin-at-a-time encoding, thereby sharpening support--basin correspondence. However, the preceding LQR-readiness pipeline always coupled exclusivity with the arrowhead structure, confounding the two effects. We therefore ran a controlled ablation isolating the contribution of exclusivity alone.
-
-The design holds all other hyperparameters fixed---structured layout, $\lambda_{\text{sparsity}} = 0.3$, $\lambda_{\text{global}} = 10^{-4}$, $\lambda_{\text{local}} = 10^{-3}$---and compares $\lambda_{\text{excl}} = 0.05$ (the value used in prior arrowhead runs) against $\lambda_{\text{excl}} = 0$ on the same Stage-2 Lyapunov grid: target size $\in \{128, 256, 512\}$, $B_{\text{proxy}} \in \{8, 13, 20\}$, eight seeds per cell (144 runs total, 129 completed).
-
-\begin{table}[ht]
-\centering
-\caption{Exclusivity ablation: per-arm means across the Stage-2 Lyapunov grid.}
-\label{tab:excl-ablation}
-\begin{tabular}{l c c c}
-\toprule
-\textbf{Metric} & \textbf{With exclusivity} & \textbf{Without exclusivity} & \textbf{Effect} \\
-\midrule
-DARE feasibility (M2) & 1.000 & 1.000 & --- \\
-CL stability (M3) & 1.000 & 1.000 & --- \\
-CL cost reduction (M4) & $0.826 \pm 0.027$ & $0.823 \pm 0.028$ & $d = 0.07$, n.s. \\
-Recovery success (M5) & $0.483 \pm 0.158$ & $0.549 \pm 0.159$ & $d = -0.82$, $p < 0.001$ \\
-Cosine separation & $0.740 \pm 0.064$ & $0.801 \pm 0.036$ & $d = -0.97$, $p < 0.001$ \\
-Intra-basin cosine & $0.990 \pm 0.005$ & $0.980 \pm 0.012$ & --- \\
-Inter-basin cosine & $0.250 \pm 0.062$ & $0.179 \pm 0.031$ & --- \\
-Max spectral radius (median) & 0.998 & 1.002 & --- \\
-Fraction SR $> 1$ & 45\% & 61\% & --- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The central finding is that exclusivity regularization has \emph{no significant effect on closed-loop cost reduction} (Cohen's $d = 0.07$, paired $t = 0.57$, $p > 0.05$; the arm without exclusivity wins 30 of 63 matched pairs) while it \emph{significantly worsens} both basin separation and state recovery. On cosine separation, the arm without exclusivity achieves a mean of 0.801 versus 0.740 with exclusivity, a large and highly significant difference (Cohen's $d = -0.97$, paired $t = -7.66$, $p < 0.001$; no-exclusivity wins 54 of 63 pairs). The separation gap is driven primarily by inter-basin cosine similarity: exclusivity raises the mean inter-basin cosine from 0.179 to 0.250, making latent representations of different basins \emph{less orthogonal}. Although the intra-basin cosine is marginally higher with exclusivity (0.990 vs.\ 0.980), this small gain in within-basin tightness is overwhelmed by the loss of between-basin discrimination.
-
-Recovery success (M5) likewise favors the no-exclusivity arm (mean 0.549 vs.\ 0.483, $d = -0.82$, $p < 0.001$), and this advantage is consistent across all $B_{\text{proxy}}$ values and target sizes.
-
-Exclusivity does confer a modest spectral-stability advantage: the median maximum spectral radius is 0.998 with exclusivity versus 1.002 without, and 45\% of exclusivity runs are spectrally unstable compared with 61\% without. This confirms the earlier observation that exclusivity provides an implicit spectral constraint. However, this stability advantage does not translate into any measurable downstream control benefit.
-
-These results have a direct implication for the architecture comparison: the arrowhead arm used in the prior Stage-2 and Stage-3 decisions (\texttt{ah\_prag}) included exclusivity, which \emph{handicapped} its basin separation and recovery relative to an otherwise identical configuration without exclusivity. Therefore, the previously reported near-ties between arrowhead and block-diagonal on control metrics likely understate arrowhead's representational quality.
-
-To test this directly, we re-ran the Stage-2 pairwise decision comparing block-diagonal (\texttt{bd\_c2}, 72 runs from the original pipeline) against arrowhead without exclusivity (\texttt{ah\_prag\_no\_excl}, 72 runs from this ablation after recovery completion). The formal decision outcome is unchanged: the pairwise cost-reduction contrast is $\Delta M_4 = -11.585$ with 95\% CI $[-34.739, +0.009]$ (includes zero), so the pre-registered rule returns no clear winner and falls back to \texttt{bd\_c2}. This is nearly identical to the original comparison with exclusivity ($\Delta M_4 = -11.593$, CI $[-34.750, +0.001]$). The bottleneck is not the arrowhead arm's quality---which is consistent across all 72 runs ($M_4 \in [0.79, 0.85]$)---but the block-diagonal arm's catastrophic outlier regime (\texttt{bd\_c2}, $\text{ts}=512$, $B_{\text{proxy}}=13$: mean $M_4 = -116.8$), which inflates bootstrap variance and prevents the confidence interval from excluding zero.
-
-The practical conclusion is twofold. First, the arrowhead without exclusivity is strictly more reliable on closed-loop cost reduction: zero catastrophic failures, tight variance, and better basin separation and recovery. Second, the current CI-based decision rule cannot express ``arm B is more reliable'' as distinct from ``no difference,'' highlighting the need for robust effect summaries (e.g., median-based or trimmed-mean comparisons, or explicit tail-risk penalties) before the pre-registered rule can make a decisive architecture call.
-
-\subsection{Takeaways and Current Status}
-
-The experiments establish a coherent trajectory toward the project goal:
-\begin{enumerate}
-    \item \textbf{Achieved (representation identifiability):} basin-unique sparse supports at realistic basin count (13 basins) with sufficient latent capacity ($\text{ts}\geq256$), plus high threshold-free separation (intra-basin cosine $\approx 0.97$, strong intra--inter gap).
-    \item \textbf{Achieved (dynamics criterion for local modeling):} long-horizon behavior is now mechanistically explained by spectral radius; SR$<1$ consistently corresponds to bounded H1000 error, while SR$>1$ yields divergence.
-    \item \textbf{Achieved (local LQR readiness on benchmarks):} staged Lyapunov/Duffing evaluations show DARE feasibility rate $=1.0$ and closed-loop stability rate $=1.0$ for finalist arms, establishing that discovered local regimes admit feasible and stable local LQR controllers.
-    \item \textbf{Partially achieved (architecture selection):} arrowhead vs block-diagonal remains formally unresolved under the pre-registered decision rule, even after removing the exclusivity handicap. The exclusivity ablation shows that exclusivity regularization was a net negative (significantly worse basin separation and recovery, with no control benefit). Re-running the pairwise decision with arrowhead without exclusivity yields an identical formal outcome (``no clear winner''), but this is because the decision rule's CI is dominated by catastrophic block-diagonal outliers, not because the arms are truly comparable in reliability. Arrowhead without exclusivity is strictly more reliable on $M_4$ (zero catastrophic failures, tight variance) and has better CosSep and $M_5$. The current default remains block-diagonal pending adoption of robust effect summaries (median/$M_4$ tail-risk) in the decision rule.
-    \item \textbf{Open (deployment-critical):} robust label-free regime assignment and controller switching across basin transitions, where periodic re-encoding should mediate support updates and local-controller handoff.
-    \item \textbf{Open (evaluation bottleneck):} current feasibility/stability metrics saturate in benchmark settings and closed-loop cost reduction can be heavy-tailed, so stronger stress tests and robust effect summaries are needed for decisive model selection.
-\end{enumerate}
-
-Overall, the narrative has shifted from ``can we learn basin-discriminative sparse representations?'' to ``can we operationalize stable, label-free controller switching across regimes?'' The first question is now strongly supported; the second is the central next milestone.
+\caption{\textbf{System-by-system intervention results on the fixed-$17$ benchmark.} Numbers come from the same clean seed-$0$ common reduction as Table~\ref{tab:fixed17-system-exact}. Lower values indicate that the hypothesized support remains more operative under canonical projection or support freezing. Within each system and metric, the best displayed value is bolded, with ties bolded jointly.}
+\label{tab:fixed17-system-intervention}
+\end{table*}
+
+Taken together, these results support a claim that is stronger than simple
+basin purity but weaker than universal one-support-per-basin identifiability.
+LISTA does learn basin-selective and often reusable support structure on the
+fixed-$17$ benchmark, and it does so more convincingly than the matched sparse
+MLP control when we include intervention-based diagnostics rather than entropy
+metrics alone. At the same time, the results do not yet justify the strongest
+possible statement that every basin across the shortlist is represented by one
+canonical exact support. The most honest current interpretation is that sparse
+Koopman supports align reliably at the level of basin selectivity and often at
+the level of support families or dominant groups, while exact-support reuse is
+present but still conditional on architecture, data sampling near
+separatrices, and the particular diagnostic slice. The locked $10$-seed
+confirmatory packet now fixes the main paper-facing conclusion more clearly
+than the earlier seed-$0$ rerun did. On the selected slice, the dense
+soft-block $p=64$ hard-init LISTA root is the strongest basin-support-alignment
+result overall: it reaches $H(S \mid B)=0.0543$, $U_{\mathrm{exact}}=0.9923$,
+and a freeze/base score of $0.1691$ while keeping all $17/17$ systems below the
+working $H1000$ forecast gate. Against the matched sparse MLP control it wins
+$H(S \mid B)$ on $15/17$ systems, $U_{\mathrm{exact}}$ on $14/17$,
+freeze/base on $16/17$, and persistence on $17/17$. This is the
+cleanest evidence on this branch that basin-support alignment can approach a
+one-support-per-basin picture on a benchmark system family without using basin
+labels during training.
+
+The block-diagonal hard-init LISTA root remains important, but for a different
+reason. It is the best forecast-retaining root in the locked packet at
+$H1000=0.0516$, and it also keeps a strong freeze/base score of
+$0.2665$, which makes it the better companion result for the claim that sparse
+supports can remain operational under long periodic rollouts. What it does not
+do is beat the dense soft-block hard-init root on exact-support fragmentation.
+The paper should therefore treat block-diagonal hard-init as the
+forecast-stable companion, not as the lead exact-support result.
+
+The MLP controls clarify what the branch objective is really testing. The
+matched sparse MLP control shows that LISTA is not the only route to a useful
+sparse latent, but it is still materially worse on exact-support reuse and
+support freezing damage than the dense hard-init LISTA root. The locked
+packet's zero-$\ell_1$ ReLU control is scientifically meaningful in the same
+direction: its $H(S \mid B)=0.1530$ and $U_{\mathrm{exact}}=0.9781$ show that
+entropy-style support metrics can still look superficially good even when the
+explicit sparsity penalty is removed, while its worse forecasting and
+freeze/base score of $0.7162$ show that these supports are much less
+persistent and much less useful as basin-local charts. This is exactly why the
+packet should not be discarded just because it is not the clean no-shrink
+baseline: it tells us that ReLU-induced architectural shrinkage alone may still
+matter. A smaller clean tanh no-shrink screen is already much worse in
+forecasting (\(H100/H500/H1000 = 1.8317 / 3.5797 / 4.1857\) at the working
+budget), so the remaining decisive control is the locked-budget tanh no-shrink
+rerun on the same fixed-$17$ systems.
+
+The paper-facing claim should therefore not be that LISTA alone is special. It
+should be that some induced sparsity is essential for learning good
+finite-dimensional Koopman representations in systems with multiple basins or
+fixed points, and that LISTA is one structured way to realize that sparsity.
+On the current evidence, the dense soft-block hard-init LISTA root is the
+strongest exact-support realization of that idea, the block-diagonal hard-init
+root is the strongest forecast-retaining companion, and the clean tanh
+no-shrink rerun is the experiment that can either confirm or weaken the
+broader induced-sparsity narrative.
+
+\subsection{Forecasting by Basin Depth and Separatrix Proximity}
+\label{sec:fixed17-depth-forecast}
+
+The missing half of the mechanism story is state-conditioned forecasting. The
+support-side metrics already agree with the intended narrative: supports are
+cleaner deep inside a basin and more fragmented near basin boundaries. The
+next sub-study should ask whether forecasting follows the same pattern. The
+benchmark-only prediction is simple: forecasting should be best when the model
+is deep inside a basin and can identify one local linearization confidently,
+and worst when the initial state is close to a separatrix where basin identity
+and chart assignment are ambiguous.
+
+The protocol should use the same fixed $17$ systems and the same frozen model
+set: block-diagonal hard-init LISTA, dense soft-block $p=64$ hard-init LISTA,
+the matched sparse MLP control, and the clean tanh no-shrink MLP control once
+that rerun completes. Basin labels and basin-depth scores are used only at
+evaluation time. For each held-out forecast start, assign a benchmark-only
+depth score or depth slice (for example boundary / middle / deep, or the
+existing \texttt{boundary} versus \texttt{deep} summaries at
+\texttt{absolute:0.001}), balance sample counts within basin and system, and
+then report forecasting errors at $H100$, $H500$, and $H1000$. The primary
+read should use the official best-periodic checkpoint/cadence rule already used
+elsewhere in the benchmark so that the comparison stays aligned with the main
+forecast packet; a secondary robustness check can fix one shared cadence to
+show that the depth trend is not an artifact of cadence tuning alone.
+
+The main statistics should be paired boundary-versus-deep comparisons within
+each system and seed: boundary-minus-deep error gaps, boundary/deep error
+ratios, and system-level sign tests across the fixed benchmark. These forecast
+numbers should be reported alongside support ambiguity diagnostics such as
+support entropy, support-family purity, or support-switch rate, because the
+mechanistic story is that near-separatrix states are exactly where support
+identification becomes least reliable. If the clean tanh no-shrink control is
+uniformly worse and also fails to exploit deep-basin states as effectively,
+then the paper can honestly say that induced sparsity is essential for good
+finite-dimensional Koopman representations in multi-basin systems, with LISTA
+as one particularly structured way to induce that sparsity.

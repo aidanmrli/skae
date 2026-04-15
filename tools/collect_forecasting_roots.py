@@ -283,13 +283,17 @@ def _extract_row(
         best_reset_mode = best_reset.get("mode")
 
         row[f"h{horizon}_no_reencode_mean"] = no_re
+        row[f"h{horizon}_no_reencode_mse"] = no_re
         row[f"h{horizon}_no_reencode_per_dim_mean"] = no_re_per_dim
         row[f"h{horizon}_every_step_mean"] = every_step
+        row[f"h{horizon}_every_step_mse"] = every_step
         row[f"h{horizon}_every_step_per_dim_mean"] = every_step_per_dim
         row[f"h{horizon}_best_periodic_mean"] = best_periodic
+        row[f"h{horizon}_best_periodic_mse"] = best_periodic
         row[f"h{horizon}_best_periodic_per_dim_mean"] = best_periodic_per_dim
         row[f"h{horizon}_best_periodic_mode"] = best_mode
         row[f"h{horizon}_best_reset_mean"] = best_reset_mean
+        row[f"h{horizon}_best_reset_mse"] = best_reset_mean
         row[f"h{horizon}_best_reset_per_dim_mean"] = best_reset_per_dim
         row[f"h{horizon}_best_reset_mode"] = best_reset_mode
 
@@ -470,6 +474,7 @@ def _write_markdown(
     lines.append("# Forecasting Summary")
     lines.append("")
     lines.append(f"- Horizons: {', '.join(f'H{h}' for h in horizons)}")
+    lines.append("- Metric: raw rollout MSE unless `/dim` is shown explicitly")
     lines.append(
         f"- Good-forecast threshold (system median best-periodic): best-periodic < {good_threshold}"
     )
@@ -482,7 +487,7 @@ def _write_markdown(
         lines.append(f"## H{horizon}")
         lines.append("")
         lines.append(
-            f"| root | n_rows | n_systems | median H{horizon} every-step | median H{horizon} best (rows) | median H{horizon} best (systems) | good systems | improved vs every-step | essential |"
+            f"| root | n_rows | n_systems | median H{horizon} every-step MSE | median H{horizon} best MSE (rows) | median H{horizon} best MSE (systems) | good systems | improved vs every-step | essential |"
         )
         lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
         for root_label, stats in sorted(summary.items()):
@@ -503,10 +508,10 @@ def _write_markdown(
     for horizon in horizons:
         header.extend(
             [
-                f"H{horizon} every-step",
-                f"H{horizon} every-step/dim",
-                f"H{horizon} best",
-                f"H{horizon} best/dim",
+                f"H{horizon} every-step MSE",
+                f"H{horizon} every-step MSE/dim",
+                f"H{horizon} best MSE",
+                f"H{horizon} best MSE/dim",
                 f"H{horizon} best mode",
             ]
         )

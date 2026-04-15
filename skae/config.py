@@ -96,6 +96,7 @@ cfg.MODEL  # Shows all model settings
 - `"default"`: Base configuration with minimal settings
 - `"generic"`: Standard KoopmanAE with MLP encoder (64-dim latent)
 - `"generic_sparse"`: KoopmanAE with L1 sparsity regularization
+- `"generic_no_shrink"`: KoopmanAE MLP control with no sparsity penalty and no zero-inducing ReLU gate
 - `"generic_prediction"`: Prediction-focused (no reconstruction)
 - `"lista"`: LISTA-based sparse autoencoder (2048-dim latent)
 - `"lista_nonlinear"`: LISTA with nonlinear MLP encoder
@@ -787,6 +788,27 @@ def get_train_generic_sparse_config() -> Config:
     return cfg
 
 
+def get_train_generic_no_shrink_config() -> Config:
+    """Training configuration for GenericKM without architectural sparsification.
+
+    This control removes the latent L1 penalty and also avoids the sparse
+    preset's ReLU output gate so zero activity is not induced by architecture.
+    """
+    cfg = Config()
+    cfg.TRAIN.LR = 1e-4
+    cfg.MODEL.MODEL_NAME = "GenericKM"
+    cfg.MODEL.TARGET_SIZE = 64
+    cfg.MODEL.NORM_FN = "id"
+    cfg.MODEL.DECODER.LAYERS = []
+    cfg.MODEL.ENCODER.LAYERS = [64, 64]
+    cfg.MODEL.ENCODER.ACTIVATION = "tanh"
+    cfg.MODEL.ENCODER.LAST_RELU = False
+    cfg.MODEL.ENCODER.USE_BIAS = True
+    cfg.MODEL.RECONST_COEFF = 0.5
+    cfg.MODEL.SPARSITY_COEFF = 0.0
+    return cfg
+
+
 def get_train_generic_prediction_config() -> Config:
     """Training configuration for prediction-focused KoopmanAE."""
     cfg = Config()
@@ -924,6 +946,7 @@ def get_train_hyperlista_parity_generic_sparse_config() -> Config:
 _TRAIN_CONFIG_REGISTRY = {
     "generic": get_train_generic_km_config,
     "generic_sparse": get_train_generic_sparse_config,
+    "generic_no_shrink": get_train_generic_no_shrink_config,
     "generic_prediction": get_train_generic_prediction_config,
     "lista": get_train_lista_config,
     "lista_nonlinear": get_train_lista_nonlinear_config,
@@ -941,6 +964,7 @@ def get_config(name: str = "default") -> Config:
             - "default": Base configuration
             - "generic": Standard KoopmanMachine
             - "generic_sparse": Sparse KoopmanMachine with L1
+            - "generic_no_shrink": MLP control without L1 or ReLU-induced sparsification
             - "generic_prediction": Prediction-focused
             - "lista": LISTA-based KoopmanMachine
             - "lista_nonlinear": LISTA with MLP encoder

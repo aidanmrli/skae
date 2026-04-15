@@ -1,0 +1,7 @@
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+plan_mode_reasoning_effort = "xhigh"
+
+[agents]
+max_threads = 12
+max_depth = 1

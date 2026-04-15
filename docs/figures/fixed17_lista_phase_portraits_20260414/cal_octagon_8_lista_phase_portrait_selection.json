@@ -17,10 +17,18 @@
   },
   "batch_size": 100,
   "rng_seed": 20260414,
+  "xlim": [
+    -4.0,
+    4.0
+  ],
+  "ylim": [
+    -4.0,
+    4.0
+  ],
   "shared_batch_metrics": {
     "h1000": {
-      "shared_batch_best_periodic_mean": 0.17176084220409393,
-      "shared_batch_best_periodic_std": 0.8217291831970215,
+      "shared_batch_best_periodic_mean": 0.17176082730293274,
+      "shared_batch_best_periodic_std": 0.821729302406311,
       "num_valid": 100
     },
     "h3000": {
@@ -29,8 +37,8 @@
       "num_valid": 100
     },
     "h5000": {
-      "shared_batch_best_periodic_mean": 0.1717609167098999,
-      "shared_batch_best_periodic_std": 0.8217295408248901,
+      "shared_batch_best_periodic_mean": 0.17176085710525513,
+      "shared_batch_best_periodic_std": 0.821729302406311,
       "num_valid": 100
     }
   },

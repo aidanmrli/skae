@@ -551,7 +551,7 @@ class DystsTrajectoryCache:
             if trajectories.dim() != 3:
                 print(f"[dysts cache] invalid tensor shape at {cache_path}; rebuilding.")
                 return None
-            if trajectories.shape[1] < self.cache_steps:
+            if trajectories.shape[1] < self.cache_steps + 1:
                 print(f"[dysts cache] cached trajectories too short at {cache_path}; rebuilding.")
                 return None
             print(
@@ -612,7 +612,7 @@ class DystsTrajectoryCache:
         ic_list: List[np.ndarray],
         t0: float,
     ) -> List[torch.Tensor]:
-        total_steps = self.cache_steps + self.cache_warmup
+        total_steps = self.cache_steps + self.cache_warmup + 1
         trajectories: List[Optional[torch.Tensor]] = [None] * len(ic_list)
         completed = 0
         print(
@@ -701,7 +701,7 @@ class DystsTrajectoryCache:
                     self.env.system.ic = np.array(ic, dtype=np.float32)
                 try:
                     traj = self.env.make_trajectory_native(
-                        n=self.cache_steps + self.cache_warmup,
+                        n=self.cache_steps + self.cache_warmup + 1,
                         resample=self.resample,
                         pts_per_period=self.pts_per_period,
                         standardize=self.standardize,

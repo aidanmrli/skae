@@ -17,20 +17,28 @@
   },
   "batch_size": 100,
   "rng_seed": 20260414,
+  "xlim": [
+    -4.0,
+    4.0
+  ],
+  "ylim": [
+    -4.0,
+    4.0
+  ],
   "shared_batch_metrics": {
     "h1000": {
-      "shared_batch_best_periodic_mean": 0.021375484764575958,
-      "shared_batch_best_periodic_std": 0.2099573165178299,
+      "shared_batch_best_periodic_mean": 0.021375475451350212,
+      "shared_batch_best_periodic_std": 0.20995721220970154,
       "num_valid": 100
     },
     "h3000": {
-      "shared_batch_best_periodic_mean": 0.021375484764575958,
-      "shared_batch_best_periodic_std": 0.2099573314189911,
+      "shared_batch_best_periodic_mean": 0.021375475451350212,
+      "shared_batch_best_periodic_std": 0.20995721220970154,
       "num_valid": 100
     },
     "h5000": {
-      "shared_batch_best_periodic_mean": 0.02137548290193081,
-      "shared_batch_best_periodic_std": 0.2099573314189911,
+      "shared_batch_best_periodic_mean": 0.021375475451350212,
+      "shared_batch_best_periodic_std": 0.20995721220970154,
       "num_valid": 100
     }
   },

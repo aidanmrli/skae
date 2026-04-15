@@ -31,7 +31,7 @@ def _base_args() -> Namespace:
 def test_transition_rich_basin_partition_default_matrix():
     rows = _build_rows(_base_args())
 
-    assert len(rows) == 17 * 46 * 3
+    assert len(rows) == 17 * 48 * 3
     assert {row["model_variant"] for row in rows} == {
         "lista_dense_basin_partition",
         "lista_dense_projgap_trigger_basin_partition",
@@ -78,7 +78,9 @@ def test_transition_rich_basin_partition_default_matrix():
         "structured_lista_entropy_temporal_basin_partition",
         "structured_lista_dominance_temporal_basin_partition",
         "mlp_sparse_basin_partition_control",
+        "mlp_sparse_hardinit_basin_partition_control",
         "mlp_zero_sparse_basin_partition_control",
+        "mlp_zero_sparse_hardinit_basin_partition_control",
     }
     assert {row["target_size"] for row in rows} == {64, 128, 256}
     assert {row["sequence_length"] for row in rows} == {8}
@@ -385,13 +387,15 @@ def test_transition_rich_basin_partition_emits_hard_init_columns():
     args.systems_csv = "gated_transfer_linear"
     args.model_variants_csv = (
         "lista_blockdiag_signsplit_hardinit_basin_partition,"
-        "lista_dense_softblock_signsplit_p64_hardinit_basin_partition"
+        "lista_dense_softblock_signsplit_p64_hardinit_basin_partition,"
+        "mlp_sparse_hardinit_basin_partition_control,"
+        "mlp_zero_sparse_hardinit_basin_partition_control"
     )
     args.seeds_csv = "0"
 
     rows = _build_rows(args)
 
-    assert len(rows) == 2
+    assert len(rows) == 4
     by_variant = {row["model_variant"]: row for row in rows}
 
     block_row = by_variant["lista_blockdiag_signsplit_hardinit_basin_partition"]
@@ -411,6 +415,16 @@ def test_transition_rich_basin_partition_emits_hard_init_columns():
     assert dense_row["hard_init_oversample"] == "true"
     assert dense_row["target_size"] == 64
     assert dense_row["soft_block_num_blocks"] == 3
+
+    mlp_sparse_row = by_variant["mlp_sparse_hardinit_basin_partition_control"]
+    assert mlp_sparse_row["hard_init_oversample"] == "true"
+    assert mlp_sparse_row["config_name"] == "generic_sparse"
+    assert mlp_sparse_row["hard_init_fraction"] == 0.5
+
+    mlp_zero_row = by_variant["mlp_zero_sparse_hardinit_basin_partition_control"]
+    assert mlp_zero_row["hard_init_oversample"] == "true"
+    assert mlp_zero_row["config_name"] == "generic_no_shrink"
+    assert mlp_zero_row["hard_init_jitter_scale"] == 0.25
 
 
 def test_transition_rich_basin_partition_dt_table_filters_to_requested_arms(tmp_path):

@@ -1384,6 +1384,7 @@ class EvaluationSettings:
     event_trigger_min_dwell: int = 0
     event_trigger_max_interval: int = 0
     save_rollout_artifacts: bool = False
+    save_plots: bool = True
 
 
 def _save_rollout_artifacts(
@@ -1437,6 +1438,7 @@ def _save_rollout_artifacts(
             "batch_size": int(settings.batch_size),
             "seed_offset": int(settings.seed_offset),
             "save_rollout_artifacts": bool(settings.save_rollout_artifacts),
+            "save_plots": bool(settings.save_plots),
         },
         "periodic_periods_used": list(periodic_periods),
         "init_states": init_states.detach().cpu().contiguous(),
@@ -1785,10 +1787,6 @@ def evaluate_model(
         if output_dir is not None:
             system_dir = output_dir / system
             system_dir.mkdir(parents=True, exist_ok=True)
-            print(
-                f"[evaluate_model] -> System '{system}': saving plots to {system_dir}",
-                flush=True,
-            )
 
             if settings.save_rollout_artifacts:
                 artifact_path = system_dir / "rollout_artifacts.pt"
@@ -1805,103 +1803,109 @@ def evaluate_model(
                 )
                 files["rollout_artifacts"] = str(artifact_path)
 
-            # DYSTS: phase portraits should be long and include 3D by default.
-            # The qualitative plots are the main debugging signal for chaotic flows.
-            # Note: 30000 steps can be heavy; we also reduce the default portrait batch size
-            # if it's set very large to avoid excessive memory usage.
-            is_dysts = system.lower().startswith("dysts:")
-            old_portrait_length = settings.phase_portrait_length
-            old_portrait_dims = settings.phase_portrait_dims
-            old_portrait_bs = settings.phase_portrait_batch_size
-            old_portrait_reencode = settings.phase_portrait_reencode_periods
-            if is_dysts:
-                settings.phase_portrait_length = 30000
-                settings.phase_portrait_dims = (2, 3)
-                if settings.phase_portrait_batch_size > 64:
-                    settings.phase_portrait_batch_size = 32
-                # Use extended reencode periods for dysts phase portraits
-                settings.phase_portrait_reencode_periods = settings.dysts_phase_portrait_reencode_periods
-
-            # JAX-style phase portrait grid (matches notebooks/koopman_copy.py)
-            for plot_dim in settings.phase_portrait_dims:
-                suffix = "2D" if plot_dim == 2 else "3D"
-                portrait_path = system_dir / f"phase_portrait_plot_eval_{suffix}.png"
-                _save_jax_style_phase_portraits(
-                    model=model,
-                    base_env=base_env,
-                    cfg=cfg,
-                    settings=settings,
-                    path=portrait_path,
-                    plot_dim=plot_dim,
+            if settings.save_plots:
+                print(
+                    f"[evaluate_model] -> System '{system}': saving plots to {system_dir}",
+                    flush=True,
                 )
-                files[f"phase_portrait_plot_eval_{suffix}"] = str(portrait_path)
 
-            # Restore settings (avoid cross-system contamination)
-            if is_dysts:
-                settings.phase_portrait_length = old_portrait_length
-                settings.phase_portrait_dims = old_portrait_dims
-                settings.phase_portrait_batch_size = old_portrait_bs
-                settings.phase_portrait_reencode_periods = old_portrait_reencode
+                # DYSTS: phase portraits should be long and include 3D by default.
+                # The qualitative plots are the main debugging signal for chaotic flows.
+                # Note: 30000 steps can be heavy; we also reduce the default portrait batch size
+                # if it's set very large to avoid excessive memory usage.
+                is_dysts = system.lower().startswith("dysts:")
+                old_portrait_length = settings.phase_portrait_length
+                old_portrait_dims = settings.phase_portrait_dims
+                old_portrait_bs = settings.phase_portrait_batch_size
+                old_portrait_reencode = settings.phase_portrait_reencode_periods
+                if is_dysts:
+                    settings.phase_portrait_length = 30000
+                    settings.phase_portrait_dims = (2, 3)
+                    if settings.phase_portrait_batch_size > 64:
+                        settings.phase_portrait_batch_size = 32
+                    # Use extended reencode periods for dysts phase portraits
+                    settings.phase_portrait_reencode_periods = settings.dysts_phase_portrait_reencode_periods
 
-            curves = {
-                mode: data["mse_curve"]
-                for mode, data in mode_metrics.items()
-            }
-            curve_path = system_dir / "mse_vs_horizon.png"
-            _save_mse_curve_plot(curves, curve_path, settings.horizons)
-            files["mse_curve"] = str(curve_path)
-
-            selected_modes = [
-                mode
-                for mode in ("every_step", "periodic_10", "periodic_25")
-                if mode in mode_metrics
-            ]
-            if selected_modes:
-                horizon_mse_path = system_dir / "horizon_mse_selected.png"
-                _save_horizon_mse_plot(
-                    mode_metrics,
-                    settings.horizons,
-                    selected_modes,
-                    horizon_mse_path,
-                )
-                files["horizon_mse_selected"] = str(horizon_mse_path)
-
-            # Per-mode error curves (analogous to notebook plot_eval)
-            for mode_name, errors in per_step_errors.items():
-                error_path = system_dir / f"error_curve_{mode_name}.png"
-                _save_error_curve_single_mode(
-                    errors,
-                    error_path,
-                    title=f"Per-step error ({mode_name})",
-                )
-                files[f"error_curve_{mode_name}"] = str(error_path)
-
-            combined_error_path = system_dir / "error_curve_combined.png"
-            _save_error_curve_combined(
-                per_step_errors,
-                combined_error_path,
-                highlight_steps=settings.horizons,
-            )
-            files["error_curve_combined"] = str(combined_error_path)
-
-            # Additional notebook-style comparison for Lyapunov system
-            if system == "lyapunov":
-                try:
-                    lyap_env = make_env(eval_cfg)
-                    comp_path = system_dir / "phase_portrait_comparison.png"
-                    print(
-                        "[evaluate_model] -> System 'lyapunov': generating comparison + hist plots...",
-                        flush=True,
+                # JAX-style phase portrait grid (matches notebooks/koopman_copy.py)
+                for plot_dim in settings.phase_portrait_dims:
+                    suffix = "2D" if plot_dim == 2 else "3D"
+                    portrait_path = system_dir / f"phase_portrait_plot_eval_{suffix}.png"
+                    _save_jax_style_phase_portraits(
+                        model=model,
+                        base_env=base_env,
+                        cfg=cfg,
+                        settings=settings,
+                        path=portrait_path,
+                        plot_dim=plot_dim,
                     )
-                    lyap_files = _save_lyapunov_phase_portrait_comparison(
-                        model,
-                        lyap_env,
-                        comp_path,
+                    files[f"phase_portrait_plot_eval_{suffix}"] = str(portrait_path)
+
+                # Restore settings (avoid cross-system contamination)
+                if is_dysts:
+                    settings.phase_portrait_length = old_portrait_length
+                    settings.phase_portrait_dims = old_portrait_dims
+                    settings.phase_portrait_batch_size = old_portrait_bs
+                    settings.phase_portrait_reencode_periods = old_portrait_reencode
+
+                curves = {
+                    mode: data["mse_curve"]
+                    for mode, data in mode_metrics.items()
+                }
+                curve_path = system_dir / "mse_vs_horizon.png"
+                _save_mse_curve_plot(curves, curve_path, settings.horizons)
+                files["mse_curve"] = str(curve_path)
+
+                selected_modes = [
+                    mode
+                    for mode in ("every_step", "periodic_10", "periodic_25")
+                    if mode in mode_metrics
+                ]
+                if selected_modes:
+                    horizon_mse_path = system_dir / "horizon_mse_selected.png"
+                    _save_horizon_mse_plot(
+                        mode_metrics,
+                        settings.horizons,
+                        selected_modes,
+                        horizon_mse_path,
                     )
-                    files.update(lyap_files)
-                except Exception as e:  # pragma: no cover - visualization best-effort
-                    # Don't fail evaluation if visualization fails
-                    print(f"[warn] Lyapunov comparison plot failed: {e}")
+                    files["horizon_mse_selected"] = str(horizon_mse_path)
+
+                # Per-mode error curves (analogous to notebook plot_eval)
+                for mode_name, errors in per_step_errors.items():
+                    error_path = system_dir / f"error_curve_{mode_name}.png"
+                    _save_error_curve_single_mode(
+                        errors,
+                        error_path,
+                        title=f"Per-step error ({mode_name})",
+                    )
+                    files[f"error_curve_{mode_name}"] = str(error_path)
+
+                combined_error_path = system_dir / "error_curve_combined.png"
+                _save_error_curve_combined(
+                    per_step_errors,
+                    combined_error_path,
+                    highlight_steps=settings.horizons,
+                )
+                files["error_curve_combined"] = str(combined_error_path)
+
+                # Additional notebook-style comparison for Lyapunov system
+                if system == "lyapunov":
+                    try:
+                        lyap_env = make_env(eval_cfg)
+                        comp_path = system_dir / "phase_portrait_comparison.png"
+                        print(
+                            "[evaluate_model] -> System 'lyapunov': generating comparison + hist plots...",
+                            flush=True,
+                        )
+                        lyap_files = _save_lyapunov_phase_portrait_comparison(
+                            model,
+                            lyap_env,
+                            comp_path,
+                        )
+                        files.update(lyap_files)
+                    except Exception as e:  # pragma: no cover - visualization best-effort
+                        # Don't fail evaluation if visualization fails
+                        print(f"[warn] Lyapunov comparison plot failed: {e}")
 
         results[system] = {
             "modes": mode_metrics,

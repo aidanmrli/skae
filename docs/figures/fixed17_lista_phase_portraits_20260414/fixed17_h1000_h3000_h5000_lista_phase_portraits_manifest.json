@@ -26,6 +26,14 @@
   ],
   "batch_size": 100,
   "rng_seed": 20260414,
+  "xlim": [
+    -4.0,
+    4.0
+  ],
+  "ylim": [
+    -4.0,
+    4.0
+  ],
   "root_label_prefix": "lista_",
   "rows": [
     {
@@ -217,18 +225,18 @@
       "h1000_best_periodic_mean": 0.0002785086689982563,
       "shared_batch_metrics": {
         "h1000": {
-          "shared_batch_best_periodic_mean": 9.889946522889659e-05,
-          "shared_batch_best_periodic_std": 7.65016011428088e-05,
+          "shared_batch_best_periodic_mean": 9.889697685139254e-05,
+          "shared_batch_best_periodic_std": 7.650004408787936e-05,
           "num_valid": 100
         },
         "h3000": {
-          "shared_batch_best_periodic_mean": 9.889845387078822e-05,
-          "shared_batch_best_periodic_std": 7.650064071640372e-05,
+          "shared_batch_best_periodic_mean": 9.889776993077248e-05,
+          "shared_batch_best_periodic_std": 7.650085899513215e-05,
           "num_valid": 100
         },
         "h5000": {
-          "shared_batch_best_periodic_mean": 9.889891953207552e-05,
-          "shared_batch_best_periodic_std": 7.650152110727504e-05,
+          "shared_batch_best_periodic_mean": 9.889717330224812e-05,
+          "shared_batch_best_periodic_std": 7.650055340491235e-05,
           "num_valid": 100
         }
       },
@@ -261,17 +269,17 @@
       "h1000_best_periodic_mean": 0.0060895937494933605,
       "shared_batch_metrics": {
         "h1000": {
-          "shared_batch_best_periodic_mean": 0.3103880286216736,
+          "shared_batch_best_periodic_mean": 0.3103879988193512,
           "shared_batch_best_periodic_std": 1.1022146940231323,
           "num_valid": 100
         },
         "h3000": {
-          "shared_batch_best_periodic_mean": 0.3103880286216736,
+          "shared_batch_best_periodic_mean": 0.3103879988193512,
           "shared_batch_best_periodic_std": 1.1022146940231323,
           "num_valid": 100
         },
         "h5000": {
-          "shared_batch_best_periodic_mean": 0.3103880286216736,
+          "shared_batch_best_periodic_mean": 0.3103879988193512,
           "shared_batch_best_periodic_std": 1.1022146940231323,
           "num_valid": 100
         }
@@ -349,8 +357,8 @@
       "h1000_best_periodic_mean": 0.0032300895545631647,
       "shared_batch_metrics": {
         "h1000": {
-          "shared_batch_best_periodic_mean": 0.17176084220409393,
-          "shared_batch_best_periodic_std": 0.8217291831970215,
+          "shared_batch_best_periodic_mean": 0.17176082730293274,
+          "shared_batch_best_periodic_std": 0.821729302406311,
           "num_valid": 100
         },
         "h3000": {
@@ -359,8 +367,8 @@
           "num_valid": 100
         },
         "h5000": {
-          "shared_batch_best_periodic_mean": 0.1717609167098999,
-          "shared_batch_best_periodic_std": 0.8217295408248901,
+          "shared_batch_best_periodic_mean": 0.17176085710525513,
+          "shared_batch_best_periodic_std": 0.821729302406311,
           "num_valid": 100
         }
       },
@@ -393,18 +401,18 @@
       "h1000_best_periodic_mean": 0.0003813552903011441,
       "shared_batch_metrics": {
         "h1000": {
-          "shared_batch_best_periodic_mean": 0.021375484764575958,
-          "shared_batch_best_periodic_std": 0.2099573165178299,
+          "shared_batch_best_periodic_mean": 0.021375475451350212,
+          "shared_batch_best_periodic_std": 0.20995721220970154,
           "num_valid": 100
         },
         "h3000": {
-          "shared_batch_best_periodic_mean": 0.021375484764575958,
-          "shared_batch_best_periodic_std": 0.2099573314189911,
+          "shared_batch_best_periodic_mean": 0.021375475451350212,
+          "shared_batch_best_periodic_std": 0.20995721220970154,
           "num_valid": 100
         },
         "h5000": {
-          "shared_batch_best_periodic_mean": 0.02137548290193081,
-          "shared_batch_best_periodic_std": 0.2099573314189911,
+          "shared_batch_best_periodic_mean": 0.021375475451350212,
+          "shared_batch_best_periodic_std": 0.20995721220970154,
           "num_valid": 100
         }
       },
@@ -437,18 +445,18 @@
       "h1000_best_periodic_mean": 0.0008405411499552429,
       "shared_batch_metrics": {
         "h1000": {
-          "shared_batch_best_periodic_mean": 0.06011596694588661,
-          "shared_batch_best_periodic_std": 0.41094717383384705,
+          "shared_batch_best_periodic_mean": 0.0601159892976284,
+          "shared_batch_best_periodic_std": 0.4109472632408142,
           "num_valid": 100
         },
         "h3000": {
-          "shared_batch_best_periodic_mean": 0.0601159892976284,
-          "shared_batch_best_periodic_std": 0.41094720363616943,
+          "shared_batch_best_periodic_mean": 0.060115963220596313,
+          "shared_batch_best_periodic_std": 0.4109470248222351,
           "num_valid": 100
         },
         "h5000": {
-          "shared_batch_best_periodic_mean": 0.06011602282524109,
-          "shared_batch_best_periodic_std": 0.4109475910663605,
+          "shared_batch_best_periodic_mean": 0.0601159892976284,
+          "shared_batch_best_periodic_std": 0.4109472632408142,
           "num_valid": 100
         }
       },
@@ -613,18 +621,18 @@
       "h1000_best_periodic_mean": 0.006727766245603561,
       "shared_batch_metrics": {
         "h1000": {
-          "shared_batch_best_periodic_mean": 0.49940502643585205,
+          "shared_batch_best_periodic_mean": 0.49940481781959534,
           "shared_batch_best_periodic_std": 1.6065105199813843,
           "num_valid": 100
         },
         "h3000": {
-          "shared_batch_best_periodic_mean": 0.6700676679611206,
-          "shared_batch_best_periodic_std": 1.8151193857192993,
+          "shared_batch_best_periodic_mean": 0.6702721118927002,
+          "shared_batch_best_periodic_std": 1.8156293630599976,
           "num_valid": 100
         },
         "h5000": {
           "shared_batch_best_periodic_mean": 0.5764745473861694,
-          "shared_batch_best_periodic_std": 1.7224154472351074,
+          "shared_batch_best_periodic_std": 1.7224153280258179,
           "num_valid": 100
         }
       },

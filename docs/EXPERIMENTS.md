@@ -1,14 +1,16 @@
 # Experiments (Core)
 
-Date: April 9, 2026
-Paper-critical live queue status last refreshed: `2026-04-09 17:42 EDT`
+Date: April 14, 2026
+Paper-critical live queue status last refreshed: `2026-04-14 23:36 EDT`
 
 ## Current Status Summary
 
 Problem we are solving:
-- Show on the fixed `17`-system interpretability shortlist that LISTA encoders
-  separate endpoint basins into reusable sparse-support patterns, and that this
-  basin separation is stronger than for a matched standard MLP encoder control.
+- Show on the fixed `17`-system interpretability shortlist both that the models
+  learn identifiable basin-support structure and that some induced sparsity is
+  essential for good finite-dimensional Koopman representations when multiple
+  basins or fixed points coexist. LISTA is one structured way to induce that
+  sparsity; it is not the claim by itself.
 
 Current paper-facing approach:
 - Keep the live branch fixed to the `17` selected systems and no others:
@@ -18,10 +20,88 @@ Current paper-facing approach:
   `cal_square_4`, `checkerboard_potential`, `duffing_triple_well`,
   `snic_multi`, `transition_routes_4`, `var_depth_gradient_4`,
   `var_diamond_4`, and `var_l_shape_5`.
-- Treat basin-support alignment as the primary branch objective. Forecasting,
-  transition-path diagnostics, and oracle chart analyses remain secondary
+- Treat basin-support alignment as the primary branch objective. Within that
+  branch, the main downstream functional check should be long-horizon
+  forecasting at `H100`, `H500`, and `H1000`: if sparsity helps because the
+  Koopman representation retains which basin the system currently occupies,
+  then that information should improve long-horizon rollouts, not just short-
+  horizon or one-step metrics.
+- Treat the causal comparison as “induced sparsity versus no induced sparsity,”
+  not just “LISTA versus MLP.” The matched sparse MLP control already tests
+  whether LISTA's encoder structure matters beyond sparsity itself; the clean
+  tanh / no-shrink MLP control is the decisive test of whether removing
+  induced sparsity degrades forecasting and basin-local support stability.
+- For paper-facing comparisons that are meant to isolate architecture, keep the
+  training sampling regime identical across compared roots. Treat
+  near-separatrix hard-init oversampling as its own experiment axis, report it
+  as a separate table entry or column, and do not read hard-init LISTA versus
+  standard-sampling MLP as an architecture-only contrast.
+- Keep the older locked-budget `generic_sparse` plus `sparsity_coeff=0.0`
+  packet as scientifically meaningful supporting evidence even though it is
+  not the clean tanh / no-shrink control. It isolates the effect of removing
+  the explicit `L1` penalty while retaining ReLU-induced architectural
+  shrinkage, so it is still informative about whether that weaker form of
+  induced sparsity changes basin-support identification or forecasting.
+- The supporting benchmark visual packet for senior coauthors is now complete
+  at both
+  [H5000](/home/mila/l/lia/skae/docs/figures/dysts_h5000_lista_phase_portraits_manifest.json)
+  and
+  [H20000](/home/mila/l/lia/skae/docs/figures/dysts_h20000_lista_phase_portraits_manifest.json).
+  The H5000 packet selects dense LISTA on all `15/15` Dysts systems, while
+  the H20000 rescore shifts `2/15` systems (`dysts:Duffing`, `dysts:WangSun`)
+  to block-diagonal LISTA (`sc=6e-3`). The visual appendix no longer has a
+  missing-supporting-figure blocker.
+- The first full seed-`10` Dysts long-horizon reevaluation packet is now
+  queued under
+  [results/dysts_long_horizon_eval_20260414](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414).
+  The task manifest
+  [dysts_long_horizon_tasks_summary.json](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/task_tables/dysts_long_horizon_tasks_summary.json)
+  found `750/750` runnable tasks with `0` missing seeds across the five
+  verified Dysts benchmark roots now on disk: sparse MLP, zero-sparse MLP,
+  dense LISTA, and two block-diagonal LISTA sparsity settings. Each task
+  reevaluates one run once to `H30000`, reports `H5000/H10000/H20000/H30000`
+  MSE, and writes a compact selected-mode rollout cache beside the run so
+  later phase-portrait figures can reuse trajectories without rerunning
+  inference.
+- The first standalone validation of that packet exposed an infra bug rather
+  than a model failure: the shared Dysts cache stored only `CACHE_STEPS`
+  points, but `H30000` sequence evaluation needs `CACHE_STEPS + 1` to sample
+  `[x_t, ..., x_{t+H}]`. [skae/data.py](/home/mila/l/lia/skae/skae/data.py)
+  now rebuilds and validates caches at `CACHE_STEPS + 1`, so the queued
+  long-horizon packet is blocked by scheduler priority rather than a broken
+  evaluation path.
+- That cache fix is now exercised by a live validation probe `9273675` on
+  `long`: its log shows the stale `dysts:Chua` test cache being invalidated
+  and rebuilt instead of failing the reevaluation before rollout. The
+  long-horizon execution path is therefore running correctly through the cache
+  rebuild stage while the bulk queue continues to wait on `long-cpu`
+  scheduling.
+- The fixed-`17` LISTA phase-portrait packet for senior-coauthor handoff is
+  now also complete at
+  [H1000/H3000/H5000](/home/mila/l/lia/skae/docs/figures/fixed17_lista_phase_portraits_20260414/fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json).
+  It writes `51` per-horizon figures (`17 x 3`) plus per-system selection
+  metadata, selecting one best collected LISTA run per system by saved
+  `H1000` best-periodic mean and reusing that run's saved `H1000` best-
+  periodic mode for all three horizons. Because the packet spans `8` distinct
+  LISTA roots rather than only the two promoted finalists, treat it as a
+  presentation artifact for handoff and appendix use, not as new causal
+  shortlist evidence.
+- An April 13 audit confirmed that every paper-critical SLURM packet that
+  finished in the last 7 days is now represented in the core docs. The needed
+  maintenance in this pass is status cleanup, not new queue discovery: the
+  clean tanh / no-shrink control, the `v7` seed-`0` shortlist refinement, and
+  the narrow `v6` / `v7` `200k` forecast-floor check are all closed evidence,
+  not pending runs.
+- On the fixed benchmark systems, evaluate those long-horizon forecasting
+  errors as a function of basin depth / separatrix proximity. The expected
+  signature is best forecasting deep inside a basin, where the model can
+  identify a local linearization cleanly, and worst forecasting near a
+  separatrix, where basin identity and the appropriate local chart are most
+  ambiguous. This conditioning is benchmark-only evaluation; it should not be
+  turned into a training-time assumption.
+- Transition-path diagnostics and oracle chart analyses remain supporting
   checks that help explain why a support partition is or is not trustworthy;
-  they are not the main success criterion for this branch.
+  they do not replace the basin-support objective itself.
 - Treat the local-linear-law read as basis-aware and symmetry-aware. Two basins
   may share similar eigenvalues while differing mainly in orientation,
   symmetry transform, or encoder chart, so the evaluation target is not
@@ -42,6 +122,20 @@ Current paper-facing approach:
   method-side and evaluation-side ideas. Promote a result to `3` seeds only
   after the seed-`0` reduction looks strong enough to be a real paper-facing
   candidate whose robustness needs confirmation.
+- All new LISTA comparator sweeps on that fixed shortlist should use the
+  default sampling regime so that sampling does not become a confounder in the
+  comparison against the MLP controls. Keep hard-init or other altered
+  sampling schemes as a separate axis and, once the base recipe is locked,
+  report them as separate table entries rather than mixing them into the main
+  comparator row.
+- The earlier seed-`0`, `20k` shortlist packets remain available on disk under
+  [transition_rich_basin_partition_20260409_seed0_smoke_v1](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260409_seed0_smoke_v1)
+  through
+  [transition_rich_basin_partition_20260409_seed0_smoke_v6](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260409_seed0_smoke_v6)
+  plus
+  [transition_rich_basin_partition_hardinit_seed0_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_hardinit_seed0_20260409),
+  so new LISTA iterations can reuse the existing `20k` anchors rather than
+  rerunning them.
 - One narrow follow-up around the current `v5 p64` shortlist winner is now
   complete under
   [transition_rich_basin_partition_hardinit_seed0_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_hardinit_seed0_20260409).
@@ -64,6 +158,11 @@ Current paper-facing approach:
   (`H1000` system-median best `0.1358 -> 0.0794`) and also improves the
   deep-basin canonical projection and freeze-support ratios
   (`9.9799 -> 3.0431`, `0.8926 -> 0.6768`).
+- That hard-init result should now be treated as a sampling-regime effect first
+  and an architecture result second. The paper-facing tables should keep
+  standard-sampling and hard-init rows separate, and the fair architecture
+  comparison under hard-init needs matched hard-init MLP controls rather than
+  only the current standard-sampling controls.
 - The first paper-facing cross-root comparison pass is now dependency-chained
   behind that live hard-init reducer under
   [transition_rich_post_hardinit_crossroot_eval_20260409](/home/mila/l/lia/skae/results/transition_rich_post_hardinit_crossroot_eval_20260409).
@@ -98,15 +197,57 @@ Current paper-facing approach:
   `lista_blockdiag_signsplit_hardinit_basin_partition` and
   `lista_dense_softblock_signsplit_p64_hardinit_basin_partition`. The
   confirmatory `200k`, `10`-seed, fixed-`17` default-`dt` packet against the
-  sparse and zero-sparsity MLP controls is now queued under
+  sparse MLP control plus a zero-`L1` ReLU ablation ran under
   [transition_rich_basin_partition_final_seed10_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409)
-  as default array `9211290_[0-679]` with pass-`0` collect / resolve
-  `9211291 -> 9211292`.
+  as default array `9211290_[0-679]`, with pass-`0` collect / resolve
+  `9211291 -> 9211292`, rescue pass-`1` collect / resolve
+  `9214918 -> 9214919`, and final reducer / comparison `9218036 -> 9218037`.
+- That final confirmatory packet is now fully finalized through rescue pass
+  `1`. The watcher output
+  [advance_pass1.json](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/automation/advance_pass1.json)
+  reports `finalized: true`, `request_rows: 0`, and `final_pass: 1`, and
+  [failures.json](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/interpretability_final_pass1/failures.json)
+  is empty.
+- The locked multi-seed mixed-regime read now sharpens the branch conclusion
+  rather than only confirming forecast viability. On the selected deep-basin
+  `absolute:0.001` slice in
+  [transition_rich_final_comparison.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/final_comparison_pass1/transition_rich_final_comparison.md),
+  `lista_dense_softblock_signsplit_p64_hardinit_basin_partition` beats the
+  standard-sampling sparse MLP control in `H(S|B)` (`0.2449 -> 0.0543`), `U_exact`
+  (`0.9772 -> 0.9923`), and `freeze/base@20` (`0.3923 -> 0.1691`), with
+  paired wins on `15/17`, `14/17`, and `16/17` systems while staying
+  forecast-competitive (`H1000 0.0768` vs `0.0608`). Against the zero-`L1`
+  ReLU ablation it also wins `H(S|B)` on `13/17` systems,
+  `U_exact` on `12/17`, `freeze/base@20` on `15/17`, and `H1000` on
+  `11/17`. On this selected slice `H(F|B)` saturates at `0.0000` for all
+  four roots, so the decisive multi-seed discriminators are exact-support
+  fragmentation, support-freeze robustness, persistence, and forecasting
+  rather than family entropy.
+- Because the promoted LISTA roots use hard-init oversampling and the current
+  MLP controls do not, that locked packet should be read as architecture plus
+  sampling evidence, not as an architecture-isolating causal claim by itself.
+- The block-diagonal hard-init root now reads as the forecast-retaining
+  companion rather than the main basin-support winner on the locked packet.
+  It keeps the best `H1000` (`0.0516`) and better freeze robustness than both
+  MLP controls (`freeze/base@20 = 0.2665` vs `0.3923` sparse, `0.7162`
+  zero-sparsity), but on the same slice it loses exact-support compression to
+  the matched sparse MLP control (`H(S|B)=0.3219` vs `0.2449`,
+  `U_exact=0.9646` vs `0.9772`; paired losses `15/17` on both metrics).
+- For coauthor-facing writeup, the locked packet should no longer be summarized
+  only by a single `H1000` read. The basin-support interpretability branch
+  should report long-horizon forecasting jointly at `H100`, `H500`, and
+  `H1000`, and the key mechanistic slice should compare deep-basin states
+  against near-separatrix states. The branch hypothesis is that sparsity helps
+  forecasting when it lets the Koopman state keep track of the active basin;
+  if that is true, the gains should be strongest deep in a basin and weakest
+  near separatrices.
 - A paper-facing paired-comparison summarizer is now ready at
   [summarize_transition_rich_final_comparison.py](/home/mila/l/lia/skae/tools/summarize_transition_rich_final_comparison.py).
-  Once the final `10`-seed rows land, it will emit one combined markdown /
-  JSON read covering root-level medians plus per-system paired wins for both
-  LISTA finalists against both MLP controls on the selected support slice.
+  The locked packet has now used it to emit one combined markdown / JSON read
+  under
+  [final_comparison_pass1](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/final_comparison_pass1),
+  covering root-level medians plus per-system paired wins for both LISTA
+  finalists against both MLP controls on the selected support slice.
 - The new study-plan-aligned state-level reducer is now smoke-validated on the
   historical native-trio LISTA checkpoints under
   [transition_rich_interpretability_smoke_20260409/native_seed0](/home/mila/l/lia/skae/results/transition_rich_interpretability_smoke_20260409/native_seed0),
@@ -151,9 +292,10 @@ Current paper-facing approach:
   groups, and optionally keep only the top-`k` groups before within-group
   thresholding. The transition-rich manifest now includes shortlist variants
   for block-diagonal sparse-group LISTA, soft-block sparse-group LISTA, and a
-  block-diagonal HyperLISTA top-`2` group-selection ablation. Those models
-  are runnable but still unrun on the fixed shortlist, so this remains an
-  evidence gap rather than a missing-capability gap.
+  block-diagonal HyperLISTA top-`2` group-selection ablation. The
+  block-diagonal sparse-group arm has now been screened in `v7`; the
+  soft-block sparse-group and HyperLISTA top-`2` arms remain the unrun pieces
+  of this tier on the fixed shortlist.
 - The next LISTA method-side tier after that is now also implemented locally:
   standard LISTA can use sample-dependent thresholds driven by reconstruction
   residual and latent-prior mismatch, learn separate base thresholds per
@@ -161,20 +303,24 @@ Current paper-facing approach:
   dictionary-tied, and hybrid tied-plus-residual modes. The transition-rich
   manifest now includes runnable shortlist variants for a block-diagonal
   adaptive/groupwise-threshold LISTA arm and dense soft-block
-  dictionary-tied / hybrid-precode arms. These remain unrun on the fixed
-  shortlist, so they close plumbing gaps rather than evidence gaps.
+  dictionary-tied / hybrid-precode arms. Those variants have now all been
+  screened in `v7`, so this tier is no longer a plumbing or launch gap; it is
+  negative / mixed shortlist provenance.
 - The next still-open design-note axis after that is also implemented locally:
   standard LISTA now supports fixed-beta momentum refinement, and the
   transition-rich manifest includes runnable sign-split momentum variants on
   the current block-diagonal forecast-retaining root and the dense soft-block
-  `p64` root. These are still unrun on the fixed shortlist, so momentum is
-  now an evidence gap rather than a missing implementation gap.
+  `p64` root. Those variants have now been screened in `v7` and did not
+  displace the locked finalists, so momentum is no longer an unrun shortlist
+  gap.
 - The stronger soft-block sweep that the design note still called out is now
   also exposed locally on the paper-facing sign-split `p64` root: the
   transition-rich manifest now includes higher-weight dense soft-block
   variants at `5e-4` and `1e-3` in addition to the earlier `1e-4` default.
-  Those remain unrun on the fixed shortlist, so the soft-block question is
-  now a shortlist-evidence gap rather than a manifest gap.
+  Those variants have now also been screened in `v7`. The `5e-4` arm gives
+  the best new deep-basin support-compression read in that packet, but it
+  misses `1/17` systems and does not dominate forecasting, so the soft-block
+  question is now evidence rather than manifest coverage.
 - The next design-note tier after `v3` is now implemented and smoke-validated
   locally: the repo supports dense soft block-sparse `K` penalties, structured
   hard-block LISTA packets, and reducer-side dominant-group metrics that
@@ -221,39 +367,118 @@ Current paper-facing approach:
   the decoder dictionary has fewer redundant atoms and therefore fewer
   interchangeable exact supports.
 - Use the standard MLP encoder control as the main causal comparator for this
-  branch. The older broader zero-sparsity MLP mechanism packet remains useful
-  supporting context, but the main branch-level claim still requires a matched
-  fixed-`17` comparison reduced in the same basin-separation terms.
+  branch. The locked `200k`, `10`-seed packet already answers the LISTA-vs-
+  sparse-MLP comparison on the same basin-separation terms. Its additional
+  zero-`L1` arm remains scientifically useful supporting context because that
+  task table used `config_name=generic_sparse` with `sparsity_coeff=0.0`. It
+  therefore isolates explicit-penalty removal while retaining ReLU-induced
+  shrinkage. That makes it a ReLU-only sparsity ablation, not the clean
+  no-shrink anti-sparsity control.
+- A new working-budget zero-sparsity no-shrink control screen is also now
+  complete under
+  [transition_rich_zero_sparse_control_noshrink_20k_seed3_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_control_noshrink_20k_seed3_20260410).
+  On the fixed `17` systems at default `dt`, it keeps `17/17` systems inside
+  the `H1000 < 50` gate, but its system-median best-periodic forecasting is
+  much weaker than the locked finalists (`H100/H500/H1000 = 1.8317 / 3.5797 /
+  4.1857`). Treat it as supporting zero-sparsity context rather than as a new
+  paper-facing contender.
+- The older locked-budget zero-sparsity expansion under
+  [transition_rich_zero_sparse_control_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_control_seed10_20260410)
+  as array `9221521_*` should now be read carefully rather than discarded. Its
+  task table uses `config_name=generic_sparse`, so it is not the requested
+  tanh / no-shrink control. But it is still scientifically meaningful as a
+  locked-budget ReLU-only ablation that removes the explicit `L1` penalty
+  while keeping architectural shrinkage in the encoder. That packet now runs
+  through collect / resolve pass `4`, still accepts default `dt` on all
+  `17/17` systems, and remains at system-median best-periodic
+  `H100/H500/H1000 = 0.5764 / 2.0556 / 2.6532`.
+- The corrected locked-budget tanh / no-shrink control is now complete under
+  [transition_rich_zero_sparse_tanh_control_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_tanh_control_seed10_20260410)
+  via wrapper `9224111`. It uses a fresh results tag so the generated task
+  table will be rebuilt from the corrected manifest mapping
+  (`mlp_zero_sparse_basin_partition_control -> generic_no_shrink`) instead of
+  inheriting the stale `generic_sparse` packet. The default pass completed as
+  `9224263_* -> 9224264 -> 9224265`; despite one fast array failure, the
+  collector wrote `169` rows, accepted default `dt` on all `17/17` systems,
+  and reports system-median best-periodic
+  `H100/H500/H1000 = 0.5763 / 1.7924 / 2.4279`. This is now the clean
+  locked-budget no-shrink control and it remains much weaker than the
+  promoted sparse LISTA roots.
+- The narrow LISTA-only seed-`0`, `20k`, default-sampling refinement under
+  [transition_rich_basin_partition_20260410_seed0_smoke_v7](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260410_seed0_smoke_v7)
+  is now complete as `9226564_[0-135] -> 9226565 -> 9226566 -> 9226567` with
+  `0` reducer failures. The best new forecasting root is
+  `lista_blockdiag_sparsegroup_basin_partition`
+  (`H1000 system-median best = 0.0846`), while the strongest new deep-basin
+  support-compression read is
+  `lista_dense_softblock_signsplit_p64_softblock5em4_basin_partition`
+  (`H(S|B)=0.6795`, `U_exact=0.8453`, `H(F|B)=0.0634` at
+  `absolute:0.001` / `deep`), but that root is missing `1/17` systems after a
+  fast training failure. No `v7` root cleanly dominates both forecasting and
+  basin-support alignment, so this packet does not reopen the locked
+  shortlist.
+- One narrow default-sampling long-budget forecasting follow-up is now
+  complete under
+  [transition_rich_basin_partition_v6_v7_200k_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_basin_partition_v6_v7_200k_seed10_20260410).
+  Its fair default-`dt` comparison completed as array / collector
+  `9228394_[0-339] -> 9228395`. The wrapper `9228393` shows `FAILED` only
+  because its attempted model-wise dt-rescue continuation both violated the
+  matched-`dt` comparison rule and hit `AssocMaxSubmitJobLimit` after the
+  default task table had already been written
+  ([queue-transition-rich-dt-9228393.err](/network/scratch/l/lia/skae/queue-transition-rich-dt-9228393.err)).
+  The actual fair run is the completed default array plus collector, which
+  wrote `329/340` rows across both roots and all `17` systems
+  ([collect-transition-rich-9228395.out](/network/scratch/l/lia/skae/collect-transition-rich-9228395.out)).
+- That long-budget default-sampling check is negative for shortlist reopening.
+  The better of the two roots,
+  `lista_dense_softblock_signsplit_coherence_basin_partition`, reaches
+  system-median best-periodic `H100/H500/H1000 = 0.0416 / 0.0761 / 0.0796`,
+  while `lista_blockdiag_sparsegroup_basin_partition` lands at
+  `0.0437 / 0.1142 / 0.1193`. The coherence root is still slightly worse than
+  the promoted dense hard-init finalist at all three horizons
+  (`0.0196 / 0.0733 / 0.0775`) and also worse than the matched sparse MLP
+  control on the long horizons that matter most (`0.0614 / 0.0608` at
+  `H500/H1000`), so this forecasting-only packet does not displace the locked
+  basin-support finalists or add a new interpretability reduction.
 - Outstanding paper-critical problem:
-  the branch now has a seed-`0` paper-facing ranking backed by the clean
-  cross-root rerun, so the remaining scientific risk is no longer “which broad
-  method family should we try next.” It is whether the locked `200k`,
-  `10`-seed confirmatory packet reproduces that ranking strongly enough for
-  the final claim, and whether the final wording should land at operative
-  exact-support reuse, support-family / dominant-group alignment, or a weaker
-  symmetry-aware operator-family alignment once the control comparison is
-  complete. Early confirmatory-array failures are operational rather than
-  scientific: tasks `238`, `255`, `267`, `279`, `295`, and `303` all failed on
-  `cn-a009` with uncorrectable CUDA ECC and should be handled by the
-  pass-`0` resolve / rescue chain. Because Mila submit limits reject a fully
-  pre-expanded rescue chain, any needed `dt` rescue beyond pass `0` must be
-  submitted incrementally after resolver `9211292` emits the actual requests.
+  the locked multi-seed comparison already resolves the LISTA-vs-sparse-MLP
+  part of the question on the selected deep `absolute:0.001` slice: the dense
+  `p64` hard-init LISTA root beats the matched sparse MLP control on
+  exact-support fragmentation and support-freeze robustness while remaining
+  forecast-competitive, whereas the block-diagonal hard-init root survives as
+  the forecast-retaining companion rather than the lead exact-support result.
+  The clean tanh / no-shrink `200k`, `10`-seed control now lands the broader
+  induced-sparsity contrast as well: removing induced sparsity leaves
+  forecasting much weaker than the promoted sparse LISTA roots even when
+  `17/17` systems pass the default-`dt` gate. The narrow default-sampling
+  `200k` forecast-floor check on the best `v6` / `v7` roots is now also
+  complete and negative, so the shortlist should not be reopened. The
+  remaining paper-critical risk is now the state-conditioned
+  `H100/H500/H1000` read showing whether forecasting is strongest deep in
+  basin and weakest near separatrices, plus the final calibration question of
+  whether the main text should make a selected-slice exact-support-reuse claim
+  centered on the dense `p64` root or a more conservative family/group or
+  symmetry-aware alignment claim because `H(F|B)` saturates on that slice.
 - Do not treat stronger chart-switch-localization or sparse-only mechanism
   claims as the acceptance criterion for this branch. Those questions remain
   useful supporting context, but the live branch succeeds or fails on whether
   LISTA yields cleaner basin-separated support structure than the matched
   standard MLP encoder on the fixed shortlist.
-- The planning-doc gap is now narrower and explicit. The main unrun
-  method-side shortlist axes now include one live near-separatrix oversampling
-  follow-up plus still-unrun symmetry-aware tying on symmetric toys. Stronger
-  soft-block penalty sweeps, momentum LISTA, adaptive or blockwise LISTA thresholds,
-  dictionary-tied / hybrid pre-codes, group-aware sparse-group shrinkage /
-  group-first support selection, and richer reset triggers beyond
-  projection-gap are now implemented locally but still unrun on the fixed
-  shortlist. The main unrun evaluation-side
+- The planning-doc gap is now narrower and explicit. The main unresolved
+  method-side fairness question is matched-sampling hard-init MLP controls
+  plus still-unrun symmetry-aware tying on symmetric toys. The previously
+  unrun LISTA shortlist axes from the design note are no longer configuration
+  gaps: stronger soft-block penalty sweeps, momentum LISTA, adaptive or
+  blockwise LISTA thresholds, dictionary-tied / hybrid pre-codes, group-aware
+  sparse-group shrinkage / group-first support selection, and richer reset
+  triggers beyond projection-gap have now all been at least screened on the
+  fixed shortlist, and the long-budget default-sampling `v6` / `v7` follow-up
+  did not promote any of them over the locked finalists. The main unrun
+  evaluation-side
   items are freeze-support interventions, controlled-transfer switch-timing
-  metrics, basis-aware support-conditioned Jacobian or operator-family
-  analyses, and the paper visual-diagnostic suite.
+  metrics, state-conditioned long-horizon forecasting at `H100/H500/H1000`
+  split by basin depth / separatrix proximity, basis-aware support-conditioned
+  Jacobian or operator-family analyses, and the paper visual-diagnostic suite.
 - The state-level interpretability reducer now also has local code support for
   those evaluation-side study items: canonical support-freeze rollout metrics,
   first-switch timing summaries, sampled effective-Jacobian family summaries,
@@ -321,6 +546,9 @@ What stays live here:
   basin separation than a non-LISTA encoder on the same systems.
 - Native-trio and Claude-subset diagnostics that measure basin purity, support
   reuse, support-view clustering, and local predictive structure.
+- Benchmark-only long-horizon forecasting diagnostics at `H100`, `H500`, and
+  `H1000` that test whether forecasting is strongest deep inside a basin and
+  weakest near a separatrix.
 - Only the benchmark, hard-system, and older mechanism packets needed to
   position the branch in the broader paper.
 
@@ -333,16 +561,22 @@ Outstanding problem:
   packet. The new state-level native-trio smoke reduction sharpens that same
   read: supports can already be basin-pure deep inside a basin without giving
   one exact support per basin. The lead blocker is therefore no longer the
-  LISTA reduction itself; it is whether the current `20k` LISTA ablations can
-  compress within-basin support fragmentation strongly enough to look
-  impressive on the study-plan metrics, and whether that improvement survives
-  a matched standard-MLP comparison on the same protocol. The short-term
-  operational blocker is no longer missing code for the next ablations, and
-  `v5` is no longer waiting on scheduler admission. The live blocker is now
-  scientific: whether the sign-split / deeper-LISTA / latent-size / block-
-  count packet can turn the new support-family positive into an exact-support
-  or at least family-level paper-grade win on the fixed shortlist, and whether
-  that survives the matched MLP comparison.
+  LISTA reduction itself, but the fair architecture comparison is still not
+  closed: the locked packet gives a useful mixed-regime LISTA-versus-MLP read,
+  yet the promoted LISTA roots use hard-init oversampling while the current MLP
+  controls use the standard training sampling regime. The live blocker is now a
+  combination of fairness and mechanism calibration: add matched hard-init MLP
+  controls, keep standard-sampling and hard-init rows separate in the paper
+  tables, land the clean tanh / no-shrink `200k`, `10`-seed control, and run
+  the state-conditioned long-horizon read at `H100/H500/H1000` showing whether
+  gains are strongest deep in basin and weakest near separatrices, as the
+  basin-identity hypothesis predicts. Once those land, the remaining narrative
+  choice is whether the dense `p64` hard-init win on the selected deep slice is
+  strong and stable enough to carry an exact-support-reuse claim in the main
+  text, or whether the honest claim should soften to family / dominant-group or
+  symmetry-aware alignment because the block-diagonal finalist is mainly a
+  forecast-retaining companion and the selected-slice family metric is
+  saturated.
 
 Assumption split:
 - Training/deployment target: basin count and basin labels are unknown.
@@ -370,6 +604,18 @@ Assumption split:
      best-seed results.
    - Use the official checkpoint rule from `evaluation_results_best.json`.
    - Do not rely on basin labels or known basin counts when proposing training-time methods.
+   - For paper-facing comparisons that claim an architecture effect, keep the
+     training sampling regime identical across compared roots. If hard-init
+     oversampling is used, compare against controls trained with the same
+     sampling regime and report standard versus hard-init as separate table
+     entries.
+   - For basin-support interpretability packets, pre-register the long-horizon
+     forecasting read at `H100`, `H500`, and `H1000`; do not let a lone
+     `H1000` summary stand in for the full mechanism test.
+   - On benchmark systems, report those long-horizon forecasting metrics both
+     overall and stratified by basin depth / separatrix proximity. The target
+     signature is best forecasting deep in a basin and worst forecasting near
+     a separatrix. Treat that stratification as evaluation-only.
    - New deterministic toy systems must target `3-10` endpoint basins.
    - For the frozen first-pass pair, use the endpoint-conditioned crossing gate in the acceptable `0.30-0.70` range.
    - For the explicit chart-switching transfer family, use source-neighborhood transfer fractions together with inner-core retention rather than the old endpoint-conditioned crossing gate.
@@ -390,12 +636,150 @@ Assumption split:
    - Update `docs/PAPER_TRACK_STATUS.md` whenever the result changes paper positioning, claims, or wrap-up priorities.
    - Archive detailed queue-era or lower-priority material in `docs/EXPERIMENTS_ARCHIVE.md` instead of letting this file grow again.
 
+### 2026-04-14: Dysts H5000 phase-portrait packet from strongest H3000-ranked LISTA checkpoints
+
+1. Concrete results:
+   job `9269340` completed on `main-cpu` and ran
+   [tools/generate_dysts_h5000_phase_portraits.py](/home/mila/l/lia/skae/tools/generate_dysts_h5000_phase_portraits.py),
+   writing
+   [docs/figures/dysts_h5000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_h5000_lista_phase_portraits_manifest.json)
+   plus `15` per-system PNG/PDF/JSON packets. Under the script's
+   H3000-shortlist then H5000-rescore protocol, all `15/15` final selections
+   came from dense LISTA. Shared-batch H5000 best-periodic means range from
+   `0.0071` on `dysts:SprottTorus` to `4.3022` on `dysts:Duffing`, with
+   median `0.6751`; selected periodic modes are `{20:1, 40:2, 80:4, 200:7,
+   300:1}`.
+2. Result in experimental context:
+   this was a figure-generation pass, not a new training sweep. It reused the
+   current matched paper-facing Dysts LISTA roots, ranked checkpoints per
+   system by saved `H3000` best-periodic mean from
+   `evaluation_results_best.json`, rescored the top shortlist at `H5000`
+   using each run's saved `H3000` periodic mode, and plotted the best H5000
+   rollout against ground truth.
+3. Interpretation:
+   the strongest current long-horizon Dysts visual packet is fully dominated
+   by the dense LISTA family under this selection rule, so the appendix /
+   handoff visuals now align with the already-promoted dense LISTA supporting
+   benchmark lineage rather than splitting across dense and block-diagonal
+   LISTA roots. This is a visualization outcome, not a new causal
+   branch-level result.
+4. Project implications:
+   the senior-coauthor handoff no longer needs a follow-up queue just to fill
+   the Dysts long-horizon visual appendix. The remaining work is curation:
+   decide which subset of these `15` figures belongs in the handoff packet,
+   appendix, or slides, and keep them explicitly secondary to the fixed-`17`
+   basin-support branch.
+5. Next steps:
+   add a compact selector note for the representative Dysts figures to
+   include in the handoff materials, then cite the manifest as the source of
+   truth for the full visual appendix and do not reopen the checkpoint
+   selection unless a benchmark family changes.
+
+### 2026-04-14: Dysts H20000 phase-portrait packet from strongest H3000-ranked LISTA checkpoints
+
+1. Concrete results:
+   job `9269661` completed on `main-cpu` and ran
+   [tools/generate_dysts_h5000_phase_portraits.py](/home/mila/l/lia/skae/tools/generate_dysts_h5000_phase_portraits.py)
+   with `--horizon 20000`, writing
+   [docs/figures/dysts_h20000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_h20000_lista_phase_portraits_manifest.json)
+   plus `15` per-system PNG/PDF/JSON packets. The H20000 rescore selected
+   dense LISTA on `13/15` systems and block-diagonal LISTA (`sc=6e-3`) on
+   `2/15` systems (`dysts:Duffing`, `dysts:WangSun`). Shared-batch H20000
+   best-periodic means range from `0.5229` on `dysts:RikitakeDynamo` to
+   `68.2272` on `dysts:Duffing`, with median `1.4783`; selected periodic
+   modes are `{1:1, 20:1, 40:2, 80:1, 100:2, 200:5, 300:3}`.
+2. Result in experimental context:
+   this reused the same H3000-shortlist protocol as the H5000 packet, but
+   pushed the shared-batch rescore and phase portraits out to `H20000`. The
+   script was generalized in the same pass so the target horizon now controls
+   filenames, metadata, plot titles, and manifest naming instead of hardcoding
+   `h5000`.
+3. Interpretation:
+   the longer horizon changes the selected family mix. Dense LISTA still
+   dominates overall, but the best H20000 visual packet is no longer
+   all-dense: `Duffing` and `WangSun` now favor the stronger block-diagonal
+   LISTA root. That makes the ultra-long-horizon appendix visually more mixed
+   than the H5000 packet and is the right read to preserve for handoff.
+4. Project implications:
+   the senior-coauthor packet can now show both a medium-long horizon
+   (`H5000`) and an ultra-long horizon (`H20000`) without another queue
+   pass. It also gives a concrete example where the visually strongest very
+   long-horizon root is not always the same family that wins at the shorter
+   appendix horizon.
+5. Next steps:
+   decide whether the handoff should present paired `H5000/H20000` portraits
+   for a small representative subset, especially `Duffing` and `WangSun`,
+   and keep the manifest pair as the source of truth for any appendix or
+   slide curation.
+
+### 2026-04-14: Queued seed-10 Dysts long-horizon reevaluation at H5000/H10000/H20000/H30000
+
+1. Concrete results:
+   launcher `9273653` completed on `main-cpu` and wrote the task table
+   [dysts_long_horizon_tasks.tsv](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/task_tables/dysts_long_horizon_tasks.tsv),
+   task summary
+   [dysts_long_horizon_tasks_summary.json](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/task_tables/dysts_long_horizon_tasks_summary.json),
+   and queue record
+   [queue_record.json](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/queue/queue_record.json).
+   The manifest covers `750` tasks = `5` verified benchmark roots x `15`
+   Dysts systems x seeds `0-9`, with `0` missing runs. The queued chain is
+   cache prebuild `9273655`, dependency-gated validation `9273656`,
+   full reevaluation array `9273657`, and collector `9273658`.
+   A standalone validation run `9273670` failed immediately and usefully:
+   cached trajectories were one step too short for `H30000` sequence windows.
+2. Result in experimental context:
+   unlike the earlier H5000/H20000 visual packets, this is the first
+   all-seeds, all-five-roots Dysts long-horizon benchmark pass. It does not
+   shortlist checkpoints by saved `H3000`; it reevaluates every seed/run on
+   its native Dysts system once out to `H30000` and reuses that same rollout
+   for all four reported horizons.
+3. Interpretation:
+   there are no new model-comparison MSE results yet because the collector has
+   not run, but the benchmark coverage question is now resolved: every
+   intended run exists and the reevaluation packet is auditable. The only
+   execution bug found so far was infrastructure-side cache length, not
+   model-side instability, and it is now fixed in
+   [skae/data.py](/home/mila/l/lia/skae/skae/data.py).
+4. Project implications:
+   once this queue clears, the paper will have a single seed-`10` source of
+   truth for Dysts MSE at `H5000/H10000/H20000/H30000`, plus compact
+   selected-mode rollout caches under each run directory for later
+   phase-portrait and appendix figure generation without repeat inference.
+5. Next steps:
+   let cache prebuild `9273655` clear, confirm validation `9273656` on the
+   patched cache path, and then read the collector outputs under
+   [results/dysts_long_horizon_eval_20260414/collect](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/collect)
+   before promoting any new Dysts long-horizon table or headline claim.
+
 ## Outstanding problems (active)
 
+- The seed-`10` Dysts long-horizon benchmark packet is now queued under
+  [results/dysts_long_horizon_eval_20260414](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414),
+  but it is not complete yet. The open work there is no longer pipeline
+  definition; it is queue completion and result reduction. The collector path
+  is already fixed to
+  [results/dysts_long_horizon_eval_20260414/collect](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/collect),
+  and the reevaluation now writes compact selected-mode rollout caches under
+  each run so later Dysts figure generation should not need repeat inference.
+- The supporting Dysts benchmark visual packet and the fixed-`17` LISTA
+  phase-portrait packet are now complete under
+  [docs/figures/dysts_h5000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_h5000_lista_phase_portraits_manifest.json),
+  [docs/figures/dysts_h20000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_h20000_lista_phase_portraits_manifest.json),
+  and
+  [docs/figures/fixed17_lista_phase_portraits_20260414/fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/fixed17_lista_phase_portraits_20260414/fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json),
+  so the remaining work there is narrative packaging rather than figure
+  generation: choose which subset of the `15` Dysts portraits and the `51`
+  fixed-`17` portraits belongs in the senior-coauthor handoff, slides, or
+  appendix, and keep all of those visual packets clearly secondary to the
+  fixed-`17` causal branch tables.
 - The branch-wide LISTA basin-support reduction is now complete under
   [basin_support_metrics_20260408_v3](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260407/basin_support_metrics_20260408_v3).
-  The main missing causal comparison is now the matched standard MLP encoder on
-  the same fixed `17` systems and the same support-view protocol.
+  The locked `200k`, `10`-seed packet now compares the promoted hard-init LISTA
+  finalists against the standard-sampling sparse MLP control plus the locked
+  packet's legacy zero-`L1` ReLU control on the same fixed `17` systems and
+  support-view protocol. That is useful mixed-regime evidence, but the
+  architecture-isolating matched-sampling comparison is still missing and
+  should add hard-init versions of the MLP controls as separate table entries.
 - The new study-plan state-level smoke reduction on the historical native trio
   says the next ablations must target within-basin support compression rather
   than purity alone: deep-basin `H(B|S)` is already approximately zero for
@@ -411,20 +795,35 @@ Assumption split:
   shortlist therefore needs either better exact-support consolidation or a
   paper story that is explicitly family/group-level rather than exact-support-
   level.
-- The six forward fixed-`17` ablation packets `v1-v6` are no longer queued;
-  every submitted task and downstream collect / resolve / reduce stage is now
-  complete. The remaining blocker is no longer broad execution. It is
-  synthesis: the hard-init seed-`0` read and the clean cross-root paper-facing
-  comparison are now both in hand, and the next decision is whether the final
-  `200k`, `10`-seed control comparison reproduces that ranking strongly enough
-  for paper lock.
+- The seed-`0` working-budget ablation ladder `v1-v7` is now complete, and
+  the narrow default-sampling `200k`, `10`-seed forecast-floor packet under
+  [transition_rich_basin_partition_v6_v7_200k_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_basin_partition_v6_v7_200k_seed10_20260410)
+  is also complete through its fair default array / collector
+  `9228394_[0-339] -> 9228395`. That forecasting-only follow-up does not
+  materially improve the default-sampling floor: the better coherence root
+  reaches `H100/H500/H1000 = 0.0416 / 0.0761 / 0.0796`, still behind the
+  locked hard-init dense finalist and behind the matched sparse MLP control at
+  `H500/H1000`, and the packet adds no new state-level reduction. The
+  remaining blocker is no longer broad execution or queue completion. It is
+  synthesis: lock the paper claim around the dense `p64` hard-init causal win
+  over the matched sparse MLP control, and decide how strongly to foreground
+  the block-diagonal forecast-retaining companion result.
+- The locked `200k`, `10`-seed confirmatory packet is now fully reduced
+  through rescue pass `1` under
+  [transition_rich_basin_partition_final_seed10_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409).
+  Pass-`1` collect / resolve `9214918 -> 9214919`, final interpretability
+  reduction `9218036`, and final paired comparison `9218037` all completed
+  cleanly. The main new evidence is no longer just forecasting: the packet now
+  contains the matched multi-seed support analysis that the branch had been
+  missing.
 - The historical April 7 queue is LISTA-only, but the April 9 shortlist now
   also includes the matched sparse MLP encoder control on the same fixed
-  `17` systems. That control has completed inside `v1`; the missing step is
-  the fair multi-seed paper-facing comparison. The clean cross-root reduction
-  that includes it is now complete; the remaining gap is confirming over
-  `10` seeds that the seed-`0` LISTA ranking survives the sparse and
-  zero-sparsity MLP controls.
+  `17` systems. That fair multi-seed paper-facing comparison is now complete.
+  Its locked-packet result is asymmetric rather than uniform: the dense `p64`
+  hard-init LISTA root survives the sparse MLP control plus the locked
+  packet's legacy zero-`L1` ReLU control on the branch objective, while the
+  block-diagonal hard-init root survives mainly as the stronger forecast-
+  retaining support model.
 - The hard-init seed-`0` reduction is now complete under
   [interpretability_summary.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_hardinit_seed0_20260409/reduce/interpretability_summary.md).
   Its main result is not a clean all-roots win for near-separatrix
@@ -433,12 +832,22 @@ Assumption split:
   dense `p64` hard-init variant improves forecasting and canonical-support
   intervention behavior, but its raw all-state support metrics are slightly
   worse.
-- The strongest current shortlist root is now
-  `lista_dense_softblock_signsplit_p64_basin_partition` from `v5`. It is the
-  first root on this branch that materially compresses deep-basin exact
-  supports without catastrophic forecast collapse:
-  `mean H(S|B)=0.7719`, `mean U_exact=0.8064`, `mean H(F|B)=0.0521`, and
-  `16/17` good systems at `H1000`.
+- The strongest current paper-facing root is now
+  `lista_dense_softblock_signsplit_p64_hardinit_basin_partition` from the
+  locked final packet. On the selected deep `absolute:0.001` slice it is the
+  branch's clearest causal exact-support positive against the matched sparse
+  MLP control (`H(S|B)=0.0543` vs `0.2449`, `U_exact=0.9923` vs `0.9772`,
+  `freeze/base@20=0.1691` vs `0.3923`) while remaining forecast-competitive
+  (`H1000=0.0768` vs `0.0608`). The earlier `v5`
+  `lista_dense_softblock_signsplit_p64_basin_partition` root remains the
+  key seed-`0` provenance result that first exposed this regime.
+- The support-side basin-depth trend already agrees strongly with the intended
+  narrative. In the locked packet's state-level summary at `absolute:0.001`,
+  every root has much cleaner supports on the `deep` slice than on the
+  `boundary` slice; for example, the dense `p64` hard-init root improves from
+  `H(S|B)=3.8140` on `boundary` states to `0.8123` on `deep` states. The
+  remaining missing half of that narrative is the matching state-conditioned
+  forecasting read at `H100/H500/H1000`.
 - The completed `v6` packet resolves the next mechanism tradeoff cleanly:
   decoder coherence helps forecasting, restrained linear pre-codes help exact-
   support compression, but neither lever nor their combination beats the
@@ -458,13 +867,12 @@ Assumption split:
 - The next live interpretability iteration should treat
   [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md)
   as the ground-truth design inventory for the ablation axes attached to plan
-  items `3` and `4`. The highest-value still-open method-side items in that
-  note are now mostly the still-unrun but already implemented momentum
-  LISTA, adaptive / groupwise thresholds, group-aware shrinkage, richer reset
-  triggers, dictionary-tied / hybrid pre-codes, and stronger soft-block
-  sweeps, plus the still-unimplemented oversampling and symmetry-aware
-  follow-ons. The
-  remaining interpretability-study gaps
+  items `3` and `4`, but the branch no longer needs another broad LISTA sweep:
+  momentum LISTA, adaptive / groupwise thresholds, group-aware shrinkage,
+  richer reset triggers, dictionary-tied / hybrid pre-codes, and stronger
+  soft-block sweeps have now all been screened through `v7`, and the
+  `200k`, `10`-seed default-sampling follow-up did not promote any of them
+  over the locked finalists. The remaining interpretability-study gaps
   are now primarily execution-side rather than tooling-side: freeze-support
   tests, support-switch timing diagnostics, Jacobian or operator-family
   checks, and the corresponding visual summaries are now implemented locally
@@ -512,6 +920,364 @@ Assumption split:
   live acceptance criteria for this fixed-`17` branch.
 
 ## Recent Paper-Critical Result
+
+### April 11, 2026: the default-sampling `200k`, `10`-seed `v6` / `v7` forecast-floor check completed and did not reopen the shortlist
+
+- Concrete result(s):
+  the narrow long-budget default-sampling follow-up under
+  [transition_rich_basin_partition_v6_v7_200k_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_basin_partition_v6_v7_200k_seed10_20260410)
+  completed its fair comparison as default array / collector
+  `9228394_[0-339] -> 9228395` on April 11, 2026. The collector wrote `329`
+  rows from `2` roots across all `17` systems with no collector stderr
+  ([collect-transition-rich-9228395.out](/network/scratch/l/lia/skae/collect-transition-rich-9228395.out)).
+  The wrapper `9228393` shows `FAILED` only because its attempted model-wise
+  dt-rescue continuation hit `AssocMaxSubmitJobLimit` after the default table
+  had already been emitted
+  ([queue-transition-rich-dt-9228393.err](/network/scratch/l/lia/skae/queue-transition-rich-dt-9228393.err)).
+  The better of the two roots,
+  `lista_dense_softblock_signsplit_coherence_basin_partition`, reaches
+  system-median best-periodic `H100/H500/H1000 = 0.0416 / 0.0761 / 0.0796`,
+  while `lista_blockdiag_sparsegroup_basin_partition` lands at
+  `0.0437 / 0.1142 / 0.1193`. Both roots still cover all `17` systems, though
+  the collector is missing `6` and `5` seed-system rows respectively.
+
+- Result in experimental context:
+  this was the only remaining long-budget default-sampling LISTA follow-up
+  after the locked hard-init confirmatory packet. Its role was deliberately
+  narrow: test whether the best forecasting roots from `v6` and `v7` could
+  lower the default-sampling forecast floor enough to justify reopening the
+  promoted lineage before coauthor handoff.
+
+- Interpretation:
+  the answer is no. The stronger coherence root is still slightly worse than
+  the promoted dense hard-init finalist at all three horizons
+  (`0.0196 / 0.0733 / 0.0775`) and worse than the matched sparse MLP control
+  on the long horizons that matter most (`0.0614 / 0.0608` at `H500/H1000`).
+  The sparsegroup root is farther behind. Because this packet is
+  forecasting-only and never ran a state-level interpretability reduction, it
+  adds no new basin-support positive that could offset that forecast result.
+
+- Project implications:
+  the basin-support interpretability branch is now training-closed. The locked
+  hard-init packet remains the only paper-facing state-level basin-support
+  win, the block-diagonal hard-init root remains the forecast-retaining
+  companion, and the default-sampling `v6` / `v7` roots remain appendix /
+  shortlist-provenance evidence rather than promoted finalists.
+
+- Next steps:
+  do not reopen method search. Spend remaining branch effort on the
+  state-conditioned `H100/H500/H1000` read, support-family versus exact-
+  support claim calibration, and any matched-sampling MLP controls needed to
+  make the final fairness language defensible.
+
+### April 10, 2026: the clean locked-budget tanh / no-shrink control and the narrow default-sampling LISTA refinement both completed
+
+- Concrete result(s):
+  the older array
+  [transition_rich_zero_sparse_control_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_control_seed10_20260410)
+  was confirmed to be misconfigured: its generated task table labels
+  `mlp_zero_sparse_basin_partition_control` but sets
+  `config_name=generic_sparse` rather than `generic_no_shrink`. To correct
+  that, a fresh locked-budget packet was submitted as wrapper job `9224111`
+  under
+  [transition_rich_zero_sparse_tanh_control_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_tanh_control_seed10_20260410)
+  with `MODEL_VARIANTS_CSV=mlp_zero_sparse_basin_partition_control`,
+  `SEEDS_CSV=0,1,2,3,4,5,6,7,8,9`, `NUM_STEPS_OVERRIDE=200000`, and
+  `MAX_HALVINGS=0` so the default array is queued cleanly before any rescue
+  passes are considered. That wrapper now completes cleanly as
+  `9224263_* -> 9224264 -> 9224265`: the task table is rebuilt with
+  `config_name=generic_no_shrink`, the collector writes `169` rows despite one
+  fast array failure, all `17/17` systems accept default `dt`, and the clean
+  no-shrink control reports system-median best-periodic
+  `H100/H500/H1000 = 0.5763 / 1.7924 / 2.4279`. The older ReLU-only ablation
+  packet also now runs through collect / resolve pass `4` with no smaller-`dt`
+  requests and remains at
+  `H100/H500/H1000 = 0.5764 / 2.0556 / 2.6532`.
+  The narrow default-sampling LISTA follow-up under
+  [transition_rich_basin_partition_20260410_seed0_smoke_v7](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260410_seed0_smoke_v7)
+  also finished as `9226564_[0-135] -> 9226565 -> 9226566 -> 9226567` with
+  `0` reducer failures and one fast training failure on
+  `lista_dense_softblock_signsplit_p64_softblock5em4_basin_partition` for
+  `gated_transfer_linear`. Among the new roots, the best forecasting read is
+  `lista_blockdiag_sparsegroup_basin_partition`
+  (`H1000 system-median best = 0.0846`), followed by
+  `lista_dense_softblock_hybrid_precode_basin_partition`
+  (`0.0959`). The strongest new deep-basin support-compression read is
+  `lista_dense_softblock_signsplit_p64_softblock5em4_basin_partition` with
+  `H(S|B)=0.6795`, `U_exact=0.8453`, and `H(F|B)=0.0634` at
+  `absolute:0.001` / `deep`.
+
+- Result in experimental context:
+  the clean no-shrink packet closes the last missing training-side control on
+  the fixed `17` systems: the branch now has the locked LISTA-vs-sparse-MLP
+  read, the ReLU-only zero-`L1` ablation, and the decisive full-budget,
+  `10`-seed tanh / no-shrink MLP control. The `v7` packet was the last cheap
+  method-side default-sampling screen around the current winners before
+  deciding whether any additional recipe search was justified.
+
+- Interpretation:
+  the stale `9221521_*` packet should still not be used as the clean no-shrink
+  anti-sparsity control, because it retains ReLU-induced shrinkage. But the
+  pair of completed controls now sharpens the same conclusion from two angles:
+  removing only the explicit `L1` penalty already leaves the branch much weaker
+  than the promoted sparse LISTA roots, and removing induced sparsity more
+  completely with the tanh / no-shrink control still does not recover that
+  gap. The `v7` packet does not produce a single new recipe that is both
+  forecast-leading and support-leading: `sparsegroup` forecasts best among the
+  new roots but has weaker support alignment, while `softblock5e-4` gives the
+  strongest new support-compression read but is incomplete on one system and
+  does not become the clean new forecasting leader. Adaptive/groupwise
+  thresholds are unstable. The training-side claim therefore remains broader
+  than “LISTA wins because of one exact architecture”: some induced sparsity is
+  necessary for good finite-dimensional Koopman representations in multi-basin
+  systems, and LISTA is one structured way to realize that sparsity.
+
+- Project implications:
+  the training-side evidence is now effectively closed for paper positioning.
+  The clean no-shrink contrast can be cited directly as the decisive
+  anti-sparsity control, while the `v7` packet should be treated as shortlist
+  provenance rather than as a reason to reopen the promoted finalists. We do
+  not need another broad architecture sweep before coauthor handoff.
+
+- Next steps:
+  run the state-conditioned `H100`, `H500`, and `H1000` analysis on the locked
+  finalists and controls by basin depth / separatrix proximity. If any further
+  method-side work is done at all, it should be a very narrow tie-break between
+  `sparsegroup` and `softblock5e-4`, not another broad LISTA sweep.
+
+### April 10, 2026: the locked `10`-seed confirmatory packet finalized through pass `1` and the dense `p64` hard-init root is the only clear causal basin-support winner
+
+- Concrete result(s):
+  the locked packet
+  [transition_rich_basin_partition_final_seed10_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409)
+  finished rescue pass `1` collection / resolution as `9214918 -> 9214919`,
+  then completed the final state-level reducer `9218036` and paired summary
+  `9218037`. The packet is finalized with `0` remaining request rows in
+  [advance_pass1.json](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/automation/advance_pass1.json)
+  and `0` interpretability failures in
+  [failures.json](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/interpretability_final_pass1/failures.json).
+  The finalized forecasting summary under
+  [collect_pass1/forecasting_summary.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/collect_pass1/forecasting_summary.md)
+  reports system-median best-periodic `H1000` values of `0.0516` for the
+  block-diagonal hard-init LISTA root, `0.0775` for the dense soft-block
+  `p=64` hard-init LISTA root, `0.0608` for the matched sparse MLP control,
+  and `0.0909` for the zero-`L1` ReLU MLP ablation. On the selected
+  `absolute:0.001` / `deep` slice in
+  [transition_rich_final_comparison.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/final_comparison_pass1/transition_rich_final_comparison.md),
+  the dense `p64` hard-init root reaches `H(S|B)=0.0543`, `U_exact=0.9923`,
+  and `freeze/base@20=0.1691` against the matched sparse MLP control's
+  `0.2449`, `0.9772`, and `0.3923`, with paired wins on `15/17`, `14/17`,
+  and `16/17` systems.
+
+- Result in experimental context:
+  this is the locked `200k`, `10`-seed, fixed-`17` paper packet that was
+  explicitly reserved for the final causal comparison between the two promoted
+  LISTA finalists and the sparse MLP control, with an additional legacy
+  zero-`L1` ReLU control. It is the first branch result that combines the full
+  multi-seed forecasting read with the same study-plan state-level
+  interpretability reducer and the paired LISTA-vs-control summary on one
+  fixed selected slice.
+
+- Interpretation:
+  the multi-seed result does not support a uniform “LISTA always wins”
+  headline. It supports a narrower but cleaner one. The dense soft-block
+  `p=64` hard-init LISTA root is the branch's only clear basin-support winner
+  over the matched sparse MLP control on the selected slice. The
+  block-diagonal hard-init root remains valuable, but for a different reason:
+  it is the strongest forecast-retaining root and it improves freeze-support
+  robustness relative to both MLP controls, yet it loses exact-support
+  compression to the matched sparse MLP control. Also, `H(F|B)` is `0.0000`
+  for all four roots on this slice, so family entropy no longer separates the
+  candidates here; the real discriminators are exact-support fragmentation,
+  intervention stability, persistence, and forecasting.
+
+- Project implications:
+  the main paper-facing LISTA-vs-sparse-MLP question is answered at the locked
+  budget. The strongest defensible main-text claim from this packet is no
+  longer “some LISTA root beats MLP in general.” It is that the dense `p64`
+  hard-init LISTA recipe produces markedly cleaner deep-basin exact-support
+  alignment than the matched sparse MLP control while remaining forecast-
+  competitive on the fixed `17` systems. The block-diagonal hard-init root
+  should be positioned as the supporting forecast-retaining companion, not as
+  the lead exact-support result. The broader induced-sparsity claim still
+  depends on the clean tanh / no-shrink control now queued separately.
+
+- Next steps:
+  rewrite the coauthor-facing branch summary around the dense `p64` causal win,
+  update the queue status and paper-track claim accordingly, and use the next
+  remaining effort on paper-facing visuals plus any basis-aware alignment
+  diagnostics needed to decide whether the final wording stays at
+  exact-support reuse or softens to family / dominant-group or
+  symmetry-aware-alignment language.
+
+- Fixed-`17` forecasting snapshot for the locked roots:
+  the table below records finalized best-periodic system medians from
+  [collect_pass1/forecasting_rows.json](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/collect_pass1/forecasting_rows.json),
+  reported as `H100 / H500 / H1000`. It is the compact per-system forecasting
+  view for the four best branch setups currently documented: the two promoted
+  LISTA finalists plus the sparse MLP control and the zero-`L1` ReLU
+  MLP control from the locked packet.
+
+| system | blockdiag hard-init LISTA | dense `p64` hard-init LISTA | sparse MLP control | zero-`L1` ReLU MLP ablation | best `H1000` root |
+|---|---:|---:|---:|---:|---|
+| multiwell_strong_transition | `5.67e+03 / 1.07e+27 / 1.0421` | `3.38e+03 / 1.16e+27 / 0.0793` | `157.9347 / 1.42e+20 / 1.0787` | `187.1979 / 1.12e+19 / 0.5794` | dense `p64` hard-init LISTA |
+| gated_local_linear | `0.0010 / 0.000788 / 0.000795` | `0.0011 / 0.0014 / 0.0014` | `0.0017 / 0.0015 / 0.0014` | `0.0290 / 0.0427 / 0.0443` | blockdiag hard-init LISTA |
+| gated_transfer_linear | `0.2618 / 0.7842 / 0.8188` | `0.2675 / 0.7964 / 0.8612` | `0.1974 / 0.6995 / 0.7704` | `0.1908 / 0.7296 / 0.8037` | sparse MLP control |
+| arrested_spiral | `0.0095 / 0.0126 / 0.0131` | `0.0292 / 0.0355 / 0.0364` | `0.0153 / 0.0245 / 0.0257` | `0.0203 / 0.0280 / 0.0290` | blockdiag hard-init LISTA |
+| cal_asymmetric_3 | `0.0206 / 0.0707 / 0.0770` | `0.0360 / 0.0804 / 0.0864` | `0.0046 / 0.0338 / 0.0377` | `0.0257 / 0.0714 / 0.0771` | sparse MLP control |
+| cal_high_cross_3 | `0.1338 / 0.3034 / 0.3300` | `0.1502 / 0.2792 / 0.2956` | `0.3688 / 0.8289 / 0.8885` | `0.1792 / 0.4364 / 0.4591` | dense `p64` hard-init LISTA |
+| cal_hexagon_6 | `0.0283 / 0.0491 / 0.0516` | `0.0196 / 0.0267 / 0.0279` | `0.0271 / 0.0481 / 0.0507` | `0.0434 / 0.0725 / 0.0761` | dense `p64` hard-init LISTA |
+| cal_octagon_8 | `0.0384 / 0.0523 / 0.0542` | `0.0565 / 0.0876 / 0.0916` | `0.1304 / 0.2251 / 0.2324` | `0.1290 / 0.1922 / 0.2020` | blockdiag hard-init LISTA |
+| cal_pentagon_5 | `0.0226 / 0.0376 / 0.0395` | `0.0399 / 0.0733 / 0.0775` | `0.0297 / 0.0703 / 0.0751` | `0.0604 / 0.1080 / 0.1138` | blockdiag hard-init LISTA |
+| cal_square_4 | `0.0025 / 0.0020 / 0.0019` | `0.0117 / 0.0112 / 0.0112` | `0.0394 / 0.0580 / 0.0604` | `0.0406 / 0.0584 / 0.0605` | blockdiag hard-init LISTA |
+| checkerboard_potential | `2.0022 / 2.69e+03 / 0.0776` | `0.1605 / 0.1526 / 0.1086` | `0.1641 / 0.0614 / 0.0608` | `0.0924 / 0.1366 / 0.0909` | sparse MLP control |
+| duffing_triple_well | `0.0041 / 0.0054 / 0.0039` | `0.0036 / 0.0065 / 0.0038` | `0.000958 / 0.0017 / 0.0011` | `0.0012 / 0.0026 / 0.0014` | sparse MLP control |
+| snic_multi | `0.000197 / 0.0003 / 0.000315` | `0.00057 / 0.0013 / 0.0013` | `0.000117 / 0.000227 / 0.000242` | `0.00021 / 0.000466 / 0.000496` | sparse MLP control |
+| transition_routes_4 | `0.0182 / 0.1975 / 0.3526` | `0.0032 / 0.0819 / 0.1844` | `0.0026 / 0.1285 / 0.2714` | `0.0057 / 0.1573 / 0.2486` | dense `p64` hard-init LISTA |
+| var_depth_gradient_4 | `0.0027 / 0.0021 / 0.0019` | `0.0110 / 0.0294 / 0.0318` | `0.0253 / 0.0332 / 0.0341` | `0.0287 / 0.0531 / 0.0562` | blockdiag hard-init LISTA |
+| var_diamond_4 | `0.0062 / 0.0764 / 0.1281` | `0.0070 / 0.0987 / 0.1395` | `0.0321 / 0.1734 / 0.2195` | `0.1662 / 0.3434 / 0.3950` | blockdiag hard-init LISTA |
+| var_l_shape_5 | `0.0064 / 0.0420 / 0.0467` | `0.0158 / 0.0205 / 0.0210` | `1.3976 / 5.1037 / 5.0609` | `1.4131 / 5.3622 / 5.3153` | dense `p64` hard-init LISTA |
+
+- Interpretation of the fixed-`17` forecasting table:
+  by lowest per-system `H1000`, the block-diagonal hard-init LISTA root is
+  best on `7/17` systems, the dense `p64` hard-init LISTA root is best on
+  `5/17`, and the sparse MLP control is best on `5/17`; the zero-`L1`
+  ReLU control is not the `H1000` winner on any system in the locked packet.
+  This is why the branch should not be written as a pure forecasting win for
+  one root. The dense `p64` hard-init result is the causal basin-support win,
+  the block-diagonal hard-init result is the stronger forecast-retaining
+  companion, and the sparse MLP control still owns a nontrivial minority of
+  systems on forecasting alone.
+
+### April 14, 2026: fixed-17 LISTA phase-portrait supporting packet completed at `H1000`, `H3000`, and `H5000`
+
+- Concrete result(s):
+  generated the fixed-`17` LISTA visual packet under
+  [fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/fixed17_lista_phase_portraits_20260414/fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json),
+  writing `51` figures (`17` systems x `3` horizons), `17` per-system
+  selection JSON files, and paired PNG/PDF outputs for every requested
+  portrait. The generator scans collected transition-rich LISTA forecasting
+  rows under `results/`, selects the lowest saved `H1000` best-periodic run
+  per system, and reuses that run's saved `H1000` best-periodic mode for all
+  requested horizons. The selected packet spans `8` LISTA roots:
+  `lista_dense_softblock_signsplit_coherence_basin_partition` (`3` systems),
+  `lista_blockdiag_signsplit_hardinit_basin_partition` (`6`),
+  `lista_dense_basin_partition` (`2`),
+  `lista_dense_softblock_signsplit_p64_hardinit_basin_partition` (`2`),
+  `lista_blockdiag_sparsegroup_basin_partition` (`1`),
+  `lista_blockdiag_basin_partition` (`1`),
+  `lista_blockdiag_signsplit_basin_partition` (`1`), and
+  `lista_blockdiag_double_basin_partition` (`1`).
+
+- Result in experimental context:
+  this closes the fixed-`17` visual-handoff gap with the same transition-rich
+  shortlist as the live branch, while avoiding an artificial restriction to
+  only the two promoted final-packet LISTA roots. Some systems still forecast
+  best under earlier dense or block-diagonal provenance roots, while others
+  are best under the later coherence, sparse-group, or hard-init follow-ups.
+
+- Interpretation:
+  the best available LISTA visuals are more heterogeneous than the locked
+  causal comparison table. That heterogeneity is a presentation fact about the
+  forecasting provenance on this branch, not a reason to reopen the causal
+  shortlist or reinterpret the dense `p64` hard-init result as no longer the
+  basin-support winner.
+
+- Project implications:
+  the paper appendix and senior-coauthor packet no longer have a missing
+  fixed-`17` phase-portrait blocker. We can now show long-horizon qualitative
+  behavior directly on the live shortlist, but because the chosen figures span
+  multiple LISTA roots and sampling regimes, they must stay labeled as
+  supporting visual context rather than new benchmark-comparison evidence.
+
+- Next steps:
+  choose a small subset of the `51` figures for the coauthor handoff, slides,
+  and appendix, keep the locked causal claim anchored to the final comparison
+  tables, and only use the new packet to illustrate qualitative trajectory
+  behavior on representative systems.
+
+### April 10, 2026: the working-budget zero-sparsity no-shrink control completed cleanly at default `dt`
+
+- Concrete result(s):
+  the zero-sparsity no-shrink control packet
+  [transition_rich_zero_sparse_control_noshrink_20k_seed3_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_control_noshrink_20k_seed3_20260410)
+  finished as training array `9223056_[0-50]`, collect `9223057`, and resolve
+  `9223058`. The pass-`0` collector wrote `51` rows across the fixed `17`
+  systems with `17/17` good systems at default `dt`, and the resolver accepted
+  every system at pass `0`. The system-median best-periodic forecasting values
+  are `1.8317` at `H100`, `3.5797` at `H500`, and `4.1857` at `H1000`.
+
+- Result in experimental context:
+  this is a working-budget (`20k`, `3`-seed) zero-sparsity control screen on
+  the fixed shortlist, using the no-shrink MLP encoder recipe to sharpen the
+  branch's sparse-vs-zero-sparse-vs-LISTA framing without spending another
+  locked-budget rerun first.
+
+- Interpretation:
+  the control is operationally fine at default `dt`, but it is not close to
+  the locked packet's forecasting frontier. Removing encoder shrinkage and
+  sparsity does not recover the final packet's long-horizon quality: the new
+  no-shrink control stays in-band, yet it remains far weaker than the locked
+  sparse MLP control and both promoted LISTA finalists.
+
+- Project implications:
+  this result strengthens the supporting claim that zero-sparsity controls are
+  useful for causal contrast but are not new lead models for the basin-support
+  branch. It also means the remaining live forecasting question is no longer
+  default-`dt` viability for zero-sparsity MLPs; it is whether the selected
+  deep-versus-near-separatrix forecasting split behaves the way the basin-
+  identity narrative predicts.
+
+- Next steps:
+  let the corrected locked-budget tanh / no-shrink queue `9224111` emit its
+  fresh task table and complete, then pair that control with the still-missing
+  state-conditioned `H100/H500/H1000` evaluation so the final writeup can say
+  something precise about where sparsity helps forecasting and where it does
+  not.
+
+### April 10, 2026: pass-`0` collect finished for the locked `10`-seed packet and rescue pass `1` is now underway
+
+- Concrete result(s):
+  pass-`0` forecasting collection for
+  [transition_rich_basin_partition_final_seed10_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409)
+  completed as `9211291`, with resolve `9211292` and auto-advance
+  `9211747` also completed. The emitted rescue pass-`1` array is
+  `9214917_*`. The collected system-median best-periodic `H1000` values are
+  `0.0516` for `lista_blockdiag_signsplit_hardinit_basin_partition`,
+  `0.0778` for `lista_dense_softblock_signsplit_p64_hardinit_basin_partition`,
+  `0.0608` for `mlp_sparse_basin_partition_control`, and `0.0905` for
+  `mlp_zero_sparse_basin_partition_control`, with all four roots currently at
+  `17/17` good systems.
+
+- Result in experimental context:
+  this is the first multi-seed read from the locked `200k`, `10`-seed,
+  fixed-`17` paper packet that compares the two promoted LISTA finalists
+  against both MLP controls under one common forecasting protocol. It is the
+  forecast half of the final confirmatory comparison, but it is still only the
+  pass-`0` collection and therefore still missing rescued rows plus the
+  state-level interpretability reduction.
+
+- Interpretation:
+  the new multi-seed forecasting read does not overturn the seed-`0`
+  shortlist. Both promoted LISTA roots remain forecast-competitive at the
+  larger budget; the block-diagonal hard-init root is currently the strongest
+  pure forecasting model, the dense `p=64` hard-init root remains close, the
+  matched sparse MLP control is competitive but not dominant, and the
+  zero-`L1` ReLU ablation is currently weakest. This matters because it
+  shows that the interpretability finalists were not selected by trading away
+  forecasting entirely.
+
+- Project implications:
+  this pass strengthens confidence that the paper-facing support conclusions
+  are compatible with the final training budget, but it does not yet change
+  the main interpretability claim. There is still no newer state-level
+  basin-support reduction for this packet, so the paper cannot yet replace the
+  seed-`0` interpretability ranking with a locked multi-seed comparison.
+
+- Next steps:
+  let rescue pass `1` finish, rerun collection on the completed packet, then
+  run the final interpretability reduction and paired LISTA-vs-control summary
+  before changing the paper claim.
 
 ### April 9, 2026: the clean cross-root rerun completed and confirms the hard-init finalists
 
@@ -1133,11 +1899,129 @@ Assumption split:
 
 ## Queue Status
 
-- As of `2026-04-09 17:42 EDT`, the hard-init seed-`0` chain is complete, the
-  clean cross-root compatibility rerun `9211252` is complete, and the final
-  `200k`, `10`-seed default-`dt` confirmatory array `9211290_[0-679]` is
-  still running with pass-`0` collect / resolve `9211291 -> 9211292` and
-  auto-advance watcher `9211747` waiting on `9211292`.
+- As of `2026-04-14 23:36 EDT`, the seed-`10` Dysts long-horizon reevaluation
+  launcher `9273653` is complete and wrote
+  [queue_record.json](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414/queue/queue_record.json)
+  plus a `750`-row task manifest with `0` missing runs. The active queued
+  chain is cache prebuild `9273655`, validation `9273656`, full array
+  `9273657`, and collector `9273658`. A standalone validation probe
+  `9273670` failed immediately because cached Dysts trajectories were one step
+  too short for `H30000`; that cache-length bug is now fixed in
+  [skae/data.py](/home/mila/l/lia/skae/skae/data.py), and a replacement
+  validation probe `9273675` is running on `long`. The cache prebuild array
+  has also started (`9273655_3` and `9273655_4` are running), and the live
+  `9273675` stdout confirms that the patched cache path now detects stale
+  `30000`-step caches and rebuilds them correctly for `H30000`.
+- As of `2026-04-14 23:10 EDT`, the non-training fixed-`17` visual-packet run
+  under compute allocation `9273591` is complete. It ran
+  [tools/generate_fixed17_lista_phase_portraits.py](/home/mila/l/lia/skae/tools/generate_fixed17_lista_phase_portraits.py)
+  and wrote
+  [fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/fixed17_lista_phase_portraits_20260414/fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json)
+  plus `17` per-system selection JSON files and `51` per-horizon phase-
+  portrait figure packets. No queue follow-up is required for this artifact
+  set.
+- As of `2026-04-14 12:17 EDT`, the non-training Dysts visual-packet jobs
+  `9269340` and `9269661` are complete. `9269340` ran
+  [tools/generate_dysts_h5000_phase_portraits.py](/home/mila/l/lia/skae/tools/generate_dysts_h5000_phase_portraits.py)
+  on `main-cpu` and wrote
+  [docs/figures/dysts_h5000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_h5000_lista_phase_portraits_manifest.json)
+  plus `15` per-system H5000 phase-portrait figure packets. `9269661` reran
+  the same script at `--horizon 20000` and wrote
+  [docs/figures/dysts_h20000_lista_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_h20000_lista_phase_portraits_manifest.json)
+  plus `15` per-system H20000 phase-portrait figure packets. No queue
+  follow-up is required for either artifact set.
+- As of `2026-04-13 19:16 EDT`, the hard-init seed-`0` chain is complete, the
+  clean cross-root compatibility rerun `9211252` is complete, the final
+  `200k`, `10`-seed default-`dt` confirmatory packet is fully finalized
+  through rescue pass `1`, and the narrow default-sampling `v6` / `v7`
+  long-budget floor check has completed as fair default array / collector
+  `9228394_[0-339] -> 9228395`. No paper-critical training or collection jobs
+  remain live on this branch.
+- The April 13 documentation audit found no additional finished paper-critical
+  SLURM packets from the last 7 days that were missing from this log. The
+  required maintenance was to remove stale wording that still described the
+  clean tanh / no-shrink control and several `v7` design-note axes as pending
+  after they had already completed.
+- Separately, the working-budget zero-sparsity no-shrink control screen under
+  [transition_rich_zero_sparse_control_noshrink_20k_seed3_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_control_noshrink_20k_seed3_20260410)
+  finished cleanly as `9223056_[0-50] -> 9223057 -> 9223058`. It collected
+  `51` rows, accepted default `dt` on all `17` systems at pass `0`, and
+  reported system-median best-periodic `H100/H500/H1000 = 1.8317 / 3.5797 /
+  4.1857`.
+- The older locked-budget zero-sparsity expansion under
+  [transition_rich_zero_sparse_control_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_control_seed10_20260410)
+  as array `9221521_*` is not the requested tanh / no-shrink control because
+  its task table maps `mlp_zero_sparse_basin_partition_control` to
+  `generic_sparse` rather than `generic_no_shrink`. It should therefore not be
+  used as the clean anti-sparsity packet. It is still scientifically valuable
+  as a locked-budget ReLU-only ablation, because it removes the explicit
+  penalty while keeping the encoder's architectural shrinkage. Operationally
+  it now runs through collect / resolve pass `4`, still accepts default `dt`
+  on all `17` systems, and remains at system-median best-periodic
+  `H100/H500/H1000 = 0.5764 / 2.0556 / 2.6532` with `17/17` good systems.
+- The corrected locked-budget tanh / no-shrink control is now complete under
+  [transition_rich_zero_sparse_tanh_control_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_zero_sparse_tanh_control_seed10_20260410)
+  as wrapper `9224111`. That launcher completed successfully and emitted a
+  fresh default task table with `config_name=generic_no_shrink`. The clean
+  default pass now completes as `9224263_* -> 9224264 -> 9224265`; despite one
+  fast array failure, the collector writes `169` rows, all `17` systems accept
+  default `dt`, and the packet reports system-median best-periodic
+  `H100/H500/H1000 = 0.5763 / 1.7924 / 2.4279`. This packet uses
+  `MAX_HALVINGS=0`, so no rescue pass was needed.
+- A new narrow LISTA-only seed-`0`, `20k` follow-up is now complete under
+  [transition_rich_basin_partition_20260410_seed0_smoke_v7](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260410_seed0_smoke_v7)
+  as wrapper `9226563`. It reuses the earlier `20k` shortlist anchors and
+  launches only new unrun LISTA variants:
+  `lista_blockdiag_adaptive_groupwise_threshold_basin_partition`,
+  `lista_blockdiag_sparsegroup_basin_partition`,
+  `lista_blockdiag_signsplit_momentum_basin_partition`,
+  `lista_dense_softblock_dict_tied_precode_basin_partition`,
+  `lista_dense_softblock_hybrid_precode_basin_partition`,
+  `lista_dense_softblock_signsplit_p64_softblock5em4_basin_partition`,
+  `lista_dense_softblock_signsplit_p64_softblock1em3_basin_partition`, and
+  `lista_dense_softblock_signsplit_p64_momentum_basin_partition`. The wrapper
+  completed and emitted `136` default-`dt` tasks (`8` variants x `17` systems
+  x `1` seed). The chain `9226564_[0-135] -> 9226565 -> 9226566 -> 9226567`
+  is now complete with `0` reducer failures. Its task table leaves
+  `hard_init_oversample` unset, so this wave stays on the default sampling
+  regime and keeps sampling out of the causal comparison against the MLP
+  controls. The best new forecasting root is
+  `lista_blockdiag_sparsegroup_basin_partition`
+  (`H1000 system-median best = 0.0846`), while the strongest new deep-basin
+  support-compression read is
+  `lista_dense_softblock_signsplit_p64_softblock5em4_basin_partition`
+  (`H(S|B)=0.6795`, `U_exact=0.8453`, `H(F|B)=0.0634` at
+  `absolute:0.001` / `deep`), but that root is missing `1/17` systems after a
+  fast training failure. No new `v7` root cleanly dominates both forecasting
+  and support alignment, so keep the completed hard-init packet as the main
+  shortlist provenance and treat `v7` as supporting method-side evidence.
+- A narrow default-sampling `200k`, `10`-seed forecasting follow-up is now
+  complete under
+  [transition_rich_basin_partition_v6_v7_200k_seed10_20260410](/home/mila/l/lia/skae/results/transition_rich_basin_partition_v6_v7_200k_seed10_20260410)
+  as wrapper `9228393`. It promotes the best forecasting roots from `v6` and
+  `v7`,
+  `lista_dense_softblock_signsplit_coherence_basin_partition` and
+  `lista_blockdiag_sparsegroup_basin_partition`, to `200k` with `10` seeds on
+  the same default sampling regime. The wrapper wrote a `340`-task default
+  table (`17` systems x `2` roots x `10` seeds) and then attempted to queue a
+  model-specific dt-rescue continuation, but that would have broken the
+  matched-dt comparison because rescue is decided per model/system arm. Those
+  rescue-dependent jobs `9228396-9228399` were therefore canceled, and the
+  wrapper exit is not the scientific result. The actual fair queue,
+  `9228394_[0-339] -> 9228395`, completed on April 11, 2026 and wrote
+  `329/340` forecasting rows across all `17` systems. The better coherence
+  root reports system-median best-periodic `H100/H500/H1000 = 0.0416 / 0.0761 / 0.0796`;
+  the sparsegroup root reports `0.0437 / 0.1142 / 0.1193`. This is not enough
+  to reopen the shortlist, and because the packet is forecasting-only it adds
+  no new basin-support reduction.
+- If that narrow `v6` / `v7` long-budget follow-up does not materially close
+  the forecasting gap to the promoted `v5` lineage, the next paper-facing
+  diagnostic should still be the evaluation pass on the locked finalists and
+  controls that reports `H100`, `H500`, and `H1000` by basin depth /
+  separatrix proximity rather than another broad training sweep. The mechanism
+  target is explicit: if sparsity helps because the latent tracks basin
+  identity, long-horizon forecasting should be best deep in a basin and worst
+  near a separatrix.
 - The completed method-side chain is the seed-`0` hard-init follow-up under
   [transition_rich_basin_partition_hardinit_seed0_20260409](/home/mila/l/lia/skae/results/transition_rich_basin_partition_hardinit_seed0_20260409).
   Chain `9209614` (training array) -> `9209615` (`collect_tr_bp`) ->
@@ -1196,11 +2080,26 @@ Assumption split:
   `lista_dense_softblock_signsplit_p64_hardinit_basin_partition`,
   `mlp_sparse_basin_partition_control`, and the newly exposed
   `mlp_zero_sparse_basin_partition_control`.
-- The confirmatory array already has a small hardware-only failure cluster:
-  tasks `238`, `255`, `267`, `279`, `295`, and `303` all failed on `cn-a009`
-  with `torch.AcceleratorError: CUDA error: uncorrectable ECC error
-  encountered`.
-  Treat those as rescue candidates rather than as scientific negatives.
+- The confirmatory array's small hardware-only failure cluster on `cn-a009`
+  (tasks `238`, `255`, `267`, `279`, `295`, and `303`) was resolved by rescue
+  pass `1`; no additional rescue rows were requested after
+  `9214919`.
+- The finalized forecasting summary is now materialized at
+  [collect_pass1/forecasting_summary.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/collect_pass1/forecasting_summary.md).
+  On system-median best-periodic `H1000`, it reports `0.0516` for the
+  block-diagonal hard-init LISTA finalist, `0.0775` for the dense soft-block
+  `p=64` hard-init LISTA finalist, `0.0608` for the matched sparse MLP
+  control, and `0.0909` for the zero-`L1` ReLU MLP ablation, with all
+  four roots at `17/17` good systems.
+- The corresponding locked-packet state-level comparison is now materialized
+  under
+  [interpretability_final_pass1/interpretability_summary.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/interpretability_final_pass1/interpretability_summary.md)
+  and
+  [final_comparison_pass1/transition_rich_final_comparison.md](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/final_comparison_pass1/transition_rich_final_comparison.md).
+  On the selected deep `absolute:0.001` slice, the dense `p64` hard-init
+  LISTA root is the only clear basin-support winner over the matched sparse
+  MLP control, while the block-diagonal hard-init root remains the stronger
+  forecast-retaining companion rather than the lead exact-support result.
 - Mila's `AssocMaxSubmitJobLimit` rejects a fully pre-expanded multi-pass
   rescue chain at this scale, so the live seed-`10` packet is now following an
   incremental queueing pattern: default array `9211290_[0-679]`, collect
@@ -1208,26 +2107,27 @@ Assumption split:
   resolver actually requests. A dedicated one-pass launcher now exists at
   [queue_transition_rich_basin_partition_rescue_pass.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_basin_partition_rescue_pass.sh)
   so later rescue passes can be queued without pre-expanding the whole chain.
-- That incremental path is now also connected to a queued watcher:
+- That incremental path is now also connected to a watcher that has already
+  fired:
   [advance_transition_rich_basin_partition_packet.sh](/home/mila/l/lia/skae/scripts/advance_transition_rich_basin_partition_packet.sh)
-  is pending as `9211747` with dependency `afterany:9211292`. After each
-  resolve pass it will either queue the actual next rescue pass or, if no
-  rescue is requested, queue the final interpretability reducer and the final
-  paired LISTA-vs-control summary automatically.
+  completed as `9211747` after dependency `afterany:9211292` and emitted the
+  actual rescue pass-`1` array `9214917_*`. The same path then finalized the
+  packet automatically at pass `1`; see
+  [advance_pass1.json](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/automation/advance_pass1.json)
+  for the recorded reducer / summary job ids and finalized status.
 - That queued post-hard-init chain is intentionally phase `1` only:
   it runs with the existing reducer on raw support-family / projection /
   operator-family / Jacobian-family metrics. Phase `2` remains queued only on
   paper, not in SLURM, until the reducer is extended with the April 9
   basis-aware alignment metrics.
-- The first submitted cross-root phase-`1` reduction is not yet scientifically
-  usable. `9210429` wrote `0` interpretability rows and `17` failures under
-  [failures.json](/home/mila/l/lia/skae/results/transition_rich_post_hardinit_crossroot_eval_20260409/interpretability/failures.json).
-  The job log shows `ROOT_LABELS_CSV` arrived as only
-  `v5_blockdiag_signsplit`, and every attempted row then failed checkpoint
-  load because the saved block-diagonal LISTA checkpoints expose
-  `encoder.We.*` keys while the current loader expects the newer
-  `precode_module` / `dict_param` layout. The cross-root comparison therefore
-  needs a clean rerun after fixing the launch / compatibility path.
+- Historical note on the first submitted cross-root phase-`1` reduction:
+  `9210429` wrote `0` interpretability rows and `17` failures under
+  [failures.json](/home/mila/l/lia/skae/results/transition_rich_post_hardinit_crossroot_eval_20260409/interpretability/failures.json)
+  because `ROOT_LABELS_CSV` arrived as only `v5_blockdiag_signsplit` and the
+  saved block-diagonal LISTA checkpoints exposed `encoder.We.*` keys instead
+  of the newer `precode_module` / `dict_param` layout. That invalid first
+  attempt is now only provenance; it was superseded by the clean rerun
+  `9211252` documented above.
 - `v1` closed cleanly under
   [transition_rich_basin_partition_20260409_seed0_smoke_v1](/home/mila/l/lia/skae/results/transition_rich_basin_partition_20260409_seed0_smoke_v1).
   Chain `9202665 -> 9202666_[0-84] -> 9202667 -> 9202673 -> 9202674`

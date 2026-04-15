@@ -13,6 +13,7 @@ from skae.config import (
     get_default_config,
     get_env_dt,
     get_train_generic_km_config,
+    get_train_generic_no_shrink_config,
     get_train_lista_config,
     get_train_lista_parity_generic_sparse_config,
 )
@@ -66,6 +67,12 @@ def test_get_named_configs():
     assert cfg_lista.MODEL.ENCODER.LISTA.NUM_LOOPS == 5
     assert cfg_lista.MODEL.TARGET_SIZE == 1024 * 2
 
+    cfg_no_shrink = get_train_generic_no_shrink_config()
+    assert cfg_no_shrink.MODEL.MODEL_NAME == "GenericKM"
+    assert cfg_no_shrink.MODEL.SPARSITY_COEFF == 0.0
+    assert cfg_no_shrink.MODEL.ENCODER.ACTIVATION == "tanh"
+    assert cfg_no_shrink.MODEL.ENCODER.LAST_RELU is False
+
     cfg_parity = get_train_lista_parity_generic_sparse_config()
     assert cfg_parity.MODEL.MODEL_NAME == "LISTAKM"
     assert cfg_parity.MODEL.TARGET_SIZE == 64
@@ -80,6 +87,12 @@ def test_config_registry():
     
     cfg_generic = get_config("generic")
     assert cfg_generic.MODEL.MODEL_NAME == "GenericKM"
+
+    cfg_no_shrink = get_config("generic_no_shrink")
+    assert cfg_no_shrink.MODEL.MODEL_NAME == "GenericKM"
+    assert cfg_no_shrink.MODEL.ENCODER.ACTIVATION == "tanh"
+    assert cfg_no_shrink.MODEL.ENCODER.LAST_RELU is False
+    assert cfg_no_shrink.MODEL.SPARSITY_COEFF == 0.0
     
     cfg_lista = get_config("lista")
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"

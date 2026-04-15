@@ -37,6 +37,19 @@ INTERPRETABILITY_METRICS: Tuple[Tuple[str, str, str], ...] = (
 )
 
 
+def _sampling_regime(root_label: str) -> str:
+    lowered = root_label.strip().lower()
+    if "hardinit" in lowered or "hard-init" in lowered:
+        return "hard_init_oversample"
+    return "standard"
+
+
+def _sampling_regime_label(regime: str) -> str:
+    if regime == "hard_init_oversample":
+        return "hard-init oversampled"
+    return "standard"
+
+
 def _safe_float(value: object) -> Optional[float]:
     if isinstance(value, (int, float)):
         out = float(value)
@@ -202,6 +215,12 @@ def build_summary(
     good_threshold: float,
 ) -> Dict[str, object]:
     roots = list(candidate_roots) + list(control_roots)
+    root_metadata = {
+        root: {
+            "sampling_regime": _sampling_regime(root),
+        }
+        for root in roots
+    }
     forecast_summary = _root_metric_summary(
         forecasting_rows,
         roots=roots,
@@ -227,7 +246,16 @@ def build_summary(
     for candidate in candidate_roots:
         candidate_vs_controls: Dict[str, Dict[str, object]] = {}
         for control in control_roots:
-            metrics: Dict[str, object] = {}
+            metrics: Dict[str, object] = {
+                "_comparison_metadata": {
+                    "candidate_sampling_regime": root_metadata[candidate]["sampling_regime"],
+                    "control_sampling_regime": root_metadata[control]["sampling_regime"],
+                    "sampling_regime_matched": (
+                        root_metadata[candidate]["sampling_regime"]
+                        == root_metadata[control]["sampling_regime"]
+                    ),
+                }
+            }
             for value_key, label, direction in FORECAST_METRICS:
                 metrics[label] = _pairwise_wins(
                     forecasting_rows,
@@ -252,6 +280,7 @@ def build_summary(
         "support_scheme": support_scheme,
         "subset": subset,
         "good_threshold": good_threshold,
+        "root_metadata": root_metadata,
         "candidate_roots": list(candidate_roots),
         "control_roots": list(control_roots),
         "forecast_summary": forecast_summary,
@@ -271,26 +300,47 @@ def _fmt(value: Optional[float]) -> str:
 def _render_markdown(summary: Dict[str, object]) -> str:
     forecast_summary = summary["forecast_summary"]
     interpretability_summary = summary["interpretability_summary"]
+    root_metadata = summary["root_metadata"]
     candidate_roots = summary["candidate_roots"]
     control_roots = summary["control_roots"]
     roots = list(candidate_roots) + list(control_roots)
+    has_mixed_sampling = any(
+        not summary["pairwise"][candidate][control]["_comparison_metadata"]["sampling_regime_matched"]
+        for candidate in candidate_roots
+        for control in control_roots
+    )
 
     lines = [
         "# Transition-Rich Final Comparison",
         "",
         f"- Support slice: `{summary['support_scheme']}` / `{summary['subset']}`",
-        f"- Good-forecast threshold: `H1000 best < {summary['good_threshold']}`",
+        f"- Forecast metric: raw rollout MSE",
+        f"- Good-forecast threshold: `H1000 best MSE < {summary['good_threshold']}`",
+        "- Fairness rule: only matched-sampling comparisons isolate architecture cleanly.",
         "",
         "## Root Summary",
         "",
-        "| root | H100 best | H500 best | H1000 best | good systems | H(B|S) | H(S|B) | U_exact | H(F|B) | own/base | freeze/base@20 | op between/within |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    if has_mixed_sampling:
+        lines.extend(
+            [
+                "- Mixed-regime pairwise sections are flagged below; read them as architecture plus sampling contrasts, not architecture-only evidence.",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "| root | sampling regime | H100 best MSE | H500 best MSE | H1000 best MSE | good systems | H(B|S) | H(S|B) | U_exact | H(F|B) | own/base | freeze/base@20 | op between/within |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
     for root in roots:
         fstats = forecast_summary.get(root, {})
         istats = interpretability_summary.get(root, {})
+        metadata = root_metadata.get(root, {})
         lines.append(
             f"| {root} | "
+            f"{_sampling_regime_label(str(metadata.get('sampling_regime', 'standard')))} | "
             f"{_fmt(fstats.get('H100 best'))} | "
             f"{_fmt(fstats.get('H500 best'))} | "
             f"{_fmt(fstats.get('H1000 best'))} | "
@@ -311,6 +361,18 @@ def _render_markdown(summary: Dict[str, object]) -> str:
                 [
                     "",
                     f"## {candidate} vs {control}",
+                    "",
+                ]
+            )
+            comparison_metadata = pairwise[candidate][control]["_comparison_metadata"]
+            lines.extend(
+                [
+                    f"- Sampling regime: candidate=`{_sampling_regime_label(comparison_metadata['candidate_sampling_regime'])}`, control=`{_sampling_regime_label(comparison_metadata['control_sampling_regime'])}`",
+                    (
+                        "- Fairness status: matched sampling regime; this pair isolates architecture more cleanly."
+                        if comparison_metadata["sampling_regime_matched"]
+                        else "- Fairness status: mixed sampling regime; interpret this pair as architecture plus sampling, not architecture alone."
+                    ),
                     "",
                     "| metric | systems compared | candidate better | control better | ties |",
                     "|---|---:|---:|---:|---:|",
