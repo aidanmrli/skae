@@ -1,0 +1,459 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage[round]{natbib}
+\usepackage[colorlinks=true,citecolor=blue,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+\graphicspath{{figures/}}
+
+\setlist[itemize]{leftmargin=1.2em,itemsep=2pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.4em,itemsep=2pt,topsep=2pt}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Enc}{E_\theta}
+\newcommand{\Dec}{D_\phi}
+\newcommand{\soft}{\operatorname{soft}}
+\newcommand{\blkdiag}{\operatorname{blkdiag}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\placeholder}[2]{%
+  \begin{figure}[t]
+  \centering
+  \fbox{\begin{minipage}{0.92\linewidth}
+  \textbf{#1.} #2
+  \end{minipage}}
+  \caption{#1.}
+  \end{figure}
+}
+
+\title{Sparse-Latent Koopman Autoencoders for Multibasin Dynamical Systems}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Koopman autoencoders learn coordinates in which nonlinear dynamics are advanced by a linear latent transition. Multibasin systems make this goal structurally difficult: local or basin-wide linearizations can exist around individual attracting sets, but different basins generally require incompatible finite-dimensional, state-reconstructing linear descriptions. We study sparse-latent Koopman autoencoders, where the encoder is biased to activate only a small subset of latent coordinates. The central hypothesis is that this active support can serve as an inspectable chart indicator, revealing which basin or local linear law is relevant for the current state. We test this hypothesis by separating forecasting from interpretability, asking whether supports align with basins, whether they can route local predictors without oracle basin labels, and whether sparse-latent models remain competitive at long horizons. The evidence supports a qualified view. Deep inside basins, sparse representations often form stable, basin-pure support objects, suggesting that the encoder recovers part of the attractor organization. However, exact support identity is not a reliable global invariant; it is sensitive to thresholds, basin boundaries, and equivalent latent coordinate choices. For deployment, fixed-size support routing is more robust than thresholded exact matching, and support-conditioned local predictors often improve on applying one global latent transition everywhere. Long-horizon forecasting results show that sparse-latent models remain competitive beyond controlled multibasin benchmarks, with stronger transition structure becoming most useful at the longest horizons. The main conclusion is therefore not that each basin has one exact support, but that induced latent sparsity can reveal support families that act as useful basin-local chart indicators.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Learning accurate and interpretable models of nonlinear dynamical systems remains a central problem in machine learning, scientific computing, and control. One particularly attractive direction is to seek a representation in which the nonlinear dynamics can become locally linear, since linear models support efficient prediction, estimation, and control while remaining amenable to classical solving tools such as linear quadratic regulators (LQR) \citep{kalman_general_1960} and model predictive control (MPC) \citep{mayne_constrained_2000, grune_nonlinear_2017}. Classical linearization theory gives local topological conjugacies near hyperbolic equilibria \citep{grobman1959homeomorphism,hartman1960lemma}, and Koopman eigenfunction theory extends related linearizing coordinates to entire basins of attraction for stable equilibria and periodic orbits \citep{lan_linearization_2013,kvalheim_existence_2021}. So indeed, a bridge between nonlinear and linear dynamics can be found theoretically.
+
+Koopman operator theory provides a natural way to do this. Instead of evolving the state in the nonlinear dynamical system directly, Koopman theory studies the evolution of observables under a linear operator acting on a lifted function space \citep{koopman_hamiltonian_1931, koopman_dynamical_1932, mezic2005spectral, brunton_modern_2022}. This viewpoint has inspired a large line of literature on data-driven approximations of Koopman dynamics, such as DMD and eDMD \citep{schmid_dmd_2010, williams_datadriven_2015, williams_kernel-based_2016}, and applications of these linear predictors for nonlinear control via MPC \citep{korda_linear_2018} or LQR \citep{mamakoukas_local_2019}. 
+More recently, Koopman autoencoders which learn this lift from data have emerged from integrating deep learning with Koopman theory \citep{takeishi2017learning,lusch_deep_2018,otto2019linearly, azencot_forecasting_2020, shi_deep_2022, fathi2024course}. Koopman autoencoders learn an encoder which maps a state to a latent representation, a matrix that advances that representation linearly, and a decoder that maps the latent state back to the original state space.
+
+A central challenge of Koopman approximations is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that these systems cannot admit a single finite-dimensional global linearization \citep{lan_linearization_2013, brunton_koopman_2016, pan_lifting_2024}. 
+For example, a damped mechanical system can settle into different wells; a biological or chemical model can approach different stable equilibria; a controlled system can move between regions with distinct local dynamics.
+In such multistable systems, it is possible to linearize the dynamics within basins, but the linearizations needed in different basins of attraction are incompatible with each other. 
+% The problem goes beyond predicting trajectories within a single locally valid basin to representing dynamics that may move across qualitatively different regimes while preserving enough structure to support downstream reasoning and control.
+Given the theoretical argument, multibasin forecasting with a single global finite-dimensional linearization seems ill-posed; it is more naturally a problem of discovering which local or basin-wide linear description applies at the current state.
+
+
+If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation of a Koopman autoencoder should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes. Our hypothesis is that sparse coding offers an appealing inductive bias for this purpose. Classical sparse coding and LISTA-style encoders produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}. 
+If the latent representation of state produced by a LISTA encoder is sparse, then each state activates only a small subset of latent coordinates. That active subset, which we call a support, is a discrete object that can be inspected and used for routing to correct locally linear dynamics. Then, periodically decoding and re-encoding the state can refresh the quality of the latent embedding over time by re-selecting the correct local dynamics as trajectories move across the state space \citep{fathi2024course}. 
+
+\todo{Replace this with a proper contributions paragraph or list.}
+In this study, we investigate whether basins of attraction can be identified with sparse supports produced by a LISTA encoder in a Koopman autoencoder, and whether these supports can then select local linear predictors. We also investigate whether the more principled representations learned by this framework improve the Koopman modeling and forecasting performance of multistable systems under periodic re-encoding. We do so in a setting where the model does not know the number of basins nor the basin assignment of each trajectory within a system at training or test time.
+
+\todo{Clean this up and/or get rid of this later to save space.}
+In \cref{sec:problem}, we formulate the learning setting. In \cref{sec:sparse-supports}, we motivate sparse supports as basin-local chart indicators. In \cref{sec:method}, we describe the sparse latent model, periodic re-encoding, support-based routing, and training objectives. 
+In \cref{sec:experiments}, we provide a fair empirical comparison of the forecasting performance of MLP encoders versus LISTA encoders with explicit sparsity objectives under periodic re-encoding.
+Finally, we wrap up with a brief discussion detailing future work in \cref{sec:discussion}. Appendix~\ref{sec:background} provides a detailed background reading and Appendix~\ref{appendix:experimental-protocol} provides detailed experimental protocol for reproducibility.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{claude_catalog_validation/true_basin_maps/composite_true_basins_6panel.png}
+  \caption{Representative multibasin benchmark systems.}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{dysts_phase_portraits/dysts_dadras_qichen_shimizumorioka_h20000_triptych.png}
+  \caption{Long-horizon Dysts forecasting examples at $H20000$.}
+\end{subfigure}
+\caption{The paper evaluates two complementary regimes. The procedural multibasin systems provide known basin labels for interpretability diagnostics. The Dysts systems provide long-horizon forecasting stress tests. The final submission should add a third panel showing learned support maps on the same coordinates as the true basin maps.}
+\label{fig:benchmarks}
+\end{figure}
+
+\section{Problem formulation}
+\label{sec:problem}
+
+The introduction motivates a multibasin version of Koopman learning. Succinctly, from sampled trajectories of a nonlinear system, learn a state-reconstructing latent representation whose evolution is linear, without being told which basin or local dynamical regime generated each observation. The benchmarks may be defined by continuous-time dynamics, but the learner is only given stored observations. Thus, for each system, we work with the one-step observation map
+\begin{equation}
+  x_{k+1}=F_{\Delta t}(x_k),
+  \label{eq:sampled_map}
+\end{equation}
+where $x_k\in\R^{d_x}$ is the state at the $k$th stored sample, $F_{\Delta t}$ denotes one benchmark observation step, and $\Delta t$ is the system-specific observation interval. The model does not observe the continuous flow, the vector field, or the internal integration steps used to generate the cached trajectories. Forecasting is therefore defined at the stored sampling cadence: a horizon of $H$ means $H$ applications of $F_{\Delta t}$. Because $\Delta t$ may differ across benchmark systems, equal values of $H$ need not correspond to equal physical time.
+
+The difficulty is not merely that $F_{\Delta t}$ is nonlinear. Many systems of interest are multistable: different initial conditions can approach different long-run behaviours. 
+A fixed point is a state $x^\ast$ satisfying $F_{\Delta t}(x^\ast)=x^\ast$, equivalently $f(x^\ast)=0$ in continuous time. 
+More generally, a trajectory may approach an attractor $A$, such as a stable equilibrium, limit cycle, torus, or chaotic invariant set. 
+The basin of attraction of $A$ is the set of initial conditions whose trajectories converge to $A$:
+\begin{equation}
+  \mathcal{B}(A)
+  =
+  \left\{
+    x_0\in\R^{d_x}:
+    \operatorname{dist}\!\left(F_{\Delta t}^{\,k}(x_0), A\right)\to 0
+    \text{ as } k\to\infty
+  \right\}.
+  \label{eq:basin}
+\end{equation}
+When multiple attractors coexist, their basins partition the state space up to basin boundaries. This creates the regime of interest for this paper. Within one basin, a useful linear description may exist locally or even basin-wide in appropriate coordinates, but another basin may require an incompatible description. Thus, the task is to learn a representation that can support linear prediction while the appropriate linear law may depend on where the current state lies in the multibasin geometry.
+
+\paragraph{Koopman autoencoders.} We study this setting with Koopman autoencoders. The model learns an encoder $\Enc:\R^{d_x}\rightarrow\R^{d_z}$, a decoder $\Dec:\R^{d_z}\rightarrow\R^{d_x}$, and a latent linear transition matrix $K\in\R^{d_z\times d_z}$. Given an initial observation $x_k$, the corresponding open-loop $h$-step forecast is
+\begin{equation}
+  \hat x_{k+h}=\Dec\!\left(K^h\Enc(x_k)\right).
+  \label{eq:kae_forecast}
+\end{equation}
+The same matrix $K$ is applied at every step of the rollout, so any state-dependent structure required for prediction must be encoded in the learned representation rather than in a supplied regime label.
+
+Training uses windows of adjacent stored observations. For a batch of $B$ windows of rollout length $L$,
+$\{x_{b,k},x_{b,k+1},\ldots,x_{b,k+L}\}_{b=1}^{B}$, where $b$ indexes windows and $\ell$ indexes offsets within a window, the model encodes each observed state, rolls out from the initial encoded state, and decodes both reconstructed observations and latent forecasts. The encoded and reconstructed quantities are defined for $\ell=0,\ldots,L$, while rollout and forecast quantities are defined for $\ell=1,\ldots,L$:
+\begin{equation}
+\begin{aligned}
+  z_{b,k+\ell}^{\rm enc} &= \Enc(x_{b,k+\ell}),\qquad
+  z_{b,k+\ell}^{\rm roll}=K^\ell z_{b,k}^{\rm enc},\\
+  x_{b,k+\ell}^{\rm rec} &= \Dec(z_{b,k+\ell}^{\rm enc}),\qquad
+  \hat x_{b,k+\ell}=\Dec(z_{b,k+\ell}^{\rm roll}).
+\end{aligned}
+\label{eq:window_rollout}
+\end{equation}
+The training losses described below are built from these reconstructed and rolled-out quantities. Each application of $K$ is interpreted as one stored benchmark step, matching the observation map in \cref{eq:sampled_map}.
+
+Finally, the formulation deliberately separates the information available during learning from the information used for scientific evaluation. In the intended training and deployment setting, the model is not given basin labels, the number of basins, or trajectory-to-basin assignments. When benchmark basin annotations are available, they are reserved for post-hoc evaluation; they are not used to choose the model, train the encoder or transition, or route predictions.
+
+\section{Sparse coding produces basin identifiers}
+\label{sec:sparse-coding}
+
+If the same latent transition matrix is applied throughout state space, then the representation itself must carry whatever information is needed to distinguish one local dynamical law from another. A generic dense encoder can, in principle, store this information in its continuous coordinates, but it has no particular reason to make the distinction inspectable or reusable for routing. For multibasin systems, we would like a representation with both continuous coordinates for prediction and a discrete, data-driven indicator of which local chart is being used. Sparse coding provides exactly this kind of inductive bias: the values of the active coordinates describe the state within a chart, while the active set identifies the chart.
+
+The basic sparse coding model makes this geometry explicit. Given a dictionary decoder $\Dec:\R^{d_z}\rightarrow\R^{d_x}$, sparse coding represents an input state $x$ by solving
+\begin{equation}
+  \min_z\;\frac{1}{2}\norm{x-\Dec z}_2^2+\lambda\norm{z}_1,
+  \label{eq:sparse_coding}
+\end{equation}
+where $\lambda>0$ controls how many coordinates are active \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003}. The important point is that the support of $z$ is a sparse, structured object. As $x$ varies within a region where the same coordinates remain active, the sparse code varies smoothly, often affinely, within the span of a fixed set of dictionary atoms. When $x$ crosses into a region better explained by different atoms, the support can change. Sparse coding therefore naturally represents data as a union of lower-dimensional linear pieces indexed by active sets.
+
+This geometry matches the multibasin problem well. A basin, or a coherent part of a basin, is precisely a region where one expects a local predictive description to be more stable than a global one. If the encoder assigns nearby states in that region to the same or closely related supports, then the support can act as a learned chart indicator. The continuous latent coefficients can still carry within-chart state information, while the support can be inspected, compared across trajectories, or used to select a local predictor.
+The claim is that sparsity can produce support families that are basin-pure enough to expose the attractor organization and useful enough to route local prediction without oracle labels. 
+
+% The goal is not to prove that every basin corresponds to one exact support. Exact supports may split a basin into several related active sets, especially near separatrices, in transition regions, or under equivalent rotations and rescalings of latent coordinates. The more robust claim is that sparsity can produce support families that are basin-pure enough to expose the attractor organization and useful enough to route local prediction without oracle labels. This is why our experiments evaluate exact supports, threshold-normalized supports, and fixed-size top-$k$ supports rather than relying on a single brittle definition.
+
+\paragraph{LISTA as a fast sparse encoder.} LISTA is a practical way to impose this bias inside a neural Koopman model. Classical sparse coding would require solving an optimization problem for every encoded state, which is awkward and slow. LISTA replaces the iterative sparse solver with a learned finite-depth shrinkage network \citep{gregor_learning_2010}. The thresholding operations make the map from state to latent code explicitly support-selecting, while the surrounding learned weights allow the sparse inference procedure to adapt to the data and forecasting objective. In this paper, LISTA is one structured implementation of induced sparsity; sparse MLP controls test whether the decisive ingredient is the sparse support itself rather than the particular encoder architecture.
+
+\section{Method}
+\label{sec:method}
+
+\subsection{Operationalizing basin-support alignment}
+
+The preceding sections reduce the problem to a concrete question: can a model trained without basin supervision learn a discrete, inspectable object that identifies which local dynamical chart is being used? We operationalize this question through the chain
+\begin{equation}
+  \text{sparse latent code}
+  \;\Longrightarrow\;
+  \text{basin-aligned support object}
+  \;\Longrightarrow\;
+  \text{support-routed local prediction}.
+  \label{eq:claim_chain}
+\end{equation}
+The first term is induced by the model and loss. The two arrows are evaluated after training: first by asking whether support objects agree with benchmark basin labels, and then by asking whether those same objects can select local predictive laws without using the labels. This separation keeps the central training and routing setting label-free: basin labels, basin memberships, and oracle route assignments are never supplied to the encoder, loss, or support router. Some transition-structure ablations prescribe the number of latent blocks as an architectural hyperparameter, and benchmark-only variants may set that block count from the known basin count; these blocks are still not assigned to basins and are not used as oracle routes.
+
+\subsection{Support objects}
+
+The central object in this paper is not the raw latent vector alone, but the active set it induces. Given an encoded state $z=\Enc(x)$, a support definition converts $z$ into a binary mask or fixed-size active set. We use three definitions:
+\begin{align}
+  S_{\rm abs}(x) &= \{i:\ |z_i|>10^{-3}\},\\
+  S_{\rm rel}(x) &= \{i:\ |z_i|>0.1\max_j |z_j|\},\\
+  S_{\rm top8}(x) &= \text{indices of the eight largest values of } |z_i|.
+  \label{eq:support_definitions}
+\end{align}
+These are not interchangeable measurements. The absolute-threshold support asks the most literal identifiability question: deep inside a basin, does one exact active set dominate? The relative-threshold support removes global scale effects and is useful when comparing local linear laws. The fixed-size top-$8$ support is the most deployment-like object because it avoids choosing an activity threshold and assigns every state the same support size.
+
+We also distinguish exact supports from support families. An exact support is the mask produced directly by one of the rules in \cref{eq:support_definitions}. A support family is formed by processing exact supports in descending empirical frequency and greedily merging a support into the most similar existing family whenever its Jaccard similarity to the family prototype is at least $0.5$. During family-routed forecasting, after the local operators have been fit, an exact support observed at test time is first mapped through the fitted support-to-family table; if it was not observed in the operator-fit set defined below, it is assigned to the closest family prototype only when the same Jaccard threshold is met. Otherwise the route is treated as unavailable. This distinction is necessary because the strongest plausible claim is not that every basin must correspond to one exact mask everywhere. A basin may be represented by several nearby masks, especially near separatrices, in regions where a coordinate is weakly active, or under equivalent latent coordinate choices. Thus exact support uniqueness is a stringent diagnostic, while support-family alignment is the more robust chart-level object. For grouped or block-structured variants we also record the dominant latent group, defined by the largest latent-group norm, as a coarse auxiliary object, but the main claim is basin-support alignment rather than basin-block alignment.
+
+\subsection{Sparse-latent Koopman model}
+
+The model that produces these support objects is a Koopman autoencoder with encoder $\Enc$, decoder $\Dec$, and latent transition $K$. It maps an observation to a latent state
+\begin{equation}
+  z_t=\Enc(x_t)\in\R^{d_z},
+\end{equation}
+advances that latent state linearly, and decodes back to observation space. In the LISTA variants, the decoder is a normalized linear dictionary,
+\begin{equation}
+  \hat x_t = Dz_t,
+\end{equation}
+so each active coordinate has the intended interpretation of selecting a dictionary atom. The MLP controls in the paper-facing comparisons use an architecturally matched linear decoder, but they do not implement the same shrinkage-based sparse inference procedure. Between re-encoding events, the forecast is
+\begin{equation}
+  \hat z_{t+1}=Kz_t,\qquad \hat x_{t+1}=D\hat z_{t+1}.
+\end{equation}
+Sparsity is therefore a property of the learned representation, not an assumption that the physical state, the vector field, or the Koopman transition itself is sparse.
+
+Our main sparse encoder is LISTA-style amortized sparse inference. The encoder first computes a dense pre-code $c_t=f_\theta(x_t)$, usually using the same kind of neural front end as the MLP controls in the main comparisons, and then applies learned shrinkage refinements:
+\begin{align}
+  u_t^{(0)} &= \soft(c_t,\tau),\\
+  u_t^{(q+1)} &= \soft(Su_t^{(q)}+c_t,\tau),
+  \qquad q=0,\ldots,Q-1,\\
+  z_t &= \Pi(u_t^{(Q)}).
+  \label{eq:lista}
+\end{align}
+Here $\soft(a,\tau)=\operatorname{sign}(a)\max(|a|-\tau,0)$ is applied elementwise, $S$ is learned, $\tau$ is typically set as a threshold parameter divided by a decoder Lipschitz-scale estimate, and $\Pi$ denotes the final coordinate convention used by the implementation, such as a nonnegative ReLU code or a sign-split code. The fixed-17 paper-facing LISTA finalists use sign-split latents and two refinement steps; ablations vary the depth, momentum, thresholding, and whether the pre-code is an MLP or a linear dictionary-tied map. This form is useful for the present problem because thresholding gives the encoder an explicit mechanism for selecting supports, while the learned pre-code and refinement weights allow that selection rule to adapt to the dynamical prediction task.
+
+We vary the transition structure separately from the encoder. A dense transition leaves $K$ unrestricted. A block-diagonal transition constrains
+\begin{equation}
+  K=\blkdiag(K_1,\ldots,K_M),
+\end{equation}
+so that latent groups evolve with no learned cross-group coupling. A soft-block transition keeps a dense matrix but penalizes entries outside a prescribed block structure, thereby suppressing rather than eliminating cross-group coupling. These blocks are model-side inductive biases rather than known basins. The experiments therefore include sparse and non-sparse MLP controls to distinguish the effect of induced sparsity from the effect of LISTA or transition structure alone. The sparse MLP control uses the same linear decoder family with a ReLU output gate and an explicit latent $L^1$ penalty, while the zero-sparsity MLP control removes both the latent $L^1$ penalty and the zero-inducing ReLU gate.
+
+\subsection{Refreshing the chart during rollout}
+
+If a support is interpreted as a chart indicator, then long rollouts should be allowed to re-select the chart as the predicted state evolves. We therefore evaluate periodic re-encoding. Starting from a latent state $z_t$, the model first advances and decodes,
+\begin{equation}
+  \tilde z_{t+1}=Kz_t,\qquad \tilde x_{t+1}=\Dec(\tilde z_{t+1}),
+\end{equation}
+and then either keeps the latent forecast or encodes the decoded state again:
+\begin{equation}
+  z_{t+1} =
+  \begin{cases}
+    \tilde z_{t+1}, & r_t=0,\\
+    \Enc(\tilde x_{t+1}), & r_t=1.
+  \end{cases}
+  \label{eq:reencode}
+\end{equation}
+The reset indicator $r_t$ follows a fixed periodic schedule. In LISTA variants that enable dynamics-aware sparse inference, the re-encoding call may also receive $\tilde z_{t+1}$ as a latent warm start; MLP encoders ignore this prior. In the forecasting summaries we evaluate a discrete set of candidate periods and report the best-periodic score over that set, but each individual rollout uses only the model's own predicted state. It does not use the true future state, a basin label, or a basin-transition oracle. Its role is to keep the rollout near the learned autoencoder manifold and to let the sparse encoder re-evaluate which support should be active at the current predicted location.
+
+The default periodic grid is system-dependent. For the fixed multibasin benchmark the standard candidate periods are $10$, $25$, $50$, and $100$ stored observation steps, with every-step re-encoding reported separately. For the Dysts long-horizon benchmark we use the extended grid $1,5,10,20,40,60,80,100,200,300,400,500,1000$ because the evaluated horizons are much longer. The best-periodic number is therefore a model-selection diagnostic over a fixed evaluation grid, not a rollout that adapts its reset period online.
+
+\subsection{Testing whether supports select dynamics}
+
+Basin alignment alone would not establish that supports are dynamically meaningful. A support could be an excellent label for a region of state space and still fail to select a useful local law. To test the stronger chart interpretation, we freeze a trained encoder and decoder and evaluate support-conditioned prediction in latent space. The local laws are fit only after model training. In the self-routed forecasting diagnostic they are fit on a separate operator-fit trajectory set and evaluated on disjoint forecast trajectories, so the router is not reusing the same transitions it was fit on. The first diagnostic uses the learned global transition but gates its input coordinates according to the current support:
+\begin{equation}
+  \hat z_{t+1}
+  =
+  \bar z_c
+  +
+  K\bigl(m_c\odot (z_t-\bar z_c)\bigr),
+  \label{eq:gated_k}
+\end{equation}
+where $c$ is the support object inferred from the current latent state, $m_c$ is its binary mask or block-union mask, and $\bar z_c$ is the corresponding latent center. This asks whether the support identifies which coordinates of the trained global model should be active in a local chart.
+
+The second diagnostic fits support-conditioned local operators. For a support object $c$, let $\mathcal{I}_c$ be the set of operator-fit transitions whose current latent state has that object. We fit the ridge-regularized centered local slope
+\begin{equation}
+  A_c =
+  \argmin_A
+  \sum_{t\in\mathcal{I}_c}
+  \norm{(z_{t+1}-\bar z_c)-A(z_t-\bar z_c)}_2^2
+  + \eta\norm{A}_F^2,
+  \label{eq:local_fit}
+\end{equation}
+where $\bar z_c$ is the mean current latent state within class $c$. The implementation uses the same center for current and next latents, so that prediction has the form $\bar z_c+A_c(z_t-\bar z_c)$. Centering matters because local linearization is normally taken around a local reference point, not around the origin of the global latent coordinate system. The default local-law diagnostics use ridge coefficient $10^{-4}$ and require at least $128$ operator-fit transitions before a support or family route is considered available.
+
+At test time, the support object is inferred from the current latent state and used to choose the gated transition or local operator. In the self-routed rollout, the initial latent is $\Enc(x_0)$ and subsequent support decisions are made from the model's own predicted latent state, not from the true future state or a re-encoded ground-truth observation. If the route is absent or insufficiently supported in the operator-fit data, prediction falls back to the learned global transition. This gives a non-oracle diagnostic for the second arrow in \cref{eq:claim_chain}: the question is whether a support inferred from the model state can route prediction better than applying one learned global latent transition everywhere.
+
+\subsection{Training objective}
+
+Training uses only adjacent observation windows. For a batch of $B$ windows with prediction horizon $L$ (and therefore $L+1$ observed states), the model produces reconstructed future states $x_{b,k+\ell}^{\rm rec}$, latent rollouts $z_{b,k+\ell}^{\rm roll}$, encoded future latents $z_{b,k+\ell}^{\rm enc}$, and decoded rollout predictions $\hat x_{b,k+\ell}$ as defined in \cref{eq:window_rollout}. The implementation encodes the initial state to seed the rollout, but the reconstruction, prediction, latent-linearity, and sparsity sums below are over the future offsets $\ell=1,\ldots,L$. The main losses are
+\begin{align}
+  \bar{\mathcal{L}}_{\rm pred}
+  &=
+  \frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+  \frac{\norm{\hat{x}_{b,k+\ell} - x_{b,k+\ell}}_2}{\sqrt{d_x}},
+  &
+  \bar{\mathcal{L}}_{\rm rec}
+  &=
+  \frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+  \frac{\norm{x_{b,k+\ell}^{\rm rec} - x_{b,k+\ell}}_2}{\sqrt{d_x}},
+  \label{eq:loss_state_terms}
+  \\
+  \bar{\mathcal{L}}_{\rm lin}
+  &=
+  \frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+  \norm{z_{b,k+\ell}^{\rm roll} - z_{b,k+\ell}^{\rm enc}}_2,
+  &
+  \bar{\mathcal{L}}_{\rm sp}
+  &=
+  \frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+  \norm{z_{b,k+\ell}^{\rm roll}}_1 .
+  \label{eq:loss_latent_terms}
+\end{align}
+The observation-space terms are normalized by $\sqrt{d_x}$ so that their scale is comparable across systems of different state dimension. The latent terms are left in their native scale because the latent dimension is fixed within the paper-facing comparisons.
+
+The total objective is
+\begin{equation}
+  \mathcal{L}
+  =
+  \frac{1}{L}\left(
+  \lambda_{\rm pred}\bar{\mathcal{L}}_{\rm pred}
+  +\lambda_{\rm rec}\bar{\mathcal{L}}_{\rm rec}
+  +\lambda_{\rm lin}\bar{\mathcal{L}}_{\rm lin}
+  +\lambda_{\rm sp}\bar{\mathcal{L}}_{\rm sp}
+  \right)
+  +\mathcal{L}_{\rm struct}.
+  \label{eq:training_objective}
+\end{equation}
+The extra factor $1/L$ matches the implementation's uniform sequence-term scaling after averaging over the rollout horizon. The prediction and latent-linearity terms make the representation useful for Koopman rollout, the reconstruction term keeps the code tied to the observed state, and the sparsity term encourages selective activation. The optional structural term $\mathcal{L}_{\rm struct}$ denotes the already weighted implementation terms enabled for a given variant. Block-activation and homogeneous-coordinate terms use the same sequence-term scaling, while matrix or dictionary penalties such as soft-block off-block penalties and decoder-coherence penalties are applied directly. The spectral radius of $K$ is monitored but is not optimized by a separate stability loss in the main implementation. No loss term uses basin labels or trajectory-to-basin assignments.
+
+\section{Experimental protocol}
+\label{sec:experiments}
+
+\paragraph{Multibasin benchmark.}
+The primary interpretability benchmark contains 17 two-dimensional systems chosen to expose distinct basin geometries: multiwell potentials, gated local-linear systems, polygonal attractor arrangements, checkerboard potentials, multi-attractor oscillatory systems, and systems with transition-rich basin layouts. For these systems, true basin labels are available for evaluation. They are not used by the encoder, the loss, the transition model, or the support router.
+
+\paragraph{Forecasting benchmark.}
+We also evaluate long-horizon forecasting on Dysts systems \citep{gilpin2021chaos,gilpin2023model}. The Dysts study is not a direct test of basin-support alignment. It is a stress test of whether sparse-latent Koopman autoencoders remain competitive at long horizons. We report median best-periodic mean squared error at $H5000$, $H10000$, $H20000$, and $H30000$, with $H20000$ and $H30000$ treated as the long-term results.
+
+\paragraph{Baselines and controls.}
+The main comparisons include LISTA-style sparse encoders, sparse MLP encoders, and non-sparse MLP encoders. The sparse MLP controls ask whether LISTA itself is necessary once sparsity is present. The non-sparse MLP controls ask whether removing the induced sparse-code bottleneck damages forecasting and interpretability. Some runs use additional near-boundary sampling to stress separatrix regions; those runs are interpreted as architecture plus sampling comparisons rather than architecture-only comparisons.
+
+\paragraph{Evaluation standard.}
+The basin-support claim is evaluated through three requirements. First, support objects should be basin-pure: a support should not mix points from many basins. Second, basins should not fragment excessively across many unrelated supports. Third, support objects should select useful local predictors. Basin labels are used only to evaluate these requirements, never to train the model or route predictions.
+
+\paragraph{Metrics.}
+Let $B$ be the true basin label and $S$ be a support object. We report $H(B\mid S)$, the residual basin uncertainty after observing the support; $H(S\mid B)$, the residual support uncertainty after observing the basin; and $U_{\rm exact}$, the average mass of the dominant exact support within each basin. Low $H(B\mid S)$ means supports are basin-pure. Low $H(S\mid B)$ means basins are not fragmented across many unrelated supports. High $U_{\rm exact}$ means one exact support dominates a basin. Forecasting is measured by rollout mean squared error. Self-routing is measured by the ratio between support-routed error and the error of the learned global transition, together with the fraction of evaluated cases in which the routed predictor wins.
+
+\section{Results}
+
+\subsection{Deep-basin supports align with basins}
+
+\Cref{tab:fixed17_alignment} reports deep-basin alignment under the absolute-threshold support. The sparse-latent KAE with a soft-block transition has $H(B\mid S)=0.0000$, so each observed support is basin-pure on this slice. It also has $H(S\mid B)=0.0543$ and $U_{\rm exact}=0.9923$, indicating that each basin is represented by a nearly dominant exact support. This is the strongest evidence for the first arrow in \cref{eq:claim_chain}.
+
+\begin{table}[t]
+\centering
+\caption{Deep-basin support alignment and forecasting on the 17-system multibasin benchmark. KAE denotes Koopman autoencoder. Numeric columns contain only measured quantities. Lower is better for MSE, conditional entropies, and the frozen-support ratio; higher is better for $U_{\rm exact}$.}
+\label{tab:fixed17_alignment}
+\scriptsize
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Model & H100 & H500 & H1000 & $H(B\mid S)$ & $H(S\mid B)$ & $U_{\rm exact}$ & Frozen \\
+\midrule
+Sparse-latent KAE, block diagonal & \textbf{0.0182} & \textbf{0.0491} & \textbf{0.0516} & \textbf{0.0000} & 0.3219 & 0.9646 & 0.2665 \\
+Sparse-latent KAE, soft block & 0.0253 & 0.0719 & 0.0768 & \textbf{0.0000} & \textbf{0.0543} & \textbf{0.9923} & \textbf{0.1691} \\
+Sparse-latent MLP KAE & 0.0297 & 0.0614 & 0.0608 & \textbf{0.0000} & 0.2449 & 0.9772 & 0.3923 \\
+Dense-latent MLP KAE & 0.0433 & 0.0932 & 0.0911 & \textbf{0.0000} & 0.1530 & 0.9781 & 0.7162 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The same table also shows why the conclusion must be precise. The block-diagonal sparse-latent KAE has the strongest forecast-retaining LISTA result, while the soft-block sparse-latent KAE has the strongest exact-support alignment. Sparse MLP encoders are competitive. Thus the evidence does not support a claim that LISTA alone is responsible for all of the behavior. It supports the more defensible claim that induced sparse latent structure can expose basin-aligned support objects while retaining useful Koopman forecasts.
+
+Matched sampling controls reinforce this interpretation. Under the same near-boundary sampling regime, sparse MLP encoders forecast well at $H100/H500/H1000$, whereas the non-sparse MLP control degrades sharply. This isolates induced sparsity as an important factor, even though the exact sparse encoder architecture is not the sole mechanism.
+
+\placeholder{Missing main interpretability figure}{The final paper should include side-by-side panels for at least three representative multibasin systems: true basin labels, learned dominant support or support-family labels, support entropy, and a support-versus-basin confusion matrix. This figure is necessary because the central claim is visual and spatial, not only tabular.}
+
+\subsection{Support objects route forecasts without basin labels}
+
+Exact thresholded supports can change when a latent coordinate crosses a small threshold. For deployment, we therefore evaluate a fixed-size top-$8$ support: every state is assigned the eight largest-magnitude latent coordinates. This makes the routing rule deterministic and avoids choosing a brittle activity threshold.
+
+\begin{table}[t]
+\centering
+\caption{Non-oracle support-routed forecasting at $H1000$ on the 17-system multibasin benchmark. KAE denotes Koopman autoencoder. Ratios below one indicate improvement over the learned global latent transition.}
+\label{tab:self_routing}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Model and route & All ratio & All win & Deep ratio & Deep win \\
+\midrule
+Sparse-latent KAE, gated transition & \textbf{0.228} & 0.920 & 0.224 & 0.923 \\
+Sparse-latent KAE, centered local law & 0.275 & \textbf{0.947} & \textbf{0.207} & \textbf{0.985} \\
+Dense-latent MLP KAE, gated transition & 0.924 & 0.539 & 0.964 & 0.519 \\
+Dense-latent MLP KAE, centered local law & 1.000 & 0.496 & 1.000 & 0.473 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:self_routing} supports the second arrow in \cref{eq:claim_chain}. The sparse-latent KAE support objects route forecasts substantially better than the learned global transition on most evaluated cases. The dense-latent MLP KAE support objects are much weaker under the same routing rule. This is the strongest deployment-facing result: the support object is inferred from the current state and is not replaced by an oracle basin label.
+
+The result also clarifies the correct interpretation of ``support.'' The absolute-threshold support is best for demonstrating deep-basin identifiability. The relative-threshold support is useful for diagnosing local linear laws. The top-$8$ support is the safest current deployment object. These should not be collapsed into one claim.
+
+\subsection{Support-conditioned laws behave like local charts}
+
+If support objects are only labels, then they may correlate with basins without selecting a useful local law. To test the mechanism, we compare support-conditioned linear fits against the learned global transition. A zero-intercept version of this diagnostic was negative: even oracle basin-conditioned fits did not reliably beat one global latent law. This failure is informative because it rules out the naive view that every support directly recovers a globally valid linear operator.
+
+The centered diagnostic is more appropriate for local charts. A local linearization is normally taken around a local reference point, not around the origin of the global latent coordinate system. After centering within each support object, support-conditioned local slopes beat the learned global transition on $93.1\%$ of evaluated block-diagonal sparse-latent KAE cases, $98.6\%$ of evaluated soft-block sparse-latent KAE cases, and $100\%$ of evaluated dense-latent MLP KAE cases on the deepest basin slice. This supports a chart interpretation, but it is not a LISTA-only result. The support objects expose local predictive structure; induced sparsity makes that structure more basin-aligned and more useful for non-oracle routing.
+
+\placeholder{Missing operator-geometry figure}{The final paper should show eigenvalues and eigendirections of support-conditioned operators near selected attractors and compare them with true local Jacobians. This is the main remaining evidence needed to show that the learned local laws match the underlying geometry, rather than merely improving prediction after post-hoc fitting.}
+
+\subsection{Long-horizon Dysts forecasting}
+
+\Cref{tab:dysts_long} reports the completed long-horizon Dysts comparison. The shortest two horizons in this table, $H5000$ and $H10000$, favor the sparse-latent KAE with a dense transition. The longest two horizons, $H20000$ and $H30000$, favor the sparse-latent KAE with a block-diagonal transition. This pattern suggests that strong structural constraints can be most useful at very long horizons, even when a dense transition is more accurate at shorter horizons.
+
+\begin{table}[t]
+\centering
+\caption{Dysts long-horizon median best-periodic mean squared error. KAE denotes Koopman autoencoder. The longest reported horizons, $H20000$ and $H30000$, are included as main results.}
+\label{tab:dysts_long}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Model & H5000 & H10000 & H20000 & H30000 \\
+\midrule
+Sparse-latent MLP KAE & 0.1953 & 1.2373 & 3.2524 & 3.6981 \\
+Dense-latent MLP KAE & 0.2474 & 1.4564 & 3.2354 & 3.7893 \\
+Sparse-latent KAE, block diagonal, lower penalty & 0.6575 & 2.0255 & 2.8856 & 3.2833 \\
+Sparse-latent KAE, block diagonal, higher penalty & 0.6473 & 1.4534 & \textbf{1.9150} & \textbf{2.2720} \\
+Sparse-latent KAE, dense & \textbf{0.1285} & \textbf{0.9778} & 2.7403 & 3.2662 \\
+Sparse-latent MLP KAE, block diagonal, lower penalty & 0.1501 & 1.1401 & 3.0536 & 3.5891 \\
+Sparse-latent MLP KAE, block diagonal, higher penalty & 0.1945 & 1.2761 & 2.9519 & 3.4785 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These Dysts results are supporting evidence rather than the core interpretability evidence. They show that sparse-latent KAEs remain competitive on long-horizon forecasting benchmarks and that the strongest very-long-horizon model is also structurally constrained. They do not, by themselves, prove basin-support alignment because the Dysts benchmark is not designed around known multibasin labels.
+
+\subsection{Pending falsification experiments}
+
+Two experiments are important for a final submission but should not be treated as completed evidence in this draft. First, a true local-geometry experiment should compare support-conditioned learned operators to true Jacobians and eigendirections near known attractors. Second, a controlled transfer experiment should deliberately move trajectories between basins and test whether support objects switch at the correct time without chatter. These experiments directly address the most serious alternative explanations: support objects may be only labels, or they may fail when the state crosses between basins.
+
+\placeholder{Missing controlled-transfer figure}{The final paper should include a controlled trajectory that crosses from one basin to another, with panels for state-space path, true basin label, inferred support object, reset events, and post-transfer forecast. The key metrics should be switch delay, false switches, and chatter.}
+
+\section{Related work}
+
+\paragraph{Koopman learning.}
+Koopman operator theory represents nonlinear dynamics through a linear operator on observables \citep{koopman1931hamiltonian,mezic2005spectral}. EDMD approximates this operator with a chosen dictionary \citep{williams2015data}. Neural Koopman methods learn the dictionary or invariant subspace from data \citep{takeishi2017learning,lusch2018deep,otto2019linearly}. Consistent and course-corrected Koopman autoencoders improve rollout behavior through additional losses and correction mechanisms \citep{azencot2020forecasting,fathi2024course}. Our contribution is not a new claim that neural Koopman autoencoders can forecast. It is an empirical study of whether sparse latent supports carry basin-local meaning.
+
+\paragraph{Multibasin Koopman structure.}
+Multiple invariant sets complicate naive interpretations of a single global finite-dimensional Koopman representation. Prior theory shows that global lifting and reconstruction depend on invariant-set structure, spectra, and symmetry \citep{lan2013linearization,pan2024lifting}. This motivates our use of support families and top-$k$ supports rather than a universal exact-support claim.
+
+\paragraph{Sparse coding and LISTA.}
+Sparse coding is a classical representation principle in which signals are reconstructed from a small number of active atoms \citep{olshausen1997sparse}. LISTA learns fast amortized sparse inference \citep{gregor2010learning}. We use this sparse-inference bias inside a dynamical model and evaluate whether the resulting active atoms become basin-aligned chart indicators.
+
+\paragraph{Switching and local linear models.}
+Switching state-space models and local Koopman methods explicitly introduce modes or local operators \citep{ghahramani2000variational,peitz2019koopman,mamakoukas2019local,blischke2023learning}. Our model differs because it does not train with known basin labels or a known basin count. The switching behavior, when it appears, is implicit in the learned sparse support.
+
+\section{Limitations and conclusion}
+
+The results support a qualified, falsifiable claim. Sparse-latent KAEs can learn support objects that align with basins deep inside multibasin systems, and fixed-size top-$8$ supports can route useful local forecasts without oracle labels. Exact support uniqueness is not guaranteed globally. It is strongest away from separatrices and should not be used as a brittle thresholded deployment rule.
+
+The evidence also separates sparsity from LISTA-specificity. Sparse MLP controls are strong, so the paper should not claim that LISTA is the only route to the observed behavior. The safer conclusion is that induced sparsity is a useful inductive bias for basin-aligned Koopman representations, with LISTA providing one structured implementation of that bias.
+
+Several limitations remain. The current true-geometry evidence is incomplete, so we do not yet claim recovery of true Jacobian eigendirections. Controlled basin-transfer evidence is also pending, so we do not yet claim clean support switching under interventions. The benchmark systems are low-dimensional, and higher-dimensional systems may require additional structure or weaker support-family interpretations.
+
+Overall, sparse support objects provide a useful bridge between forecasting and interpretability. They expose discrete chart-like structure inside a Koopman autoencoder, and the current evidence shows that this structure can align with basins and route local predictive laws. The most robust paper claim is not that each basin has one exact support, but that induced sparse support objects can reveal and exploit basin-local structure when evaluated with appropriate support definitions and falsification diagnostics.
+
+\appendix
+
+\section{Appendix: support definitions}
+
+The absolute-threshold support marks a latent coordinate active when its magnitude exceeds $10^{-3}$. It is used for the deep-basin exact-support alignment test. The relative-threshold support marks a coordinate active when its magnitude is at least $10\%$ of the largest latent magnitude for that state. It is used for centered local-law diagnostics. The top-$8$ support selects the eight largest-magnitude latent coordinates. It is used for non-oracle routing because it fixes the support size and avoids a brittle threshold.
+
+\section{Appendix: experiments to add before final submission}
+
+The first priority is a true local-geometry comparison on a small subset of systems with known fixed points. For each attractor, the analysis should compare the true one-step Jacobian and eigendirections with the support-conditioned learned local operators. The second priority is a controlled transfer experiment in which trajectories are deliberately moved across separatrices. The analysis should report the true crossing time, inferred support-switch time, switch delay, false-switch rate, and chatter.
+
+\bibliographystyle{plainnat}
+\bibliography{neurips_sparse_koopman_multibasin}
+
+\end{document}

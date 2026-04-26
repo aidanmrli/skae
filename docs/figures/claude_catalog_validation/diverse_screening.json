@@ -1,0 +1,93 @@
+[
+  {
+    "name": "V_shape_4",
+    "basins": 4,
+    "crossing": 0.3625,
+    "min_occ": 0.125,
+    "wells": 4
+  },
+  {
+    "name": "bow_tie_4",
+    "basins": 4,
+    "crossing": 0.45,
+    "min_occ": 0.2125,
+    "wells": 4
+  },
+  {
+    "name": "decagon_10",
+    "basins": 10,
+    "crossing": 0.6375,
+    "min_occ": 0.05,
+    "wells": 10
+  },
+  {
+    "name": "heptagon_7",
+    "basins": 7,
+    "crossing": 0.5125,
+    "min_occ": 0.075,
+    "wells": 7
+  },
+  {
+    "name": "narrow_4",
+    "basins": 4,
+    "crossing": 0.475,
+    "min_occ": 0.2375,
+    "wells": 4
+  },
+  {
+    "name": "pent_w11",
+    "basins": 5,
+    "crossing": 0.4,
+    "min_occ": 0.1875,
+    "wells": 5
+  },
+  {
+    "name": "pent_w13",
+    "basins": 5,
+    "crossing": 0.4625,
+    "min_occ": 0.1625,
+    "wells": 5
+  },
+  {
+    "name": "pent_w15",
+    "basins": 5,
+    "crossing": 0.4875,
+    "min_occ": 0.175,
+    "wells": 5
+  },
+  {
+    "name": "pent_w9",
+    "basins": 5,
+    "crossing": 0.3125,
+    "min_occ": 0.1625,
+    "wells": 5
+  },
+  {
+    "name": "tri_rot0",
+    "basins": 3,
+    "crossing": 0.3875,
+    "min_occ": 0.2875,
+    "wells": 3
+  },
+  {
+    "name": "tri_rot29",
+    "basins": 3,
+    "crossing": 0.4625,
+    "min_occ": 0.3,
+    "wells": 3
+  },
+  {
+    "name": "tri_rot59",
+    "basins": 3,
+    "crossing": 0.45,
+    "min_occ": 0.275,
+    "wells": 3
+  },
+  {
+    "name": "wide_4",
+    "basins": 4,
+    "crossing": 0.3625,
+    "min_occ": 0.2,
+    "wells": 4
+  }
+]

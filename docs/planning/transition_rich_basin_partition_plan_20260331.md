@@ -4,23 +4,107 @@
 
 NOTE: Update this file, `docs/EXPERIMENTS.md`, and `docs/PAPER_TRACK_STATUS.md` together.
 
+Companion design-inventory file for the current restored worktree:
+[docs/planning/transition_rich_system_inventory_20260406.md](/home/mila/l/lia/skae/docs/planning/transition_rich_system_inventory_20260406.md).
+
+Companion audit of the already implemented Claude catalog:
+[docs/planning/claude_catalog_audit_20260407.md](/home/mila/l/lia/skae/docs/planning/claude_catalog_audit_20260407.md).
+
+Current interpretability-ablation design note:
+[docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md).
+Treat it as the current ground-truth planning source for design choices when
+iterating on objective items `3` and `4` below. It is a design inventory, not
+yet experimental evidence; once an axis is tested systematically, fold the
+result back into this plan, [docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md),
+and [docs/PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md).
+
+Active scope note:
+
+The branch experiment scope is now frozen. Forward interpretability
+experiments should use only the fixed `17`-system shortlist already recorded in
+[docs/EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md) and
+[docs/PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md):
+
+- native transition-rich trio:
+  `multiwell_strong_transition`, `gated_local_linear`,
+  `gated_transfer_linear`
+- Claude-catalog subset:
+  `arrested_spiral`, `cal_asymmetric_3`, `cal_high_cross_3`,
+  `cal_hexagon_6`, `cal_octagon_8`, `cal_pentagon_5`, `cal_square_4`,
+  `checkerboard_potential`, `duffing_triple_well`, `snic_multi`,
+  `transition_routes_4`, `var_depth_gradient_4`, `var_diamond_4`,
+  `var_l_shape_5`
+
+Do not use this plan document to reopen broader system-generation or
+system-selection scope for the current branch.
+
+Training-budget policy for this plan:
+
+- while objective items `3-5` are still diagnostic and metric-building, use
+  `20000` optimization steps for forward interpretability runs on the fixed
+  shortlist
+- reserve `200000`-step training for the final confirmatory paper rerun only,
+  after the shortlist, metrics, and model recipe are locked
+
+Execution status note as of April 9, 2026:
+
+- the fixed-`17` shortlist packet ladder `v1-v6` is now complete through
+  train, collect, resolve, and interpretability reduction
+- `v5` was the sign-split shortlist tier:
+  hard block-diagonal and dense soft-block LISTA families with sign-split
+  codes, `2` versus `4` LISTA refinement loops, doubled block-count variants,
+  and latent-size sweeps including `p=64` and `p=128`
+- `v6` was the identifiability follow-up to `v5`:
+  the same sign-split shortlist families with either a restrained linear
+  pre-code, a decoder-coherence penalty, or both; here decoder coherence means
+  penalizing off-diagonal similarity among normalized decoder atoms so the
+  decoder dictionary has fewer redundant atoms and fewer interchangeable exact
+  supports
+- the current shortlist interpretability winner is
+  `lista_dense_softblock_signsplit_p64_basin_partition` from `v5`, but
+  own-basin canonical exact-support projection still hurts badly, so the
+  branch does not yet support the strongest one-canonical-chart-per-basin
+  claim
+- the main missing paper-side step is now the matched `v1` sparse MLP
+  comparison on the same study-plan metrics, not additional queue completion
+- if one more LISTA-only packet is run, keep it narrow and center it on the
+  remaining high-value method-side items from the design notes:
+  adaptive or blockwise thresholds, group-aware shrinkage, richer reset
+  triggers, and dictionary-tied or hybrid pre-codes
+- the main remaining evaluation-side work from the interpretability study plan
+  is freeze-support rollout testing, controlled-transfer switch-timing
+  diagnostics, basis-aware support-conditioned Jacobian or operator-family
+  analysis, and the paper visual-diagnostic suite
+
 ## Motivation
 
 The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that for these systems with multiple basins of attraction, finite-dimensional Koopman-invariant subspaces cannot provide a globally exact linear representation across all basins simultaneously. In a multistable finite-dimensional system, we might be able to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes.
 
 ## Objective
 
-We have sufficient evidence for forecasting ability in the paper. We now want to focus on a new branch of experiments centered on **local basin partitioning and classification** on deterministic toy systems.
+We have sufficient evidence for forecasting ability in the paper. We now want
+to focus on a new branch of experiments centered on **local basin partitioning
+and classification** on deterministic toy systems.
+
+The system set for this branch is no longer open-ended. The objective is to use
+the fixed shortlist above as the full forward experiment scope, not to keep
+expanding the candidate pool.
 
 The branch should do the following:
 
-1. Generate toy nonlinear systems in 2D and/or 3D that have interesting non-trivial transitions between basins; each system should procedurally generate movement between basins of attraction rather than just collapsing to the local attractor from the initial condition. These toy systems should be well-characterized and we should be able to plot them. These systems might be generated with deterministic noise, but there can be freedom in generating these systems.
-2. Plot these toy systems so that we can visually inspect them.
-3. Create, inspect, and diagnose interesting and possibly new metrics that explain **why** forecasting succeeds or fails on these toy systems instead of just reporting MSE. These metrics might diagnose whether phase plots are crossing (violations since each starting point should have its own unique solution). They might also study the extent to which distinct basins in our toy systems correspond to unique supports, perhaps by studying activations. Creativity in coming up with different metrics is encouraged.
-4. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. A strong result would be if a LISTA-encoder model can perform better
-5. Loop between (3) and (4).
+1. Treat the fixed `17`-system shortlist as the full branch scope and avoid
+   adding new systems unless the branch objectives are explicitly changed in the
+   live docs. (DONE)
+2. Plot these systems so that we can visually inspect them. (DONE)
+3. Investigate whether different kinds of Koopman autoencoder can discover reusable basin partitions without training-time basin labels. The main branch comparison is now dense LISTA, block-diagonal LISTA, and a matched standard MLP encoder control on the same fixed `17` systems. The primary report for this branch should be basin-separation quality rather than raw forecasting MSE alone. For the LISTA arms, it is appropriate to use the ground truth number of basins to set the number of blocks, while keeping the latent size at `256`. For current design choices inside the LISTA side of this comparison, use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the ground-truth design note for matrix-family, reset-policy, shared-block, block-count, and related structural sweeps until those axes are actually run and reduced.
+**IMPORTANT NOTE:** When we evaluate the model on unseen trajectories, I want to save the ground truth trajectories AND the predicted trajectories so that we can do diagnosis on the performance of the model in part 4.
+4. Create, inspect, and diagnose metrics that explain **why** forecasting succeeds or fails on these systems instead of just reporting MSE. These metrics may diagnose phase-plot crossings, partition reuse, support structure, and transition handling. We should reuse the cached or saved ground truth trajectories and the predicted trajectories from the evaluation in order to diagnose and inspect these metrics, and create visualizations for visual inspection. Use [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) as the ground-truth design source for the current metric, loss, trigger, and diagnostic ablation choices attached to this loop, and promote an axis from design note to live branch conclusion only after it has been tested systematically.
+5. Loop between (3) and (4) on the fixed shortlist, testing the axes in [docs/planning/basin_partition_experiments.md](/home/mila/l/lia/skae/docs/planning/basin_partition_experiments.md) systematically rather than ad hoc.
 
-The lead open question is whether the learned Koopman representation from the encoder identifies meaningful partitions and handles common transitions cleanly.
+The lead open question is whether the learned Koopman representation from the
+encoder identifies meaningful basin-aligned partitions across this fixed
+shortlist, and whether LISTA does so more strongly than the matched standard
+MLP encoder control.
 
 ## Tests first
 
@@ -52,7 +136,8 @@ The required implementation order is fixed:
 
 ### Candidate-system screening
 
-Before any model training, screen candidate parameters offline from a fixed initial-condition box.
+Before any model training on a shortlisted system, screen candidate parameters
+offline from a fixed initial-condition box.
 
 Each candidate must be evaluated on:
 
@@ -60,6 +145,10 @@ Each candidate must be evaluated on:
 - endpoint-basin occupancy,
 - region paths,
 - crossing fractions.
+
+For the current branch, "candidate" means parameterizations or calibration
+variants of the already chosen systems above, not wholly new benchmark-system
+ideas.
 
 ### Acceptance gates
 
@@ -92,6 +181,31 @@ These are the first metrics to report in the new branch because they do **not** 
 | Transition specificity | cross-over-within error ratio | Tests whether a support-defined model works better inside its own group than outside it |
 
 These metrics should reuse the recurring-support local-linearity tooling wherever possible.
+
+### Basis-aware local-law diagnostics
+
+Do **not** require different basins to have clearly different eigenvalues as a
+success criterion. Two basins can share very similar local spectra while
+differing mainly in orientation, symmetry transform, or the encoder chart used
+to represent the same intrinsic local law.
+
+For operator-family and Jacobian analyses, distinguish three cases explicitly:
+
+- essentially the same local law
+- the same local law up to a simple alignment or symmetry transform
+- genuinely different local laws
+
+The evaluation pass for those diagnostics should therefore report:
+
+- raw operator distance and similarity-aligned operator distance for
+  basin-conditioned and support-conditioned local fits
+- spectral similarity and directional similarity separately, e.g. eigenvalue
+  gaps plus eigendirection or invariant-subspace angles
+- support-family uniqueness both before and after decoder-atom alignment on
+  symmetric or near-symmetric systems
+
+On symmetric shortlist systems, treat “same law up to permutation, sign, or
+rotation/reflection” as a special case to interpret, not as automatic failure.
 
 ### Transition diagnostics
 

@@ -9,10 +9,11 @@ import torch
 from skae.config import Config
 from skae.benchmarks.dysts_adapter import DystsEnv, is_dysts_available
 from skae.data import (
-    Env, Wrapper, VectorWrapper,
+    Env, Wrapper, VectorWrapper, HardInitialConditionWrapper,
     Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic, MultiWellTransition,
+    GatedTransferLinear,
     KuramotoOscillators, ContinuousHopfield, CompetitiveLotkaVolterra,
-    integrate_euler, integrate_rk4, generate_trajectory, make_env
+    build_hard_initial_condition_pool, integrate_euler, integrate_rk4, generate_trajectory, make_env
 )
 
 
@@ -896,6 +897,83 @@ class TestFactory(unittest.TestCase):
             make_env(self.cfg)
 
         self.assertIn("Unknown environment", str(context.exception))
+
+
+class TestHardInitialConditionOversampling(unittest.TestCase):
+    """Tests for training-time hard initial condition oversampling."""
+
+    def setUp(self):
+        self.cfg = Config()
+        self.cfg.SEED = 7
+        self.cfg.ENV.ENV_NAME = "gated_transfer_linear"
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED = True
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.FRACTION = 1.0
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.POOL_SIZE = 32
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.NUM_CANDIDATES = 256
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.PROBE_STEPS = 24
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.NUM_PERTURBATIONS = 4
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.PERTURB_SCALE = 0.04
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.TRANSIENT_WINDOW = 6
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.TRANSIENT_WEIGHT = 0.5
+        self.cfg.TRAIN.HARD_INIT_OVERSAMPLE.JITTER_SCALE = 0.0
+
+    def test_build_hard_pool_returns_ranked_subset(self):
+        env = GatedTransferLinear(self.cfg)
+        pool, scores = build_hard_initial_condition_pool(
+            env,
+            pool_size=16,
+            num_candidates=128,
+            probe_steps=16,
+            num_perturbations=3,
+            perturb_scale=0.04,
+            transient_window=4,
+            transient_weight=0.5,
+            chunk_size=32,
+            seed=123,
+        )
+
+        self.assertEqual(pool.shape, (16, 2))
+        self.assertEqual(scores.shape, (16,))
+        self.assertTrue(torch.isfinite(scores).all())
+        self.assertTrue(torch.all(scores[:-1] >= scores[1:]))
+
+    def test_hard_pool_enriches_non_core_transition_regions(self):
+        env = GatedTransferLinear(self.cfg)
+        hard_states, _ = build_hard_initial_condition_pool(
+            env,
+            pool_size=64,
+            num_candidates=512,
+            probe_steps=24,
+            num_perturbations=4,
+            perturb_scale=0.04,
+            transient_window=6,
+            transient_weight=0.5,
+            chunk_size=64,
+            seed=321,
+        )
+        random_states = torch.stack(
+            [env.reset(torch.Generator().manual_seed(5000 + idx)) for idx in range(64)],
+            dim=0,
+        )
+
+        hard_regions = env.region_label(hard_states)
+        random_regions = env.region_label(random_states)
+        hard_non_core = (hard_regions >= env.num_basins).float().mean().item()
+        random_non_core = (random_regions >= env.num_basins).float().mean().item()
+
+        self.assertGreater(hard_non_core, random_non_core)
+
+    def test_wrapper_draws_from_pool_when_fraction_is_one(self):
+        env = GatedTransferLinear(self.cfg)
+        wrapped = HardInitialConditionWrapper(env, self.cfg)
+
+        draws = torch.stack(
+            [wrapped.reset(torch.Generator().manual_seed(6000 + idx)) for idx in range(8)],
+            dim=0,
+        )
+        distances = torch.cdist(draws.float(), wrapped.hard_pool.float())
+
+        self.assertTrue(torch.allclose(distances.min(dim=1).values, torch.zeros(8), atol=1e-7))
 
 
 if __name__ == "__main__":

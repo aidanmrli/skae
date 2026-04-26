@@ -1,0 +1,683 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Enc}{\mathcal{E}}
+\newcommand{\Dec}{\mathcal{D}}
+\newcommand{\Supp}{\operatorname{supp}}
+\newcommand{\argmin}{\operatornamewithlimits{arg\,min}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+\title{Objectives and Logic of the Basin-Support Interpretability Study}
+\author{}
+\date{April 13, 2026}
+
+\begin{document}
+\maketitle
+
+\paragraph{Source note.}
+This note synthesizes the current study framing in
+\texttt{docs/planning/interpretability\_study\_plan.md},
+\texttt{docs/planning/basin\_partition\_experiments.md},
+\texttt{docs/planning/transition\_rich\_basin\_partition\_plan\_20260331.md},
+\texttt{docs/EXPERIMENTS.md}, and \texttt{docs/PAPER\_TRACK\_STATUS.md}.
+It is written for the paper-facing question that now matters most: what exactly
+we are trying to prove about basin-support alignment, what phenomenon we think
+the model may be learning, how we judge success, and which model changes are
+meant to encourage sparse, reusable supports.
+
+\section{What the study is trying to show}
+
+The core objective of the basin-support interpretability study is not merely to
+show that a Koopman autoencoder forecasts well on multistable systems. We
+already have substantial forecasting evidence. The scientific question here is
+stronger:
+\begin{quote}
+Can a sparse Koopman representation learned without basin labels organize the
+state space into latent supports that align with basins of attraction or with
+basin-specific local dynamical laws?
+\end{quote}
+
+In the intended training and deployment setting, we do \emph{not} assume that
+the number of basins is known, and we do \emph{not} assume that trajectories
+come with basin labels. Basin information is therefore not a training signal.
+It is only an evaluation-time diagnostic on benchmark systems. This matters
+because it changes the meaning of success: we are not testing whether a
+supervised classifier can recover known basin labels; we are testing whether
+the geometry and dynamics themselves are strong enough for sparse supports to
+emerge as reusable latent regime indicators.
+
+The study is therefore about three nested questions.
+\begin{enumerate}[leftmargin=1.5em]
+    \item Do sparse supports identify basin membership?
+    \item Do those supports identify distinct local linear laws?
+    \item When basin transitions occur in transition-rich benchmarks, do
+    support changes happen at the right times and for the right reasons?
+\end{enumerate}
+
+The strongest possible outcome would be one canonical sparse support per basin.
+But that is intentionally treated as the strongest outcome, not the only honest
+one. The live study plan already recognizes a hierarchy of success:
+\begin{enumerate}[leftmargin=1.5em]
+    \item exact-support reuse,
+    \item support-family or dominant-group alignment,
+    \item symmetry-aware operator-family or Jacobian-family alignment.
+\end{enumerate}
+
+\section{The Koopman-theoretic phenomenon we are studying}
+
+Consider a discrete-time nonlinear dynamical system
+\begin{equation}
+    x_{t+1} = f(x_t), \qquad x_t \in \mathcal{X} \subset \R^{d_x}.
+\end{equation}
+Koopman theory asks for observables $\phi(x)$ such that the dynamics are
+approximately linear in the lifted coordinates
+\begin{equation}
+    z_t = \phi(x_t), \qquad z_{t+1} \approx K z_t.
+\end{equation}
+
+For a system with a single attractor and favorable structure, one can hope for
+a finite-dimensional lifting that behaves nearly globally. In a multistable
+system with multiple basins of attraction, that global picture breaks down.
+Different basins admit different local linear descriptions, and one finite
+continuous chart generally cannot represent all of them exactly while still
+containing the original state coordinates in a finite-dimensional
+Koopman-invariant subspace.
+
+That is why the model class in this repo is not just a linear latent predictor.
+It is a \emph{sparse} Koopman autoencoder with periodic or event-triggered
+reencoding:
+\begin{equation}
+    z_t = \Enc(x_t), \qquad \tilde z_{t+1} = K z_t, \qquad \hat x_{t+1} = \Dec(\tilde z_{t+1}),
+\end{equation}
+followed, when we reset, by
+\begin{equation}
+    z_{t+1} = \Enc(\hat x_{t+1}).
+\end{equation}
+When the encoder is LISTA-like and sparse, this architecture has a natural
+interpretability hypothesis:
+\begin{quote}
+the active support of $z_t$ may function as an implicit chart label, so that
+different supports correspond to different locally valid linear regimes.
+\end{quote}
+
+The key point is that sparse coding turns the encoder into a piecewise-affine
+map. The support pattern
+\begin{equation}
+    S_t = \Supp(z_t)
+\end{equation}
+partitions state space into regions where the same small subset of atoms is
+active. If the Koopman model is behaving the way we hope, those support regions
+should line up with basin geometry, or at least with basin-specific local
+dynamical laws.
+
+\section{Why basin eigenstructure matters}
+
+The basin story is not just a clustering story. It is fundamentally a
+\emph{local linearization} story. Let $x_b^\star$ be an attracting fixed point
+for basin $b$. Near that fixed point,
+\begin{equation}
+    x_{t+1} - x_b^\star \approx J_b (x_t - x_b^\star),
+\end{equation}
+where $J_b$ is the Jacobian of the true dynamics near the attractor. A
+Koopman-style local chart around basin $b$ is useful if it captures the local
+eigenstructure of this linearization: contraction or expansion rates, stable
+subspaces, and the directions in which perturbations relax.
+
+However, the study should \emph{not} define success as ``different basins must
+have different eigenvalues.'' Two different basins can be dynamically similar
+in a deeper sense:
+\begin{equation}
+    J_{b_2} \approx Q^{-1} J_{b_1} Q
+\end{equation}
+for some rotation, reflection, signed permutation, or other simple change of
+basis. In that case the two basins may share nearly identical local rates while
+differing mainly in orientation, symmetry transform, or encoder chart.
+
+This is exactly why the live plan insists on a basis-aware and
+symmetry-aware interpretation:
+\begin{enumerate}[leftmargin=1.5em]
+    \item Two basins may have very similar spectra but different eigenvectors.
+    \item Two basins may be symmetry-related rather than dynamically unrelated.
+    \item Exact support uniqueness may therefore be too strict even when the
+    model has learned the right local law family.
+\end{enumerate}
+
+This implies different levels of attainable support success.
+\begin{itemize}[leftmargin=1.5em]
+    \item If two basins truly require distinct local coordinates, the ideal
+    outcome is one sparse support template per basin.
+    \item If two basins share the same intrinsic law up to alignment, the model
+    may learn different exact supports but one support family, or one operator
+    family after alignment.
+    \item If the model only captures coarse basin identity and not a canonical
+    sparse chart, dominant-group alignment may still be the honest result.
+\end{itemize}
+
+\section{How the study judges success}
+
+The current metric stack is built to separate basin purity, support
+compression, dynamical usefulness, and switch behavior. That separation is
+important because a representation can succeed on one of these axes while
+failing on another.
+
+\subsection{State subsets}
+
+Metrics are not interpreted uniformly over state space. The current study
+stratifies states into at least three subsets:
+\begin{itemize}[leftmargin=1.5em]
+    \item \textbf{deep-basin states}: far from separatrices, where a basin code
+    should be most stable,
+    \item \textbf{boundary states}: near ambiguous regions, where support
+    fragmentation is expected,
+    \item \textbf{transition-rich trajectories}: where support switching can be
+    compared against basin switching.
+\end{itemize}
+
+This stratification is essential. A model that only looks clean deep inside a
+basin but chatters near boundaries may still be useful, but that is a weaker
+claim than ``one support per basin everywhere.''
+
+\subsection{Exact-support metrics}
+
+Given a support rule such as an absolute threshold, relative threshold, or
+top-$k$ active set, define a support label $S$ for each state. The main exact
+support metrics are:
+\begin{align}
+    H(B \mid S), \qquad H(S \mid B), \qquad \mathrm{NMI}(S,B),
+\end{align}
+and
+\begin{equation}
+    U_{\text{exact}}
+    =
+    \frac{1}{|\mathcal{B}|}
+    \sum_{b}
+    \max_s p(S=s \mid B=b).
+\end{equation}
+
+Their roles are different.
+\begin{itemize}[leftmargin=1.5em]
+    \item Low $H(B \mid S)$ means a support points mostly to one basin. This is
+    \emph{basin purity}.
+    \item Low $H(S \mid B)$ means one basin reuses only a small number of exact
+    supports. This is \emph{within-basin support compression}.
+    \item High $U_{\text{exact}}$ means each basin has one dominant exact
+    support.
+\end{itemize}
+
+The current branch has already made a critical distinction here: low
+$H(B \mid S)$ alone is not enough. A model can be basin-pure while still using
+many exact supports per basin. That is why the active paper question is no
+longer ``does support correlate with basin at all?'' but rather ``does each
+basin reuse a sparse support in a stable way?''
+
+\subsection{Support families and dominant groups}
+
+Exact support is brittle. Small coefficient changes can flip a few active bits
+without changing the actual local law. For that reason the reducer also builds
+support families by clustering exact supports with a Jaccard-overlap rule, and
+it reports the family analogues of the entropy and purity metrics, especially
+$H(F \mid B)$.
+
+When the latent is structurally partitioned into groups or blocks, the reducer
+also reports dominant-group labels
+\begin{equation}
+    G(x) = \arg\max_m \norm{z_{G_m}}_2.
+\end{equation}
+
+This matters because the study's real objective is \emph{basin-support
+alignment}, not literal one-bitmask-per-basin perfection. If exact supports are
+too fine-grained but support families or dominant groups line up well with
+basins, that is still a meaningful interpretability positive.
+
+\subsection{Trajectory stability and switch metrics}
+
+Support should not only be basin-selective; it should also be temporally
+stable. The reducer therefore measures:
+\begin{itemize}[leftmargin=1.5em]
+    \item support persistence inside a basin,
+    \item support-switch rate on true basin switches,
+    \item support-switch rate off true basin switches,
+    \item switch detection fraction, miss fraction, delay, false early
+    switches, chatter, and dwell times.
+\end{itemize}
+
+These metrics are important because a code can look sparse and basin-pure in
+aggregate while still switching constantly along a single trajectory. If that
+happens, support is not serving as a stable local chart.
+
+\subsection{Operator-family and Jacobian-family metrics}
+
+The support story only becomes dynamical if the supports select different local
+linear laws. For each support class $c$, the reducer fits a support-conditioned
+local operator
+\begin{equation}
+    A_c
+    =
+    \argmin_A
+    \sum_{t:\,c_t=c}
+    \norm{z_{t+1} - A z_t}_2^2
+    + \lambda \norm{A}_F^2,
+\end{equation}
+and it compares these with basin-conditioned operators $A_b$ fit from the true
+benchmark basin labels.
+
+The main raw summaries are:
+\begin{itemize}[leftmargin=1.5em]
+    \item support-vs-basin operator distance,
+    \item within-basin operator distance,
+    \item between-basin operator distance,
+    \item the ratio
+    $\text{between}/\text{within}$.
+\end{itemize}
+
+The same logic is applied in state space using effective Jacobians of the
+learned one-step predictor
+\begin{equation}
+    \hat f(x) = \Dec(K \Enc(x)),
+    \qquad
+    J_{\hat f}(x) = \frac{\partial \hat f}{\partial x}(x).
+\end{equation}
+
+The current implementation already supports the \emph{raw} operator-family and
+Jacobian-family distances. The next planned refinement is basis-aware
+alignment: compare not only $\norm{A_b - A_{b'}}_F$ but also
+\begin{equation}
+    \min_{Q \in \mathcal{Q}} \norm{A_{b'} - Q^{-1} A_b Q}_F,
+\end{equation}
+with $\mathcal{Q}$ restricted to interpretable alignments such as orthogonal or
+signed-permutation transforms. This is the right way to handle basins that
+share spectrum but differ in eigendirection orientation.
+
+\subsection{Interventional metrics}
+
+The study also includes direct interventions on support, because correlation is
+not enough.
+
+\paragraph{Canonical support projection.}
+For each basin, define its canonical support template from deep-basin states.
+Then compare one-step prediction error under:
+\begin{enumerate}[leftmargin=1.5em]
+    \item the model's native latent,
+    \item the same latent projected onto its own basin's canonical support,
+    \item the same latent projected onto another basin's canonical support.
+\end{enumerate}
+
+If the support is genuinely causal for the local chart, then own-basin
+projection should hurt little relative to baseline, while wrong-basin
+projection should hurt badly.
+
+\paragraph{Freeze-support rollouts.}
+The reducer also freezes a basin's canonical support mask over longer rollout
+horizons. This tests whether the learned local law really operates through a
+stable support over time rather than merely through a transient one-step mask.
+
+\section{What the current evidence already suggests}
+
+The completed documents now support a more specific and more stable
+interpretation.
+
+\begin{itemize}[leftmargin=1.5em]
+    \item Deep inside basin, basin purity can already be very strong. On the
+    native smoke subset, $H(B \mid S)$ is already approximately zero for both
+    dense and block-diagonal LISTA under some support definitions.
+    \item Exact-support reuse is harder. Away from the selected deep-basin
+    slice, $H(S \mid B)$ remains materially larger unless support is forced
+    into aggressive top-$k$ masks.
+    \item The family-level story is still cleaner than the exact-support story
+    in aggregate. Support-family entropy within basin is often much lower than
+    exact-support entropy even when exact canonical support reuse is imperfect.
+    \item The strongest completed exact-support result is now the locked dense
+    soft-block sign-split $p=64$ hard-init root from the $200$k, $10$-seed
+    confirmatory packet. On the selected deep-basin slice it reaches
+    $H(S \mid B)=0.0543$, $U_{\text{exact}}=0.9923$,
+    \texttt{freeze/base@20}$=0.1691$, and $H1000=0.0768$.
+    \item The same locked packet keeps the block-diagonal hard-init root as
+    the forecast-retaining companion ($H1000=0.0516$,
+    \texttt{freeze/base@20}$=0.2665$), but not as the lead exact-support
+    result.
+    \item The narrow default-sampling $200$k follow-up on the best
+    \texttt{v6}/\texttt{v7} forecasting roots is negative for promotion: the
+    better coherence root reaches
+    $H100/H500/H1000 = 0.0416 / 0.0761 / 0.0796$, which still does not beat
+    the locked hard-init finalists and adds no new state-level reduction.
+\end{itemize}
+
+The honest current paper read is therefore no longer ``the shortlist is still
+moving.'' Training-side ranking is effectively closed. The defensible claim is
+that LISTA can produce basin-selective and, on the selected deep-basin slice,
+very strong exact-support structure under the promoted hard-init dense root,
+but the branch as a whole still needs claim calibration between exact-support
+reuse and family/group-level alignment because the strongest causal evidence is
+mixed-regime and the remaining evaluation-side diagnostics are not done.
+
+\section{How the model is being changed to encourage sparse, reusable supports}
+
+The method-side work is not random hyperparameter search. Each change is meant
+to bias the model toward a support representation that is sparse, reusable, and
+dynamically meaningful.
+
+\subsection{The Koopman transition structure}
+
+The study compares three main $K$ families:
+\begin{itemize}[leftmargin=1.5em]
+    \item \textbf{dense $K$}: maximally flexible, weakest built-in
+    interpretability,
+    \item \textbf{hard block-diagonal $K$}: strongest structural bias toward
+    basin-specific subspaces,
+    \item \textbf{soft block-sparse $K$}: a compromise that allows mostly local
+    dynamics with limited cross-block sharing.
+\end{itemize}
+
+This matters because the encoder and the linear dynamics must cooperate. If the
+latent support is basin-structured but $K$ freely mixes every coordinate, the
+support semantics become less trustworthy.
+
+\subsection{Dynamics-aware reencoding}
+
+The most important encoder-side change is that reencoding is no longer treated
+as a fresh solve from scratch. The codebase now supports encoding with a latent
+warm start:
+\begin{equation}
+    z_t = \Enc(x_t; \tilde z_t),
+\end{equation}
+where $\tilde z_t$ is the predicted latent before reset. In practice this means
+the encoder can use the current forecast as a dynamics prior. Conceptually,
+this turns reencoding into a proximal correction around the current chart,
+rather than a complete chart re-selection from nothing.
+
+\subsection{Signed, nonnegative, and sign-split codes}
+
+The repo explicitly studies whether the final LISTA code should be:
+\begin{itemize}[leftmargin=1.5em]
+    \item nonnegative,
+    \item signed,
+    \item or sign-split.
+\end{itemize}
+
+The sign-split variant maps a signed pre-activation $v$ to
+\begin{equation}
+    z = \bigl[\max(v,0), \max(-v,0)\bigr].
+\end{equation}
+This keeps support semantics clean while preserving sign information. In the
+current shortlist documents, sign-split is one of the main positive method-side
+changes behind the strongest exact-support results.
+
+\subsection{More LISTA refinement and momentum}
+
+One LISTA step can be too shallow near separatrices or after long rollouts. The
+repo now exposes:
+\begin{itemize}[leftmargin=1.5em]
+    \item deeper LISTA refinement loops,
+    \item fixed-beta momentum between refinement steps,
+    \item HyperLISTA-style adaptive refinement in separate branches.
+\end{itemize}
+
+The intended effect is not only better reconstruction; it is cleaner
+convergence to a sparse support that is stable under small perturbations.
+
+\subsection{Adaptive and groupwise thresholds}
+
+A single global shrinkage threshold is unlikely to be correct everywhere in
+phase space. The current LISTA stack therefore supports:
+\begin{itemize}[leftmargin=1.5em]
+    \item sample-dependent thresholds driven by reconstruction residual and
+    latent-prior mismatch,
+    \item groupwise learned base thresholds over inferred latent groups.
+\end{itemize}
+
+This is important because different parts of state space can demand different
+amounts of sparsification. Deep in a basin, a sharper threshold may stabilize a
+canonical support; near a boundary, a softer threshold may prevent brittle
+premature switching.
+
+\subsection{Group-aware shrinkage and top-$k$ group selection}
+
+If the basin hypothesis is really ``one dominant sparse support family per
+basin,'' then pure coordinatewise shrinkage is not ideal. The codebase now also
+supports:
+\begin{itemize}[leftmargin=1.5em]
+    \item sparse-group shrinkage over inferred latent groups,
+    \item top-$k$ group-first masking before within-group thresholding.
+\end{itemize}
+
+These changes are meant to encourage a two-level structure:
+\begin{enumerate}[leftmargin=1.5em]
+    \item a basin-level or regime-level group turns on,
+    \item sparse coordinates within that group encode local variation.
+\end{enumerate}
+
+\subsection{Pre-code control: free, linear, dictionary-tied, hybrid}
+
+The pre-threshold LISTA input $c$ strongly affects identifiability. If the
+pre-code MLP is too expressive, it can bypass the sparse-coding bias entirely.
+The repo therefore exposes:
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{free\_mlp},
+    \item \texttt{linear},
+    \item \texttt{dictionary\_tied},
+    \item \texttt{hybrid}.
+\end{itemize}
+
+The dictionary-tied and hybrid modes are especially relevant for
+interpretability because they keep the encoder anchored to the live decoder
+dictionary instead of letting the pre-code become an opaque free feature map.
+
+\subsection{Decoder coherence and support identifiability}
+
+The docs also emphasize decoder coherence penalties. If dictionary atoms are
+too redundant, many different exact supports can represent nearly the same
+state. Reducing atom coherence should therefore reduce fake support
+multiplicity and make exact-support interpretation more credible.
+
+\subsection{Event-triggered resets and trigger scores}
+
+The evaluation stack now supports event-triggered reencoding using label-free
+scores such as:
+\begin{itemize}[leftmargin=1.5em]
+    \item projection gap,
+    \item group ambiguity,
+    \item off-block spillover,
+    \item support-margin fragility,
+    \item minimum dwell and maximum interval constraints.
+\end{itemize}
+
+These are not only rollout tricks. They are also mechanistic probes. A good
+trigger should fire when the model is leaving a local chart or becoming
+support-ambiguous, not constantly inside an easy basin.
+
+\subsection{Important implementation caveat}
+
+The current implementation does not expose every design axis in every possible
+combination. In particular, the sign-split branch is currently separated from
+some adaptive-threshold, groupwise-threshold, group-shrinkage, top-$k$ group,
+and dictionary-tied/hybrid pre-code branches. So in the present repo, some of
+these ideas are parallel ablation families rather than one unified model.
+
+\section{Experiments and Results So Far}
+
+\subsection{Experimental scope}
+
+The completed evidence now comes from four layers: legacy native-trio smoke
+reductions, seed-$0$ fixed-shortlist screening on the fixed $17$ systems at
+$20$k steps, the seed-$0$ hard-init oversampling ablation, and the locked
+$200$k, $10$-seed confirmatory packet against the matched sparse MLP control
+plus the zero-$L1$ ReLU ablation. There is also one narrow long-budget
+default-sampling follow-up on the best forecasting roots from \texttt{v6} and
+\texttt{v7}, but that packet is forecasting-only and therefore functions as a
+shortlist triage check rather than as new basin-support evidence.
+
+The main paper-facing state-level evidence is now the locked deep-basin
+comparison on the \texttt{absolute:0.001} slice. The earlier clean cross-root
+rerun remains scientifically useful because it locked the seed-$0$ shortlist
+under one common protocol, but it is no longer the final comparison. One
+fairness caveat remains central for coauthor handoff: the promoted LISTA
+finalists use hard-init oversampling while the MLP controls in the locked
+packet use the standard training sampling regime, so the confirmatory packet is
+architecture-plus-sampling evidence rather than architecture-only evidence.
+
+\subsection{Chronology of completed experiments}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabular}{p{2.6cm} p{2.8cm} p{4.0cm} p{5.0cm}}
+\toprule
+Experiment & Setup & Key quantitative read & Interpretation for the study objective \\
+\midrule
+State-level metric smoke test & Historical native trio; $6$ legacy LISTA checkpoints ($3$ systems $\times$ $2$ roots, seed $0$) reduced with the new state-level metric stack & Deep-basin $H(B \mid S)=0.0000$ for both dense and block-diagonal LISTA on several support definitions; but $H(S \mid B)$ stays high on thresholded supports, e.g.\ $1.8196$ dense and $1.7070$ block-diagonal at \texttt{relative:0.1}; all-state operator \texttt{between/within} is only moderately above $1$ ($1.6422$ dense, $1.6693$ block-diagonal) & The reducer validates the core phenomenon cleanly: basin purity is achievable much sooner than canonical exact-support reuse. This means ``support identifies basin'' is already partly true, but ``each basin owns one exact support'' is still false on the same runs. \\
+\addlinespace
+\texttt{v5} shortlist sweep & Fixed $17$ systems; sign-split LISTA shortlist with block-count, latent-size, and refinement-depth sweeps & Best exact-support root is dense soft-block sign-split $p=64$ with mean $H(S \mid B)=0.7719$, $U_{\text{exact}}=0.8064$, $H(F \mid B)=0.0521$, and $16/17$ systems passing the $H1000$ forecast gate; best forecast-retaining root is block-diagonal sign-split with system-median $H1000=0.0119$ and $17/17$ good systems & This is the first completed packet that materially improves exact-support compression without destroying forecasting. It does not collapse the frontier to one winner; instead it reveals a real tradeoff between cleaner exact supports and strongest forecast retention. \\
+\addlinespace
+\texttt{v6} identifiability follow-up & Same shortlist family, adding restrained linear pre-code, decoder coherence, or both & Coherence-only dense soft-block root keeps $17/17$ good systems with $H1000=0.0585$; linear-plus-coherence root improves fragmentation metrics to $H(S \mid B)=1.0575$, $U_{\text{exact}}=0.7837$, $H(F \mid B)=0.0841$, but falls to $H1000=0.9118$ and $15/17$ good systems & Dictionary/encoder identifiability pressure helps some support metrics, but not enough to beat the \texttt{v5} frontier. Cleaner atom geometry alone is not sufficient if it weakens the forecasting side too much. \\
+\addlinespace
+Near-separatrix hard-init follow-up & Seed-$0$ packet that oversamples difficult starts for the current \texttt{v5} block-diagonal and dense soft-block $p=64$ anchors & Block-diagonal hard-init improves deep-basin $H(S \mid B)$ from $1.4297$ to $1.3493$, $U_{\text{exact}}$ from $0.7181$ to $0.7447$, $H(F \mid B)$ from $0.1129$ to $0.1018$, own/base from $25.5197$ to $7.7018$, freeze/base from $0.7599$ to $0.3034$, and raw operator \texttt{between/within} from $1.8908$ to $2.4271$; dense $p=64$ hard-init improves forecasting ($H1000: 0.1358 \rightarrow 0.0794$) and intervention damage ($9.9799 \rightarrow 3.0431$, $0.8926 \rightarrow 0.6768$) but slightly worsens deep $H(S \mid B)$ & Hard initialization is a real mechanism-side positive, but its effect depends on architecture. The block-diagonal arm benefits more on interpretability metrics; the dense $p=64$ arm benefits more on forecasting and intervention robustness. This is evidence that different models fail for different reasons, not evidence for one universal fix. \\
+\addlinespace
+Clean cross-root rerun & First scientifically usable common reduction across \texttt{v5} leaders, \texttt{v6} follow-ups, matched sparse MLP control, and hard-init packet roots & On the selected deep-basin slice, the rerun confirms the same seed-$0$ ranking: block-diagonal hard-init is the forecast-retaining interpretability finalist; dense $p=64$ hard-init is the stronger forecasting/intervention tradeoff; matched sparse MLP does not win the branch objective & This experiment is the completed seed-$0$ shortlist-locking summary. It is still important because it fixed the promoted roots before the locked multi-seed rerun, but it is no longer the final paper-facing comparison. \\
+\addlinespace
+Locked confirmatory packet & Fixed $17$ systems; $200$k, $10$-seed mixed-regime packet comparing promoted hard-init LISTA finalists against matched sparse MLP control and zero-$L1$ ReLU MLP ablation & On the selected deep-basin \texttt{absolute:0.001} slice, dense $p=64$ hard-init reaches $H(S \mid B)=0.0543$, $U_{\text{exact}}=0.9923$, \texttt{freeze/base@20}$=0.1691$, and $H1000=0.0768$ versus sparse MLP $0.2449$, $0.9772$, $0.3923$, and $0.0608$; paired wins on $15/17$, $14/17$, $16/17$, and $9/17$ systems & This is the branch's clearest completed basin-support positive. It upgrades the argument from a seed-$0$ ranking to locked multi-seed evidence, but because sampling is mixed it should be read as architecture plus sampling rather than architecture alone. \\
+\addlinespace
+Default-sampling $200$k \texttt{v6}/\texttt{v7} floor check & Narrow long-budget default-sampling follow-up on the best forecasting roots from \texttt{v6} and \texttt{v7} & Coherence root reaches system-median best-periodic $H100/H500/H1000 = 0.0416 / 0.0761 / 0.0796$; sparsegroup root reaches $0.0437 / 0.1142 / 0.1193$; collector writes $329/340$ rows across all $17$ systems & Longer standard-sampling training does not close the gap to the locked hard-init finalists or add new state-level evidence. This packet is negative for promotion and should not reopen the shortlist. \\
+\bottomrule
+\end{tabular}
+\caption{Completed basin-support interpretability experiments and what they mean for the study objective. Lower is better for $H(S \mid B)$, intervention-damage ratios, and forecast error; higher is better for $U_{\text{exact}}$ and for between-versus-within separation ratios.}
+\label{tab:interpretability-chronology}
+\end{table}
+
+\subsection{Current paper-facing comparison}
+
+Table~\ref{tab:paper-facing-comparison} summarizes the locked multi-seed
+deep-basin comparison on the selected \texttt{absolute:0.001} slice from the
+final confirmatory packet. This is the most useful completed comparison
+because it is the only paper-facing state-level reduction backed by the locked
+$200$k, $10$-seed rerun. All four roots shown have $H(B \mid S)=0.0000$ and
+$H(F \mid B)=0.0000$ on this selected slice, so the discriminating metrics are
+exact-support fragmentation, dominant exact-support reuse, freeze-support
+robustness, and long-horizon forecasting.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{p{4.7cm}cccc}
+\toprule
+Model/root & $H(S \mid B)$ & $U_{\text{exact}}$ & \texttt{freeze/base@20} & $H1000$ best MSE \\
+\midrule
+Block-diagonal sign-split hard-init & $0.3219$ & $0.9646$ & $0.2665$ & $0.0516$ \\
+Dense soft-block sign-split $p=64$ hard-init & $0.0543$ & $0.9923$ & $0.1691$ & $0.0768$ \\
+Matched sparse MLP control & $0.2449$ & $0.9772$ & $0.3923$ & $0.0608$ \\
+Zero-$L1$ ReLU MLP ablation & $0.1530$ & $0.9781$ & $0.7162$ & $0.0911$ \\
+\bottomrule
+\end{tabular}
+\caption{Locked multi-seed deep-basin comparison at \texttt{absolute:0.001} from the final confirmatory packet. Lower is better for $H(S \mid B)$, \texttt{freeze/base@20}, and forecast error. Higher is better for $U_{\text{exact}}$. All four roots have $H(B \mid S)=0.0000$ and $H(F \mid B)=0.0000$ on this selected slice.}
+\label{tab:paper-facing-comparison}
+\end{table}
+
+This table needs careful interpretation.
+
+First, the dense soft-block sign-split $p=64$ hard-init root is the strongest
+completed exact-support result overall. It has the lowest $H(S \mid B)$, the
+highest $U_{\text{exact}}$, the best freeze-support robustness, and it remains
+forecast-competitive at $H1000=0.0768$. In the context of the study, this is
+the clearest completed evidence that LISTA can move beyond basin purity toward
+something closer to reusable exact supports.
+
+Second, the block-diagonal hard-init root is not the exact-support leader, but
+it is still scientifically important because it keeps the best long-horizon
+forecast error and a strong freeze-support ratio. That is consistent with a
+different kind of positive: even when the model uses more than one exact
+support inside a basin, the basin block itself may behave like a more stable
+long-horizon chart. In other words, this root looks more like a persistent
+regime-structure model than an exact-support minimizer.
+
+Third, the controls show why entropy-style separation metrics alone cannot
+carry the claim. The matched sparse MLP control is reasonably strong on the
+selected slice, and the zero-$L1$ ReLU ablation even looks superficially good
+on some support statistics, but both are weaker on freeze-support robustness
+and at least one long-horizon forecasting axis. The paper therefore has to
+present the locked packet as mixed-regime evidence and keep the missing
+matched-sampling MLP control as a fairness caveat rather than pretending that
+the architecture effect is fully isolated.
+
+\subsection{Overall interpretation of the completed evidence}
+
+Taken together, the completed experiments support four conclusions.
+
+\begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{Basin purity is real and relatively easy.} Current LISTA
+    models can already make support predict basin very well deep inside basin.
+    The native-trio smoke reductions established that point clearly, and the
+    locked selected-slice packet saturates $H(B \mid S)=0.0000$ for all four
+    compared roots.
+    \item \textbf{Exact-support reuse can be strong on the selected deep slice,
+    but it is not yet a branch-wide free win.} The dense hard-init root is a
+    genuine exact-support positive on the locked packet, yet boundary and
+    all-state fragmentation remain much higher, so the final paper claim still
+    needs careful wording.
+    \item \textbf{Architecture and sampling affect what kind of success is
+    obtained.} Dense soft-block sign-split hard-init LISTA is currently the
+    strongest completed arm for exact-support compression, while block-diagonal
+    hard-init LISTA is the forecast-retaining companion. The default-sampling
+    \texttt{v6}/\texttt{v7} roots do not catch up when promoted to $200$k and
+    $10$ seeds.
+    \item \textbf{The remaining work is not more LISTA recipe search.} The
+    training-side ranking is effectively closed. What remains is
+    state-conditioned forecasting, alignment-aware or family-level analysis,
+    and fairness calibration around the mixed-regime confirmatory packet.
+\end{enumerate}
+
+The most important consequence for the overall objective of the study is that
+we do not yet have a fully architecture-isolating proof of one canonical exact
+support per basin across the whole shortlist. What we do have is locked
+multi-seed evidence that the promoted dense hard-init LISTA root yields much
+cleaner exact-support reuse and freeze robustness than the matched sparse MLP
+control on the clean deep-basin slice, plus a negative long-budget
+default-sampling follow-up showing that standard-sampling \texttt{v6}/\texttt{v7}
+roots do not supersede it. The remaining question is therefore not which LISTA
+recipe wins, but how aggressively the paper should phrase that win.
+
+\section{What would count as a convincing positive}
+
+The strongest paper-grade positive would look like this.
+\begin{enumerate}[leftmargin=1.5em]
+    \item Deep-basin $H(B \mid S)$ and $H(S \mid B)$ are both low, with high
+    $U_{\text{exact}}$.
+    \item Support families or dominant groups remain stable along trajectories
+    except near real basin changes.
+    \item Own-basin projection and freeze-support interventions preserve
+    prediction much better than wrong-basin interventions.
+    \item Support-conditioned operator and Jacobian families are tight within
+    basin and separated across basins, with alignment-aware comparisons used
+    when spectra are similar but eigendirections differ.
+    \item The result still holds against the matched MLP control.
+\end{enumerate}
+
+But a weaker result can still be scientifically valuable. If exact supports
+fragment yet support families, dominant groups, or aligned operator families
+line up well with basin structure, then the correct claim is not failure. It is
+that sparse Koopman supports identify basin-selective local law families more
+reliably than they identify one exact canonical support per basin.
+
+\section{Bottom line}
+
+The basin-support interpretability study is trying to determine whether sparse
+supports in a Koopman autoencoder are merely a convenient compression device or
+whether they actually function as unlabeled regime indicators for multistable
+dynamics. Koopman theory motivates the need for local charts; basin
+eigenstructure explains why those charts may differ by more than just
+eigenvalues; and the study's metric stack is designed to tell apart exact chart
+reuse, family-level reuse, and weaker but still meaningful operator-family
+alignment.
+
+The current documents already point to a specific scientific stance: basin
+purity is real, exact-support uniqueness is only partially achieved, and the
+most defensible near-term claim may land at support-family or dominant-group
+alignment, with operator/Jacobian-family analysis used to decide how strong the
+final paper claim can honestly be.
+
+\end{document}

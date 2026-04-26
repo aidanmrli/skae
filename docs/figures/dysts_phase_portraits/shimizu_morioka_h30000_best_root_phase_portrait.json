@@ -1,0 +1,116 @@
+{
+  "system": "dysts:ShimizuMorioka",
+  "selection_basis": "lowest H30000 best-periodic forecasting MSE across all completed checked-in Dysts long-horizon roots, seeds, and periodic re-encoding cadences",
+  "collector_csvs": [
+    "results/dysts_long_horizon_eval_20260414/collect/forecasting_rows.csv",
+    "results/dysts_long_horizon_eval_mlp_blockdiag_20260415/collect/forecasting_rows.csv"
+  ],
+  "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+  "root_display_name": "blockdiag LISTA (sc=6e-3)",
+  "model_family": "lista",
+  "seed": 7,
+  "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_7/20260324-235747",
+  "reeval_results_json": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_7/20260324-235747/reeval_dysts_long_horizon_h5000_h10000_h20000_h30000/evaluation_results_checkpoint.json",
+  "selected_rollout_artifacts": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_7/20260324-235747/reeval_dysts_long_horizon_h5000_h10000_h20000_h30000/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+  "status": "complete",
+  "horizon": 30000,
+  "h30000_best_periodic_mean": 0.10038476437330246,
+  "h30000_best_periodic_mode": "periodic_20",
+  "num_candidates_considered": 70,
+  "top_candidates": [
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 7,
+      "h30000_best_periodic_mean": 0.10038476437330246,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_7/20260324-235747"
+    },
+    {
+      "root_label": "generic_sparse_blockdiag_ns200k_sc6em3",
+      "root_display_name": "blockdiag MLP (sc=6e-3)",
+      "model_family": "mlp",
+      "seed": 4,
+      "h30000_best_periodic_mean": 0.29937055706977844,
+      "h30000_best_periodic_mode": "periodic_5",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_mlp_blockdiag_dysts_20260415/paper_followup_recipes/generic_sparse_blockdiag_ns200k_sc6em3/dysts_ShimizuMorioka/dt_0p002408001333556058/seed_4/20260416-024523"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 0,
+      "h30000_best_periodic_mean": 0.3345251679420471,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_0/20260309-124735"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 8,
+      "h30000_best_periodic_mean": 0.3774392902851105,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_8/20260324-235746"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 8,
+      "h30000_best_periodic_mean": 0.4663400948047638,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_8/20260324-224620"
+    },
+    {
+      "root_label": "lista_dense_promoted_stage4",
+      "root_display_name": "dense LISTA",
+      "model_family": "lista",
+      "seed": 7,
+      "h30000_best_periodic_mean": 0.681713879108429,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_7/20260325-012401"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 4,
+      "h30000_best_periodic_mean": 0.8015838265419006,
+      "h30000_best_periodic_mode": "periodic_40",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_4/20260324-224008"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 3,
+      "h30000_best_periodic_mean": 1.2114015817642212,
+      "h30000_best_periodic_mode": "periodic_60",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_3/20260324-235444"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 1,
+      "h30000_best_periodic_mean": 1.221375584602356,
+      "h30000_best_periodic_mode": "periodic_10",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_1/20260309-134525"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 5,
+      "h30000_best_periodic_mean": 1.3153623342514038,
+      "h30000_best_periodic_mode": "periodic_40",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_ShimizuMorioka/dt_0p0006020003333890145/seed_5/20260324-235739"
+    }
+  ],
+  "outputs": [
+    "docs/figures/dysts_phase_portraits/shimizu_morioka_h30000_best_root_phase_portrait.png",
+    "docs/figures/dysts_phase_portraits/shimizu_morioka_h30000_best_root_phase_portrait.pdf"
+  ]
+}

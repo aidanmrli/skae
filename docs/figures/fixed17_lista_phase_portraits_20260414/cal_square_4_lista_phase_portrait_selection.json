@@ -1,0 +1,116 @@
+{
+  "system": "claude:cal_square_4",
+  "selection_basis": "best fixed-17 LISTA checkpoint per system by saved H1000 best-periodic mean across collected transition-rich forecasting rows; each selected checkpoint is then rolled out at the requested horizons using its saved H1000 best-periodic mode",
+  "selected_candidate": {
+    "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+    "seed": 6,
+    "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_6/20260409-161553",
+    "checkpoint": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_6/20260409-161553/checkpoint.pt",
+    "env_dt": 0.03,
+    "num_steps": 200000,
+    "h100_best_periodic_mean": 0.0015384164871647954,
+    "h500_best_periodic_mean": 0.0009180535562336445,
+    "h1000_best_periodic_mean": 0.0008405411499552429,
+    "h1000_best_periodic_mode": "periodic_10",
+    "periodic_mode": 10,
+    "source_csv": "results/transition_rich_basin_partition_final_seed10_20260409/collect_pass0/forecasting_rows.csv"
+  },
+  "batch_size": 100,
+  "rng_seed": 20260414,
+  "xlim": [
+    -4.0,
+    4.0
+  ],
+  "ylim": [
+    -4.0,
+    4.0
+  ],
+  "shared_batch_metrics": {
+    "h1000": {
+      "shared_batch_best_periodic_mean": 0.0601159892976284,
+      "shared_batch_best_periodic_std": 0.4109472632408142,
+      "num_valid": 100
+    },
+    "h3000": {
+      "shared_batch_best_periodic_mean": 0.060115963220596313,
+      "shared_batch_best_periodic_std": 0.4109470248222351,
+      "num_valid": 100
+    },
+    "h5000": {
+      "shared_batch_best_periodic_mean": 0.0601159892976284,
+      "shared_batch_best_periodic_std": 0.4109472632408142,
+      "num_valid": 100
+    }
+  },
+  "outputs": {
+    "h1000": {
+      "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h1000_lista_phase_portrait.png",
+      "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h1000_lista_phase_portrait.pdf"
+    },
+    "h3000": {
+      "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h3000_lista_phase_portrait.png",
+      "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h3000_lista_phase_portrait.pdf"
+    },
+    "h5000": {
+      "png": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h5000_lista_phase_portrait.png",
+      "pdf": "docs/figures/fixed17_lista_phase_portraits_20260414/cal_square_4_h5000_lista_phase_portrait.pdf"
+    }
+  },
+  "top_ranked_candidates": [
+    {
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 6,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_6/20260409-161553",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0015384164871647954,
+      "h500_best_periodic_mean": 0.0009180535562336445,
+      "h1000_best_periodic_mean": 0.0008405411499552429,
+      "h1000_best_periodic_mode": "periodic_10"
+    },
+    {
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 0,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_0/20260409-195402",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0022886116057634354,
+      "h500_best_periodic_mean": 0.0012141779297962785,
+      "h1000_best_periodic_mean": 0.0010798278963193297,
+      "h1000_best_periodic_mode": "periodic_10"
+    },
+    {
+      "root_label": "lista_blockdiag_sparsegroup_basin_partition",
+      "seed": 6,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_v6_v7_200k_seed10_20260410/transition_rich_basin_partition/lista_blockdiag_sparsegroup_basin_partition/claude_cal_square_4/dt_0p03/seed_6/20260411-030126",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0023699309676885605,
+      "h500_best_periodic_mean": 0.0012719313381239772,
+      "h1000_best_periodic_mean": 0.001134872785769403,
+      "h1000_best_periodic_mode": "periodic_10"
+    },
+    {
+      "root_label": "lista_dense_softblock_strong_basin_partition",
+      "seed": 0,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_20260409_seed0_smoke_v4/transition_rich_basin_partition/lista_dense_softblock_strong_basin_partition/claude_cal_square_4/dt_0p03/seed_0/20260409-021249",
+      "env_dt": 0.03,
+      "num_steps": 20000,
+      "h100_best_periodic_mean": 0.004555007442831993,
+      "h500_best_periodic_mean": 0.00153349747415632,
+      "h1000_best_periodic_mean": 0.0011555177625268698,
+      "h1000_best_periodic_mode": "periodic_10"
+    },
+    {
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "seed": 5,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_5/20260409-161553",
+      "env_dt": 0.03,
+      "num_steps": 200000,
+      "h100_best_periodic_mean": 0.0021256112959235907,
+      "h500_best_periodic_mean": 0.001362524926662445,
+      "h1000_best_periodic_mean": 0.0012670895084738731,
+      "h1000_best_periodic_mode": "periodic_10"
+    }
+  ]
+}

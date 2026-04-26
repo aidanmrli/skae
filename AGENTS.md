@@ -39,6 +39,14 @@ Use `uv` for reproducible environments.
 - `pytest tests/test_model.py -v`: run a focused test module.
 - `pytest --cov=skae --cov-report=html`: coverage report (optional).
 
+## Compute Node Policy
+- **NEVER run programs directly on the login node.** This includes Python scripts, training runs, evaluation scripts, validation sweeps, and any compute-intensive work.
+- Every program execution must go through a compute node. Use `salloc` to get an interactive allocation before running:
+  - CPU-only: `salloc --mem=8G -c 4 --partition=long`
+  - With GPU: `salloc --gpus 1 --mem=8G -c 4 --partition=long`
+- After `salloc` grants a node, run your command inside that allocation.
+- This applies to all `uv run python ...` invocations, `pytest`, and any other non-trivial process. The exceptions are lightweight git, file editing, shell commands, and manuscript/PDF builds such as `latexmk`, `pdflatex`, and `bibtex`.
+
 ## SLURM Submission Rules
 - Launch SLURM job scripts with `sbatch` (for scripts with `#SBATCH` headers); do not run them directly with `bash`.
 - Use the `long` partition by default for SLURM jobs. Treat `long` as the repository convention unless a specific script or experiment has a documented reason to use another partition.

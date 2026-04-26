@@ -17,32 +17,12 @@ from typing import Optional, Dict, Any
 
 import torch
 
+from skae.checkpoint_compat import load_model_state_dict_compat
 from skae.config import Config
 from skae.dysts_cache_profiles import apply_dysts_cache_profile, default_dysts_cache_dir
 from skae.data import make_env
 from skae.model import make_model
 from skae.evaluation import EvaluationSettings, evaluate_model
-
-
-def remap_legacy_model_keys(eval_model: torch.nn.Module, state_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Remap known legacy checkpoint key prefixes to current model names."""
-    model_keys = set(eval_model.state_dict().keys())
-    has_encoder_in_model = any(key.startswith("encoder.") for key in model_keys)
-    has_encoder_in_ckpt = any(key.startswith("encoder.") for key in state_dict.keys())
-    has_lista_in_ckpt = any(key.startswith("lista.") for key in state_dict.keys())
-
-    # Older LISTAKM checkpoints used `lista.*`; current code expects `encoder.*`.
-    if has_encoder_in_model and has_lista_in_ckpt and not has_encoder_in_ckpt:
-        remapped: Dict[str, Any] = {}
-        for key, value in state_dict.items():
-            if key.startswith("lista."):
-                remapped[f"encoder.{key[len('lista.') :]}"] = value
-            else:
-                remapped[key] = value
-        print("  Applied legacy checkpoint remap: 'lista.*' -> 'encoder.*'")
-        return remapped
-
-    return state_dict
 
 
 def get_device(device_arg: str) -> str:
@@ -196,8 +176,7 @@ def evaluate_checkpoint(
             f"but model expects {eval_model.observation_size}. "
             f"Evaluation may fail or be skipped."
         )
-    model_state_dict = remap_legacy_model_keys(eval_model, checkpoint['model_state_dict'])
-    eval_model.load_state_dict(model_state_dict)
+    load_model_state_dict_compat(eval_model, checkpoint['model_state_dict'])
     eval_model = eval_model.to(device)
     eval_model.eval()
     eval_model.dt = dt
@@ -205,6 +184,7 @@ def evaluate_checkpoint(
     # Create evaluation settings
     eval_settings = EvaluationSettings()
     eval_settings.systems = [system]
+    eval_settings.save_rollout_artifacts = True
     
     # Evaluate
     if output_dir is None:

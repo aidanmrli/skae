@@ -72,12 +72,9 @@ def extract_block_eigenvalues(model) -> List[Dict]:
             blocks.append(_block_stats("diagonal", ev, len(diag_vals)))
 
         elif k_struct == "block_diagonal":
-            for i, blk in enumerate(model.kmat_blocks):
+            for i, blk in enumerate(model._block_diagonal_matrices()):
                 ev = _eigvals_of_block(blk)
                 blocks.append(_block_stats(f"block_{i}", ev, blk.shape[0]))
-            if model._k_remainder > 0:
-                ev = _eigvals_of_block(model.kmat_remainder)
-                blocks.append(_block_stats("remainder", ev, model.kmat_remainder.shape[0]))
 
         else:
             # Dense
@@ -201,16 +198,13 @@ def _get_block_ranges(model) -> Tuple[List[Tuple[int, int]], List[str]]:
             return ranges, names
 
         if k_struct == "block_diagonal":
-            bs = model._k_block_size
             ranges = []
             names = []
-            for i in range(model._k_num_blocks):
-                ranges.append((i * bs, (i + 1) * bs))
+            offset = 0
+            for i, block_size in enumerate(model._k_block_sizes):
+                ranges.append((offset, offset + block_size))
                 names.append(f"block_{i}")
-            if model._k_remainder > 0:
-                offset = model._k_num_blocks * bs
-                ranges.append((offset, offset + model._k_remainder))
-                names.append("remainder")
+                offset += block_size
             return ranges, names
 
     # Dense / generic: single block

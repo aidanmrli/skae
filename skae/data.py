@@ -11,6 +11,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import get_context
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import time
@@ -200,6 +201,220 @@ class VectorWrapper(Wrapper):
         return sequences.transpose(0, 1)
 
 
+def _manual_seed_generator(seed: int) -> torch.Generator:
+    """Return a CPU generator seeded deterministically from an integer."""
+    return torch.Generator().manual_seed(int(seed))
+
+
+def _infer_reset_bounds(env: Env) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Infer axis-aligned reset bounds for a black-box environment.
+
+    The fixed transition-rich shortlist exposes either an `init_range` scalar or
+    a Claude-catalog `ic_box`. For generic environments we fall back to an
+    empirical bounding box from deterministic reset samples.
+    """
+
+    base_env = env.unwrapped
+    if hasattr(base_env, "init_range"):
+        init_range = float(getattr(base_env, "init_range"))
+        dim = int(base_env.observation_size)
+        low = torch.full((dim,), -init_range, dtype=torch.float32)
+        high = torch.full((dim,), init_range, dtype=torch.float32)
+        return low, high
+
+    system = getattr(base_env, "system", None)
+    if system is not None and hasattr(system, "ic_box"):
+        ic_box = list(getattr(system, "ic_box"))
+        low = torch.tensor([float(lo) for lo, _ in ic_box], dtype=torch.float32)
+        high = torch.tensor([float(hi) for _, hi in ic_box], dtype=torch.float32)
+        return low, high
+
+    samples = []
+    for sample_idx in range(64):
+        samples.append(base_env.reset(_manual_seed_generator(10_000 + sample_idx)).float())
+    batch = torch.stack(samples, dim=0)
+    low = batch.min(dim=0).values
+    high = batch.max(dim=0).values
+    padding = 0.05 * (high - low).clamp_min(1e-3)
+    return low - padding, high + padding
+
+
+def build_hard_initial_condition_pool(
+    env: Env,
+    *,
+    pool_size: int,
+    num_candidates: int,
+    probe_steps: int,
+    num_perturbations: int,
+    perturb_scale: float,
+    transient_window: int,
+    transient_weight: float,
+    chunk_size: int,
+    seed: int,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Build a pool of hard initial conditions using a uniform black-box score.
+
+    Each candidate is scored by:
+    1. how much small perturbations spread apart after a short rollout
+    2. how much motion remains late in that rollout (long transient proxy)
+
+    This approximates separatrix proximity and slow settling without relying on
+    training-time basin labels or basin counts.
+    """
+
+    candidate_count = max(1, int(num_candidates))
+    pool_size = max(1, min(int(pool_size), candidate_count))
+    probe_steps = max(1, int(probe_steps))
+    num_perturbations = max(0, int(num_perturbations))
+    transient_window = max(1, min(int(transient_window), probe_steps))
+    chunk_size = max(1, int(chunk_size))
+    transient_weight = float(transient_weight)
+
+    base_env = env.unwrapped
+    low, high = _infer_reset_bounds(base_env)
+    span = (high - low).clamp_min(1e-6)
+    box_diag = torch.linalg.vector_norm(span).clamp_min(1e-6)
+    perturb_std = float(perturb_scale) * span
+    perturb_norm = torch.linalg.vector_norm(perturb_std).clamp_min(1e-6)
+
+    candidate_states = []
+    base_seed = int(seed)
+    for candidate_idx in range(candidate_count):
+        candidate_states.append(
+            base_env.reset(_manual_seed_generator(base_seed + candidate_idx)).float()
+        )
+    candidates = torch.stack(candidate_states, dim=0)
+
+    scorer_env = VectorWrapper(base_env, batch_size=1)
+    low_batch = low.unsqueeze(0).unsqueeze(0)
+    high_batch = high.unsqueeze(0).unsqueeze(0)
+    scores = torch.empty(candidate_count, dtype=torch.float32)
+    noise_rng = _manual_seed_generator(base_seed + 1_000_000)
+
+    with torch.no_grad():
+        for start in range(0, candidate_count, chunk_size):
+            stop = min(candidate_count, start + chunk_size)
+            chunk = candidates[start:stop]
+            batch_n, state_dim = chunk.shape
+
+            if num_perturbations > 0:
+                noise = torch.randn(
+                    batch_n,
+                    num_perturbations,
+                    state_dim,
+                    generator=noise_rng,
+                    dtype=chunk.dtype,
+                ) * perturb_std.view(1, 1, -1).to(dtype=chunk.dtype)
+                rollout_init = torch.cat([chunk.unsqueeze(1), chunk.unsqueeze(1) + noise], dim=1)
+            else:
+                rollout_init = chunk.unsqueeze(1)
+            rollout_init = torch.maximum(torch.minimum(rollout_init, high_batch), low_batch)
+            flat_init = rollout_init.reshape(-1, state_dim)
+            rollout = generate_sequence_window(
+                scorer_env.step,
+                flat_init,
+                window_length=probe_steps,
+            )
+            rollout = rollout.reshape(probe_steps + 1, batch_n, rollout_init.shape[1], state_dim)
+            endpoints = rollout[-1]
+            tail_start = rollout[-1 - transient_window]
+
+            if num_perturbations > 0:
+                sensitivity = (
+                    torch.linalg.vector_norm(endpoints[:, 1:] - endpoints[:, :1], dim=-1).mean(dim=1)
+                    / perturb_norm
+                )
+            else:
+                sensitivity = torch.zeros(batch_n, dtype=torch.float32)
+
+            late_motion = (
+                torch.linalg.vector_norm(endpoints - tail_start, dim=-1).mean(dim=1) / box_diag
+            )
+            scores[start:stop] = sensitivity.float() + transient_weight * late_motion.float()
+
+    top_scores, top_indices = torch.topk(scores, k=pool_size, largest=True, sorted=True)
+    return candidates[top_indices], top_scores
+
+
+class HardInitialConditionWrapper(Wrapper):
+    """Training-time oversampling wrapper for separatrix-adjacent initial states."""
+
+    def __init__(self, env: Env, cfg: Config):
+        super().__init__(env)
+        settings = cfg.TRAIN.HARD_INIT_OVERSAMPLE
+        self.enabled = bool(settings.ENABLED)
+        self.fraction = float(settings.FRACTION)
+        self.jitter_scale = float(settings.JITTER_SCALE)
+        self.low, self.high = _infer_reset_bounds(env.unwrapped)
+        self.hard_pool = torch.empty(
+            (0, env.observation_size),
+            dtype=torch.float32,
+        )
+        self.hard_scores = torch.empty(0, dtype=torch.float32)
+        if not self.enabled:
+            return
+        self.hard_pool, self.hard_scores = build_hard_initial_condition_pool(
+            env.unwrapped,
+            pool_size=int(settings.POOL_SIZE),
+            num_candidates=int(settings.NUM_CANDIDATES),
+            probe_steps=int(settings.PROBE_STEPS),
+            num_perturbations=int(settings.NUM_PERTURBATIONS),
+            perturb_scale=float(settings.PERTURB_SCALE),
+            transient_window=int(settings.TRANSIENT_WINDOW),
+            transient_weight=float(settings.TRANSIENT_WEIGHT),
+            chunk_size=int(settings.BUILD_CHUNK_SIZE),
+            seed=int(cfg.SEED) + 2_000_000,
+        )
+        top = self.hard_scores[: min(5, self.hard_scores.numel())].tolist()
+        print(
+            "[hard-init] built pool "
+            f"(size={self.hard_pool.shape[0]}, fraction={self.fraction:.2f}, "
+            f"top_scores={[round(float(item), 3) for item in top]})",
+            flush=True,
+        )
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if (
+            not self.enabled
+            or self.hard_pool.numel() == 0
+            or self.fraction <= 0.0
+        ):
+            return self.env.reset(rng)
+
+        if rng is None:
+            rng = torch.Generator()
+        use_hard = torch.rand(1, generator=rng).item() < self.fraction
+        if not use_hard:
+            return self.env.reset(rng)
+
+        index = int(
+            torch.randint(
+                low=0,
+                high=self.hard_pool.shape[0],
+                size=(1,),
+                generator=rng,
+            ).item()
+        )
+        state = self.hard_pool[index].clone()
+        span = (self.high - self.low).clamp_min(1e-6)
+        jitter_std = self.jitter_scale * 0.04 * span
+        if self.jitter_scale > 0.0:
+            jitter = torch.randn(
+                state.shape,
+                generator=rng,
+                dtype=state.dtype,
+            ) * jitter_std.to(dtype=state.dtype)
+            state = state + jitter
+        return torch.maximum(torch.minimum(state, self.high), self.low)
+
+
+def wrap_training_env(env: Env, cfg: Config) -> Env:
+    """Apply training-only environment wrappers without touching eval/reset defaults."""
+    if bool(cfg.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED):
+        return HardInitialConditionWrapper(env, cfg)
+    return env
+
+
 # ---------------------------------------------------------------------------
 # Dysts trajectory cache for training
 # ---------------------------------------------------------------------------
@@ -336,7 +551,7 @@ class DystsTrajectoryCache:
             if trajectories.dim() != 3:
                 print(f"[dysts cache] invalid tensor shape at {cache_path}; rebuilding.")
                 return None
-            if trajectories.shape[1] < self.cache_steps:
+            if trajectories.shape[1] < self.cache_steps + 1:
                 print(f"[dysts cache] cached trajectories too short at {cache_path}; rebuilding.")
                 return None
             print(
@@ -397,7 +612,7 @@ class DystsTrajectoryCache:
         ic_list: List[np.ndarray],
         t0: float,
     ) -> List[torch.Tensor]:
-        total_steps = self.cache_steps + self.cache_warmup
+        total_steps = self.cache_steps + self.cache_warmup + 1
         trajectories: List[Optional[torch.Tensor]] = [None] * len(ic_list)
         completed = 0
         print(
@@ -486,7 +701,7 @@ class DystsTrajectoryCache:
                     self.env.system.ic = np.array(ic, dtype=np.float32)
                 try:
                     traj = self.env.make_trajectory_native(
-                        n=self.cache_steps + self.cache_warmup,
+                        n=self.cache_steps + self.cache_warmup + 1,
                         resample=self.resample,
                         pts_per_period=self.pts_per_period,
                         standardize=self.standardize,
@@ -1533,6 +1748,504 @@ class MultiWellTransition(Env):
         return integrate_rk4(state, None, self.dt, dynamics_fn)
 
 
+def _as_batch_2d(state: torch.Tensor) -> Tuple[torch.Tensor, bool]:
+    """View a single 2D state as a size-1 batch for vectorized logic."""
+    if state.ndim == 1:
+        return state.unsqueeze(0), True
+    return state, False
+
+
+class GatedLocalLinear(Env):
+    """Three-basin local-linear system with shared gate sectors between basins."""
+
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
+        self.dt = (
+            float(cfg.ENV.GATED_LOCAL_LINEAR.DT)
+            if hasattr(cfg.ENV, "GATED_LOCAL_LINEAR")
+            else 0.04
+        )
+        self.num_basins = 3
+        self.center_radius = 1.75
+        self.basin_radius = 1.05
+        self.init_range = 2.6
+        self.gate_contraction = 1.35
+        self.gate_swirl = 0.9
+
+        self.center_angles = torch.linspace(
+            0.0, 2.0 * torch.pi, steps=self.num_basins + 1, dtype=torch.float32
+        )[:-1]
+        self.points_2d = self._build_centers(radius=self.center_radius)
+        self.points = self.points_2d
+        self.basin_matrices = self._build_basin_matrices()
+        self.gate_matrices = self._build_gate_matrices()
+
+    @staticmethod
+    def _rotation_matrix(angle: torch.Tensor) -> torch.Tensor:
+        c = torch.cos(angle)
+        s = torch.sin(angle)
+        return torch.stack([torch.stack([c, -s]), torch.stack([s, c])], dim=0)
+
+    def _build_centers(self, radius: float) -> torch.Tensor:
+        return torch.stack(
+            [radius * torch.cos(self.center_angles), radius * torch.sin(self.center_angles)],
+            dim=1,
+        )
+
+    def _build_basin_matrices(self) -> torch.Tensor:
+        templates = torch.stack(
+            [
+                torch.tensor([[-0.9, -1.2], [1.2, -0.9]], dtype=torch.float32),
+                torch.tensor([[-1.35, 0.2], [-0.3, -0.7]], dtype=torch.float32),
+                torch.tensor([[-0.7, -0.1], [0.5, -1.2]], dtype=torch.float32),
+            ],
+            dim=0,
+        )
+        matrices = []
+        for basin_index in range(self.num_basins):
+            base = templates[basin_index % templates.shape[0]]
+            rot = self._rotation_matrix(self.center_angles[basin_index])
+            matrices.append(rot @ base @ rot.transpose(0, 1))
+        return torch.stack(matrices, dim=0)
+
+    def _build_gate_matrices(self) -> torch.Tensor:
+        base = torch.tensor(
+            [
+                [-self.gate_contraction, -self.gate_swirl],
+                [self.gate_swirl, -self.gate_contraction],
+            ],
+            dtype=torch.float32,
+        )
+        return torch.stack([base.clone() for _ in range(self.num_basins)], dim=0)
+
+    def _sector_index(self, state_2d: torch.Tensor) -> torch.Tensor:
+        angles = torch.atan2(state_2d[..., 1], state_2d[..., 0])
+        deltas = (
+            torch.remainder(angles.unsqueeze(-1) - self.center_angles + torch.pi, 2.0 * torch.pi)
+            - torch.pi
+        )
+        return deltas.abs().argmin(dim=-1).to(dtype=torch.long)
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if rng is None:
+            rng = torch.Generator()
+        return torch.empty(2, dtype=torch.float32).uniform_(
+            -self.init_range, self.init_range, generator=rng
+        )
+
+    def region_label(self, state: torch.Tensor) -> torch.Tensor:
+        batch, squeezed = _as_batch_2d(state)
+        diff = batch.unsqueeze(1) - self.points_2d.unsqueeze(0)
+        dist = torch.norm(diff, dim=-1)
+        nearest_basin = dist.argmin(dim=-1).to(dtype=torch.long)
+        in_basin = dist.min(dim=-1).values <= self.basin_radius
+        gate_sector = self._sector_index(batch)
+        labels = torch.where(in_basin, nearest_basin, self.num_basins + gate_sector)
+        return labels[0] if squeezed else labels
+
+    def basin_label(self, state: torch.Tensor) -> torch.Tensor:
+        region = self.region_label(state)
+        if isinstance(region, torch.Tensor) and region.ndim == 0:
+            return region if int(region.item()) < self.num_basins else region - self.num_basins
+        return torch.where(region < self.num_basins, region, region - self.num_basins)
+
+    def dynamics(self, state: torch.Tensor) -> torch.Tensor:
+        batch, squeezed = _as_batch_2d(state)
+        basin = self.basin_label(batch)
+        region = self.region_label(batch)
+        centers = self.points_2d[basin]
+        delta = batch - centers
+        basin_mats = self.basin_matrices[basin]
+        gate_mats = self.gate_matrices[basin]
+        matrices = torch.where((region < self.num_basins)[..., None, None], basin_mats, gate_mats)
+        velocity = torch.einsum("...ij,...j->...i", matrices, delta)
+        return velocity[0] if squeezed else velocity
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        return integrate_rk4(state, None, self.dt, lambda s, _a=None: self.dynamics(s))
+
+
+class GatedTransferLinear(Env):
+    """Three-basin transfer system with explicit source, exit, and channel regions."""
+
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
+        self.dt = (
+            float(cfg.ENV.GATED_TRANSFER_LINEAR.DT)
+            if hasattr(cfg.ENV, "GATED_TRANSFER_LINEAR")
+            else 0.04
+        )
+        self.num_basins = 3
+        self.center_radius = 1.85
+        self.center_phase = 0.0
+        self.core_radius = 0.30
+        self.source_radius = 0.80
+        self.handoff_radius = 0.45
+        self.exit_min_radius = 0.60
+        self.channel_half_width = 0.22
+        self.channel_lane_offset = 0.28
+        self.exit_half_angle = 0.72
+        self.init_range = 2.8
+        self.return_rate_scale = 0.65
+        self.background_rate_scale = 0.50
+        self.exit_forward_rate = 1.0
+        self.exit_transverse_rate = 1.8
+        self.exit_handoff_offset = 0.40
+        self.channel_speed = 1.55
+        self.channel_transverse_contraction = 2.8
+
+        self.center_angles = (
+            torch.linspace(0.0, 2.0 * torch.pi, steps=self.num_basins + 1, dtype=torch.float32)[:-1]
+            + self.center_phase
+        )
+        self.points_2d = self._build_centers(radius=self.center_radius)
+        self.points = self.points_2d
+        self.outward_directions = self._normalize(self.points_2d)
+        self.ordered_pairs = [
+            (source, dest)
+            for source in range(self.num_basins)
+            for dest in range(self.num_basins)
+            if dest != source
+        ]
+        self.pair_to_index = {pair: index for index, pair in enumerate(self.ordered_pairs)}
+        self.source_pair_indices_by_basin = [
+            torch.tensor(
+                [self.pair_to_index[(source, dest)] for dest in range(self.num_basins) if dest != source],
+                dtype=torch.long,
+            )
+            for source in range(self.num_basins)
+        ]
+        self.exit_directions_2d = torch.stack(
+            [
+                self._normalize((self.points_2d[dest] - self.points_2d[source]).unsqueeze(0))[0]
+                for source, dest in self.ordered_pairs
+            ],
+            dim=0,
+        )
+        self.exit_normals_2d = self._rot90(self.exit_directions_2d)
+        (
+            self.channel_directions_2d,
+            self.channel_normals_2d,
+            self.channel_entry_points_2d,
+            self.channel_handoff_points_2d,
+            self.channel_handoff_targets_2d,
+            self.channel_lengths,
+            self.channel_destination_basins,
+        ) = self._build_channels()
+        self.basin_matrices = self._build_basin_matrices()
+        self.return_matrices = self.return_rate_scale * self.basin_matrices
+        self.background_matrices = self.background_rate_scale * self.basin_matrices
+        self.core_offset = 0
+        self.return_offset = self.num_basins
+        self.exit_offset = self.return_offset + self.num_basins
+        self.channel_offset = self.exit_offset + len(self.ordered_pairs)
+        self.num_regions = self.channel_offset + len(self.ordered_pairs)
+
+    @staticmethod
+    def _normalize(vectors: torch.Tensor) -> torch.Tensor:
+        norms = torch.norm(vectors, dim=-1, keepdim=True).clamp_min(1e-8)
+        return vectors / norms
+
+    @staticmethod
+    def _rot90(vec: torch.Tensor) -> torch.Tensor:
+        rot = torch.zeros_like(vec)
+        rot[..., 0] = -vec[..., 1]
+        rot[..., 1] = vec[..., 0]
+        return rot
+
+    @staticmethod
+    def _rotation_matrix(angle: torch.Tensor) -> torch.Tensor:
+        c = torch.cos(angle)
+        s = torch.sin(angle)
+        return torch.stack([torch.stack([c, -s]), torch.stack([s, c])], dim=0)
+
+    def _build_centers(self, radius: float) -> torch.Tensor:
+        return torch.stack(
+            [radius * torch.cos(self.center_angles), radius * torch.sin(self.center_angles)],
+            dim=1,
+        )
+
+    def _build_basin_matrices(self) -> torch.Tensor:
+        templates = torch.stack(
+            [
+                torch.tensor([[-1.0, -1.1], [1.1, -1.0]], dtype=torch.float32),
+                torch.tensor([[-1.4, 0.2], [-0.2, -0.7]], dtype=torch.float32),
+                torch.tensor([[-0.8, -0.3], [0.5, -1.3]], dtype=torch.float32),
+            ],
+            dim=0,
+        )
+        matrices = []
+        for basin_index in range(self.num_basins):
+            base = templates[basin_index % templates.shape[0]]
+            rot = self._rotation_matrix(self.center_angles[basin_index])
+            matrices.append(rot @ base @ rot.transpose(0, 1))
+        return torch.stack(matrices, dim=0)
+
+    def _build_channels(self):
+        directions = []
+        normals = []
+        entry_points = []
+        handoff_points = []
+        handoff_targets = []
+        lengths = []
+        destination_basins = []
+        for pair_index, (source, dest) in enumerate(self.ordered_pairs):
+            source_to_dest = self.exit_directions_2d[pair_index]
+            source_exit_normal = self.exit_normals_2d[pair_index]
+            destination_outward = self.outward_directions[dest]
+            destination_tangent = self._rot90(destination_outward)
+            incoming_delta = float(torch.sin(self.center_angles[source] - self.center_angles[dest]))
+            tangent_sign = 1.0 if incoming_delta >= 0.0 else -1.0
+
+            entry = (
+                self.points_2d[source]
+                + self.source_radius * source_to_dest
+                + (tangent_sign * self.channel_lane_offset) * source_exit_normal
+            )
+            handoff = (
+                self.points_2d[dest]
+                + self.handoff_radius * destination_outward
+                + (tangent_sign * self.channel_lane_offset) * destination_tangent
+            )
+            direction = self._normalize((handoff - entry).unsqueeze(0))[0]
+            normal = self._rot90(direction)
+            handoff_target = entry + self.exit_handoff_offset * direction
+            directions.append(direction)
+            normals.append(normal)
+            entry_points.append(entry)
+            handoff_points.append(handoff)
+            handoff_targets.append(handoff_target)
+            lengths.append(torch.dot(direction, handoff - entry))
+            destination_basins.append(dest)
+        return (
+            torch.stack(directions, dim=0),
+            torch.stack(normals, dim=0),
+            torch.stack(entry_points, dim=0),
+            torch.stack(handoff_points, dim=0),
+            torch.stack(handoff_targets, dim=0),
+            torch.stack(lengths, dim=0),
+            torch.tensor(destination_basins, dtype=torch.long),
+        )
+
+    def _nearest_basin(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        diff = batch.unsqueeze(1) - self.points_2d.unsqueeze(0)
+        dist = torch.norm(diff, dim=-1)
+        nearest_dist, nearest_basin = dist.min(dim=1)
+        return nearest_basin.to(dtype=torch.long), nearest_dist
+
+    def _channel_membership(
+        self,
+        batch: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        rel = batch.unsqueeze(1) - self.channel_entry_points_2d.unsqueeze(0)
+        longitudinal = (rel * self.channel_directions_2d.unsqueeze(0)).sum(dim=-1)
+        transverse = (rel * self.channel_normals_2d.unsqueeze(0)).sum(dim=-1)
+        mask = (
+            (longitudinal >= 0.0)
+            & (longitudinal <= self.channel_lengths.unsqueeze(0))
+            & (torch.abs(transverse) <= self.channel_half_width)
+        )
+        has_channel = mask.any(dim=1)
+        masked_distance = torch.where(
+            mask,
+            torch.abs(transverse),
+            torch.full_like(transverse, float("inf")),
+        )
+        closest_match = masked_distance.argmin(dim=1)
+        channel_index = torch.where(
+            has_channel,
+            closest_match.to(dtype=torch.long),
+            torch.full_like(closest_match, -1, dtype=torch.long),
+        )
+        return channel_index, longitudinal, transverse
+
+    def _source_neighborhood_label_flat(
+        self,
+        batch: torch.Tensor,
+        nearest_basin: torch.Tensor,
+        nearest_dist: torch.Tensor,
+        channel_index: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if channel_index is None:
+            channel_index, _, _ = self._channel_membership(batch)
+        return torch.where(
+            (nearest_dist <= self.source_radius) & (channel_index < 0),
+            nearest_basin,
+            torch.full_like(nearest_basin, -1),
+        )
+
+    def _core_basin_label_flat(
+        self,
+        nearest_basin: torch.Tensor,
+        nearest_dist: torch.Tensor,
+    ) -> torch.Tensor:
+        return torch.where(
+            nearest_dist <= self.core_radius,
+            nearest_basin,
+            torch.full_like(nearest_basin, -1),
+        )
+
+    def _exit_pair_index_flat(
+        self,
+        batch: torch.Tensor,
+        source_basin: torch.Tensor,
+    ) -> torch.Tensor:
+        exit_pair = torch.full((batch.shape[0],), -1, dtype=torch.long, device=batch.device)
+        min_cosine = math.cos(self.exit_half_angle)
+        for basin in range(self.num_basins):
+            basin_mask = source_basin == basin
+            if not bool(basin_mask.any()):
+                continue
+            local_states = batch[basin_mask]
+            rel = local_states - self.points_2d[basin]
+            rel_radius = torch.norm(rel, dim=-1)
+            rel_unit = self._normalize(rel)
+            pair_indices = self.source_pair_indices_by_basin[basin].to(device=batch.device)
+            pair_dirs = self.exit_directions_2d[pair_indices]
+            cosine = rel_unit @ pair_dirs.transpose(0, 1)
+            best_cosine, best_local = cosine.max(dim=1)
+            selected_pairs = pair_indices[best_local]
+            exit_pair[basin_mask] = torch.where(
+                (best_cosine >= min_cosine) & (rel_radius >= self.exit_min_radius),
+                selected_pairs,
+                torch.full_like(selected_pairs, -1),
+            )
+        return exit_pair
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        if rng is None:
+            rng = torch.Generator()
+        return torch.empty(2, dtype=torch.float32).uniform_(
+            -self.init_range, self.init_range, generator=rng
+        )
+
+    def source_neighborhood_label(self, state: torch.Tensor) -> torch.Tensor:
+        batch, squeezed = _as_batch_2d(state)
+        nearest_basin, nearest_dist = self._nearest_basin(batch)
+        channel_index, _, _ = self._channel_membership(batch)
+        labels = self._source_neighborhood_label_flat(batch, nearest_basin, nearest_dist, channel_index)
+        return labels[0] if squeezed else labels
+
+    def region_label(self, state: torch.Tensor) -> torch.Tensor:
+        batch, squeezed = _as_batch_2d(state)
+        nearest_basin, nearest_dist = self._nearest_basin(batch)
+        core_basin = self._core_basin_label_flat(nearest_basin, nearest_dist)
+        channel_index, _, _ = self._channel_membership(batch)
+        source_basin = self._source_neighborhood_label_flat(batch, nearest_basin, nearest_dist, channel_index)
+        exit_pair = self._exit_pair_index_flat(batch, source_basin)
+        labels = self.return_offset + nearest_basin
+        channel_mask = channel_index >= 0
+        labels = torch.where(channel_mask, self.channel_offset + channel_index, labels)
+        exit_mask = (source_basin >= 0) & (core_basin < 0) & (channel_index < 0) & (exit_pair >= 0)
+        labels = torch.where(exit_mask, self.exit_offset + exit_pair, labels)
+        core_mask = core_basin >= 0
+        labels = torch.where(core_mask, core_basin, labels)
+        return labels[0] if squeezed else labels
+
+    def basin_label(self, state: torch.Tensor) -> torch.Tensor:
+        region = self.region_label(state)
+        if not isinstance(region, torch.Tensor):
+            region = torch.tensor(region)
+        squeezed = region.ndim == 0
+        region_batch = region.unsqueeze(0) if squeezed else region
+        basin = torch.full_like(region_batch, -1)
+        core_mask = region_batch < self.num_basins
+        basin = torch.where(core_mask, region_batch, basin)
+        return_mask = (region_batch >= self.return_offset) & (region_batch < self.exit_offset)
+        basin = torch.where(return_mask, region_batch - self.return_offset, basin)
+        exit_mask = (region_batch >= self.exit_offset) & (region_batch < self.channel_offset)
+        if bool(exit_mask.any()):
+            exit_pair = region_batch[exit_mask] - self.exit_offset
+            basin[exit_mask] = self.channel_destination_basins[exit_pair]
+        channel_mask = region_batch >= self.channel_offset
+        if bool(channel_mask.any()):
+            channel_pair = region_batch[channel_mask] - self.channel_offset
+            basin[channel_mask] = self.channel_destination_basins[channel_pair]
+        return basin[0] if squeezed else basin
+
+    def dynamics(self, state: torch.Tensor) -> torch.Tensor:
+        batch, squeezed = _as_batch_2d(state)
+        nearest_basin, nearest_dist = self._nearest_basin(batch)
+        core_basin = self._core_basin_label_flat(nearest_basin, nearest_dist)
+        channel_index, _, _ = self._channel_membership(batch)
+        source_basin = self._source_neighborhood_label_flat(batch, nearest_basin, nearest_dist, channel_index)
+        exit_pair = self._exit_pair_index_flat(batch, source_basin)
+        derivatives = torch.zeros_like(batch)
+
+        channel_mask = channel_index >= 0
+        if bool(channel_mask.any()):
+            idx = channel_index[channel_mask]
+            rel = batch[channel_mask] - self.channel_entry_points_2d[idx]
+            transverse = (rel * self.channel_normals_2d[idx]).sum(dim=-1, keepdim=True)
+            derivatives[channel_mask] = (
+                self.channel_speed * self.channel_directions_2d[idx]
+                - self.channel_transverse_contraction * transverse * self.channel_normals_2d[idx]
+            )
+
+        non_channel_mask = ~channel_mask
+        if bool(non_channel_mask.any()):
+            active_indices = non_channel_mask.nonzero(as_tuple=False).reshape(-1)
+            active_states = batch[active_indices]
+            active_nearest = nearest_basin[active_indices]
+            active_source = source_basin[active_indices]
+            active_core = core_basin[active_indices]
+            active_exit = exit_pair[active_indices]
+
+            matrices = self.background_matrices[active_nearest].clone()
+            centers = self.points_2d[active_nearest].clone()
+            in_source_mask = active_source >= 0
+            if bool(in_source_mask.any()):
+                source_basins = active_source[in_source_mask]
+                matrices[in_source_mask] = self.return_matrices[source_basins]
+                centers[in_source_mask] = self.points_2d[source_basins]
+            core_mask = active_core >= 0
+            if bool(core_mask.any()):
+                core_basins = active_core[core_mask]
+                matrices[core_mask] = self.basin_matrices[core_basins]
+                centers[core_mask] = self.points_2d[core_basins]
+
+            exit_mask = (active_source >= 0) & (active_core < 0) & (active_exit >= 0)
+            if bool(exit_mask.any()):
+                exit_indices = active_exit[exit_mask]
+                source_centers = self.points_2d[active_source[exit_mask]]
+                exit_directions = self.exit_directions_2d[exit_indices]
+                exit_normals = self.exit_normals_2d[exit_indices]
+                rel = active_states[exit_mask] - source_centers
+                transverse = (rel * exit_normals).sum(dim=-1, keepdim=True)
+                exit_derivatives = (
+                    self.exit_forward_rate * exit_directions
+                    - self.exit_transverse_rate * transverse * exit_normals
+                )
+                derivatives[active_indices[exit_mask]] = exit_derivatives
+                non_exit_keep_mask = ~exit_mask
+                if bool(non_exit_keep_mask.any()):
+                    kept_indices = active_indices[non_exit_keep_mask]
+                    derivatives[kept_indices] = torch.einsum(
+                        "...ij,...j->...i",
+                        matrices[non_exit_keep_mask],
+                        active_states[non_exit_keep_mask] - centers[non_exit_keep_mask],
+                    )
+            else:
+                derivatives[active_indices] = torch.einsum(
+                    "...ij,...j->...i",
+                    matrices,
+                    active_states - centers,
+                )
+
+        return derivatives[0] if squeezed else derivatives
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        return integrate_rk4(state, None, self.dt, lambda s, _a=None: self.dynamics(s))
+
+
 class BlendedLinearSystem(Env):
     """Synthetic 2D system with 3 basins having genuinely different local dynamics.
 
@@ -1697,6 +2410,38 @@ class BlendedLinearSystem(Env):
         return self.matrices[basin_idx]  # [..., 2, 2]
 
 
+class ClaudeCatalogEnv(Env):
+    """Adapter exposing a Claude catalog system through the standard Env API."""
+
+    def __init__(self, cfg: Config, system_name: str):
+        super().__init__(cfg)
+        from skae.claude_catalog import ensure_catalog_registered, get_system
+
+        ensure_catalog_registered()
+        dt_override = float(cfg.ENV.CLAUDE_CATALOG.DT)
+        kwargs = {"dt": dt_override} if dt_override > 0.0 else {}
+        self.system_name = system_name
+        self.system = get_system(system_name, **kwargs)
+
+    @property
+    def action_size(self) -> int:
+        return 0
+
+    def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
+        return self.system.reset(rng).to(dtype=torch.float32)
+
+    def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
+        if state.ndim > 1:
+            batch = state.to(dtype=torch.float64)
+            try:
+                next_state = torch.vmap(self.system.step)(batch)
+            except RuntimeError:
+                next_state = torch.stack([self.system.step(s) for s in batch], dim=0)
+            return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
+        next_state = self.system.step(state.to(dtype=torch.float64))
+        return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
+
+
 # ---------------------------------------------------------------------------
 # Registry and Factory
 # ---------------------------------------------------------------------------
@@ -1711,6 +2456,8 @@ _ENV_REGISTRY = {
     "lyapunov": LyapunovMultiAttractor,
     "blended": BlendedLinearSystem,
     "multiwell": MultiWellTransition,
+    "gated_local_linear": GatedLocalLinear,
+    "gated_transfer_linear": GatedTransferLinear,
     "kuramoto": KuramotoOscillators,
     "hopfield": ContinuousHopfield,
     "competitive_lv": CompetitiveLotkaVolterra,
@@ -1742,9 +2489,13 @@ def make_env(cfg: Config) -> Env:
     For built-in environments:
         cfg.ENV.ENV_NAME should be one of: "duffing", "pendulum", "lotka_volterra",
         "lorenz63", "parabolic", "lyapunov", "blended", "multiwell",
-        "kuramoto", "hopfield", "competitive_lv",
+        "kuramoto", "hopfield", "competitive_lv", "claude:SystemName",
         "multiwell_<variant>", "multiwell_<variant>_hd"
     
+    For Claude catalog systems:
+        cfg.ENV.ENV_NAME should be "claude:SystemName"
+        (e.g., "claude:cal_triangle_3")
+
     For dysts systems:
         cfg.ENV.ENV_NAME should be "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")
         or just the system name directly (e.g., "Lorenz") if not in the built-in registry.
@@ -1759,6 +2510,10 @@ def make_env(cfg: Config) -> Env:
         ValueError: If ENV_NAME is not found in registry or dysts
     """
     env_name = cfg.ENV.ENV_NAME
+
+    if env_name.startswith("claude:"):
+        system_name = env_name.split(":", 1)[1]
+        return ClaudeCatalogEnv(cfg, system_name)
     
     # Check for explicit dysts prefix
     if env_name.startswith("dysts:"):
@@ -1785,6 +2540,8 @@ def make_env(cfg: Config) -> Env:
     raise ValueError(
         f"Unknown environment '{env_name}'. "
         f"Built-in environments: {list(_ENV_REGISTRY.keys())}. "
+        "For Claude catalog systems, use 'claude:SystemName' "
+        "(e.g., 'claude:cal_triangle_3'). "
         f"For dysts systems, use 'dysts:SystemName' (e.g., 'dysts:Lorenz')."
     )
 
@@ -1829,12 +2586,22 @@ def get_available_environments() -> dict:
     """Get information about all available environments.
     
     Returns:
-        Dictionary with 'builtin' and 'dysts' keys listing available systems.
+        Dictionary with 'builtin', 'claude_catalog', and 'dysts' keys listing
+        available systems.
     """
     result = {
-        "builtin": list(_ENV_REGISTRY.keys()),
+        "builtin": sorted(_ENV_REGISTRY.keys()),
+        "claude_catalog": [],
         "dysts": [],
     }
+
+    try:
+        from skae.claude_catalog import ensure_catalog_registered, list_systems
+
+        ensure_catalog_registered()
+        result["claude_catalog"] = list_systems()
+    except ImportError:
+        pass
     
     try:
         from skae.benchmarks.dysts_adapter import get_dysts_systems, is_dysts_available

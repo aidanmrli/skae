@@ -383,6 +383,240 @@ class TestTrainCli:
         assert captured["k_matrix_lr"] == pytest.approx(3e-5)
         assert captured["weight_decay"] == pytest.approx(5e-5)
 
+    def test_cli_accepts_signsplit_linear_encoder_and_coherence_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["lista_final_op"] = cfg.MODEL.ENCODER.LISTA.FINAL_OP
+            captured["lista_linear_encoder"] = cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER
+            captured["decoder_coherence_weight"] = cfg.MODEL.DECODER_COHERENCE_WEIGHT
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "lista_parity_generic_sparse",
+                "--env",
+                "duffing",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--lista_final_op",
+                "sign_split",
+                "--lista_linear_encoder",
+                "true",
+                "--decoder_coherence_weight",
+                "5e-4",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["lista_final_op"] == "sign_split"
+        assert captured["lista_linear_encoder"] is True
+        assert captured["decoder_coherence_weight"] == pytest.approx(5e-4)
+
+    def test_cli_accepts_group_aware_encoder_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["lista_group_shrinkage"] = cfg.MODEL.ENCODER.LISTA.GROUP_SHRINKAGE
+            captured["hyper_group_shrinkage"] = cfg.MODEL.ENCODER.HYPERLISTA.GROUP_SHRINKAGE
+            captured["lista_group_threshold_scale"] = cfg.MODEL.ENCODER.LISTA.GROUP_THRESHOLD_SCALE
+            captured["hyper_group_threshold_scale"] = cfg.MODEL.ENCODER.HYPERLISTA.GROUP_THRESHOLD_SCALE
+            captured["lista_topk_groups"] = cfg.MODEL.ENCODER.LISTA.TOPK_GROUPS
+            captured["hyper_topk_groups"] = cfg.MODEL.ENCODER.HYPERLISTA.TOPK_GROUPS
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "lista_parity_generic_sparse",
+                "--env",
+                "duffing",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--encoder_group_shrinkage",
+                "true",
+                "--encoder_group_threshold_scale",
+                "1.5",
+                "--encoder_topk_groups",
+                "2",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["lista_group_shrinkage"] is True
+        assert captured["hyper_group_shrinkage"] is True
+        assert captured["lista_group_threshold_scale"] == pytest.approx(1.5)
+        assert captured["hyper_group_threshold_scale"] == pytest.approx(1.5)
+        assert captured["lista_topk_groups"] == 2
+        assert captured["hyper_topk_groups"] == 2
+
+    def test_cli_accepts_lista_precode_and_threshold_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["precode_mode"] = cfg.MODEL.ENCODER.LISTA.PRECODE_MODE
+            captured["precode_residual_scale"] = cfg.MODEL.ENCODER.LISTA.PRECODE_RESIDUAL_SCALE
+            captured["adaptive_thresholds"] = cfg.MODEL.ENCODER.LISTA.ADAPTIVE_THRESHOLDS
+            captured["alpha_residual_coeff"] = cfg.MODEL.ENCODER.LISTA.ALPHA_RESIDUAL_COEFF
+            captured["alpha_prior_coeff"] = cfg.MODEL.ENCODER.LISTA.ALPHA_PRIOR_COEFF
+            captured["groupwise_thresholds"] = cfg.MODEL.ENCODER.LISTA.GROUPWISE_THRESHOLDS
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "lista_parity_generic_sparse",
+                "--env",
+                "duffing",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--lista_precode_mode",
+                "hybrid",
+                "--lista_precode_residual_scale",
+                "0.2",
+                "--lista_adaptive_thresholds",
+                "true",
+                "--lista_alpha_residual_coeff",
+                "0.3",
+                "--lista_alpha_prior_coeff",
+                "0.4",
+                "--lista_groupwise_thresholds",
+                "true",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["precode_mode"] == "hybrid"
+        assert captured["precode_residual_scale"] == pytest.approx(0.2)
+        assert captured["adaptive_thresholds"] is True
+        assert captured["alpha_residual_coeff"] == pytest.approx(0.3)
+        assert captured["alpha_prior_coeff"] == pytest.approx(0.4)
+        assert captured["groupwise_thresholds"] is True
+
+    def test_cli_accepts_lista_momentum_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            captured["use_momentum"] = cfg.MODEL.ENCODER.LISTA.USE_MOMENTUM
+            captured["momentum_beta"] = cfg.MODEL.ENCODER.LISTA.MOMENTUM_BETA
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "lista_parity_generic_sparse",
+                "--env",
+                "duffing",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--lista_use_momentum",
+                "true",
+                "--lista_momentum_beta",
+                "0.25",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["use_momentum"] is True
+        assert captured["momentum_beta"] == pytest.approx(0.25)
+
+    def test_cli_accepts_hard_init_oversample_overrides(self, tmp_path, monkeypatch):
+        captured = {}
+
+        def _fake_train(cfg, **kwargs):
+            settings = cfg.TRAIN.HARD_INIT_OVERSAMPLE
+            captured["enabled"] = settings.ENABLED
+            captured["fraction"] = settings.FRACTION
+            captured["num_candidates"] = settings.NUM_CANDIDATES
+            captured["transient_weight"] = settings.TRANSIENT_WEIGHT
+            return torch.nn.Linear(1, 1)
+
+        monkeypatch.setattr(train_module, "train", _fake_train)
+        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "train.py",
+                "--config",
+                "lista_parity_generic_sparse",
+                "--env",
+                "gated_transfer_linear",
+                "--num_steps",
+                "1",
+                "--batch_size",
+                "2",
+                "--hard_init_oversample",
+                "true",
+                "--hard_init_fraction",
+                "0.75",
+                "--hard_init_num_candidates",
+                "2048",
+                "--hard_init_transient_weight",
+                "0.8",
+                "--skip_eval",
+                "--skip_basin_eval",
+                "--device",
+                "cpu",
+                "--log_dir",
+                str(tmp_path),
+            ],
+        )
+        train_module.main()
+        assert captured["enabled"] is True
+        assert captured["fraction"] == pytest.approx(0.75)
+        assert captured["num_candidates"] == 2048
+        assert captured["transient_weight"] == pytest.approx(0.8)
+
     def test_basin_eval_import_uses_package_model_path(self):
         import inspect
 

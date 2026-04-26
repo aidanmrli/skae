@@ -31,6 +31,16 @@ from skae.benchmarks.paper_benchmark_manifest import (
     paper_benchmark_models,
     paper_benchmark_systems,
 )
+from skae.benchmarks.claude_catalog_packet_manifest import (
+    CLAUDE_CATALOG_PACKET_BATCH_SIZE,
+    CLAUDE_CATALOG_PACKET_NUM_STEPS,
+    CLAUDE_CATALOG_PACKET_SEQUENCE_LENGTH,
+    CLAUDE_CATALOG_PACKET_TARGET_SIZE,
+    CLAUDE_CATALOG_PACKET_SEEDS,
+    claude_catalog_packet_manifest_jsonable,
+    claude_catalog_packet_models,
+    claude_catalog_packet_systems,
+)
 
 __all__ = [
     "DystsEnv",
@@ -56,4 +66,12 @@ __all__ = [
     "paper_benchmark_manifest_jsonable",
     "paper_benchmark_models",
     "paper_benchmark_systems",
+    "CLAUDE_CATALOG_PACKET_BATCH_SIZE",
+    "CLAUDE_CATALOG_PACKET_NUM_STEPS",
+    "CLAUDE_CATALOG_PACKET_SEQUENCE_LENGTH",
+    "CLAUDE_CATALOG_PACKET_TARGET_SIZE",
+    "CLAUDE_CATALOG_PACKET_SEEDS",
+    "claude_catalog_packet_manifest_jsonable",
+    "claude_catalog_packet_models",
+    "claude_catalog_packet_systems",
 ]

@@ -96,6 +96,7 @@ cfg.MODEL  # Shows all model settings
 - `"default"`: Base configuration with minimal settings
 - `"generic"`: Standard KoopmanAE with MLP encoder (64-dim latent)
 - `"generic_sparse"`: KoopmanAE with L1 sparsity regularization
+- `"generic_no_shrink"`: KoopmanAE MLP control with no sparsity penalty and no zero-inducing ReLU gate
 - `"generic_prediction"`: Prediction-focused (no reconstruction)
 - `"lista"`: LISTA-based sparse autoencoder (2048-dim latent)
 - `"lista_nonlinear"`: LISTA with nonlinear MLP encoder
@@ -128,9 +129,32 @@ Config
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field, asdict
-from typing import List, Optional
+from dataclasses import dataclass, field, asdict, fields
+from typing import List, Optional, Type, TypeVar
 import json
+
+
+T = TypeVar("T")
+
+
+def _filter_dataclass_kwargs(dataclass_type: Type[T], values: Optional[dict]) -> dict:
+    """Keep only kwargs accepted by a dataclass constructor.
+
+    Older checkpoints may serialize fields that no longer exist in the current
+    config schema. Filtering here keeps config loading backward-compatible for
+    evaluation and analysis jobs.
+    """
+
+    if not isinstance(values, dict):
+        return {}
+    valid_names = {field_info.name for field_info in fields(dataclass_type)}
+    return {key: value for key, value in values.items() if key in valid_names}
+
+
+def _build_dataclass(dataclass_type: Type[T], values: Optional[dict]) -> T:
+    """Construct a dataclass while ignoring unknown serialized keys."""
+
+    return dataclass_type(**_filter_dataclass_kwargs(dataclass_type, values))
 
 
 @dataclass
@@ -246,6 +270,20 @@ class CompetitiveLVConfig:
 
 
 @dataclass
+class GatedLocalLinearConfig:
+    """Configuration for the native gated local-linear transition-rich toy."""
+
+    DT: float = 0.04
+
+
+@dataclass
+class GatedTransferLinearConfig:
+    """Configuration for the native gated transfer transition-rich toy."""
+
+    DT: float = 0.04
+
+
+@dataclass
 class DystsConfig:
     """Configuration for dysts-based environments.
     
@@ -279,6 +317,17 @@ class DystsConfig:
 
 
 @dataclass
+class ClaudeCatalogConfig:
+    """Configuration for Claude transition-rich catalog environments.
+
+    Use ENV_NAME="claude:SystemName" to select a registered catalog system.
+    DT <= 0 keeps the system's intrinsic default timestep.
+    """
+
+    DT: float = 0.0
+
+
+@dataclass
 class EnvConfig:
     """Environment configuration.
     
@@ -286,10 +335,15 @@ class EnvConfig:
         [
             "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
             "lyapunov", "blended", "multiwell", "multiwell:<mode>",
-            "kuramoto", "hopfield", "competitive_lv"
+            "gated_local_linear", "gated_transfer_linear",
+            "kuramoto", "hopfield", "competitive_lv", "claude:SystemName"
         ]
     
-    For dysts systems, set ENV_NAME to "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
+    For Claude catalog systems, set ENV_NAME to
+    "claude:SystemName" (e.g., "claude:cal_triangle_3").
+
+    For dysts systems, set ENV_NAME to
+    "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
     The DYSTS config section can be used to customize dysts system behavior.
     """
     ENV_NAME: str = "duffing"
@@ -301,9 +355,12 @@ class EnvConfig:
     LYAPUNOV: LyapunovConfig = field(default_factory=LyapunovConfig)
     BLENDED: BlendedConfig = field(default_factory=BlendedConfig)
     MULTIWELL: MultiWellConfig = field(default_factory=MultiWellConfig)
+    GATED_LOCAL_LINEAR: GatedLocalLinearConfig = field(default_factory=GatedLocalLinearConfig)
+    GATED_TRANSFER_LINEAR: GatedTransferLinearConfig = field(default_factory=GatedTransferLinearConfig)
     KURAMOTO: KuramotoConfig = field(default_factory=KuramotoConfig)
     HOPFIELD: HopfieldConfig = field(default_factory=HopfieldConfig)
     COMPETITIVE_LV: CompetitiveLVConfig = field(default_factory=CompetitiveLVConfig)
+    CLAUDE_CATALOG: ClaudeCatalogConfig = field(default_factory=ClaudeCatalogConfig)
     DYSTS: DystsConfig = field(default_factory=DystsConfig)
 
 
@@ -311,10 +368,21 @@ class EnvConfig:
 class ListaConfig:
     """LISTA encoder-specific configuration."""
     NUM_LOOPS: int = 5  # LISTA iterations
+    USE_MOMENTUM: bool = False  # add heavy-ball momentum between LISTA refinement steps
+    MOMENTUM_BETA: float = 0.0  # fixed LISTA momentum coefficient when USE_MOMENTUM is enabled
     L: float = 1e3  # Lipschitz constant estimate
     ALPHA: float = 0.1  # sparsity threshold
     LINEAR_ENCODER: bool = False  # use MLP vs linear encoder
-    FINAL_OP: str = "relu"  # final nonlinearity in LISTA loop: ["shrink", "relu"]
+    FINAL_OP: str = "relu"  # final nonlinearity in LISTA loop: ["shrink", "relu", "sign_split"]
+    GROUP_SHRINKAGE: bool = False  # apply sparse-group shrinkage over inferred latent groups
+    GROUP_THRESHOLD_SCALE: float = 1.0  # group threshold multiplier relative to elementwise threshold
+    TOPK_GROUPS: int = 0  # keep only the top-k groups before within-group thresholding (0 disables)
+    PRECODE_MODE: str = "auto"  # ["auto", "free_mlp", "linear", "dictionary_tied", "hybrid"]
+    PRECODE_RESIDUAL_SCALE: float = 0.1  # residual MLP scale for hybrid pre-code
+    ADAPTIVE_THRESHOLDS: bool = False  # use per-sample thresholds based on residual/prior mismatch
+    ALPHA_RESIDUAL_COEFF: float = 0.0  # coefficient on reconstruction residual term in adaptive threshold
+    ALPHA_PRIOR_COEFF: float = 0.0  # coefficient on latent-prior mismatch term in adaptive threshold
+    GROUPWISE_THRESHOLDS: bool = False  # learn separate base thresholds per inferred latent group
 
 
 @dataclass
@@ -337,6 +405,9 @@ class HyperListaConfig:
     MAG_RATIO: float = 0.1           # Threshold for support size approximation
     LEARN_HYPERPARAMS: bool = True   # Whether c_theta, c_beta, c_ss are learnable
     PINV_CACHE_MODE: str = "none"    # Pseudo-inverse caching mode; "none" recomputes every forward
+    GROUP_SHRINKAGE: bool = False    # apply sparse-group shrinkage over inferred latent groups
+    GROUP_THRESHOLD_SCALE: float = 1.0  # group threshold multiplier relative to adaptive theta
+    TOPK_GROUPS: int = 0             # keep only the top-k groups before within-group thresholding (0 disables)
 
 
 @dataclass
@@ -381,6 +452,16 @@ class BlockLossConfig:
 
 
 @dataclass
+class SoftBlockConfig:
+    """Penalty configuration for soft block-sparse dense Koopman matrices."""
+
+    ENABLED: bool = False
+    NUM_BLOCKS: int = 0                # exact number of near-equal latent blocks
+    NORM: str = "l1"                   # ["l1", "fro"]
+    WEIGHT: float = 0.0
+
+
+@dataclass
 class EncoderConfig:
     """Encoder architecture configuration."""
     ENCODER_TYPE: str = "lista"  # from ["lista", "hyperlista"]
@@ -415,6 +496,7 @@ class ModelConfig:
     PRED_COEFF: float = 0.0  # prediction loss weight
     SPARSITY_COEFF: float = 1e-3  # sparsity loss weight (L1 regularization)
     HOMOGENEOUS_COEFF: float = 1.0  # homogeneous coordinate consistency loss weight
+    DECODER_COHERENCE_WEIGHT: float = 0.0  # weight on normalized dictionary off-diagonal Gram penalty
     
     # Homogeneous coordinates: append 1 to input, enables implicit bias learning
     USE_HOMOGENEOUS: bool = False
@@ -422,17 +504,41 @@ class ModelConfig:
     # Koopman matrix structure: "dense" (full NxN), "diagonal", "block_diagonal"
     K_STRUCTURE: str = "dense"
     K_BLOCK_SIZE: int = 0  # block size for block_diagonal (0 = auto: target_size // 13)
+    K_NUM_BLOCKS: int = 0  # exact number of blocks for block_diagonal (0 = disabled)
 
     # Sub-configs
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
     DECODER: DecoderConfig = field(default_factory=DecoderConfig)
     STRUCTURED: StructuredLatentConfig = field(default_factory=StructuredLatentConfig)
     BLOCK_LOSS: BlockLossConfig = field(default_factory=BlockLossConfig)
+    SOFT_BLOCK: SoftBlockConfig = field(default_factory=SoftBlockConfig)
 
 
 @dataclass
 class TrainConfig:
     """Training configuration."""
+    @dataclass
+    class HardInitOversampleConfig:
+        """Training-only oversampling of hard initial conditions near separatrices.
+
+        The hardness score is computed without basin labels from two black-box
+        signals that are available for every environment in this branch:
+        sensitivity to small perturbations and lingering late-time transient
+        motion over a short probe rollout.
+        """
+
+        ENABLED: bool = False
+        FRACTION: float = 0.5
+        POOL_SIZE: int = 1024
+        NUM_CANDIDATES: int = 4096
+        PROBE_STEPS: int = 32
+        NUM_PERTURBATIONS: int = 4
+        PERTURB_SCALE: float = 0.04
+        TRANSIENT_WINDOW: int = 8
+        TRANSIENT_WEIGHT: float = 0.5
+        JITTER_SCALE: float = 0.25
+        BUILD_CHUNK_SIZE: int = 128
+
     NUM_STEPS: int = 2_000  # total training steps (epochs)
     BATCH_SIZE: int = 256
     DATA_SIZE: int = 256 * 8  # total dataset size
@@ -447,6 +553,9 @@ class TrainConfig:
     # Unified horizon-based training parameter.
     # H=1 matches former pairwise behavior.
     SEQUENCE_LENGTH: int = 1
+    HARD_INIT_OVERSAMPLE: HardInitOversampleConfig = field(
+        default_factory=HardInitOversampleConfig
+    )
 
 @dataclass
 class Config:
@@ -472,39 +581,67 @@ class Config:
         env_dict = config_dict.get("ENV", {})
         env = EnvConfig(
             ENV_NAME=env_dict.get("ENV_NAME", "duffing"),
-            PARABOLIC=ParabolicConfig(**env_dict.get("PARABOLIC", {})),
-            DUFFING=DuffingConfig(**env_dict.get("DUFFING", {})),
-            PENDULUM=PendulumConfig(**env_dict.get("PENDULUM", {})),
-            LOTKA_VOLTERRA=LotkaVolterraConfig(**env_dict.get("LOTKA_VOLTERRA", {})),
-            LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
-            LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
-            BLENDED=BlendedConfig(**env_dict.get("BLENDED", {})),
-            MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
-            KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
-            HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
-            COMPETITIVE_LV=CompetitiveLVConfig(**env_dict.get("COMPETITIVE_LV", {})),
-            DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
+            PARABOLIC=_build_dataclass(ParabolicConfig, env_dict.get("PARABOLIC", {})),
+            DUFFING=_build_dataclass(DuffingConfig, env_dict.get("DUFFING", {})),
+            PENDULUM=_build_dataclass(PendulumConfig, env_dict.get("PENDULUM", {})),
+            LOTKA_VOLTERRA=_build_dataclass(LotkaVolterraConfig, env_dict.get("LOTKA_VOLTERRA", {})),
+            LORENZ63=_build_dataclass(Lorenz63Config, env_dict.get("LORENZ63", {})),
+            LYAPUNOV=_build_dataclass(LyapunovConfig, env_dict.get("LYAPUNOV", {})),
+            BLENDED=_build_dataclass(BlendedConfig, env_dict.get("BLENDED", {})),
+            MULTIWELL=_build_dataclass(MultiWellConfig, env_dict.get("MULTIWELL", {})),
+            GATED_LOCAL_LINEAR=_build_dataclass(GatedLocalLinearConfig, env_dict.get("GATED_LOCAL_LINEAR", {})),
+            GATED_TRANSFER_LINEAR=_build_dataclass(GatedTransferLinearConfig, env_dict.get("GATED_TRANSFER_LINEAR", {})),
+            KURAMOTO=_build_dataclass(KuramotoConfig, env_dict.get("KURAMOTO", {})),
+            HOPFIELD=_build_dataclass(HopfieldConfig, env_dict.get("HOPFIELD", {})),
+            COMPETITIVE_LV=_build_dataclass(CompetitiveLVConfig, env_dict.get("COMPETITIVE_LV", {})),
+            CLAUDE_CATALOG=_build_dataclass(ClaudeCatalogConfig, env_dict.get("CLAUDE_CATALOG", {})),
+            DYSTS=_build_dataclass(DystsConfig, env_dict.get("DYSTS", {})),
         )
         
         model_dict = config_dict.get("MODEL", {})
         encoder_dict = model_dict.get("ENCODER", {})
-        lista = ListaConfig(**encoder_dict.get("LISTA", {}))
-        hyperlista = HyperListaConfig(**encoder_dict.get("HYPERLISTA", {}))
-        encoder = EncoderConfig(**{k: v for k, v in encoder_dict.items() if k not in ["LISTA", "HYPERLISTA"]})
+        lista = _build_dataclass(ListaConfig, encoder_dict.get("LISTA", {}))
+        hyperlista = _build_dataclass(HyperListaConfig, encoder_dict.get("HYPERLISTA", {}))
+        encoder = EncoderConfig(
+            **_filter_dataclass_kwargs(
+                EncoderConfig,
+                {k: v for k, v in encoder_dict.items() if k not in ["LISTA", "HYPERLISTA"]},
+            )
+        )
         encoder.LISTA = lista
         encoder.HYPERLISTA = hyperlista
-        decoder = DecoderConfig(**model_dict.get("DECODER", {}))
+        decoder = _build_dataclass(DecoderConfig, model_dict.get("DECODER", {}))
         
-        structured = StructuredLatentConfig(**model_dict.get("STRUCTURED", {}))
-        block_loss = BlockLossConfig(**model_dict.get("BLOCK_LOSS", {}))
-        model = ModelConfig(**{k: v for k, v in model_dict.items() if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS"]})
+        structured = _build_dataclass(StructuredLatentConfig, model_dict.get("STRUCTURED", {}))
+        block_loss = _build_dataclass(BlockLossConfig, model_dict.get("BLOCK_LOSS", {}))
+        soft_block = _build_dataclass(SoftBlockConfig, model_dict.get("SOFT_BLOCK", {}))
+        model = ModelConfig(
+            **_filter_dataclass_kwargs(
+                ModelConfig,
+                {
+                    k: v
+                    for k, v in model_dict.items()
+                    if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS", "SOFT_BLOCK"]
+                },
+            )
+        )
         model.ENCODER = encoder
         model.DECODER = decoder
         model.STRUCTURED = structured
         model.BLOCK_LOSS = block_loss
+        model.SOFT_BLOCK = soft_block
         
         train_dict = config_dict.get("TRAIN", {})
-        train = TrainConfig(**train_dict)
+        train = TrainConfig(
+            **_filter_dataclass_kwargs(
+                TrainConfig,
+                {k: v for k, v in train_dict.items() if k != "HARD_INIT_OVERSAMPLE"},
+            )
+        )
+        train.HARD_INIT_OVERSAMPLE = _build_dataclass(
+            TrainConfig.HardInitOversampleConfig,
+            train_dict.get("HARD_INIT_OVERSAMPLE", {}),
+        )
         
         return cls(
             SEED=config_dict.get("SEED", 0),
@@ -530,23 +667,41 @@ _BUILTIN_ENV_DT_NAMES = {
     "lyapunov",
     "blended",
     "multiwell",
+    "gated_local_linear",
+    "gated_transfer_linear",
     "kuramoto",
     "hopfield",
     "competitive_lv",
+    "claude_catalog",
 }
 
 
 def canonical_env_name(env_name: str) -> str:
     """Normalize an environment name for config-level routing."""
     lowered = env_name.lower()
+    if lowered.startswith("claude:"):
+        return "claude_catalog"
     if lowered.startswith("dysts:"):
         return "dysts"
     if lowered.startswith("multiwell:"):
+        return "multiwell"
+    if lowered.startswith("multiwell_"):
         return "multiwell"
     if lowered in _BUILTIN_ENV_DT_NAMES:
         return lowered
     # Unknown names are treated as dysts because make_env() falls back to Dysts.
     return "dysts"
+
+
+def _get_claude_catalog_default_dt(env_name: str) -> float:
+    """Read the intrinsic dt for a Claude catalog environment name."""
+    if not env_name.lower().startswith("claude:"):
+        raise ValueError(f"Expected 'claude:SystemName', got '{env_name}'.")
+    system_name = env_name.split(":", 1)[1]
+    from skae.claude_catalog import ensure_catalog_registered, get_system
+
+    ensure_catalog_registered()
+    return float(get_system(system_name).dt)
 
 
 def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None) -> None:
@@ -575,12 +730,18 @@ def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None
         cfg.ENV.BLENDED.DT = dt
     elif target_env == "multiwell":
         cfg.ENV.MULTIWELL.DT = dt
+    elif target_env == "gated_local_linear":
+        cfg.ENV.GATED_LOCAL_LINEAR.DT = dt
+    elif target_env == "gated_transfer_linear":
+        cfg.ENV.GATED_TRANSFER_LINEAR.DT = dt
     elif target_env == "kuramoto":
         cfg.ENV.KURAMOTO.DT = dt
     elif target_env == "hopfield":
         cfg.ENV.HOPFIELD.DT = dt
     elif target_env == "competitive_lv":
         cfg.ENV.COMPETITIVE_LV.DT = dt
+    elif target_env == "claude_catalog":
+        cfg.ENV.CLAUDE_CATALOG.DT = dt
     else:
         raise ValueError(f"Unsupported environment for dt override: '{env_name or cfg.ENV.ENV_NAME}'")
 
@@ -609,12 +770,20 @@ def get_env_dt(cfg: Config, env_name: Optional[str] = None) -> float:
         return float(cfg.ENV.BLENDED.DT)
     if target_env == "multiwell":
         return float(cfg.ENV.MULTIWELL.DT)
+    if target_env == "gated_local_linear":
+        return float(cfg.ENV.GATED_LOCAL_LINEAR.DT)
+    if target_env == "gated_transfer_linear":
+        return float(cfg.ENV.GATED_TRANSFER_LINEAR.DT)
     if target_env == "kuramoto":
         return float(cfg.ENV.KURAMOTO.DT)
     if target_env == "hopfield":
         return float(cfg.ENV.HOPFIELD.DT)
     if target_env == "competitive_lv":
         return float(cfg.ENV.COMPETITIVE_LV.DT)
+    if target_env == "claude_catalog":
+        if cfg.ENV.CLAUDE_CATALOG.DT > 0.0:
+            return float(cfg.ENV.CLAUDE_CATALOG.DT)
+        return _get_claude_catalog_default_dt(env_name or cfg.ENV.ENV_NAME)
     raise ValueError(f"Unsupported environment for dt lookup: '{env_name or cfg.ENV.ENV_NAME}'")
 
 
@@ -653,6 +822,27 @@ def get_train_generic_sparse_config() -> Config:
     cfg.MODEL.ENCODER.USE_BIAS = True
     cfg.MODEL.RECONST_COEFF = 0.5
     cfg.MODEL.SPARSITY_COEFF = 0.01
+    return cfg
+
+
+def get_train_generic_no_shrink_config() -> Config:
+    """Training configuration for GenericKM without architectural sparsification.
+
+    This control removes the latent L1 penalty and also avoids the sparse
+    preset's ReLU output gate so zero activity is not induced by architecture.
+    """
+    cfg = Config()
+    cfg.TRAIN.LR = 1e-4
+    cfg.MODEL.MODEL_NAME = "GenericKM"
+    cfg.MODEL.TARGET_SIZE = 64
+    cfg.MODEL.NORM_FN = "id"
+    cfg.MODEL.DECODER.LAYERS = []
+    cfg.MODEL.ENCODER.LAYERS = [64, 64]
+    cfg.MODEL.ENCODER.ACTIVATION = "tanh"
+    cfg.MODEL.ENCODER.LAST_RELU = False
+    cfg.MODEL.ENCODER.USE_BIAS = True
+    cfg.MODEL.RECONST_COEFF = 0.5
+    cfg.MODEL.SPARSITY_COEFF = 0.0
     return cfg
 
 
@@ -793,6 +983,7 @@ def get_train_hyperlista_parity_generic_sparse_config() -> Config:
 _TRAIN_CONFIG_REGISTRY = {
     "generic": get_train_generic_km_config,
     "generic_sparse": get_train_generic_sparse_config,
+    "generic_no_shrink": get_train_generic_no_shrink_config,
     "generic_prediction": get_train_generic_prediction_config,
     "lista": get_train_lista_config,
     "lista_nonlinear": get_train_lista_nonlinear_config,
@@ -810,6 +1001,7 @@ def get_config(name: str = "default") -> Config:
             - "default": Base configuration
             - "generic": Standard KoopmanMachine
             - "generic_sparse": Sparse KoopmanMachine with L1
+            - "generic_no_shrink": MLP control without L1 or ReLU-induced sparsification
             - "generic_prediction": Prediction-focused
             - "lista": LISTA-based KoopmanMachine
             - "lista_nonlinear": LISTA with MLP encoder

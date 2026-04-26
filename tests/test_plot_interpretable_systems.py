@@ -9,6 +9,7 @@ from tools.plot_interpretable_systems import (
     parse_formats_arg,
     parse_systems_arg,
     plot_selected_systems,
+    validate_layout,
 )
 
 
@@ -28,6 +29,10 @@ def test_parse_formats_arg_normalizes_suffixes():
     assert parse_formats_arg("png,.svg,pdf") == ("png", "svg", "pdf")
 
 
+def test_validate_layout_accepts_catalog():
+    assert validate_layout("catalog") == "catalog"
+
+
 def test_plot_selected_systems_writes_only_requested_outputs(tmp_path: Path):
     output_paths = plot_selected_systems(
         systems=["gated_local_linear"],
@@ -42,4 +47,21 @@ def test_plot_selected_systems_writes_only_requested_outputs(tmp_path: Path):
     assert output_paths == [expected]
     assert expected.exists()
     assert not (tmp_path / "multiwell_strong_transition_interpretable_overview.png").exists()
+    assert not (tmp_path / "gated_transfer_linear_interpretable_overview.png").exists()
+
+
+def test_plot_selected_systems_catalog_layout_uses_system_key_filename(tmp_path: Path):
+    output_paths = plot_selected_systems(
+        systems=["gated_transfer_linear"],
+        output_dir=tmp_path,
+        grid_points=17,
+        trajectory_length=20,
+        start_points_per_axis=4,
+        formats=("png",),
+        layout="catalog",
+    )
+
+    expected = tmp_path / "gated_transfer_linear.png"
+    assert output_paths == [expected]
+    assert expected.exists()
     assert not (tmp_path / "gated_transfer_linear_interpretable_overview.png").exists()

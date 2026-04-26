@@ -19,7 +19,7 @@ def test_paper_benchmark_manifest_shape():
     models = paper_benchmark_models()
 
     assert len(systems) == 29
-    assert len(models) == 4
+    assert len(models) == 5
     assert PAPER_BENCHMARK_NUM_STEPS == 50_000
     assert PAPER_BENCHMARK_BATCH_SIZE == 256
     assert PAPER_BENCHMARK_TARGET_SIZE == 256
@@ -30,6 +30,7 @@ def test_paper_benchmark_known_defaults():
     """Built-in defaults and model variants should be stable."""
     assert resolve_system_default_dt("duffing") == 0.01
     assert get_paper_benchmark_model("lista_diagonal").k_structure == "diagonal"
+    assert get_paper_benchmark_model("generic_sparse_blockdiag").k_structure == "block_diagonal"
 
 
 def test_paper_benchmark_manifest_jsonable():
@@ -38,5 +39,5 @@ def test_paper_benchmark_manifest_jsonable():
 
     assert payload["num_steps"] == 50_000
     assert len(payload["systems"]) == 29
-    assert len(payload["models"]) == 4
+    assert len(payload["models"]) == 5
     assert any(item["system_key"] == "dysts:LorenzCoupled" for item in payload["systems"])

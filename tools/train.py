@@ -5,7 +5,7 @@ This script provides a complete training pipeline for learning Koopman operator
 representations of dynamical systems using PyTorch.
 
 Usage:
-    python train.py --config generic_sparse --env duffing --num_steps 20000
+    uv run python tools/train.py --config generic_sparse --env duffing --num_steps 20000
 
 Or use it programmatically:
     from train import train
@@ -37,7 +37,13 @@ from skae.dysts_cache_profiles import (
 print("Config loaded.")
 
 print("Loading data...")
-from skae.data import make_env, VectorWrapper, generate_trajectory, DystsTrajectoryCache
+from skae.data import (
+    DystsTrajectoryCache,
+    VectorWrapper,
+    generate_trajectory,
+    make_env,
+    wrap_training_env,
+)
 print("Data loaded.")
 
 print("Loading model...")
@@ -334,6 +340,14 @@ def train(
     skip_eval: bool = False,
     skip_basin_eval: bool = False,
     eval_profile: str = "full",
+    eval_use_dynamics_prior: bool = False,
+    eval_event_trigger_proj_threshold: Optional[float] = None,
+    eval_event_trigger_ambiguity_threshold: Optional[float] = None,
+    eval_event_trigger_spillover_threshold: Optional[float] = None,
+    eval_event_trigger_support_margin_min_ratio: Optional[float] = None,
+    eval_event_trigger_support_threshold: float = 1e-3,
+    eval_event_trigger_min_dwell: int = 0,
+    eval_event_trigger_max_interval: int = 0,
 ) -> nn.Module:
     """Main training function.
 
@@ -376,7 +390,8 @@ def train(
     
     print("Creating environment...")
     base_env = make_env(cfg)
-    env = VectorWrapper(base_env, cfg.TRAIN.BATCH_SIZE)
+    train_env = VectorWrapper(wrap_training_env(base_env, cfg), cfg.TRAIN.BATCH_SIZE)
+    eval_env = VectorWrapper(base_env, cfg.TRAIN.BATCH_SIZE)
     
     # DYSTS-specific training caveat: without the cache we only see x->x+1 from freshly
     # reset initial conditions (i.e., mostly transients, not attractor distribution).
@@ -384,7 +399,7 @@ def train(
     # in long rollouts / phase portraits.
     try:
         from skae.benchmarks.dysts_adapter import DystsEnv
-        if isinstance(env.unwrapped, DystsEnv) and not cfg.ENV.DYSTS.USE_NATIVE_CACHE:
+        if isinstance(train_env.unwrapped, DystsEnv) and not cfg.ENV.DYSTS.USE_NATIVE_CACHE:
             print(
                 "[warn] Training on a dysts system without trajectory cache. "
                 "You are sampling only one-step transitions from reset() each step; "
@@ -397,7 +412,7 @@ def train(
         pass
     
     print("Creating model...")
-    model = make_model(cfg, env.observation_size)
+    model = make_model(cfg, base_env.observation_size)
     model = model.to(device)
     
     print("Building optimizer...")
@@ -424,7 +439,7 @@ def train(
     if cfg.ENV.DYSTS.USE_NATIVE_CACHE:
         try:
             from skae.benchmarks.dysts_adapter import DystsEnv
-            if isinstance(env.unwrapped, DystsEnv):
+            if isinstance(train_env.unwrapped, DystsEnv):
                 print(
                     "Initializing dysts native trajectory cache "
                     f"(split={cfg.ENV.DYSTS.CACHE_SPLIT}, "
@@ -433,7 +448,7 @@ def train(
                     f"warmup={cfg.ENV.DYSTS.CACHE_WARMUP}) ...",
                     flush=True,
                 )
-                dysts_cache = DystsTrajectoryCache(env.unwrapped, cfg)
+                dysts_cache = DystsTrajectoryCache(train_env.unwrapped, cfg)
                 # Keep validation split separate from training split.
                 val_cache_cfg = Config.from_dict(cfg.to_dict())
                 val_cache_cfg.ENV.DYSTS.CACHE_SPLIT = "val"
@@ -445,7 +460,7 @@ def train(
                     f"warmup={val_cache_cfg.ENV.DYSTS.CACHE_WARMUP}) ...",
                     flush=True,
                 )
-                val_dysts_cache = DystsTrajectoryCache(env.unwrapped, val_cache_cfg)
+                val_dysts_cache = DystsTrajectoryCache(train_env.unwrapped, val_cache_cfg)
                 print(
                     "Using dysts native trajectory cache "
                     f"(train_split={cfg.ENV.DYSTS.CACHE_SPLIT}, val_split={val_cache_cfg.ENV.DYSTS.CACHE_SPLIT}, "
@@ -467,15 +482,22 @@ def train(
             device=device,
         )
     else:
-        val_seq = env.generate_sequence_batch(val_rng, window_length=val_window).to(device)
+        val_seq = eval_env.generate_sequence_batch(val_rng, window_length=val_window).to(device)
     val_x = val_seq[:16, 0, :]
     
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
     print(f"Device: {device}")
-    print(f"Observation size: {env.observation_size}")
+    print(f"Observation size: {base_env.observation_size}")
     print(f"Target size: {cfg.MODEL.TARGET_SIZE}")
     print(f"Batch size: {cfg.TRAIN.BATCH_SIZE}")
     print(f"Total steps: {cfg.TRAIN.NUM_STEPS}")
+    if cfg.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED:
+        settings = cfg.TRAIN.HARD_INIT_OVERSAMPLE
+        print(
+            "[train] hard-init oversampling enabled "
+            f"(fraction={settings.FRACTION:.2f}, pool={settings.POOL_SIZE}, "
+            f"candidates={settings.NUM_CANDIDATES}, probe_steps={settings.PROBE_STEPS})"
+        )
     print(f"Log directory: {run_dir}")
     print("-" * 80)
 
@@ -512,7 +534,7 @@ def train(
                 device=device,
             )
         else:
-            x_seq = env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH).to(device)
+            x_seq = train_env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH).to(device)
 
         metrics = train_step(model, optimizer, x_seq, step=step)
         
@@ -550,7 +572,7 @@ def train(
             eval_results = evaluate(
                 model,
                 val_x,
-                lambda s: env.step(s),
+                lambda s: eval_env.step(s),
                 num_steps=cfg.TRAIN.EVAL_NUM_STEPS,
             )
             logger.log_scalar('eval/mean_error', eval_results['mean_error'], step)
@@ -643,6 +665,7 @@ def train(
             # Create evaluation settings
             eval_settings = EvaluationSettings()
             eval_settings.systems = [cfg.ENV.ENV_NAME]
+            eval_settings.save_rollout_artifacts = True
             if eval_profile == "smoke":
                 # Keep H1000 for compatibility checks, but reduce expensive eval breadth.
                 eval_settings.batch_size = 32
@@ -654,6 +677,30 @@ def train(
                 eval_settings.phase_portrait_batch_size = 64
                 eval_settings.phase_portrait_reencode_periods = (0, 1, 10, 25)
                 eval_settings.dysts_phase_portrait_reencode_periods = (0, 1, 100, 500, 1000)
+            eval_settings.use_dynamics_prior = bool(eval_use_dynamics_prior)
+            eval_settings.event_trigger_proj_threshold = (
+                None
+                if eval_event_trigger_proj_threshold is None
+                else float(eval_event_trigger_proj_threshold)
+            )
+            eval_settings.event_trigger_ambiguity_threshold = (
+                None
+                if eval_event_trigger_ambiguity_threshold is None
+                else float(eval_event_trigger_ambiguity_threshold)
+            )
+            eval_settings.event_trigger_spillover_threshold = (
+                None
+                if eval_event_trigger_spillover_threshold is None
+                else float(eval_event_trigger_spillover_threshold)
+            )
+            eval_settings.event_trigger_support_margin_min_ratio = (
+                None
+                if eval_event_trigger_support_margin_min_ratio is None
+                else float(eval_event_trigger_support_margin_min_ratio)
+            )
+            eval_settings.event_trigger_support_threshold = float(eval_event_trigger_support_threshold)
+            eval_settings.event_trigger_min_dwell = int(eval_event_trigger_min_dwell)
+            eval_settings.event_trigger_max_interval = int(eval_event_trigger_max_interval)
 
             # Evaluate
             eval_dir = run_dir / f"evaluation_{checkpoint_name}"
@@ -685,6 +732,7 @@ def train(
                     no_re = primary_metrics["modes"]["no_reencode"]["horizons"].get(horizon_key)
                     every = primary_metrics["modes"]["every_step"]["horizons"].get(horizon_key)
                     best = primary_metrics["best_periodic"].get(horizon_key)
+                    best_reset = primary_metrics.get("best_reset", {}).get(horizon_key)
                     if no_re is None or every is None:
                         continue
                     best_str = (
@@ -695,13 +743,22 @@ def train(
                             f"(per-dim {best.get('per_dim_mean', float('nan')):.4e}, {best['mode']})"
                         )
                     )
+                    best_reset_str = (
+                        "best-reset=N/A"
+                        if best_reset is None
+                        else (
+                            f"best-reset={best_reset['mean']:.4e} "
+                            f"(per-dim {best_reset.get('per_dim_mean', float('nan')):.4e}, {best_reset['mode']})"
+                        )
+                    )
                     print(
                         f"    Horizon {horizon}: "
                         f"no-reencode={no_re['mean']:.4e} "
                         f"(per-dim {no_re.get('per_dim_mean', float('nan')):.4e}), "
                         f"every-step={every['mean']:.4e} "
                         f"(per-dim {every.get('per_dim_mean', float('nan')):.4e}), "
-                        f"{best_str}"
+                        f"{best_str}, "
+                        f"{best_reset_str}"
                     )
 
                 # For dysts systems, also print reencode @ 100, 200, 500, 1000 summary
@@ -957,20 +1014,23 @@ def main():
         epilog="""
 Examples:
   # Train on built-in environment
-  python train.py --config generic_sparse --env duffing --num_steps 10000
+  uv run python tools/train.py --config generic_sparse --env duffing --num_steps 10000
 
   # Train on dysts chaotic system
-  python train.py --config lista --env dysts:Lorenz --num_steps 10000
-  python train.py --config lista --env dysts:Chua --target_size 1024
+  uv run python tools/train.py --config lista --env dysts:Lorenz --num_steps 10000
+  uv run python tools/train.py --config lista --env dysts:Chua --target_size 1024
 
-  # List available dysts systems
-  python train.py --list-dysts
+  # Train on Claude transition-rich catalog system
+  uv run python tools/train.py --config generic_sparse --env claude:cal_triangle_3 --num_steps 10000
+
+  # List available environments
+  uv run python tools/train.py --list-envs
         """
     )
     
     # Configuration
     parser.add_argument('--config', type=str, default='generic',
-                        choices=['default', 'generic', 'generic_sparse', 
+                        choices=['default', 'generic', 'generic_sparse', 'generic_no_shrink',
                                 'generic_prediction', 'lista', 'lista_nonlinear',
                                 'lista_parity_generic_sparse', 'hyperlista',
                                 'hyperlista_parity_generic_sparse'],
@@ -980,6 +1040,8 @@ Examples:
                              'lorenz63, parabolic, lyapunov, blended, '
                              'kuramoto, hopfield, competitive_lv, '
                              'multiwell, multiwell:<mode>, multiwell_*_hd. '
+                             'For Claude catalog systems: use "claude:SystemName" '
+                             '(e.g., "claude:cal_triangle_3"). '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
     parser.add_argument('--env_dt', type=float, default=None,
                         help='Override the integration timestep for the active environment')
@@ -1017,8 +1079,8 @@ Examples:
                         help='Decay rate for extra dimensions in embed mode')
     
     # Dysts utilities
-    parser.add_argument('--list-dysts', action='store_true',
-                        help='List all available dysts systems and exit')
+    parser.add_argument('--list-dysts', '--list-envs', dest='list_dysts', action='store_true',
+                        help='List built-in, Claude catalog, and dysts environments and exit')
     parser.add_argument('--standardize', action='store_true',
                         help='Standardize dysts data (zero mean, unit variance). Recommended for dysts systems.')
     parser.add_argument('--dysts_ic_noise_scale', type=float, default=None,
@@ -1052,6 +1114,26 @@ Examples:
                         help='Number of training steps')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='Batch size')
+    parser.add_argument('--hard_init_oversample', type=parse_optional_bool, default=None,
+                        help='Enable training-time oversampling of hard initial conditions near separatrices')
+    parser.add_argument('--hard_init_fraction', type=float, default=None,
+                        help='Fraction of training resets drawn from the hard-initial-condition pool')
+    parser.add_argument('--hard_init_pool_size', type=int, default=None,
+                        help='Number of cached hard initial conditions retained for training-time oversampling')
+    parser.add_argument('--hard_init_num_candidates', type=int, default=None,
+                        help='Number of reset samples scored when building the hard-initial-condition pool')
+    parser.add_argument('--hard_init_probe_steps', type=int, default=None,
+                        help='Short rollout horizon used to score hard initial conditions')
+    parser.add_argument('--hard_init_num_perturbations', type=int, default=None,
+                        help='Number of local perturbations per candidate when scoring hard initial conditions')
+    parser.add_argument('--hard_init_perturb_scale', type=float, default=None,
+                        help='Relative perturbation scale used when scoring hard initial conditions')
+    parser.add_argument('--hard_init_transient_window', type=int, default=None,
+                        help='Late-window length used to score lingering transient motion')
+    parser.add_argument('--hard_init_transient_weight', type=float, default=None,
+                        help='Weight on the lingering-transient term in the hard-initial-condition score')
+    parser.add_argument('--hard_init_jitter_scale', type=float, default=None,
+                        help='Relative jitter applied when resampling from the hard-initial-condition pool')
     parser.add_argument('--lr', type=float, default=None,
                         help='Learning rate (overrides config default)')
     parser.add_argument('--k_matrix_lr', type=float, default=None,
@@ -1076,9 +1158,36 @@ Examples:
                         help='LISTA soft-threshold alpha (overrides config default)')
     parser.add_argument('--lista_num_loops', type=int, default=None,
                         help='Number of LISTA iterations (overrides config default)')
+    parser.add_argument('--lista_use_momentum', type=parse_optional_bool, default=None,
+                        help='Enable fixed-beta momentum in standard LISTA refinement')
+    parser.add_argument('--lista_momentum_beta', type=float, default=None,
+                        help='Momentum coefficient for standard LISTA refinement')
+    parser.add_argument('--lista_linear_encoder', type=parse_optional_bool, default=None,
+                        help='Use a linear LISTA pre-code instead of the default MLP pre-code')
     parser.add_argument('--lista_final_op', type=str, default=None,
-                        choices=['shrink', 'relu'],
-                        help='LISTA final nonlinearity: shrink (default) or relu')
+                        choices=['shrink', 'relu', 'sign_split'],
+                        help='LISTA final nonlinearity: shrink, relu, or sign_split')
+    parser.add_argument('--lista_precode_mode', type=str, default=None,
+                        choices=['auto', 'free_mlp', 'linear', 'dictionary_tied', 'hybrid'],
+                        help='LISTA pre-code mode: auto, free_mlp, linear, dictionary_tied, or hybrid')
+    parser.add_argument('--lista_precode_residual_scale', type=float, default=None,
+                        help='Residual MLP scale for LISTA hybrid pre-code')
+    parser.add_argument('--lista_adaptive_thresholds', type=parse_optional_bool, default=None,
+                        help='Enable sample-dependent LISTA thresholds based on reconstruction/prior mismatch')
+    parser.add_argument('--lista_alpha_residual_coeff', type=float, default=None,
+                        help='LISTA adaptive-threshold coefficient on the reconstruction residual term')
+    parser.add_argument('--lista_alpha_prior_coeff', type=float, default=None,
+                        help='LISTA adaptive-threshold coefficient on the latent-prior mismatch term')
+    parser.add_argument('--lista_groupwise_thresholds', type=parse_optional_bool, default=None,
+                        help='Use separate learned LISTA base thresholds per inferred latent group')
+    parser.add_argument('--encoder_group_shrinkage', type=parse_optional_bool, default=None,
+                        help='Enable sparse-group shrinkage over inferred latent groups for LISTA/HyperLISTA encoders')
+    parser.add_argument('--encoder_group_threshold_scale', type=float, default=None,
+                        help='Group threshold multiplier relative to the elementwise LISTA/HyperLISTA threshold')
+    parser.add_argument('--encoder_topk_groups', type=int, default=None,
+                        help='Keep only the top-k latent groups before within-group thresholding (0 disables)')
+    parser.add_argument('--decoder_coherence_weight', type=float, default=None,
+                        help='Weight for the normalized decoder coherence penalty')
 
     # Koopman matrix structure
     parser.add_argument('--k_structure', type=str, default=None,
@@ -1086,6 +1195,8 @@ Examples:
                         help='Koopman matrix structure (default: dense)')
     parser.add_argument('--k_block_size', type=int, default=None,
                         help='Block size for block_diagonal K (default: auto = target_size // 13)')
+    parser.add_argument('--k_num_blocks', type=int, default=None,
+                        help='Exact number of blocks for block_diagonal K (overrides k_block_size)')
 
     # Block activation losses (for block_diagonal K)
     parser.add_argument('--block_loss', action='store_true',
@@ -1105,6 +1216,15 @@ Examples:
     parser.add_argument('--block_energy_norm', type=str, default=None,
                         choices=['l1', 'l2'],
                         help='Energy norm for block activations (default: l2)')
+    parser.add_argument('--soft_block', action='store_true',
+                        help='Enable off-block penalty for dense soft block-sparse Koopman matrices')
+    parser.add_argument('--soft_block_num_blocks', type=int, default=None,
+                        help='Number of latent blocks used by the off-block penalty mask')
+    parser.add_argument('--soft_block_weight', type=float, default=None,
+                        help='Weight for dense-K off-block penalty')
+    parser.add_argument('--soft_block_norm', type=str, default=None,
+                        choices=['l1', 'fro'],
+                        help='Norm for dense-K off-block penalty (default: l1)')
 
     # HyperLISTA hyperparameters (for LISTAKM with ENCODER_TYPE=hyperlista)
     parser.add_argument('--hyperlista_c_theta', type=float, default=None,
@@ -1160,6 +1280,22 @@ Examples:
                         help='Skip basin structure evaluation after training')
     parser.add_argument('--eval_profile', type=str, default='full', choices=['full', 'smoke'],
                         help='Evaluation profile for post-training standardized evaluation')
+    parser.add_argument('--eval_use_dynamics_prior', type=parse_optional_bool, default=None,
+                        help='Warm-start reencoding with the predicted latent during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_proj_threshold', type=float, default=None,
+                        help='Projection-gap threshold for event-triggered reencoding during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_ambiguity_threshold', type=float, default=None,
+                        help='Group-ambiguity threshold for event-triggered reencoding during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_spillover_threshold', type=float, default=None,
+                        help='Off-group spillover threshold for event-triggered reencoding during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_support_margin_min_ratio', type=float, default=None,
+                        help='Minimum support-margin ratio before event-triggered reencoding fires during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_support_threshold', type=float, default=1e-3,
+                        help='Support threshold used when computing support-margin trigger ratios during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_min_dwell', type=int, default=0,
+                        help='Minimum number of steps between event-triggered resets during standardized evaluation')
+    parser.add_argument('--eval_event_trigger_max_interval', type=int, default=0,
+                        help='Maximum steps allowed between event-triggered resets during standardized evaluation (0 disables)')
 
     # Support monitoring (for basin-support correspondence diagnostics)
     parser.add_argument('--monitor_support', action='store_true',
@@ -1185,7 +1321,7 @@ Examples:
     # Handle --list-dysts
     if args.list_dysts:
         print("\n" + "=" * 60)
-        print("AVAILABLE DYSTS SYSTEMS")
+        print("AVAILABLE ENVIRONMENTS")
         print("=" * 60)
         try:
             from skae.data import get_available_environments
@@ -1194,6 +1330,19 @@ Examples:
             print(f"\nBuilt-in environments ({len(envs['builtin'])}):")
             for env in envs['builtin']:
                 print(f"  {env}")
+
+            print(f"\nClaude catalog systems ({len(envs['claude_catalog'])}):")
+            if envs['claude_catalog']:
+                systems = envs['claude_catalog']
+                for i in range(0, len(systems), 4):
+                    row = systems[i:i+4]
+                    print("  " + "  ".join(f"{s:<20}" for s in row))
+                print(
+                    "\nUsage: --env claude:SystemName "
+                    '(e.g., --env claude:cal_triangle_3)'
+                )
+            else:
+                print("  (Claude catalog not available)")
             
             print(f"\nDysts systems ({len(envs['dysts'])}):")
             if envs['dysts']:
@@ -1257,6 +1406,27 @@ Examples:
         print(f"Using environment dt override: {float(args.env_dt):.8g}")
     
     # Override config with command-line args
+    if args.hard_init_oversample is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.ENABLED = args.hard_init_oversample
+    if args.hard_init_fraction is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.FRACTION = float(args.hard_init_fraction)
+    if args.hard_init_pool_size is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.POOL_SIZE = int(args.hard_init_pool_size)
+    if args.hard_init_num_candidates is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.NUM_CANDIDATES = int(args.hard_init_num_candidates)
+    if args.hard_init_probe_steps is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.PROBE_STEPS = int(args.hard_init_probe_steps)
+    if args.hard_init_num_perturbations is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.NUM_PERTURBATIONS = int(args.hard_init_num_perturbations)
+    if args.hard_init_perturb_scale is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.PERTURB_SCALE = float(args.hard_init_perturb_scale)
+    if args.hard_init_transient_window is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.TRANSIENT_WINDOW = int(args.hard_init_transient_window)
+    if args.hard_init_transient_weight is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.TRANSIENT_WEIGHT = float(args.hard_init_transient_weight)
+    if args.hard_init_jitter_scale is not None:
+        cfg.TRAIN.HARD_INIT_OVERSAMPLE.JITTER_SCALE = float(args.hard_init_jitter_scale)
+
     if args.lr is not None:
         cfg.TRAIN.LR = args.lr
     if args.k_matrix_lr is not None:
@@ -1279,13 +1449,44 @@ Examples:
         # Update both LISTA and HyperLISTA loop counts for convenience
         cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = args.lista_num_loops
         cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = args.lista_num_loops
+    if args.lista_use_momentum is not None:
+        cfg.MODEL.ENCODER.LISTA.USE_MOMENTUM = args.lista_use_momentum
+    if args.lista_momentum_beta is not None:
+        cfg.MODEL.ENCODER.LISTA.MOMENTUM_BETA = args.lista_momentum_beta
+    if args.lista_linear_encoder is not None:
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = args.lista_linear_encoder
     if args.lista_final_op is not None:
         cfg.MODEL.ENCODER.LISTA.FINAL_OP = args.lista_final_op
+    if args.lista_precode_mode is not None:
+        cfg.MODEL.ENCODER.LISTA.PRECODE_MODE = args.lista_precode_mode
+    if args.lista_precode_residual_scale is not None:
+        cfg.MODEL.ENCODER.LISTA.PRECODE_RESIDUAL_SCALE = args.lista_precode_residual_scale
+    if args.lista_adaptive_thresholds is not None:
+        cfg.MODEL.ENCODER.LISTA.ADAPTIVE_THRESHOLDS = args.lista_adaptive_thresholds
+    if args.lista_alpha_residual_coeff is not None:
+        cfg.MODEL.ENCODER.LISTA.ALPHA_RESIDUAL_COEFF = args.lista_alpha_residual_coeff
+    if args.lista_alpha_prior_coeff is not None:
+        cfg.MODEL.ENCODER.LISTA.ALPHA_PRIOR_COEFF = args.lista_alpha_prior_coeff
+    if args.lista_groupwise_thresholds is not None:
+        cfg.MODEL.ENCODER.LISTA.GROUPWISE_THRESHOLDS = args.lista_groupwise_thresholds
+    if args.encoder_group_shrinkage is not None:
+        cfg.MODEL.ENCODER.LISTA.GROUP_SHRINKAGE = args.encoder_group_shrinkage
+        cfg.MODEL.ENCODER.HYPERLISTA.GROUP_SHRINKAGE = args.encoder_group_shrinkage
+    if args.encoder_group_threshold_scale is not None:
+        cfg.MODEL.ENCODER.LISTA.GROUP_THRESHOLD_SCALE = args.encoder_group_threshold_scale
+        cfg.MODEL.ENCODER.HYPERLISTA.GROUP_THRESHOLD_SCALE = args.encoder_group_threshold_scale
+    if args.encoder_topk_groups is not None:
+        cfg.MODEL.ENCODER.LISTA.TOPK_GROUPS = args.encoder_topk_groups
+        cfg.MODEL.ENCODER.HYPERLISTA.TOPK_GROUPS = args.encoder_topk_groups
+    if args.decoder_coherence_weight is not None:
+        cfg.MODEL.DECODER_COHERENCE_WEIGHT = args.decoder_coherence_weight
     if args.k_structure is not None:
         cfg.MODEL.K_STRUCTURE = args.k_structure
         print(f"Using Koopman matrix structure: {args.k_structure}")
     if args.k_block_size is not None:
         cfg.MODEL.K_BLOCK_SIZE = args.k_block_size
+    if args.k_num_blocks is not None:
+        cfg.MODEL.K_NUM_BLOCKS = args.k_num_blocks
 
     # Block activation loss config
     if args.block_loss:
@@ -1308,6 +1509,18 @@ Examples:
     if args.block_energy_norm is not None:
         cfg.MODEL.BLOCK_LOSS.ENERGY_NORM = args.block_energy_norm
         cfg.MODEL.BLOCK_LOSS.ENABLED = True
+
+    if args.soft_block:
+        cfg.MODEL.SOFT_BLOCK.ENABLED = True
+    if args.soft_block_num_blocks is not None:
+        cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS = args.soft_block_num_blocks
+        cfg.MODEL.SOFT_BLOCK.ENABLED = True
+    if args.soft_block_weight is not None:
+        cfg.MODEL.SOFT_BLOCK.WEIGHT = args.soft_block_weight
+        cfg.MODEL.SOFT_BLOCK.ENABLED = args.soft_block_weight > 0.0 or cfg.MODEL.SOFT_BLOCK.ENABLED
+    if args.soft_block_norm is not None:
+        cfg.MODEL.SOFT_BLOCK.NORM = args.soft_block_norm
+        cfg.MODEL.SOFT_BLOCK.ENABLED = True
 
     if args.hyperlista_c_theta is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = args.hyperlista_c_theta
@@ -1453,6 +1666,14 @@ Examples:
         skip_eval=args.skip_eval,
         skip_basin_eval=args.skip_basin_eval,
         eval_profile=args.eval_profile,
+        eval_use_dynamics_prior=bool(args.eval_use_dynamics_prior) if args.eval_use_dynamics_prior is not None else False,
+        eval_event_trigger_proj_threshold=args.eval_event_trigger_proj_threshold,
+        eval_event_trigger_ambiguity_threshold=args.eval_event_trigger_ambiguity_threshold,
+        eval_event_trigger_spillover_threshold=args.eval_event_trigger_spillover_threshold,
+        eval_event_trigger_support_margin_min_ratio=args.eval_event_trigger_support_margin_min_ratio,
+        eval_event_trigger_support_threshold=args.eval_event_trigger_support_threshold,
+        eval_event_trigger_min_dwell=args.eval_event_trigger_min_dwell,
+        eval_event_trigger_max_interval=args.eval_event_trigger_max_interval,
     )
 
 
