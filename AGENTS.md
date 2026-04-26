@@ -45,7 +45,7 @@ Use `uv` for reproducible environments.
   - CPU-only: `salloc --mem=8G -c 4 --partition=long`
   - With GPU: `salloc --gpus 1 --mem=8G -c 4 --partition=long`
 - After `salloc` grants a node, run your command inside that allocation.
-- This applies to all `uv run python ...` invocations, `pytest`, and any other non-trivial process. The only exceptions are lightweight git, file editing, and shell commands.
+- This applies to all `uv run python ...` invocations, `pytest`, and any other non-trivial process. The exceptions are lightweight git, file editing, shell commands, and manuscript/PDF builds such as `latexmk`, `pdflatex`, and `bibtex`.
 
 ## SLURM Submission Rules
 - Launch SLURM job scripts with `sbatch` (for scripts with `#SBATCH` headers); do not run them directly with `bash`.
