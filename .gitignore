@@ -215,5 +215,8 @@ runs/*
 plots/*
 results/*
 
+# Generated large rollout tensors
+docs/figures/dysts_phase_portraits/*_rollouts.pt
+
 .DS_Store
 slurm-*.out
