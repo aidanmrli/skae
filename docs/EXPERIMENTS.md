@@ -1,12 +1,73 @@
 # Experiments (Core)
 
-Date: April 18, 2026
-Paper-critical live queue status last refreshed: `2026-04-18 23:10 EDT`
+Date: April 26, 2026
+Evidence organization last refreshed: `2026-04-26 14:11 EDT`
+Paper-critical live queue status last refreshed: `2026-04-25 19:25 EDT`
 
 ## Current Status Summary
 
+Problem we are solving:
+- Reorganize the experiment record so the NeurIPS experiments section follows
+  the paper's causal chain: sparse supports align with basins, those same
+  supports route useful local predictors without oracle labels, and
+  sparse-latent Koopman models remain competitive at long horizons.
+
+Current paper-facing approach:
+- Use [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
+  as the evidence-order hub for drafting.
+- Keep this file as the detailed experiment log and keep
+  [PAPER_TRACK_STATUS.md](/home/mila/l/lia/skae/docs/PAPER_TRACK_STATUS.md)
+  as the high-level paper-track source of truth.
+- Keep training/deployment claims label-free: basin labels and basin counts are
+  used only for benchmark evaluation, not for training, model selection, or
+  routing.
+
+Solution/status:
+- The live documentation is now organized around four evidence buckets:
+  basin-support alignment, non-oracle support-routed local prediction,
+  long-horizon forecasting competitiveness, and supporting/falsification
+  evidence.
+- [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
+  now also contains the recommended main-text and appendix figure/table plan.
+
+Outstanding problem:
+- Convert the evidence map into final paper prose, tables, and figures while
+  keeping the claim calibrated: exact-support evidence is strongest deep in
+  basins and for top-`8` routing; support families are more robust but less
+  LISTA-specific; true local-geometry recovery remains a secondary mixed
+  diagnostic.
+- The immediate display-production priority is Figure 1 support maps, Table 1
+  fixed-`17` alignment/forecasting, Table 2 non-oracle routing, Figure 2
+  support refresh/routing, and Table 3 Dysts long-horizon forecasting.
+
+## Paper Evidence Map
+
+The experiments section should be written in this order:
+
+1. **Do sparse supports align with basins when labels are used only for evaluation?**
+   Lead with fixed-`17` deep-basin alignment and make basin-support alignment,
+   not basin-block alignment, the target claim.
+2. **Do those same supports select useful local predictors without oracle basin labels?**
+   Lead with exact top-`8` self-routed forecasting and the direct
+   periodic-support-refresh ablation; use support families as robustness
+   evidence.
+3. **Do sparse-latent Koopman models remain competitive for long-horizon forecasting?**
+   Present Dysts as the external long-horizon stress test, not as direct
+   basin-support evidence.
+4. **Other useful things.**
+   Keep centered-chart diagnostics, true-geometry checks, controlled transfer,
+   phase portraits, tuning provenance, and superseded packets as supporting or
+   appendix material unless they answer a specific objection.
+
+Detailed result summaries and artifact links live in
+[PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md),
+including the recommended figure/table sequence for the experiments section.
+
+## Detailed Live Notes
+
 Fixed-`17` LISTA root/result lookup:
 - Use [FIXED17_LISTA_RESULTS_INDEX.md](/home/mila/l/lia/skae/docs/FIXED17_LISTA_RESULTS_INDEX.md) as the one-page lookup for the paper-facing fixed-`17` LISTA roots, their packets, and their headline saved results.
+- Use [SUPPORT_OBJECT_GLOSSARY.md](/home/mila/l/lia/skae/docs/SUPPORT_OBJECT_GLOSSARY.md) for the paper-facing definitions of `absolute:0.001`, `relative:0.1`, `topk:8`, exact support, support family, and dominant group.
 
 Problem we are solving:
 - Show on the fixed `17`-system interpretability shortlist both that the models
@@ -29,6 +90,99 @@ Current paper-facing approach:
   Koopman representation retains which basin the system currently occupies,
   then that information should improve long-horizon rollouts, not just short-
   horizon or one-step metrics.
+- The local-law evidence currently answers a narrow version of the
+  local-versus-global question. In the completed centered-chart packet,
+  support-local laws beat the model's learned global `K` especially in deep
+  in-basin `q4` slices, but the comparison against a separately refit
+  global-centered slope is weaker. Therefore the safe current statement is
+  "support-local laws beat the learned global Koopman law on the covered
+  states," not "support-local laws beat every possible global refit under
+  equal regularization and data accounting."
+- The two reviewer-response mechanism branches now have second-audited
+  seed-`0` fixed-`17` outputs. The first outputs under
+  `*_20260423_cached` and `*_20260423` are superseded for paper claims, and
+  the first corrected `*_20260423_corrected` true-geometry packet is also
+  superseded because it evaluated shared support/family objects only at their
+  dominant fixed point.
+  The protocols are
+  [true_jacobian_geometry_experiment_20260423.md](/home/mila/l/lia/skae/docs/planning/true_jacobian_geometry_experiment_20260423.md)
+  and
+  [controlled_transfer_switching_experiment_20260423.md](/home/mila/l/lia/skae/docs/planning/controlled_transfer_switching_experiment_20260423.md).
+  The current true-geometry packet is
+  [results/true_jacobian_geometry_fixed17_seed0_20260424_reaudit](/home/mila/l/lia/skae/results/true_jacobian_geometry_fixed17_seed0_20260424_reaudit)
+  with `49/49` runs complete, `198,302` rows, `114,419` ok rows, and `0`
+  failures. The current controlled-transfer packet is
+  [results/controlled_transfer_switching_fixed17_seed0_20260424_reaudit](/home/mila/l/lia/skae/results/controlled_transfer_switching_fixed17_seed0_20260424_reaudit)
+  with all three root shards complete, `1,776` rows, `1,632` ok rows, `144`
+  skipped rows, and `0` failures.
+  April 25 verification: `sacct` shows jobs `9347926-9347929` completed with
+  exit `0:0`, there are no matching jobs currently in `squeue`, and the
+  controlled-transfer packet is stored as three completed root shards rather
+  than a merged top-level summary file.
+  Claim-framing note: the MLP roots are useful specificity controls, but they
+  are not required for the narrower reviewer-response questions. For true
+  geometry, the clean LISTA-only read is observed support/family partitions
+  versus count-matched random partitions and attractor/basin baselines. For
+  controlled transfer, the current packet tests whether the encoder's support
+  objects switch on a measured state-space basin transfer; it is adjacent to,
+  but not by itself a full periodic-reencoding rollout ablation.
+- Direct periodic-support-refresh test: because the controlled-transfer packet
+  does not by itself prove the stronger rollout mechanism, a dedicated
+  post-entry ablation is now scaffolded and smoke-tested. The evaluator
+  [evaluate_transition_rich_periodic_support_refresh.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_periodic_support_refresh.py)
+  starts continuations at measured target entry and post-entry states, compares
+  stale source-latent no-refresh, current-state no-refresh, periodic
+  decode/re-encode, frozen-source gated `K`, and refreshed-current gated `K`,
+  and records target-support dominance, support-refresh events, route-target
+  fraction, fallback/chatter, and post-entry forecast MSE. Smoke job `9361455`
+  on `cal_square_4` completed with `32/32` ok rows and `0` failures under
+  [results/periodic_support_refresh_smoke_20260425_cal_square](/home/mila/l/lia/skae/results/periodic_support_refresh_smoke_20260425_cal_square).
+  The fixed-`17` seed-`0` LISTA-only packet completed its two science shards
+  cleanly under
+  [results/periodic_support_refresh_fixed17_seed0_20260425](/home/mila/l/lia/skae/results/periodic_support_refresh_fixed17_seed0_20260425).
+  Dense LISTA shard `9361464` completed `16/16` specs with `34,440` rows
+  (`34,176` ok, `264` skipped, `0` failures), and blockdiag LISTA shard
+  `9361465` completed `17/17` specs with `38,280` rows (`38,016` ok,
+  `264` skipped, `0` failures). Merge job `9361470` is pending on priority,
+  but the per-root summaries are already available.
+  Main result: the key claim is positively addressed for the known strongest
+  dense LISTA exact-support setup, especially `topk:8` after the trajectory is
+  clearly in the target basin. Dense LISTA exact `topk:8` post-start
+  refreshed-current support gating reaches target-support dominance
+  `0.8319/0.8662` for periods `1/10`, route-target fraction
+  `0.8552/0.8886`, fallback `0.1392/0.1058`, and refreshed-versus-frozen
+  MSE ratio `0.0093/0.0131`. Dense LISTA `topk:8` family is even cleaner:
+  post-start target dominance `1.0000/0.9996`, route-target fraction
+  `1.0000/0.9996`, and refreshed-versus-frozen MSE ratio
+  `0.000525/0.000626`. The result is not uniformly positive for every LISTA
+  setup: blockdiag exact supports remain weak as target objects after
+  re-encoding, although blockdiag support families are strongly positive.
+- Second-audited true-geometry result: the strongest safe read is still
+  local-chart evidence, not true-Jacobian recovery. LISTA family partitions
+  often beat random count-matched partitions near attractors, but the margin is
+  weaker after class-attractor accounting. At radius `0.15`, blockdiag LISTA
+  family relative-Frobenius error is `0.1169` vs `0.1979` random for
+  `absolute:0.001`, `0.1205` vs `0.1872` for `relative:0.1`, and `0.1114` vs
+  `0.1955` for `topk:8`. Dense LISTA `topk:8` family is
+  `0.1328 / 0.1268 / 0.1304` vs random `0.1541 / 0.1404 / 0.1394`, and dense
+  LISTA exact `topk:8` support is `0.1410 / 0.1329 / 0.1512` vs random
+  `0.1881 / 0.1591 / 0.1558`. The zero-sparse MLP remains a warning: its
+  `topk:8` family rows also beat random at radii `0.15` and `0.3`, while its
+  exact `topk:8` support rows remain worse than random. Therefore this branch
+  should be written as a secondary falsification diagnostic, not a headline
+  result or a broad LISTA-specific true-Jacobian claim.
+- Second-audited controlled-transfer result: the paper-positive exact-support read
+  is specific to dense LISTA under `topk:8`. Dense LISTA `topk:8` exact
+  supports have transfer pre-source dominance `0.8194`, post-target dominance
+  `0.8230`, post-bridge target dominance `0.9370`, post-bridge lag `6.0455`
+  steps, and chatter `0.0375`. The matched zero-sparse MLP `topk:8` exact
+  support is weak (`0.3710`, `0.3114`, `0.3504`, lag `9.0455`), and
+  blockdiag LISTA exact support collapses (`0.0172`, `0.0448`, `0.0519`).
+  Support-family switching is clean for all three roots under `topk:8`
+  post-bridge target dominance (`1.0000`, `0.9989`, `1.0000` for dense LISTA,
+  blockdiag LISTA, and zero-sparse MLP), so family-level transfer switching is
+  useful evidence that learned representations track basin changes, but it is
+  not by itself LISTA-specific induced-sparsity evidence.
 - Treat the causal comparison as “induced sparsity versus no induced sparsity,”
   not just “LISTA versus MLP.” The matched sparse MLP control already tests
   whether LISTA's encoder structure matters beyond sparsity itself; the clean
@@ -141,20 +295,103 @@ Current paper-facing approach:
   genuinely competitive at `H5000/H10000` but does not change the headline
   long-horizon winner: it is stronger than the plain MLP controls, yet still
   loses the `H20000/H30000` aggregate read to block-diagonal LISTA `sc=6e-3`.
+- The reframed centered-chart mechanism packet is now complete under
+  [results/transition_rich_centered_chart_mechanism_20260420](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420).
+  Shards `9310546-9310548` and merge `9310549` all finished cleanly, and the
+  merged packet writes
+  [centered_chart_mechanism_rows.csv](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/centered_chart_mechanism_rows.csv),
+  [centered_chart_mechanism_summary.md](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/centered_chart_mechanism_summary.md),
+  and
+  [manifest.json](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/manifest.json)
+  with `74,369` rows and `0` failures. This is the decision-grade rerun of the
+  local-law question with centered local charts, explicit depth strata, and
+  the actual dense `tanh` / no-shrink MLP control. On
+  `relative:0.1` exact support, `persistent_current`, and deep `q4` states,
+  centered support-conditioned local slopes beat the learned global `K` on
+  `93.1%` of evaluated blockdiag LISTA seed-system rows (`130` rows),
+  `98.6%` of dense LISTA rows (`141`), and `100%` of dense no-sparsity MLP
+  rows (`140`). The direct support-gated `K` read is also strongly positive
+  deep in-basin: q4 input-gated/global-`K` win rate is `100%` for blockdiag
+  LISTA (`121` rows; mean ratio `0.010`), `97.8%` for dense LISTA (`139`;
+  mean `0.210`, median `0.001`), and `100%` for the dense no-sparsity MLP
+  (`140`; mean `0.014`).
+- The next paper-critical read is no longer merely queued; it is complete
+  under
+  [results/transition_rich_self_routed_forecasting_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420).
+  Shards `9314443-9314472` and merge `9314473` all finished cleanly, and the
+  merged packet writes
+  [self_routed_forecasting_rows.csv](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/self_routed_forecasting_rows.csv),
+  [self_routed_forecasting_summary.md](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/self_routed_forecasting_summary.md),
+  and
+  [manifest.json](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/manifest.json)
+  with `510/510` runs complete, `24,600` rows, and `0` failures. This is the
+  direct deployment-facing test of whether the model's own support or support
+  family can route forecasting better than one global `K` without oracle basin
+  labels.
+
+  The strongest paper-facing result is exact-support `topk:8` routing on the
+  dense LISTA root. On `H1000/global`, all-slice median ratios / win rates are
+  `0.228 / 0.920` for `support_gated_k` and `0.275 / 0.947` for
+  `support_local_centered`, with median coverage about `0.53`. Deep `q4`
+  states are slightly stronger at `0.224 / 0.923` and `0.207 / 0.985`. The
+  matched zero-sparsity `tanh` MLP is much weaker on the same non-oracle
+  router: all-slice `support_gated_k` is `0.924 / 0.539`, while
+  `support_local_centered` is `1.000 / 0.496`; on deep `q4` it remains only
+  `0.964 / 0.519` and `1.000 / 0.473`. So the dense LISTA encoder now has
+  direct evidence that its own inferred support can select a useful local law
+  for long-horizon forecasting without basin labels, and that the dense
+  no-sparsity control does not provide a routing signal of comparable quality.
+
+  The blockdiag LISTA root is also positive but weaker and lower-coverage:
+  all-slice `H1000/global` medians / win rates are `0.832 / 0.739` for
+  `support_gated_k`, `0.801 / 0.783` for `support_local_centered`, and
+  `0.983 / 0.696` for the direct `support_block_gated_k` read, but median
+  coverage is only about `0.12`, `0.12`, and `0.003`, respectively. This is
+  still useful paper evidence because it keeps the direct support-gated-`K`
+  mechanism alive, but it is not the strongest forecasting win.
+
+  The exact-support `relative:0.1` router is not deployment-usable. On deep
+  `q4`, all exact-support routed rows are skipped (`160/160` per root for
+  `support_gated_k`) with `support_class_count>max_partition_classes`, so the
+  thresholded exact support remains too fragmented to be the paper's main
+  routing object. Support family is higher coverage and often strongly
+  positive on LISTA medians (`H1000/global` all-slice medians
+  `2.9e-4` blockdiag and `2.2e-3` dense; deep `q4` medians `2.6e-7` and
+  `5.9e-6`), but the mean tables explode because a minority of catastrophic
+  rollouts dominate. That heavy-tail instability is especially clear in the
+  zero-sparsity MLP family router, which is outright bad (`H1000/global`
+  median `54.6` all-slice and `47.6` on deep `q4`).
+
+  The self-routed evaluator itself was also upgraded mid-flight for resumable
+  intra-shard reruns with atomic per-spec flushing in
+  [tools/evaluate_transition_rich_self_routed_forecasting.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_self_routed_forecasting.py)
+  with shard / merge launchers
+  [scripts/run_transition_rich_self_routed_forecasting.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_self_routed_forecasting.sh),
+  [scripts/merge_transition_rich_self_routed_forecasting_shards.sh](/home/mila/l/lia/skae/scripts/merge_transition_rich_self_routed_forecasting_shards.sh),
+  and
+  [scripts/queue_transition_rich_self_routed_forecasting_shards.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_self_routed_forecasting_shards.sh).
+  Smoke validation is complete under
+  [results/transition_rich_self_routed_forecasting_smoke_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420)
+  with `270` rows and `0` failures across the reduced `3`-system / `3`-root /
+  seed-`0` packet, and merge-path validation is complete under
+  [results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged).
+  Compute-node validation job `9315112` completed in `16s` on `cn-m004` and
+  confirmed that rerunning the one-spec smoke shard simply resumes with `1/1`
+  completed and `0` remaining.
 - Outstanding problem:
-  the matched-sampling hard-init MLP forecasting packet is now complete, but
-  the corresponding state-level interpretability reduction is not. Pass `1`
-  forecasting under
-  [results/transition_rich_hardinit_mlp_controls_seed10_20260416/collect_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/collect_pass1)
-  and dt resolution under
-  [dt_resolution/pass1/dt_resolution.md](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/dt_resolution/pass1/dt_resolution.md)
-  closed cleanly with all `51/51` arm-system pairs accepting the default
-  `dt`, but reducer job `9295034` hit the `8h` walltime, wrote no files under
-  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1),
-  and canceled dependent comparison job `9295035`. The paper-critical blocker
-  is therefore no longer training, rescue, or `dt` selection for this packet;
-  it is scaling or splitting the reducer so the matched hard-init
-  basin-support comparison can actually be written.
+  the non-oracle forecasting question is now answered, and the remaining
+  blocker is claim calibration rather than missing evidence. The paper can now
+  say three concrete things. First, support-selected local laws are usable
+  without basin labels, most clearly for the dense LISTA `topk:8` router.
+  Second, induced sparsity still matters for routing quality: the zero-sparse
+  `tanh` MLP is materially weaker on the same self-routed exact-support read.
+  Third, not every routing object is equally paper-worthy: thresholded exact
+  support is too fragmented (`relative:0.1` skips), and support family has a
+  catastrophic tail even when its medians are strong. The remaining work is to
+  position `topk:8` exact support as the primary deployment router, keep
+  family-level routing as a higher-coverage but unstable supporting result,
+  and decide how prominently to retain the low-coverage blockdiag
+  `support_block_gated_k` mechanism read.
 - The fixed-`17` LISTA phase-portrait packet for senior-coauthor handoff is
   now also complete at
   [H1000/H3000/H5000](/home/mila/l/lia/skae/docs/figures/fixed17_lista_phase_portraits_20260414/fixed17_h1000_h3000_h5000_lista_phase_portraits_manifest.json).
@@ -278,15 +515,22 @@ Current paper-facing approach:
   shows all `51/51` arm-system pairs as `accepted_default`, and
   [advance_pass1.json](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/automation/advance_pass1.json)
   records `request_rows = 0` with no further rescue pass requested.
-- The new blocker is the pass-`1` interpretability reduction itself. Reducer
-  job `9295034` launched on
-  [collect_pass1/forecasting_rows.csv](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/collect_pass1/forecasting_rows.csv),
-  ran until `2026-04-17 23:56:30 EDT`, and timed out after `08:00:19`.
-  It wrote no files under
-  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1),
-  and the dependent final-comparison job `9295035` was canceled without
-  starting. So the forecasting table is now complete, but the matched-sampling
-  hard-init basin-support comparison is still missing.
+- The matched-sampling hard-init control packet is now fully reduced. The
+  original reducer `9295034` did time out, but the replacement shard jobs
+  `9304602-9304604` finished cleanly and the patched merge / summary reruns
+  `9304747 -> 9304748` wrote
+  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1)
+  with `13,554` rows and `0` failures plus the finalized paper-facing
+  comparison in
+  [final_comparison_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/final_comparison_pass1).
+  On the selected `absolute:0.001` / `deep` slice, the two sparse hard-init
+  MLP controls are almost tied: blockdiag sparse MLP gives
+  `0.0082 / 0.0252 / 0.0264` at `H100/H500/H1000`, plain sparse MLP gives
+  `0.0082 / 0.0260 / 0.0273`, and both have
+  `H(B|S)=0.0000`, `H(S|B)=0.2068`, `U_exact ~= 0.98`, and `H(F|B)=0.0000`.
+  The tanh / no-shrink hard-init control remains much worse on forecasting and
+  on freeze-support robustness, so induced sparsity still matters more than
+  the exact sparse-encoder architecture in this oversampled setting.
 - The first paper-facing cross-root comparison pass is now dependency-chained
   behind that live hard-init reducer under
   [transition_rich_post_hardinit_crossroot_eval_20260409](/home/mila/l/lia/skae/results/transition_rich_post_hardinit_crossroot_eval_20260409).
@@ -697,23 +941,17 @@ Outstanding problem:
   hard-init MLP reaches `0.0094 / 0.0359 / 0.0383`, and both beat the locked
   hard-init LISTA forecasting winner at `H1000` (`0.0516`), while the clean
   zero-sparse hard-init control is much worse. The architecture-isolating
-  hard-init read is still not closed, but the blocker has shifted: rescue and
-  `dt` coverage are done, and the missing piece is now the state-level
-  interpretability reduction because reducer `9295034` timed out before
-  writing any outputs under
-  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1).
-  The live blocker is therefore narrower and sharper: keep standard-sampling
-  and hard-init rows separate in the paper tables, rerun or split the matched
-  hard-init reducer so the basin-support comparison actually exists, and run
-  the state-conditioned long-horizon read at `H100/H500/H1000` showing whether
-  gains are strongest deep in basin and weakest near separatrices, as the
-  basin-identity hypothesis predicts. Once those land, the remaining
-  narrative choice is whether the dense `p64` hard-init win on the selected
-  deep slice is strong and stable enough to carry an exact-support-reuse claim
-  in the main text, or whether the honest claim should soften to family /
-  dominant-group or symmetry-aware alignment because the block-diagonal
-  finalist is mainly a forecast-retaining companion and the selected-slice
-  family metric is saturated. On the supporting Dysts
+  hard-init read is now closed at the artifact level: the matched hard-init
+  interpretability packet and paired final comparison both exist, and they say
+  the two sparse hard-init MLP controls are nearly tied on the selected deep
+  slice while the zero-sparsity control is much weaker functionally. The live
+  blocker is therefore no longer queue completion or missing hard-init
+  evidence; it is claim calibration. Keep standard-sampling and hard-init rows
+  separate in the paper tables, decide how prominently to foreground the
+  blockdiag hard-init MLP as a forecast-retaining companion result, and make
+  explicit that `H(S|B)` alone is not the whole causal read because the
+  zero-sparse control is not uniformly worse on that entropy metric even while
+  it degrades forecasting and freeze-support robustness. On the supporting Dysts
   benchmark, the live execution blocker is closed: the blockdiag-MLP
   long-horizon extension under
   [results/dysts_long_horizon_eval_mlp_blockdiag_20260415](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_mlp_blockdiag_20260415)
@@ -727,7 +965,10 @@ Assumption split:
 ## Paper-Facing Experiment Protocol
 
 1. Decide whether a result belongs in this live file before running or writing it down.
-   - Keep it live only if it directly supports the benchmark, hard-system, or mechanism sections in `docs/review_main_results_tables_20260314.tex`, or if it is the newest paper-critical execution update.
+   - Keep it live only if it directly supports one of the four evidence
+     buckets in
+     [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md),
+     or if it is the newest paper-critical execution update.
    - Move appendix-only tuning, queue chronology, and superseded subthreads to `docs/EXPERIMENTS_ARCHIVE.md`.
 2. Define the causal test before queueing.
    - Write the objective or claim, baselines and fairness controls, exact systems, seeds, horizons, metrics, acceptance criteria, failure criteria, and output roots.
@@ -1338,8 +1579,204 @@ Assumption split:
    shared-batch `H30000` packet only if we explicitly want to illustrate how
    much the visual family mix depends on the selector.
 
+## Reviewer-response mechanism branches audit and fixes (2026-04-23)
+
+1. Concrete result:
+   two evaluation-only reviewer-response branches were added, smoke-tested,
+   audited, corrected, and rerun for fixed-`17` seed-`0` coverage:
+   [tools/evaluate_transition_rich_true_jacobian_geometry.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_true_jacobian_geometry.py)
+   with
+   [scripts/run_transition_rich_true_jacobian_geometry.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_true_jacobian_geometry.sh),
+   and
+   [tools/evaluate_transition_rich_controlled_transfer_switching.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_controlled_transfer_switching.py)
+   with
+   [scripts/run_transition_rich_controlled_transfer_switching.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_controlled_transfer_switching.sh).
+   Protocol documents with hypotheses, falsifiable outcomes, controls,
+   metrics, and skip criteria are in
+   [docs/planning/true_jacobian_geometry_experiment_20260423.md](/home/mila/l/lia/skae/docs/planning/true_jacobian_geometry_experiment_20260423.md)
+   and
+   [docs/planning/controlled_transfer_switching_experiment_20260423.md](/home/mila/l/lia/skae/docs/planning/controlled_transfer_switching_experiment_20260423.md).
+   The first outputs are superseded because the audit found two substantive
+   evaluator problems. Corrected smoke jobs `9347587` and `9347588` completed
+   with exit code `0:0`. Corrected controlled-transfer shard jobs
+   `9347590-9347592` completed with exit code `0:0` and wrote `1,776` rows,
+   `1,632` ok rows, `144` skipped rows, and `0` failures under
+   [results/controlled_transfer_switching_fixed17_seed0_20260423_corrected](/home/mila/l/lia/skae/results/controlled_transfer_switching_fixed17_seed0_20260423_corrected).
+   Corrected true-geometry job `9347593` completed in `17m38s` with `49/49`
+   runs, `62,460` rows, `30,014` ok rows, and `0` failures under
+   [results/true_jacobian_geometry_fixed17_seed0_20260423_corrected](/home/mila/l/lia/skae/results/true_jacobian_geometry_fixed17_seed0_20260423_corrected).
+2. Experimental context:
+   these branches target the two reviewer vulnerabilities that the existing
+   fixed-`17` evidence does not close: whether support-conditioned local laws
+   agree with true local geometry near attractors, and whether support objects
+   switch at measured basin-transfer events rather than merely persisting on
+   autonomous within-basin trajectories.
+3. Interpretation:
+   the true-geometry corrected result is mixed and should be written
+   cautiously. It is positive for the narrow claim that some support-family
+   partitions select locally useful slopes better than count-matched random
+   partitions near attractors. At radius `0.15`, blockdiag LISTA family
+   relative-Frobenius error beats random for all three support definitions:
+   `0.1008` vs `0.1914` for `absolute:0.001`, `0.1000` vs `0.1828` for
+   `relative:0.1`, and `0.1121` vs `0.1981` for `topk:8`. Dense LISTA family
+   rows also beat random across support definitions, and dense LISTA
+   `topk:8` exact supports beat random at radii `0.15` and `0.3`
+   (`0.1418` vs `0.2118`, `0.1296` vs `0.1721`) but not at radius `0.6`
+   (`0.1456` vs `0.1453`). The result is not a clean architecture-level win:
+   zero-sparse MLP rows often have lower absolute projected-Jacobian error
+   because their encoder/decoder chart is closer to the state-space identity.
+   Zero-sparse MLP `topk:8` exact supports are worse than random
+   (`0.0847` vs `0.0463`, `0.0764` vs `0.0295`, `0.0692` vs `0.0346`
+   across the radius sweep), which is a useful warning that exact support
+   partitions can be arbitrary without induced sparsity.
+
+   The controlled-transfer corrected result is sharper. Dense LISTA exact
+   `topk:8` supports show the best source-to-target support switching among
+   the tested roots: transfer pre-source dominance `0.8194`, post-target
+   dominance `0.8230`, post-bridge target dominance `0.9370`, post-bridge lag
+   `6.0455` steps, and chatter `0.0375`. The zero-sparse MLP exact
+   `topk:8` row is much weaker (`0.3710`, `0.3114`, `0.3504`, lag `9.0455`),
+   and blockdiag LISTA exact support collapses (`0.0172`, `0.0448`,
+   `0.0519`). Support-family `topk:8` switching is nearly perfect for all
+   three roots, including the zero-sparse MLP, so family-level switching is
+   not sufficient evidence for a LISTA-specific sparsity mechanism.
+4. Project implications:
+   these results are useful but they narrow the paper claim. The true-geometry
+   branch should not be used to claim recovery of true Jacobians or true
+   eigendirections by LISTA supports. It can support a modest statement that
+   support families sometimes select non-random local slopes in a learned
+   chart, with chart-validity caveats. The controlled-transfer branch gives a
+   stronger mechanistic example for dense LISTA exact `topk:8` supports, but
+   the result is an explicit state-space bridge intervention, not an
+   admissible optimal-control trajectory. The main paper claim should still
+   rest on basin-support alignment and non-oracle self-routed forecasting.
+5. Next steps:
+   keep the corrected outputs as seed-`0` diagnostics and do not expand them
+   until the manuscript needs one of these mechanisms in the main evidence
+   chain. If expanded, prioritize seed/threshold robustness for dense LISTA
+   exact `topk:8` controlled transfer and avoid framing the true-geometry
+   packet as a headline result. Keep basin labels strictly evaluation-only.
+
+### Direct periodic support-refresh ablation (April 25, 2026)
+
+1. Concrete result:
+   new evaluator and SLURM wrappers are implemented for the direct mechanism
+   claim that post-entry periodic decode/re-encode refreshes latent support and
+   changes later Koopman routing. The implementation files are
+   [evaluate_transition_rich_periodic_support_refresh.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_periodic_support_refresh.py),
+   [run_transition_rich_periodic_support_refresh.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_periodic_support_refresh.sh),
+   [queue_transition_rich_periodic_support_refresh.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_periodic_support_refresh.sh),
+   [merge_transition_rich_periodic_support_refresh_shards.py](/home/mila/l/lia/skae/tools/merge_transition_rich_periodic_support_refresh_shards.py),
+   and
+   [merge_transition_rich_periodic_support_refresh_shards.sh](/home/mila/l/lia/skae/scripts/merge_transition_rich_periodic_support_refresh_shards.sh).
+   Smoke job `9361455` completed with `32` ok rows and `0` failures under
+   [results/periodic_support_refresh_smoke_20260425_cal_square](/home/mila/l/lia/skae/results/periodic_support_refresh_smoke_20260425_cal_square).
+   The full fixed-`17` seed-`0` LISTA-only shards completed cleanly under
+   [results/periodic_support_refresh_fixed17_seed0_20260425](/home/mila/l/lia/skae/results/periodic_support_refresh_fixed17_seed0_20260425).
+   Dense LISTA shard `9361464` completed `16/16` specs with `34,440` rows
+   (`34,176` ok, `264` skipped, `0` failures); blockdiag LISTA shard `9361465`
+   completed `17/17` specs with `38,280` rows (`38,016` ok, `264` skipped,
+   `0` failures). Merge job `9361470` is still pending on scheduler priority.
+   The per-root summaries give the decision-grade read:
+   dense LISTA exact `topk:8` post-start refreshed-current support gating has
+   target dominance `0.8319` at period `1` and `0.8662` at period `10`,
+   route-target fraction `0.8552/0.8886`, fallback `0.1392/0.1058`, and
+   refreshed-versus-frozen source-gated MSE ratio `0.0093/0.0131`. Dense LISTA
+   `topk:8` family is cleaner still, with post-start target dominance
+   `1.0000/0.9996`, route-target fraction `1.0000/0.9996`, and
+   refreshed-versus-frozen MSE ratio `0.000525/0.000626`. Blockdiag LISTA
+   `topk:8` family also supports the claim (`0.9898/0.9876` target dominance,
+   `0.9893/0.9871` route-target fraction), but blockdiag exact `topk:8`
+   supports do not: post-start target dominance is only `0.0705/0.0715`, and
+   target-entry exact-support refreshed-current routing is worse than frozen
+   source routing by MSE ratio (`9.833/4.768`).
+2. Experimental context:
+   the older controlled-transfer branch measured whether encoder support
+   objects switch along a deliberate state-space basin transfer. This new
+   evaluator tests the stronger rollout mechanism by starting continuations at
+   measured target-entry and post-entry states, then comparing stale source
+   no-refresh, current-state no-refresh, periodic global decode/re-encode,
+   frozen-source gated `K`, and refreshed-current gated `K`.
+3. Interpretation:
+   the result supports the stronger claim for dense LISTA `topk:8` exact
+   supports once the trajectory has actually settled into the target basin
+   (`post_start`), and it supports a family-level version for both LISTA roots.
+   It is weaker at the first measured `target_entry`, where exact supports are
+   often still transitional; dense exact `topk:8` target-entry post-reencode
+   target dominance is only `0.3606/0.3672` with fallback around `0.50`.
+   It is not a positive exact-support result for blockdiag LISTA, whose exact
+   post-reencode target supports remain low despite strong family behavior.
+4. Project implications:
+   the paper can now state the direct mechanism for the dense LISTA
+   `topk:8` / post-entry setting: re-encoding from the current target-basin
+   state refreshes the active support toward the target object, and
+   refreshed-current support-gated Koopman evolution routes through target
+   coordinates and strongly beats a frozen source-support route. The paper
+   should not generalize that exact-support statement to blockdiag LISTA.
+   For blockdiag, only the support-family version is currently supported.
+5. Next steps:
+   let merge job `9361470` complete for consolidated artifacts, then copy the
+   same interpretation to `merged/periodic_support_refresh_summary.md` if the
+   merged numbers match the shard summaries. No immediate new training setup
+   rerun is warranted: the previously identified strongest exact-support LISTA
+   setup was already the dense soft-block `p64` hard-init root, and it is the
+   setup that gives the positive result here. If the manuscript needs a
+   stronger robustness claim, expand dense LISTA `topk:8` post-start to more
+   seeds before searching for a new root.
+
 ## Outstanding problems (active)
 
+- Documentation-to-manuscript conversion is now the immediate paper blocker:
+  use the evidence order in
+  [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
+  to draft the actual experiments section, then backfill the main
+  basin/support figure, non-oracle routing table, and Dysts long-horizon table.
+  Keep queue-era chronology, tuning provenance, and superseded result packets
+  out of the main narrative unless they answer a specific objection.
+- The true-Jacobian/eigendirection and controlled-transfer branches now have
+  corrected seed-`0` fixed-`17` outputs. The active blocker is no longer
+  execution coverage; it is claim calibration. True geometry is mixed and
+  should remain a secondary falsification diagnostic because the zero-sparse
+  MLP has lower absolute projected-Jacobian errors in many rows. Controlled
+  transfer is paper-positive for dense LISTA exact `topk:8` support switching,
+  but family-level switching is also strong for the zero-sparse MLP and the
+  state-space bridge is not an admissible optimal-control transfer. The
+  periodic-support-refresh packet now positively addresses the stronger claim
+  for dense LISTA exact `topk:8` post-entry supports and for support-family
+  routing, but not for blockdiag exact supports. The remaining blocker is
+  artifact finalization from merge job `9361470` plus deciding whether the
+  manuscript needs seed/threshold robustness on the narrowed dense LISTA
+  exact-support claim.
+- The non-oracle self-routed forecasting packet is now complete under
+  [results/transition_rich_self_routed_forecasting_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420)
+  with `510/510` runs complete, `24,600` rows, and `0` failures. Smoke
+  validation remains under
+  [results/transition_rich_self_routed_forecasting_smoke_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420)
+  (`270` rows, `0` failures), and the merge path remains validated under
+  [results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged).
+  So the active blocker is no longer missing non-oracle evidence. The new
+  blocker is how to write it honestly. Exact-support `topk:8` routing is now a
+  strong positive for dense LISTA (`H1000/global` all-slice medians / win
+  rates `0.228 / 0.920` for `support_gated_k` and `0.275 / 0.947` for
+  `support_local_centered`), blockdiag LISTA is positive but lower-coverage,
+  and the zero-sparse `tanh` MLP is much weaker (`0.924 / 0.539` and
+  `1.000 / 0.496`). The immediate paper task is to foreground that exact
+  `topk:8` router rather than collapsing everything into one family-level
+  summary.
+- The centered-chart mechanism packet is now complete and resolves the earlier
+  discrepancy in a materially different way than the April 19 affine-only
+  diagnosis. Under
+  [results/transition_rich_centered_chart_mechanism_20260420](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420),
+  centered support-, family-, and basin-conditioned local laws now beat the
+  learned global `K` on most deep `q4` rows across the fixed `17`, including
+  the estimated-center Claude systems. So the active blocker is no longer
+  “do local laws exist at all?” It is “what part of that local-law read is
+  uniquely attributable to induced sparsity?” The dense no-sparsity `tanh`
+  MLP now shows the same deep centered local-law effect, while the clearest
+  differentiating mechanistic read is the blockdiag LISTA direct support-gated
+  `K`. Boundary-adjacent `q1` states and low-coverage exact-support rows
+  remain the main negative slices, so the paper has to keep the mechanism
+  claim depth-qualified.
 - The Dysts long-horizon execution blocker is resolved. Both long-horizon
   packets are now complete:
   [results/dysts_long_horizon_eval_20260414](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414)
@@ -1392,13 +1829,21 @@ Assumption split:
   close the rescue / `dt` side cleanly: all `51/51` arm-system pairs accepted
   the default `dt`, and the blockdiag hard-init MLP root now has system-median
   best-periodic `H100/H500/H1000 = 0.0094 / 0.0359 / 0.0383`. The active
-  fairness blocker is no longer missing training coverage; it is the missing
-  state-level reduction. Reducer `9295034` timed out after `08:00:19`, wrote
-  nothing under
-  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1),
-  and canceled dependent comparison `9295035`, so the matched-sampling
-  hard-init architecture table is still incomplete on the interpretability
-  side.
+  fairness blocker is no longer queue completion. The patched interpretability
+  rerun now finishes cleanly via `9304747 -> 9304748`, writing
+  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1)
+  with `13,554` rows and `0` failures plus the matched-sampling comparison in
+  [final_comparison_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/final_comparison_pass1).
+  That table says the two sparse hard-init MLP controls are almost tied on the
+  paper slice, while the zero-sparse control remains much worse in forecasting.
+  The new operator-selection mechanism study is now also complete under
+  [results/transition_rich_operator_selection_hardinit_matched_20260418](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418):
+  smoke `9304650`, shards `9304655-9304659`, and merge `9304660` all finished,
+  and the merged packet writes `56,538` rows with `0` failures. The important
+  blocker is now scientific. Those held-out local-operator rows show that
+  support families are non-random, but they do not support the strong
+  `support -> local linear law` claim because even oracle basin-conditioned
+  fits remain worse than one global latent law on the fixed `17` systems.
 - The new study-plan state-level smoke reduction on the historical native trio
   says the next ablations must target within-basin support compression rather
   than purity alone: deep-basin `H(B|S)` is already approximately zero for
@@ -1601,6 +2046,457 @@ Assumption split:
    incrementally. Once those outputs exist, regenerate the canceled
    final-comparison step and update the matched hard-init architecture table
    for coauthor handoff.
+
+### April 18, 2026: the operator-selection mechanism study was implemented, smoke-validated, and queued on the matched hard-init packet
+
+1. Concrete result(s):
+   the new offline operator-selection evaluator is now implemented in
+   [tools/evaluate_transition_rich_operator_selection.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_operator_selection.py)
+   with shard / merge SLURM wrappers in
+   [scripts/run_transition_rich_operator_selection.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_operator_selection.sh),
+   [scripts/queue_transition_rich_operator_selection_shards.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_operator_selection_shards.sh),
+   and
+   [tools/merge_transition_rich_operator_selection_shards.py](/home/mila/l/lia/skae/tools/merge_transition_rich_operator_selection_shards.py).
+   Smoke job `9304650` completed in `00:00:29` on `cn-f002` and wrote
+   [operator_selection_rows.csv](/home/mila/l/lia/skae/results/transition_rich_operator_selection_20260418/smoke_dense_seed0/operator_selection_rows.csv),
+   [operator_selection_summary.md](/home/mila/l/lia/skae/results/transition_rich_operator_selection_20260418/smoke_dense_seed0/operator_selection_summary.md),
+   and
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_operator_selection_20260418/smoke_dense_seed0/manifest.json)
+   with `29` rows and `0` failures. The full matched-hard-init queue is now
+   running under
+   [results/transition_rich_operator_selection_hardinit_matched_20260418](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418):
+   shards `9304655-9304659` are running and merge `9304660` is dependency-
+   queued behind them.
+
+2. Result in experimental context:
+   this is the first direct paper-facing test of whether latent supports
+   actually select local linear operators rather than merely clustering
+   states. For each root the queue fits held-out `A_global`, `A_basin`, and
+   `A_support/family/group`, then compares them against count-matched random
+   partitions, latent-kmeans controls, and masked projections of the model's
+   learned global `K`. The queued packet uses the hard-init LISTA finalists
+   plus the matched hard-init sparse, blockdiag-sparse, and zero-sparse MLP
+   controls, with support definitions `absolute:0.001`, `relative:0.1`, and
+   `topk:8` on `all`, `deep`, and `boundary` subsets.
+
+3. Interpretation:
+   the tooling side of the mechanism experiment is now closed. The smoke pass
+   shows the evaluator can load the intended checkpoint families, emit rows
+   and summaries, and run on a compute node without runtime failures. No
+   scientific claim should be updated yet from the smoke itself; the real
+   read will come from the five live shards once the fixed-`17` packet
+   finishes.
+
+4. Project implications:
+   the branch now has a concrete route to answer the review's strongest
+   objection on matched hard-init roots rather than only on the older
+   support-purity tables. If these rows show that support or support families
+   beat both one global law and matched random / geometry controls while
+   masked-`K` stays competitive with the post-hoc local fits, then the paper
+   can defend a mechanism claim. If not, the branch will have to soften the
+   claim to basin-aligned support families without local-law selection.
+
+5. Next steps:
+   let shards `9304655-9304659` finish, merge with `9304660`, read the first
+   summary table at
+   [operator_selection_summary.md](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/operator_selection_summary.md),
+   and then update the paper-track claim ladder based on whether support,
+   support family, or only basin labels actually recover the best held-out
+   local-law read.
+
+### April 19, 2026: the matched hard-init interpretability rerun and the operator-selection mechanism queue both finished, and the strong local-law claim failed on the fixed-`17` packet
+
+1. Concrete result(s):
+   the patched hard-init interpretability merge reran as `9304747 -> 9304748`
+   and now writes
+   [interpretability_summary.md](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1/interpretability_summary.md),
+   [transition_rich_final_comparison.md](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/final_comparison_pass1/transition_rich_final_comparison.md),
+   and
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1/manifest.json)
+   with `13,554` rows and `0` failures. On the matched hard-init control
+   slice (`absolute:0.001` / `deep`), the two sparse MLP controls are nearly
+   tied: blockdiag sparse MLP gives `H100/H500/H1000 = 0.0082 / 0.0252 /
+   0.0264`, plain sparse MLP gives `0.0082 / 0.0260 / 0.0273`, both have
+   `H(B|S) = 0.0000`, `H(S|B) = 0.2068`, `U_exact ~= 0.98`, and
+   `H(F|B) = 0.0000`, while the tanh / no-shrink hard-init control remains far
+   worse at `0.5704 / 2.6733 / 3.8044`.
+
+   The operator-selection queue `9304655-9304659 -> 9304660` also completed
+   cleanly and now writes
+   [operator_selection_summary.md](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/operator_selection_summary.md)
+   and
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/manifest.json)
+   with `56,538` rows and `0` failures. Its best LISTA family rows still fail
+   to beat the global operator on held-out deep transitions: dense hard-init
+   LISTA reaches `partition/global = 3.8472` on `absolute:0.001` deep family
+   while oracle basin fit is `31.9263`; blockdiag hard-init LISTA reaches
+   `12.9785` on `topk:8` deep family while oracle basin fit is `12.3818`.
+   Those family partitions are nonetheless much better than matched random or
+   latent-kmeans controls: dense `3.8472` versus `365.9725` and `4.7972`,
+   blockdiag `12.9785` versus `120.5169` and `24.5956`. Exact-support rows are
+   frequently skipped or low-coverage (`0.1899` for blockdiag `topk:8` deep
+   support, `0.6871` for dense `topk:8` deep support), and masked-`K`
+   comparisons are catastrophically bad rather than supportive.
+
+2. Result in experimental context:
+   this is the review's direct mechanism test. It asks not just whether
+   supports correlate with basins, but whether conditioning on support or
+   support families selects a better held-out local linear operator than one
+   global latent law, and whether that effect is stronger than matched random
+   or geometry-matched partitions.
+
+3. Interpretation:
+   the matched hard-init control rerun strengthens the induced-sparsity story
+   but weakens any architecture-only hard-init story: removing induced
+   sparsity still destroys long-horizon forecasting, while the two sparse MLP
+   controls remain extremely close on the deep-basin interpretability slice.
+   The new operator-selection packet is a negative result for the strong
+   `support -> local linear law` claim. Support families are not arbitrary
+   labels because they often beat count-matched random partitions and
+   sometimes latent-kmeans, but they still do not beat the global latent law.
+   More importantly, even true basin partitions fail this held-out local-fit
+   test, so the problem is not only support identification: on this fixed-`17`
+   packet the learned latent dynamics themselves do not support the promised
+   basin-specific post-hoc local linearization. The isolated boundary-slice
+   anomaly in the blockdiag sparse MLP control (`relative:0.1` support
+   `0.0457`) is not credible positive mechanism evidence because the same row
+   has huge operator mismatch (`358.2764`) and poor masked-`K` agreement
+   (`218.2634`).
+
+4. Project implications:
+   the queue blocker is closed, and the paper now has an honest answer to the
+   reviewer's strongest objection. That answer supports a more modest claim:
+   induced sparsity helps forecasting and yields non-random basin-aligned
+   support families or dominant groups, but the current models do not show
+   that support selects a valid local linear law on the fixed-`17` systems.
+   If the paper keeps the full `basin -> support -> local law` storyline, the
+   new mechanism packet would undercut it.
+
+5. Next steps:
+   rewrite the claim ladder and rebuttal around the weaker but defensible
+   result: basin-aligned support families / dominant groups plus the value of
+   induced sparsity, not exact-support local-law selection. If we still want a
+   positive mechanism claim, the next experiment should not be another
+   reduction of the same checkpoints; it should be a method or baseline
+   change, e.g. an explicit switching/local-operator baseline or a toy-only
+   state-space Jacobian / oracle-chart study.
+
+### April 20, 2026: centered-chart mechanism packet resolves the operator-selection discrepancy and clarifies the remaining paper blocker
+
+1. Concrete result(s):
+   the reframed mechanism evaluator is now implemented in
+   [tools/evaluate_transition_rich_centered_chart_mechanism.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_centered_chart_mechanism.py)
+   with merge utility
+   [tools/merge_transition_rich_centered_chart_mechanism_shards.py](/home/mila/l/lia/skae/tools/merge_transition_rich_centered_chart_mechanism_shards.py)
+   and SLURM launchers
+   [scripts/run_transition_rich_centered_chart_mechanism.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_centered_chart_mechanism.sh),
+   [scripts/merge_transition_rich_centered_chart_mechanism_shards.sh](/home/mila/l/lia/skae/scripts/merge_transition_rich_centered_chart_mechanism_shards.sh),
+   and
+   [scripts/queue_transition_rich_centered_chart_mechanism_shards.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_centered_chart_mechanism_shards.sh).
+   Smoke validation first landed cleanly under
+   [results/transition_rich_centered_chart_mechanism_smoke_20260420_v2](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_smoke_20260420_v2)
+   with `840` rows and `0` failures. The full SLURM chain then finished as
+   `9310546-9310549` under
+   [results/transition_rich_centered_chart_mechanism_20260420](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420),
+   writing `74,369` rows and `0` failures
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/manifest.json)
+   [centered_chart_mechanism_summary.md](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/centered_chart_mechanism_summary.md).
+
+   On `relative:0.1` exact support, `persistent_current`, and deep `q4`
+   states, centered support-conditioned local slopes beat the learned global
+   `K` on `93.1%` of evaluated blockdiag LISTA seed-system rows (`130` rows),
+   `98.6%` of dense LISTA rows (`141`), and `100%` of dense no-sparsity MLP
+   rows (`140`). Deep support-gated `K` is also strongly positive:
+   q4 input-gated/global-`K` win rate is `100%` for blockdiag LISTA (`121`
+   rows; mean ratio `0.010`), `97.8%` for dense LISTA (`139`; mean `0.210`,
+   median `0.001`), and `100%` for the dense no-sparsity MLP (`140`;
+   mean `0.014`). For blockdiag LISTA, q4 block-submatrix/global-`K` is also
+   `100%` wins with mean ratio `< 0.001`.
+
+   The remaining hard slice is boundary-adjacent `q1`. Dense LISTA exact
+   support wins there on only `62.5%` of evaluated rows (`24` rows), with the
+   failures concentrated on `gated_local_linear` (mean
+   `partition_over_global_k = 3.909`), `claude_duffing_triple_well`
+   (`19.840`), and a low-coverage `claude_var_l_shape_5` row (`7.962`,
+   coverage `0.085`). By contrast, deep `q4` support rows remain positive even
+   on the proxy-labeled Claude systems: the `estimated_centers` subset still
+   beats global `K` on `77.7%` of blockdiag LISTA rows (`130` rows), `86.2%`
+   of dense LISTA rows (`130`), and `92.3%` of no-sparsity MLP rows (`130`).
+
+2. Result in experimental context:
+   this was the user-requested reframing after the affine-comparator
+   representative packet showed that raw zero-intercept local fits were
+   confounded by chart offsets. The new packet directly answers the correct
+   mechanism question: in centered local charts, stratified by state-space
+   depth and compared against the dense `tanh` / no-shrink MLP control, do
+   support-, family-, or basin-conditioned local laws beat the learned global
+   `K`, and does the learned `K` itself behave like a support-gated local law?
+
+3. Interpretation:
+   the earlier discrepancy was mostly methodological, not a hidden operator bug
+   and not mainly a proxy-label failure. Once the local-law read is done in
+   centered charts, support-conditioned local laws reappear broadly on the
+   fixed `17` systems, including the estimated-center benchmark systems. The
+   strong negative read from the April 18 packet was therefore mostly a
+   consequence of the wrong local-fit class. The second half of the new answer
+   is more cautionary: the dense no-sparsity MLP also shows strong deep
+   centered local-law behavior. So the completed packet supports the existence
+   of support-conditioned local laws, but it does not support the stronger
+   claim that LISTA-style induced sparsity is uniquely responsible for them.
+
+4. Project implications:
+   this moves the paper out of the earlier “no local-law evidence” position.
+   We can now answer the reviewer's mechanism objection with centered,
+   depth-aware evidence: deep and persistent local charts do support local
+   linear laws, and direct support-gated `K` is especially clean for blockdiag
+   LISTA. But the paper cannot claim that this mechanism belongs only to LISTA.
+   The differentiating evidence for induced sparsity still has to come from
+   cleaner basin-support alignment, intervention robustness, and long-horizon
+   forecasting, not merely from the existence of deep local laws.
+
+5. Next steps:
+   use this packet to build the main mechanism table and figures, then tighten
+   the paper claim hierarchy. The paper should now say that centered local-law
+   evidence exists, that it is strongest away from separatrices, and that
+   blockdiag LISTA gives the cleanest direct support-gated `K` interpretation.
+   The follow-up work should focus on tying that local-law read back to
+   support uniqueness and forecasting by depth, not on rerunning more
+   zero-intercept local-fit studies.
+
+### April 20, 2026: non-oracle self-routed forecasting packet is implemented, smoke-validated, and launch-ready
+
+1. Concrete result(s):
+   the deployment-facing self-routed forecasting evaluator is now implemented
+   in
+   [tools/evaluate_transition_rich_self_routed_forecasting.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_self_routed_forecasting.py)
+   with merge utility
+   [tools/merge_transition_rich_self_routed_forecasting_shards.py](/home/mila/l/lia/skae/tools/merge_transition_rich_self_routed_forecasting_shards.py)
+   and SLURM launchers
+   [scripts/run_transition_rich_self_routed_forecasting.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_self_routed_forecasting.sh),
+   [scripts/merge_transition_rich_self_routed_forecasting_shards.sh](/home/mila/l/lia/skae/scripts/merge_transition_rich_self_routed_forecasting_shards.sh),
+   and
+   [scripts/queue_transition_rich_self_routed_forecasting_shards.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_self_routed_forecasting_shards.sh).
+
+   Single-spec smoke validation first landed cleanly under
+   [results/transition_rich_self_routed_forecasting_smoke_20260420_single](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420_single),
+   where dense hard-init LISTA on `gated_transfer_linear`, seed `0`, wrote
+   `8` rows with `0` failures and completed in `0.6s`. The reduced
+   three-system / three-root smoke then landed under
+   [results/transition_rich_self_routed_forecasting_smoke_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420),
+   writing `270` rows (`271` CSV lines including header) with `0` failures
+   across `9` reduced runs
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420/manifest.json)
+   [self_routed_forecasting_summary.md](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420/self_routed_forecasting_summary.md).
+   Merge-path validation is also complete under
+   [results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged),
+   after fixing a summary-merge bug caused by CSV string values in the summary
+   reducer.
+
+2. Result in experimental context:
+   this is the user-requested follow-up to the centered-chart mechanism study.
+   The centered packet answered the chart-level question, but it still
+   allowed offline operator analysis. This new packet answers the actual
+   deployment-facing forecasting question: can the model's own current support
+   or support family route a rollout into a better local law than one global
+   `K`, without oracle basin labels at forecast time?
+
+   The implemented rollout modes are:
+   `global_k`, `support_gated_k`, `support_block_gated_k`,
+   `support_local_centered`, and `family_local_centered`. The packet fits
+   support- and family-conditioned local centered operators on separate fit
+   trajectories, then evaluates held-out rollout starts stratified by initial
+   depth (`all`, `q1`, `q4` in the smoke; `all,q1,q2,q3,q4` in the full
+   default). It also records route coverage, fallback fraction, switch rate,
+   and per-horizon `H / global` ratios.
+
+3. Interpretation:
+   the technical blocker is now closed. We no longer just have a proposal for
+   the non-oracle read; we have working evaluator, merge path, and shard
+   queueing scripts on the same checkpoint sources used by the centered-chart
+   packet. The smoke summary also confirms that the packet is numerically
+   doing the right kind of work: it produces finite non-oracle family-routed
+   and support-gated rollout rows, records route coverage/fallback numbers,
+   and preserves the depth-sliced reporting we need for the paper.
+
+4. Project implications:
+   the next paper-critical queue is now sharply defined. The key unresolved
+   forecasting claim is no longer “how should we test non-oracle local-law
+   routing?” It is “what does the full fixed-`17` packet say once we test it?”
+   This packet is the direct bridge from the centered-chart mechanism result
+   to the paper's deployment-facing claim about induced sparsity, basin-aware
+   routing, and long-horizon forecasting.
+
+5. Next steps:
+   submit the full fixed-`17` self-routed forecasting packet over the same
+   three roots used in the centered-chart study, sharded by root, then compare
+   `global_k` against `support_gated_k`, `support_block_gated_k`,
+   `support_local_centered`, and `family_local_centered` at `H100/H500/H1000`
+   overall and by initial-state depth. The paper-facing read should emphasize
+   support family as the likely deployment router and exact support as a
+   stricter mechanistic analysis, not the only routing object.
+
+### April 20, 2026: full fixed-`17` self-routed forecasting packet completed, and dense LISTA exact-support routing is the strongest non-oracle result
+
+1. Concrete result(s):
+   the full non-oracle self-routed forecasting packet is now complete under
+   [results/transition_rich_self_routed_forecasting_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420)
+   with automation manifest
+   [self_routed_forecasting_queue.json](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/automation/self_routed_forecasting_queue.json).
+   Shards `9314443-9314472` and merge `9314473` all finished `COMPLETED 0:0`,
+   with shard elapsed times ranging from `00:39:51` to `02:08:48`. The merged
+   packet writes
+   [self_routed_forecasting_rows.csv](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/self_routed_forecasting_rows.csv),
+   [self_routed_forecasting_summary.md](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/self_routed_forecasting_summary.md),
+   and
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/manifest.json)
+   with `510/510` runs complete, `24,600` rows, and `0` failures.
+
+   On the paper-facing non-oracle `H1000/global` read, the strongest exact-
+   support router is dense LISTA with `topk:8`. All-slice median ratios / win
+   rates are `0.228 / 0.920` for `support_gated_k` and `0.275 / 0.947` for
+   `support_local_centered`, with median coverage about `0.53`. Deep `q4`
+   states are slightly stronger at `0.224 / 0.923` and `0.207 / 0.985`.
+   Blockdiag LISTA is also positive but lower-coverage:
+   `0.832 / 0.739` and `0.801 / 0.783` all-slice, with median coverage about
+   `0.12`; the direct `support_block_gated_k` read stays interpretable but is
+   weaker at `0.983 / 0.696` all-slice and `0.958 / 0.684` on deep `q4`, with
+   only about `0.003` median coverage. The dense no-sparsity `tanh` MLP is
+   much weaker on the same exact-support router:
+   `0.924 / 0.539` for `support_gated_k` and `1.000 / 0.496` for
+   `support_local_centered` all-slice; deep `q4` remains only
+   `0.964 / 0.519` and `1.000 / 0.473`.
+
+2. Result in experimental context:
+   this is the deployment-facing follow-up to the centered-chart mechanism
+   study. It asks whether the model's own inferred support or support family,
+   without oracle basin labels, can actually route forecasting better than one
+   global Koopman matrix. The packet covers the three centered-chart roots on
+   the full fixed `17`, with support definitions `relative:0.1` and `topk:8`,
+   rollout modes `global_k`, `support_gated_k`, `support_block_gated_k`,
+   `support_local_centered`, and `family_local_centered`, and depth strata
+   `all`, `q1`, `q2`, `q3`, and `q4`.
+
+3. Interpretation:
+   the core reviewer-facing question now has a positive, non-oracle answer,
+   but only for the right routing object. Exact-support `topk:8` routing is
+   the clean deployment result: it consistently beats one global `K` on the
+   dense LISTA root and beats it more modestly on the blockdiag LISTA root.
+   The zero-sparsity `tanh` MLP is much weaker on the same self-routed exact-
+   support evaluation, which is the cleanest current evidence that induced
+   sparsity helps produce a usable routing signal rather than merely local
+   laws in hindsight.
+
+   At the same time, not every support object works. Thresholded exact support
+   (`relative:0.1`) is too fragmented for deployment: on deep `q4`,
+   `support_gated_k` is skipped `160/160` times on each root with
+   `support_class_count>max_partition_classes`. Family routing is higher
+   coverage and often excellent on LISTA medians (`H1000/global` all-slice
+   medians `2.9e-4` blockdiag and `2.2e-3` dense), but the mean tables explode
+   because a minority of catastrophic rollouts dominate. That instability is
+   especially severe on the zero-sparsity MLP, where family routing is simply
+   bad (`H1000/global` median `54.6` all-slice and `47.6` on deep `q4`).
+
+4. Project implications:
+   this packet lets the paper finally connect the interpretability story to a
+   real forecasting mechanism without oracle basin labels. The strongest safe
+   claim is now: dense LISTA exact-support `topk:8` routing often selects a
+   better local forecasting law than one global `K`, and it does so much more
+   reliably than the dense zero-sparsity control. That is a stronger and more
+   directly deployable result than the earlier centered one-step analysis.
+   The paper should not lead with `relative:0.1` exact supports or with family
+   routing as the main deployment object.
+
+5. Next steps:
+   build the paper table around exact-support `topk:8` self-routing at
+   `H100/H500/H1000`, stratified by depth (`q1` versus `q4`), with dense LISTA
+   as the main positive and the zero-sparsity MLP as the decisive control.
+   Keep family routing as a secondary table or appendix because its median
+   behavior is strong on LISTA but its catastrophic tail will otherwise muddy
+   the main message. If needed, add one short tail-diagnostic figure showing
+   that family routing is high-coverage but unstable, while exact `topk:8`
+   routing is lower-coverage but cleaner.
+
+### April 19, 2026: support-flow, proxy-label, and affine-comparator diagnostics explain the toy-versus-benchmark discrepancy
+
+1. Concrete result(s):
+   the new support-flow diagnostic is now implemented in
+   [tools/diagnose_transition_rich_support_flow.py](/home/mila/l/lia/skae/tools/diagnose_transition_rich_support_flow.py)
+   with SLURM launcher
+   [scripts/run_transition_rich_support_flow.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_support_flow.sh).
+   Smoke packets landed cleanly under
+   [results/transition_rich_support_flow_smoke_20260419/dense_gated_local_cal_square_seed0](/home/mila/l/lia/skae/results/transition_rich_support_flow_smoke_20260419/dense_gated_local_cal_square_seed0)
+   and
+   [results/transition_rich_support_flow_smoke_20260419/gated_transfer_dense_seed0](/home/mila/l/lia/skae/results/transition_rich_support_flow_smoke_20260419/gated_transfer_dense_seed0),
+   both with `0` failures. On deep `relative:0.1` exact support, the learned
+   dense LISTA global `K` already keeps almost all one-step latent energy on
+   the current support: `full_output_on_mask_energy_fraction = 0.9953` on
+   `gated_local_linear`, `0.9959` on `gated_transfer_linear`, and `0.9927` on
+   `claude:cal_square_4`
+   [support_flow_summary.md](/home/mila/l/lia/skae/results/transition_rich_support_flow_smoke_20260419/dense_gated_local_cal_square_seed0/support_flow_summary.md)
+   [support_flow_summary.md](/home/mila/l/lia/skae/results/transition_rich_support_flow_smoke_20260419/gated_transfer_dense_seed0/support_flow_summary.md).
+
+   The same smoke packet also shows that proxy labels are not the main deep
+   failure mode on the native toys. `gated_local_linear` has exact native
+   agreement for both `env_points` and `estimated_centers` on deep and
+   boundary states (`1.0000` matched accuracy, `1.0000` NMI), while
+   `gated_transfer_linear` is also exact on deep states and only modestly
+   noisy on boundary states (`0.9307` for `env_points`, `0.9491` for
+   `estimated_centers`)
+   [label_agreement_summary.md](/home/mila/l/lia/skae/results/transition_rich_support_flow_smoke_20260419/dense_gated_local_cal_square_seed0/label_agreement_summary.md)
+   [label_agreement_summary.md](/home/mila/l/lia/skae/results/transition_rich_support_flow_smoke_20260419/gated_transfer_dense_seed0/label_agreement_summary.md).
+
+   The decisive diagnostic is the compact representative affine packet under
+   [results/transition_rich_operator_selection_affine_representatives_direct_20260419](/home/mila/l/lia/skae/results/transition_rich_operator_selection_affine_representatives_direct_20260419).
+   It finished in the active compute allocation with `40/40` runs complete,
+   `1,159` rows, and `0` failures
+   [manifest.json](/home/mila/l/lia/skae/results/transition_rich_operator_selection_affine_representatives_direct_20260419/manifest.json).
+   The saved comparison note
+   [linear_vs_affine_representative_comparison.md](/home/mila/l/lia/skae/results/transition_rich_operator_selection_affine_representatives_direct_20260419/linear_vs_affine_representative_comparison.md)
+   shows that the strongest deep toy positives mostly collapse once the
+   comparator is upgraded from zero-intercept linear to affine. On deep
+   `relative:0.1`, `gated_local_linear` basin/family goes from `0.3869` to
+   `3.2650` and support from `0.4034` to `3.4420`; `gated_transfer_linear`
+   basin/family goes from `0.6386` to `0.9223` and support from `0.7861` to
+   `1.1190`.
+
+2. Result in experimental context:
+   this was the targeted discrepancy diagnosis after the fixed-`17`
+   operator-selection table came back negative overall but still showed
+   positive toy-system rows. The immediate questions were whether the toy
+   positives were artifacts of bad proxy labels, whether support was failing
+   to activate the learned global `K`, or whether the evaluation itself was
+   rewarding the wrong class of local fit.
+
+3. Interpretation:
+   the evidence now points primarily to a fit-class mismatch rather than a
+   support-activation bug. Deep proxy labels on the native toys are already
+   exact, and the learned global `K` already keeps nearly all one-step latent
+   energy on the current exact support for both the native toys and a
+   representative Claude system. So the discrepancy is not well explained by
+   “support does not activate the operator” or by “proxy labels are wrong
+   deep inside a basin.” The representative affine packet instead shows that
+   the earlier deep toy local-law win was largely coming from separate
+   zero-intercept local fits absorbing chart offsets / affine terms that one
+   global zero-intercept fit could not absorb. Once the global comparator is
+   allowed to be affine, most of that apparent deep local-law advantage
+   disappears.
+
+4. Project implications:
+   this resolves the main methodological ambiguity behind the reviewer's
+   strongest objection. We do not need to hypothesize a hidden implementation
+   bug to explain why toy operator-selection looked cleaner than the broader
+   packet. The cleaner explanation is that the earlier mechanism read was
+   substantially confounded by the class of post-hoc local fit. The current
+   branch therefore supports basin-support alignment and induced sparsity more
+   than support-selected local linear laws.
+
+5. Next steps:
+   if we keep the current checkpoints, write the paper around induced sparsity
+   plus basin-aligned supports / support families and explicitly say the
+   strong local-law claim was not robust to an affine comparator. If we still
+   want a positive mechanism claim, the next experiment should be an explicit
+   local-affine or switching baseline, or a centered / chart-normalized local
+   operator study, not another zero-intercept reduction of the same models.
 
 ### April 17, 2026: pass-`0` of the matched hard-init MLP controls landed, and the blockdiag control is still in rescue
 
@@ -2638,6 +3534,131 @@ Assumption split:
 
 ## Queue Status
 
+- April 26 documentation pass: no new SLURM jobs were submitted and no live
+  queue state was rechecked. The active documentation state is now the
+  evidence-first map in
+  [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md);
+  the last recorded paper-critical queue status remains
+  `2026-04-25 19:25 EDT`.
+
+- As of `2026-04-25 19:25 EDT`, direct periodic-support-refresh smoke
+  validation and the full fixed-`17` seed-`0` LISTA-only science shards are
+  complete. Smoke job `9361455` wrote `32` ok rows and `0` failures under
+  [results/periodic_support_refresh_smoke_20260425_cal_square](/home/mila/l/lia/skae/results/periodic_support_refresh_smoke_20260425_cal_square).
+  Dense LISTA shard `9361464` completed with exit `0:0`, `16/16` specs,
+  `34,440` rows, and `0` failures. Blockdiag LISTA shard `9361465` completed
+  with exit `0:0`, `17/17` specs, `38,280` rows, and `0` failures. Merge job
+  `9361470` is pending on scheduler priority for consolidated artifacts. The
+  packet uses
+  [forecasting_rows.csv](/home/mila/l/lia/skae/results/transition_rich_basin_partition_final_seed10_20260409/collect_pass0/forecasting_rows.csv),
+  seed `0`, support definitions `absolute:0.001,topk:8,relative:0.1`,
+  re-encode periods `1,10`, start modes `target_entry,post_start`, and writes
+  to
+  [results/periodic_support_refresh_fixed17_seed0_20260425](/home/mila/l/lia/skae/results/periodic_support_refresh_fixed17_seed0_20260425).
+  This is the active outstanding mechanism test for the claim that periodic
+  re-encoding refreshes support after basin entry and routes later Koopman
+  evolution through different active coordinates.
+
+- As of `2026-04-23 22:36 EDT`, the corrected reviewer-response seed-`0`
+  fixed-`17` coverage jobs are complete with `COMPLETED 0:0`. Corrected
+  true-Jacobian/eigendirection job `9347593` wrote
+  [results/true_jacobian_geometry_fixed17_seed0_20260423_corrected](/home/mila/l/lia/skae/results/true_jacobian_geometry_fixed17_seed0_20260423_corrected)
+  with `49/49` runs, `62,460` rows, `30,014` ok rows, and `0` failures.
+  Corrected controlled-transfer root shards `9347590`, `9347591`, and
+  `9347592` wrote
+  [results/controlled_transfer_switching_fixed17_seed0_20260423_corrected](/home/mila/l/lia/skae/results/controlled_transfer_switching_fixed17_seed0_20260423_corrected)
+  with `1,776` rows, `1,632` ok rows, `144` skipped rows, and `0` failures.
+  Queue manifests:
+  [true queue](/home/mila/l/lia/skae/results/true_jacobian_geometry_fixed17_seed0_20260423_corrected/queue_manifest.json)
+  and
+  [controlled queue](/home/mila/l/lia/skae/results/controlled_transfer_switching_fixed17_seed0_20260423_corrected/queue_manifest.json).
+  Corrected smoke jobs `9347587` and `9347588` completed with
+  `COMPLETED 0:0`. The earlier packets
+  [results/true_jacobian_geometry_fixed17_seed0_20260423_cached](/home/mila/l/lia/skae/results/true_jacobian_geometry_fixed17_seed0_20260423_cached)
+  and
+  [results/controlled_transfer_switching_fixed17_seed0_20260423](/home/mila/l/lia/skae/results/controlled_transfer_switching_fixed17_seed0_20260423)
+  are retained only as superseded audit artifacts. There is no currently
+  running paper-critical SLURM job recorded in this pass.
+
+- Earlier, as of `2026-04-23 20:40 EDT`, no SLURM jobs had yet been submitted
+  for the new true-Jacobian/eigendirection or controlled-transfer branches.
+  Prepared wrappers:
+  [run_transition_rich_true_jacobian_geometry.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_true_jacobian_geometry.sh),
+  [queue_transition_rich_true_jacobian_geometry.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_true_jacobian_geometry.sh),
+  [run_transition_rich_controlled_transfer_switching.sh](/home/mila/l/lia/skae/scripts/run_transition_rich_controlled_transfer_switching.sh),
+  and
+  [queue_transition_rich_controlled_transfer_switching.sh](/home/mila/l/lia/skae/scripts/queue_transition_rich_controlled_transfer_switching.sh).
+  At that point the only validation was shell syntax checking with `bash -n`;
+  compute-node smoke validation has since completed.
+
+- As of `2026-04-23 16:43 EDT`, there is no live paper-critical SLURM queue.
+  The non-oracle self-routed forecasting packet is complete under
+  [results/transition_rich_self_routed_forecasting_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420).
+  Queue manifest:
+  [self_routed_forecasting_queue.json](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_20260420/automation/self_routed_forecasting_queue.json).
+  The original root-only queue `9314170-9314173` was canceled because
+  `squeue --start` pushed the shards too far out, and the first reseeded split
+  submission on `long-cpu` (`9314196-9314214`) was also canceled after
+  scheduler inspection still showed poor start behavior. A temporary
+  `main-cpu` workaround (`9314400-9314406`) and a `12h` long-queue retry
+  (`9314431-9314437`) were then also canceled once runtime comparisons showed
+  that a better backfill shape was available. The final successful queue was
+  the one-seed `long-cpu` submission: shards `9314443-9314472` at
+  `03:00:00`, with merge `9314473` dependency-held behind them. `sacct`
+  now shows every shard and the merge as `COMPLETED 0:0`; shard elapsed times
+  ranged from `00:39:51` to `02:08:48`, and the merge finished in `00:00:20`.
+  The merged packet writes `510/510` completed runs, `24,600` rows, and
+  `0` failures, so the scheduler blocker is fully closed rather than merely
+  mitigated.
+  The evaluator now also supports resumable intra-shard reruns with atomic
+  per-spec flushing, but that patch landed after this queue was submitted, so
+  it applies to reruns rather than retroactively to the already-finished
+  shards. The resume path itself is compute-validated: validation job
+  `9315112` completed in `16s` on `cn-m004` and confirmed that rerunning the
+  completed one-spec smoke shard skips work immediately with `1/1` completed.
+  Smoke validation remains
+  complete under
+  [results/transition_rich_self_routed_forecasting_smoke_20260420](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_smoke_20260420)
+  (`270` rows, `0` failures), and merge-path validation remains complete under
+  [results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged](/home/mila/l/lia/skae/results/transition_rich_self_routed_forecasting_merge_smoke_20260420/merged)
+  (`270` rows, `0` failures).
+
+- As of `2026-04-20 15:22 EDT`, the centered-chart mechanism queue is complete under
+  [results/transition_rich_centered_chart_mechanism_20260420](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420).
+  Queue manifest:
+  [centered_chart_mechanism_queue.json](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/automation/centered_chart_mechanism_queue.json).
+  SLURM shards `9310546-9310548` and merge `9310549` all finished
+  `COMPLETED 0:0`. The merged packet writes
+  [centered_chart_mechanism_rows.csv](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/centered_chart_mechanism_rows.csv),
+  [centered_chart_mechanism_summary.md](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/centered_chart_mechanism_summary.md),
+  and
+  [manifest.json](/home/mila/l/lia/skae/results/transition_rich_centered_chart_mechanism_20260420/manifest.json)
+  with `74,369` rows and `0` failures.
+
+- As of `2026-04-20 14:09 EDT`, there are no paper-critical jobs left in
+  `squeue`. The matched hard-init interpretability rerun is complete:
+  shards `9304602-9304604` finished, the patched merge reran as `9304747`,
+  and the dependent comparison reran as `9304748`. The finalized artifacts are
+  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1)
+  and
+  [final_comparison_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/final_comparison_pass1),
+  with `13,554` interpretability rows and `0` failures.
+
+- As of `2026-04-19 02:49 EDT`, the matched-hard-init operator-selection
+  mechanism packet is also complete under
+  [results/transition_rich_operator_selection_hardinit_matched_20260418](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418).
+  Queue manifest:
+  [operator_selection_queue.json](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/automation/operator_selection_queue.json).
+  Smoke job `9304650`, shard jobs `9304655-9304659`, and merge `9304660` all
+  finished cleanly. The merged packet writes
+  [operator_selection_rows.csv](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/operator_selection_rows.csv),
+  [operator_selection_summary.md](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/operator_selection_summary.md),
+  and
+  [manifest.json](/home/mila/l/lia/skae/results/transition_rich_operator_selection_hardinit_matched_20260418/manifest.json)
+  with `56,538` rows and `0` failures. This queue directly answered the
+  review's `support -> local linear law` objection and currently argues
+  against the strong version of that claim.
+
 - As of `2026-04-17 17:42 EDT`, the benchmark-aligned Dysts `H30000`
   best-root visual packet is complete. Compute allocation `9295961` on
   `cn-f004` ran
@@ -2666,7 +3687,7 @@ Assumption split:
   (`dysts_long_collect`) all completed cleanly. The collector under
   [results/dysts_long_horizon_eval_mlp_blockdiag_20260415/collect](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_mlp_blockdiag_20260415/collect)
   reports `300/300` complete tasks and `0` pending tasks.
-- As of `2026-04-18 23:05 EDT`, the fixed-`17` matched hard-init MLP control
+- As of `2026-04-18 23:24 EDT`, the fixed-`17` matched hard-init MLP control
   packet under
   [results/transition_rich_hardinit_mlp_controls_seed10_20260416](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416),
   launched by `9285895`, has finished its full forecasting-side chain:
@@ -2686,11 +3707,18 @@ Assumption split:
   reports system-median best-periodic `H100/H500/H1000` of
   `0.0082 / 0.0260 / 0.0273` for the sparse hard-init MLP,
   `0.0094 / 0.0359 / 0.0383` for the blockdiag hard-init MLP, and
-  `0.5704 / 2.6733 / 3.8044` for the zero-sparse hard-init control. The only
-  unfinished step is the pass-`1` interpretability reduction: reducer job
-  `9295034` timed out after `08:00:19`, wrote no files under
-  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1),
-  and canceled dependent comparison job `9295035`.
+  `0.5704 / 2.6733 / 3.8044` for the zero-sparse hard-init control. The
+  replacement hard-init interpretability chain is also complete now: shard
+  reducers `9304602-9304604` finished, the first merge `9304605` failed on an
+  empty-cell parsing bug, and the patched reruns `9304747 -> 9304748` wrote
+  [interpretability_final_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/interpretability_final_pass1)
+  with `13,554` rows / `0` failures plus the finalized matched-sampling
+  comparison in
+  [final_comparison_pass1](/home/mila/l/lia/skae/results/transition_rich_hardinit_mlp_controls_seed10_20260416/final_comparison_pass1).
+  On the paper slice (`absolute:0.001` / `deep`), the two sparse hard-init
+  MLP controls are almost tied and the zero-sparse control remains much worse,
+  so the queue blocker on this packet is closed and the remaining work is
+  paper interpretation rather than execution recovery.
 - As of `2026-04-16 13:59 EDT`, no live paper-critical SLURM jobs remain for
   the blockdiag-MLP Dysts extension. The first array `9281462_[0-299%24]`
   failed and should be ignored because of the old `unbound variable` shell

@@ -1,0 +1,391 @@
+\documentclass{article}
+\usepackage[nothing]{neurips_2025}
+
+\input{preamble}
+\usepackage{natbib}
+
+\title{Modeling Nonlinear Dynamical Systems with Sparse Koopman Autoencoders}
+
+\author{%
+  Aidan Li \\
+  \texttt{aidan.li@umontreal.ca} \\
+  \And
+  Sujin Yun \\
+  \texttt{sujin.yun@umontreal.ca} \\
+  % examples of more authors
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \AND
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    Koopman autoencoders enable efficient prediction and control for nonlinear dynamical systems by raising the state to a lifted linear latent space. However, multistable systems with multiple basins of attraction do not admit a single finite-dimensional global linearization. We study how effective Koopman models are in this regime, without basin labels, when evaluated under periodic re-encoding. 
+    Concretely, we study the effects on Koopman autoencoders' long-term forecasting performance when using a sparse-by-design LISTA encoder. 
+    % and using a structured Koopman matrix. 
+    We compare LISTA encoders with MLP encoders on 15 systems from the Dysts benchmark of chaotic systems. 
+    Under matched training and hyperparameter tuning budgets, LISTA provides better forecasting performance than an MLP encoder on most systems. We conclude that sparse coding may offer an inductive bias for learning better Koopman representations for multistable nonlinear systems.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Learning accurate and interpretable models of nonlinear dynamical systems remains a central problem in machine learning, scientific computing, and control. One particularly attractive direction is to seek a representation in which the nonlinear dynamics can become linear, since linear models support efficient prediction, estimation, and control while remaining amenable to classical solving tools such as linear quadratic regulators (LQR) \citep{kalman_general_1960} and model predictive control (MPC) \citep{mayne_constrained_2000, grune_nonlinear_2017}. Koopman operator theory provides this perspective: instead of evolving the state in the nonlinear dynamical system directly, it studies the evolution of observables under a linear operator acting on a lifted function space \citep{koopman_hamiltonian_1931, koopman_dynamical_1932, brunton_modern_2022}. This viewpoint has inspired a large line of literature on data-driven approximations of Koopman dynamics, such as DMD and eDMD \citep{schmid_dmd_2010, williams_datadriven_2015, williams_kernel-based_2016}, and applications of these linear predictors for nonlinear control via MPC \citep{korda_linear_2018} or LQR \citep{mamakoukas_local_2019}.
+
+The difficulty is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that these systems cannot admit a single finite-dimensional global linearization \citep{lan_linearization_2013, brunton_koopman_2016}. 
+In a multistable finite-dimensional system, it is possible to linearize the dynamics within each basin of attraction, but the linearizations needed in different basins of attraction are incompatible with each other. The problem goes beyond predicting trajectories within a single locally valid basin to representing dynamics that may move across qualitatively different regimes while preserving enough structure to support downstream reasoning and control.
+
+Recent studies have merged Koopman theory with deep learning. Deep autoencoder-based models learn nonlinear observables jointly with latent linear dynamics, improving flexibility over hand-designed lifting functions \citep{lusch_deep_2018, azencot_forecasting_2020, shi_deep_2022}. However,  unrolling the linear dynamics in latent space over long rollouts leads to drift due to crossing of long-horizon trajectories and inability of latent space trajectory generation to capture switching dynamics between fixed points \citep{fathi_course_2023}. \citet{fathi_course_2023} proposed periodic re-encoding, which maps (decodes) the lifted latent back to the space of observables (state space) and immediately re-encodes the decoded state back to the lifted latent space. Periodic re-encoding was shown to be an effective inference-time correction mechanism, and therefore is a natural starting point for studying multistable dynamics.
+
+However, periodic re-encoding does not address the root of the problem because it does not improve the quality of latent representations and make them more robust in long-horizon extrapolation. Encoders based on sparse coding offer an appealing inductive bias for this purpose. Classical sparse coding and LISTA-style encoders produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}. In principle, the support of a sparse latent code could act as a mode variable, indicating which local linear model is active and how trajectories transition between regimes.
+
+\paragraph{Contribution.} In this project, we focus on one concrete hypothesis and result: sparse encoders may improve long-horizon forecasting for nonlinear systems with multiple basins of attraction, where the number of basins and trajectory basin labels are not known in advance. 
+In \cref{sec:method}, we describe the problem formulation, our methodology in sparse coding and periodic re-encoding, and training objectives. 
+In \cref{sec:experiments}, we provide a fair empirical comparison of the forecasting performance of MLP encoders versus LISTA encoders with explicit sparsity objectives under periodic re-encoding.
+Finally, we wrap up with a brief discussion detailing future work in \cref{sec:discussion}. Appendix~\ref{sec:background} provides a detailed background reading and Appendix~\ref{appendix:experimental-protocol} provides detailed experimental protocol for reproducibility.
+
+
+\section{Method}
+\label{sec:method}
+
+We study Koopman autoencoders in the setting that is most relevant for multistable dynamics: trajectories are generated by systems with multiple basins of attraction, but neither the number of basins nor the basin assignment of each state is available during training or deployment. The goal is for the Koopman autoencoder to learn representations that support accurate long-horizon forecasting under periodic re-encoding. 
+
+\subsection{Problem Formulation}
+
+For each benchmark system, the underlying state evolves in continuous time according to an unknown flow or, equivalently for our purposes, a simulator-defined one-step map.  
+The learned model does not observe the continuous flow directly; instead it receives a sequence of sampled states \(x_k \in \mathbb{R}^{d_x}\), \(k=0,1,2,\dots\), related by 
+$x_{k+1} = F_{\Delta t}(x_k),$ 
+where \(F_{\Delta t}\) denotes one benchmark observation step and \(\Delta t\) is the system-specific observation interval. The forecasting problem is to predict future observation steps at the stored sampling cadence.
+
+The systems of interest are nonlinear and often multi-attractor or multistable. A \emph{fixed point} is a state \(x^\ast\) that remains unchanged under the dynamics, i.e. $F_{\Delta t}(x^\ast) = x^\ast,$ or, in continuous-time notation, \(f(x^\ast)=0\). More generally, the long-run behavior of a trajectory may converge not only to a fixed point but also to a
+  more general \emph{attractor} \(A\), such as a limit cycle, torus, or chaotic invariant set. The \emph{basin of attraction} of \(A\) is the set of initial
+  conditions whose trajectories converge to \(A\):
+  \begin{equation}
+      \mathcal{B}(A)
+      =
+      \left\{
+          x_0 \in \mathbb{R}^{d_x}
+          :
+          \operatorname{dist}\!\left(F_{\Delta t}^{\,k}(x_0), A\right) \to 0
+          \text{ as } k \to \infty
+      \right\}.
+  \end{equation}
+
+When multiple attractors coexist, the state space is partitioned into multiple basins of attraction. In this regime, different initial conditions can settle into different long-run dynamical modes, and different regions of state space can admit different locally valid linear approximations. 
+  % This is the forecasting setting we care about operationally. 
+  % When we refer to an \emph{endpoint basin}, we mean the basin of the attractor reached in the long-run limit; this
+  % attractor may be a stable fixed point or a more general attracting set.
+  
+% For each benchmark system, we observe discrete samples of an underlying continuous time-flow. We denote the observed samples as states $x_k \in \mathbb{R}^{d_x}$ in a sequence, where $k = 0, 1, 2, \dots$, and $d_x$ is the state dimension. Consecutive observations are separated by a fixed system-specific observation interval. The model operates on this sampled sequence directly rather than on the internal substeps of the numerical solver. 
+
+
+We learn an encoder $\phi : \mathbb{R}^{d_x} \rightarrow \mathbb{R}^{d_z}$, a decoder $\psi : \mathbb{R}^{d_z} \rightarrow \mathbb{R}^{d_x}$, and a latent linear transition matrix $K \in \mathbb{R}^{d_z \times d_z}$, where $d_z$ is the latent dimension. For a batch of $B$ training windows of rollout length $L$,
+$\{x_{b,k}, x_{b,k+1}, \dots, x_{b,k+L}\}_{b=1}^{B},$
+where $b$ indexes training windows and $\ell$ will denote offsets within a window,
+we encode every state once,
+\begin{equation}
+    z_{b,k+\ell}^{\mathrm{enc}} = \phi(x_{b,k+\ell}), \qquad \ell = 0, \dots, L,
+\end{equation}
+roll out the latent transition from the initial encoded state,
+\begin{equation}
+    z_{b,k+\ell}^{\mathrm{roll}} = K^\ell z_{b,k}^{\mathrm{enc}}, \qquad \ell = 1, \dots, L,
+\end{equation}
+and decode both the rollout and the encoded future latents,
+\begin{equation}
+    \hat{x}_{b,k+\ell} = \psi(z_{b,k+\ell}^{\mathrm{roll}}), \qquad
+    x_{b,k+\ell}^{\mathrm{rec}} = \psi(z_{b,k+\ell}^{\mathrm{enc}}).
+\end{equation}
+
+The cached trajectories are treated as uniformly spaced observation sequences for each system, and the forecasting task is to learn one-step evolution between adjacent stored states rather than the hidden internal steps of the numerical integrator. Accordingly, a horizon of $H$ always means $H$ observed benchmark steps. Because the observation interval is system specific, the same horizon does not correspond to identical physical time across all systems. In this report, we evaluate only forecasting accuracy; we do not assume access to basin labels, basin counts, or any other regime annotations.
+
+\subsection{Sparse coding and LISTA}
+\label{sec:background-sparse}
+
+Sparse coding seeks a representation $z$ such that $x \approx Dz$ for a learned dictionary $D : \R^{d_z} \to \R^{d_x}$, via the optimization
+\begin{equation}
+\min_z \;\; \frac{1}{2} \|x - D z\|_2^2 + \lambda \|z\|_1,
+\end{equation}
+where $\lambda > 0$ controls the sparsity of $z$ \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003}.
+The $\ell_1$ penalty induces a mapping $x \mapsto z(x)$ that is piecewise linear and piecewise constant in its support: on each region of input space, the same small set of dictionary atoms is active, and within that region, $z(x)$ depends linearly on $x$.
+Geometrically, this models the latent space as a union of lower-dimensional linear subspaces, with each subspace indexed by the support (active set) of the sparse code.
+
+% At a high level, this union-of-subspaces structure is exactly the kind of structure we would like to impose on a multi-basin nonlinear control problem.
+% Each support pattern corresponds to a locally linear regime; moving between regimes corresponds to changing which atoms are active.
+
+In our setting, we want to treat the Koopman features as a sparse combination of dictionary atoms.
+The dictionary $D$ is global, and the support pattern of the sparse code $z$ acts like a mode label indicating which basin or local region we are currently in.
+Inside a region (basin of attraction) where the dynamics look locally linear, that region uses the same dictionary atoms and therefore has its own local Koopman-like dynamics.
+% Crossing a basin boundary is equivalent to changing the sparse code support to another region with a different local linear model. I felt that this was also explained nicely in Appendix D of \citet{fathi_course_2023}.
+
+% This gives a natural way to build an adjacency matrix for a graph that encapsulates the nonlinear problem: nodes correspond to local regions of constant support, and edges correspond to observed transitions between supports along trajectories.
+% On each node, one can learn a local Koopman linear operator and solve the associated LQR-style control problem in closed form.
+% Planning trajectories from one side of the field to the other then becomes a graph traversal problem over these sparse-code regions.
+
+\paragraph{LISTA as a fast sparse encoder.}
+Classical sparse coding solves the above optimization with an iterative algorithm (e.g., ISTA/FISTA, coordinate descent), which is often too slow to use inside a learned dynamical model.
+LISTA (Learned ISTA) \citep{gregor_learning_2010} replaces the iterative solver with a trainable, finite-depth network that approximates the sparse solution.
+
+In LISTA, one learns a non-linear encoder $z = f_\theta(x)$ whose architecture mimics a truncated iterative shrinkage/thresholding algorithm.
+The key nonlinearity is a component-wise shrinkage function with learned thresholds; by construction, the mapping $x \mapsto z(x)$ is explicitly piecewise affine, with regions defined by which coordinates survive thresholding.
+This builds a strong inductive bias for \emph{mode selection} into the encoder: for each $x$, only a few coordinates of $z$ are active, picking a small subset of dictionary atoms that explain the input.
+Compared to a generic nonlinear encoder where all latent coordinates can participate everywhere, LISTA-style encoders encourage a sparse, structured partition of state space into locally linear regimes.
+
+
+% \begin{algorithm}[ht]
+% \caption{LISTA Encoder (Forward Pass)}
+% \label{alg:lista}
+% \begin{algorithmic}[1]
+% \REQUIRE $x \in \mathbb{R}^{d_x}$; depth $T \in \mathbb{N}$; encoder $\phi$ with learnable parameters $W_e \in \mathbb{R}^{d_z \times d_x}$, $S \in \mathbb{R}^{d_z \times d_z}$, $\theta \in \mathbb{R}^{d_z}_{\ge 0}$
+% \ENSURE Output $z \in \mathbb{R}^{d_z}$ ($z$ is latent code $\phi(x)$)
+% \STATE $z^{(0)} \gets h_\theta (W_e x)$
+% \FOR{$t = 1$ \TO $T$}
+%     \STATE $c^{(t)} \gets W_e x + Sz^{(t-1)}$ 
+%     \STATE $z^{(t)} \gets \operatorname{h}_{\theta} \big(c^{(t)}\big)$
+% \ENDFOR
+% \RETURN $z^{(T)} = \phi(x)$
+% \end{algorithmic}
+% \end{algorithm}
+
+% We represent the decoder as a linear dictionary $D \in \mathbb{R}^{d_x \times d_z}$, so that $\hat{x} = D z$. The encoder $\phi(x)$ is implemented as a LISTA network (Alg. \ref{alg:lista}) with parameters $W_e \in \mathbb{R}^{d_z \times d_x}, S \in \mathbb{R}^{d_z \times d_z}$, and thresholds $\theta \in \mathbb{R}^{d_z}_{\ge 0}$; here $W_e$ plays the role of a learned operator analogous to $D^\top$, while $D$ is the dictionary used in reconstruction.
+
+In our implementation, the LISTA model uses the same MLP front end as the MLP baselines to produce a pre-code $c$, then applies one LISTA refinement step:
+\begin{equation}
+\label{eq:lista-refinement-step}
+u^{(0)} = \operatorname{shrink}(c, \alpha/L),
+\qquad
+z = \operatorname{ReLU}\!\bigl(\operatorname{shrink}(S u^{(0)} + c, \alpha/L)\bigr).
+\end{equation}
+where
+\begin{equation}
+\operatorname{shrink}\!\left(x, \frac{\alpha}{L}\right)
+  =
+  \operatorname{sign}(x)\,\max\!\left(|x| - \frac{\alpha}{L},\, 0\right)
+\end{equation}
+
+Here $S$ is learned, $\alpha$ is the LISTA threshold parameter, and $L$ is a Lipschitz-scale estimate computed from the decoder dictionary. The LISTA model uses a linear dictionary decoder whose atoms are normalized at decode time.
+
+
+
+\subsection{Periodic Re-Encoding at Test Time}
+
+At test time, we use periodic re-encoding, following the procedure of \citet{fathi_course_2023}. Starting from an encoded state $z_k = \phi(x_k)$ and a re-encoding period $m$ measured in observation steps, we roll the model forward for $m$ latent steps, forecasting
+\begin{equation}
+    \tilde{z}_{k+m} = K^m z_k, \qquad
+    \tilde{x}_{k+m} = \psi(\tilde{z}_{k+m}), \qquad
+    z_{k+m} = \phi(\tilde{x}_{k+m}),
+\end{equation}
+and then repeat this procedure over the rollout horizon. Periodic re-encoding is key to our evaluation because it gives the model a mechanism for correcting accumulated latent drift during long forecasts, effectively refreshing the Koopman representation of the current state.
+
+
+
+\subsection{Training Objective}
+\label{sec:training-objective}
+
+For a batch of $B$ windows and a training horizon $L$, we optimize prediction, reconstruction, latent alignment, and sparsity terms:
+\begin{equation}
+\label{eq:loss-terms-state}
+\bar{\mathcal{L}}_{\mathrm{pred}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\frac{\|\hat{x}_{b,k+\ell} - x_{b,k+\ell}\|_2}{\sqrt{d_x}},
+\qquad
+\bar{\mathcal{L}}_{\mathrm{rec}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\frac{\|x_{b,k+\ell}^{\mathrm{rec}} - x_{b,k+\ell}\|_2}{\sqrt{d_x}},
+\end{equation}
+\begin{equation}
+\label{eq:loss-terms-latent}
+\bar{\mathcal{L}}_{\mathrm{align}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\|z_{b,k+\ell}^{\mathrm{roll}} - z_{b,k+\ell}^{\mathrm{enc}}\|_2,
+\qquad
+\bar{\mathcal{L}}_{\mathrm{sp}} =
+\frac{1}{BL}\sum_{b=1}^{B}\sum_{\ell=1}^{L}
+\|z_{b,k+\ell}^{\mathrm{roll}}\|_1.
+\end{equation}
+The total loss is
+\begin{equation}
+    \mathcal{L}
+    =
+    \frac{1}{L}
+    \left(
+    \lambda_{\mathrm{pred}} \bar{\mathcal{L}}_{\mathrm{pred}}
+    +
+    \lambda_{\mathrm{rec}} \bar{\mathcal{L}}_{\mathrm{rec}}
+    +
+    \lambda_{\mathrm{align}} \bar{\mathcal{L}}_{\mathrm{align}}
+    +
+    \lambda_{\mathrm{sp}} \bar{\mathcal{L}}_{\mathrm{sp}}
+    \right).
+\end{equation}
+Here $\lambda_{\mathrm{pred}}$, $\lambda_{\mathrm{rec}}$, $\lambda_{\mathrm{align}}$, and $\lambda_{\mathrm{sp}}$ are nonnegative scalar loss weights.
+
+The observation-space terms are normalized by $\sqrt{d_x}$ so that the same loss weights transfer across the 3-dimensional and 6-dimensional systems in the benchmark. The latent-space terms are left in their native scale because the same latent dimension is used for all systems, so scale is absorbed by the loss coefficients. The prediction and alignment terms encourage latent linearity, the reconstruction term keeps the learned representation close to the data manifold, and the sparsity term encourages selective latent activations.
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Model Families}
+
+We study three families of encoder models to determine the effects of sparsity in an encoder for Koopman autoencoder models. 
+% We do not study changes to the Koopman transition matrix in this project.
+
+\paragraph{MLP encoder.} This first model uses an MLP encoder, an MLP decoder, a dense latent transition matrix $K$. This is the most standard Koopman autoencoder model that serves as a control setup for other training alterations.
+
+\paragraph{MLP encoder + $\ell_1$ penalty on $z$.}
+This model family is architecturally identical to the sparse MLP baseline, but includes a small $\ell_1$ penalty on the latent rollout. This serves as a strong architecture-agnostic baseline to elucidate the benefits of sparse latents obtained through regularization, but it does not encode any explicit notion of sparse coding. 
+% or block-local latent dynamics.
+
+% \paragraph{MLP encoder  with $\ell_1$ penalty on $z$ + block-diagonal Koopman matrix.}
+% The third model uses the same MLP encoder and decoder as the dense baseline, but replaces the latent transition with a block-diagonal matrix:
+% \begin{equation}
+%     z_{t+1} \approx K_{\mathrm{block}} z_t .
+% \end{equation}
+% This setup isolates whether any gains attributed to block-diagonal latent dynamics for multibasin systems can be obtained without the LISTA encoder.
+
+\paragraph{LISTA encoder + $\ell_1$ penalty on $z$.}
+The third model adds a LISTA refinement step \eqref{eq:lista-refinement-step} to the MLP encoder with $\ell_1$ penalty on $z$. The decoder is a linear dictionary $D \in \mathbb{R}^{d_x \times d_z}$ so that $\psi(z) = Dz$, while the latent dynamics remain unchanged.
+% fully dense:
+% \begin{equation}
+%     z_{t+1} \approx K_{\mathrm{dense}} z_t .
+% \end{equation}
+% This comparison isolates the effect of an explicit sparse-coding encoder while keeping the latent dynamics unstructured.
+
+% \paragraph{LISTA encoder + block-diagonal Koopman matrix.}
+% The fifth model uses the same LISTA encoder and dictionary decoder, but constrains the latent transition to be block diagonal,
+% \begin{equation}
+%     K_{\mathrm{block}}
+%     =
+%     \operatorname{blkdiag}\!\big(K^{(1)}, \dots, K^{(M)}\big).
+% \end{equation}
+% These blocks are model partitions, not ground-truth basins. We do \emph{not} assume that the true basin count is known, that one basin corresponds to one block, or that basin identity is available during training. The purpose of the constraint is purely inductive: it suppresses long-range latent coupling and tests whether more local latent dynamics are advantageous on systems with strongly heterogeneous local structure.
+
+\subsection{Dysts Dynamical Systems Benchmark}
+
+We use a subset of 15 systems from the Dysts repository \citep{gilpin_chaos_2021, gilpin_model_2023}, which are listed in Table~\ref{tab:dysts-systems}. Dysts was introduced as an interpretable benchmark of low-dimensional chaotic differential equations and later expanded into a large-scale forecasting testbed; the collection provides canonical parameterizations, default initial conditions on the attractor(s), and system-specific temporal metadata such as the integration step and dominant period estimated from spectral analysis. 
+
+In the context of this project, we only use a targeted subset of Dysts systems that are relevant to our multibasin setting. Dysts has hundreds of systems, but many systems have only one fixed point, and we are also somewhat limited by compute for this project.
+
+The systems we used are listed in \cref{tab:dysts-systems}. They are almost entirely 3-dimensional, with one 6-dimensional coupled system, and they span more than two orders of magnitude in native observation interval. The subset therefore represents long-horizon forecasting ability across a diversity of low-dimensional nonlinear systems with different granularity, but is by no means a perfect benchmark of multibasin structure. 
+
+
+\subsection{Experimental Protocol}
+In our experiments, we train 10 seeds of a model for each system and report the interquartile mean (IQM) over these 10 seeds to reduce sensitivity to unstable seeds. We report the mean squared error (MSE) in forecasting predictions from an initial condition.
+
+All models were trained under matched budgets (10 seeds/system, fixed latent dimension, fixed optimization steps, shared checkpointing protocol); full details of the systems, data generation, hyperparameter selection, training and evaluation protocol are in Appendix~\ref{appendix:experimental-protocol}.
+
+\subsection{Long-Horizon Forecasting under Periodic Re-encoding}
+
+In this setting, we use the best periodic re-encoding period for each model and system across re-encoding periods $\{1, 5, 10, 20, 40, 60, 80, 100, 200, 300, 400, 500, 1000\}$, where ``best'' is defined as yielding the lowest MSE. Table~\ref{tab:dysts-per-system} reports the per-system seed-IQM errors at horizons $H=1000$, $H=3000$, and $H=20000$; the $H=20000$ columns come from the matched long-horizon reevaluation of the same 15 Dysts roots.
+
+LISTA remains the strongest model overall. Its cross-system median seed-IQM is $3.85\times 10^{-3}$ at $H=1000$, $4.72\times 10^{-2}$ at $H=3000$, and $2.84$ at $H=20000$, compared with $4.85\times 10^{-3}$, $7.74\times 10^{-2}$, and $3.28$ for the sparse MLP, and $7.07\times 10^{-3}$, $1.39\times 10^{-1}$, and $2.97$ for the zero-sparsity MLP. LISTA is the best model on 12 of 15 systems at $H=1000$, 13 of 15 systems at $H=3000$, and 12 of 15 systems at $H=20000$.
+
+The observed exceptions at $H=1000$ and $H=3000$ are unchanged: DequanLi favors MLP+$\ell_1$ at both horizons, SprottTorus favors the plain MLP at $H=1000$ and MLP+$\ell_1$ at $H=3000$, and Duffing at $H=1000$ is marginally better for the plain MLP. At $H=20000$, the exceptions shift slightly: Dadras favors the zero-sparsity MLP, SprottTorus and CoupledLorenz favor the sparse MLP, and LISTA is best on the remaining 12 systems. Even on the difficult three-dimensional Duffing system, LISTA is the best model by both $H=3000$ and $H=20000$.
+
+\begin{table*}[ht]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{0.13\textwidth}ccccccccc}
+\toprule
+System & \multicolumn{3}{c}{$H1000$} & \multicolumn{3}{c}{$H3000$} & \multicolumn{3}{c}{$H20000$} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+& \multicolumn{1}{c}{MLP} & \multicolumn{1}{c}{MLP+$\ell_1$} & \multicolumn{1}{c}{LISTA}
+& \multicolumn{1}{c}{MLP} & \multicolumn{1}{c}{MLP+$\ell_1$} & \multicolumn{1}{c}{LISTA}
+& \multicolumn{1}{c}{MLP} & \multicolumn{1}{c}{MLP+$\ell_1$} & \multicolumn{1}{c}{LISTA} \\
+\midrule
+Dadras & 0.0102 & 0.0111 & \textbf{0.0096} & 0.5590 & 0.4812 & \textbf{0.3864} & \textbf{2.9716} & 3.0310 & 3.0814 \\
+Duffing & \textbf{0.8488} & 0.8542 & 0.8522 & 1.9001 & 2.1228 & \textbf{1.8717} & 4.4016 & 4.2120 & \textbf{4.1314} \\
+QiChen & 0.0052 & 0.0042 & \textbf{0.0029} & 0.1753 & 0.0770 & \textbf{0.0492} & 3.6802 & 3.5896 & \textbf{3.3859} \\
+Sakarya & 0.0117 & 0.0128 & \textbf{0.0091} & 0.1986 & 0.2266 & \textbf{0.1700} & 3.8757 & 4.2699 & \textbf{3.5583} \\
+SprottTorus & \textbf{0.0069} & 0.0085 & 0.0089 & 0.1484 & \textbf{0.0914} & 0.1102 & 2.2383 & \textbf{1.6439} & 1.6968 \\
+Chua & 0.0017 & 0.0018 & \textbf{0.0009} & 0.0193 & 0.0173 & \textbf{0.0071} & 1.1589 & 1.1822 & \textbf{0.9723} \\
+MultiChua & 0.0048 & 0.0034 & \textbf{0.0022} & 0.0556 & 0.0386 & \textbf{0.0331} & 1.7866 & 1.7256 & \textbf{1.3876} \\
+DequanLi & 0.0110 & \textbf{0.0048} & 0.0050 & 0.1388 & \textbf{0.0404} & 0.0472 & 6.2682 & 4.0543 & \textbf{2.8369} \\
+LuChenCheng & 0.0024 & 0.0018 & \textbf{0.0009} & 0.0214 & 0.0176 & \textbf{0.0062} & 0.6187 & 1.0851 & \textbf{0.4924} \\
+SanUmSrisuchinwong & 0.0040 & 0.0056 & \textbf{0.0038} & 0.0399 & 0.0774 & \textbf{0.0354} & 3.9002 & 3.7662 & \textbf{3.7607} \\
+WangSun & 0.0557 & 0.0281 & \textbf{0.0158} & 1.2392 & 0.6715 & \textbf{0.5567} & 4.4639 & 4.4198 & \textbf{3.7067} \\
+ShimizuMorioka & 0.0071 & 0.0044 & \textbf{0.0016} & 0.0661 & 0.0706 & \textbf{0.0214} & 2.8321 & 3.2776 & \textbf{2.1868} \\
+CoupledLorenz & 0.0353 & 0.0272 & \textbf{0.0257} & 1.2007 & 0.9806 & \textbf{0.7922} & 8.3455 & \textbf{6.3636} & 8.0858 \\
+RikitakeDynamo & 0.0075 & 0.0038 & \textbf{0.0028} & 0.1091 & 0.0826 & \textbf{0.0402} & 1.1655 & 0.7008 & \textbf{0.6048} \\
+Hadley & 0.0035 & 0.0040 & \textbf{0.0032} & 0.0330 & 0.0321 & \textbf{0.0230} & 1.2967 & 1.5774 & \textbf{1.2114} \\
+\midrule
+Wins & 2/15 & 1/15 & \textbf{12/15} & 0/15 & 2/15 & \textbf{13/15} & 1/15 & 2/15 & \textbf{12/15} \\
+\bottomrule
+\end{tabular}
+}
+\caption{\textbf{Per-system Dysts benchmark comparison.} Entries are system-level seed IQMs of the best periodic re-encoding MSE for the forecasted horizon; \textit{lower is better}. The $H=20000$ columns come from the matched long-horizon reevaluation of the same three roots. Bold denotes the lowest error among the three models at the given horizon. The last row reports system-win counts at each horizon.}
+\label{tab:dysts-per-system}
+\end{table*}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{figures/class_project/dysts_horizon_mse_curve.pdf}
+\caption{\textbf{Dysts forecasting error across available horizons.} Each curve plots the cross-system median of the per-system seed-IQM best-periodic MSE. Dots mark the horizons that were actually evaluated, and the callouts report the plotted MSE values at each horizon. The zero-sparsity MLP curve starts at $H=1000$ because the current local packet does not contain its Dysts short-horizon rows at $H=100$ or $H=500$.}
+\label{fig:dysts-horizon-mse}
+\end{figure}
+
+Figure~\ref{fig:dysts-horizon-mse} shows the same trend across the available horizons with the actual cross-system median values written directly on the curve. The sparse MLP is marginally better at $H=100$, but LISTA is already lower by $H=500$ and remains the strongest model through $H=30000$. The zero-sparsity control re-enters at $H=1000$; it stays worse than the sparse MLP through $H=10000$, then overtakes the sparse MLP at $H=20000$ and $H=30000$ without surpassing LISTA.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{figures/dysts_triptych_dense_lista_h3000.pdf}
+\caption{\textbf{Phase portraits showing $H=3000$ forecasts on three Dysts systems.} Each panel overlays 100 held-out ground-truth trajectories in gray with 100 LISTA forecasts in transparent color. The checkpoints are chosen so that their $H=3000$ best-periodic error is close to the corresponding system-level LISTA seed IQM, and they use periodic re-encoding every 80, 300, and 20 observation steps, respectively. The plotted coordinates are the first two state dimensions.}
+\label{fig:dysts-triptych-trajectories}
+\end{figure}
+
+Figure~\ref{fig:dysts-triptych-trajectories} complements the table with three qualitative case studies shown as overlays. SprottTorus is one of the few systems where LISTA is not the best model at $H=3000$; SanUmSrisuchinwong is a clear low-error success case; and WangSun remains difficult in absolute terms but still favours LISTA over both MLP baselines. 
+
+\subsection{Fixed-Cadence Diagnostic}
+
+The previous evaluation is revealing, but it makes a strong assumption that the evaluator has access to an oracle over re-encoding periods to find the best re-encoding period. Table~\ref{tab:dysts-fixed-cadence} therefore fixes a single cadence of 100 steps for every model and every system. The qualitative result is unchanged: LISTA remains the cross-system median-best model at every reported horizon and wins 12 of 15 systems at $H=1500$, 13 of 15 at $H=2000$ and $H=2500$, and 14 of 15 at $H=3000$ against the sparse MLP anchor. The zero-sparsity control remains consistently weaker by median error.
+
+This fixed-cadence result is important because it shows that the LISTA advantage is not only an artifact of cadence selection. The advantage survives when the evaluator is no longer allowed to adapt the re-encoding period separately for each system.
+
+\begin{table*}[ht]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrr}
+\toprule
+Horizon & $\ell_1$ MLP median IQM & MLP median IQM & LISTA median IQM & LISTA wins \\
+\midrule
+$H1500$ & 0.0131 & 0.0262 & \textbf{0.0127}  & \textbf{12/15} \\
+$H2000$ & 0.0344 & 0.0624 & \textbf{0.0247} & \textbf{13/15} \\
+$H2500$ & 0.0613 & 0.1057 & \textbf{0.0420} & \textbf{13/15} \\
+$H3000$ & 0.1277 & 0.1891 & \textbf{0.0592} & \textbf{14/15} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Fixed-cadence diagnostic on the Dysts subset.} Entries are cross-system medians of per-system seed IQM MSE under a single global periodic re-encoding cadence of 100 steps. Win counts compare each candidate to the sparse MLP setup.}
+\label{tab:dysts-fixed-cadence}
+\end{table*}
+
+
+\section{Discussion}
+\label{sec:discussion}
+
+We have a clear result: periodic re-encoding combined with a LISTA-based encoder yields stronger long-horizon forecasts than the MLP alternatives under a matched budget of training and hyperparameter tuning on our selected benchmark of 15 systems.
+LISTA encoder models are the IQM leader at horizon 1000 for almost all the systems we tested on, and that advantage persists through horizon 20000 in the extended Dysts reevaluation. $\ell_1$ regularization does improve the short-to-mid-horizon MLP control, but it does not recover the full gain of using the LISTA encoder; by the very late horizons, the zero-sparsity MLP overtakes the sparse MLP without surpassing LISTA. Overall, the evidence still supports the claim that encoder structure has a noticeable effect on long-horizon forecasting for nonlinear systems when combined with periodic re-encoding. 
+
+We point out some areas for future work. First, the best-periodic metric uses an evaluation-time oracle over a fixed cadence grid; the fixed-cadence diagnostic mitigates but does not remove that limitation. Future work might investigate how to learn an adaptive re-encoding period(s); for example, the model might choose to re-encode more often if it believes the current state is close to a basin boundary.
+
+Second, it would be interesting to study interpretability of such sparse models; this might involve the design of deterministic low-dimensional systems with multiple basins, and the use of new metrics for diagnosing whether distinct basins can align with unique sparse codes (latents $z$) from a sparse encoder. From an interpretability point of view, it would be a very nice result if LISTA-based encoders were effective at producing sparse codes corresponding to unique basin supports, and produce useful local linearizations for linear controls.
+
+
+\bibliographystyle{plainnat}
+\bibliography{biblio}
+
+\appendix
+\input{appendix/background}
+\input{appendix/experiment_protocol}
+
+\end{document}
