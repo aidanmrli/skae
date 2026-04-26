@@ -1,0 +1,116 @@
+{
+  "system": "dysts:WangSun",
+  "selection_basis": "lowest H30000 best-periodic forecasting MSE across all completed checked-in Dysts long-horizon roots, seeds, and periodic re-encoding cadences",
+  "collector_csvs": [
+    "results/dysts_long_horizon_eval_20260414/collect/forecasting_rows.csv",
+    "results/dysts_long_horizon_eval_mlp_blockdiag_20260415/collect/forecasting_rows.csv"
+  ],
+  "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+  "root_display_name": "blockdiag LISTA (sc=6e-3)",
+  "model_family": "lista",
+  "seed": 3,
+  "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_3/20260324-235739",
+  "reeval_results_json": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_3/20260324-235739/reeval_dysts_long_horizon_h5000_h10000_h20000_h30000/evaluation_results_checkpoint.json",
+  "selected_rollout_artifacts": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_3/20260324-235739/reeval_dysts_long_horizon_h5000_h10000_h20000_h30000/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+  "status": "complete",
+  "horizon": 30000,
+  "h30000_best_periodic_mean": 1.8410629034042358,
+  "h30000_best_periodic_mode": "periodic_40",
+  "num_candidates_considered": 70,
+  "top_candidates": [
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 3,
+      "h30000_best_periodic_mean": 1.8410629034042358,
+      "h30000_best_periodic_mode": "periodic_40",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_3/20260324-235739"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 7,
+      "h30000_best_periodic_mean": 2.12552809715271,
+      "h30000_best_periodic_mode": "periodic_40",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_7/20260325-000047"
+    },
+    {
+      "root_label": "lista_dense_promoted_stage4",
+      "root_display_name": "dense LISTA",
+      "model_family": "lista",
+      "seed": 9,
+      "h30000_best_periodic_mean": 2.357781410217285,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_9/20260325-012700"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 7,
+      "h30000_best_periodic_mean": 2.5666751861572266,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_7/20260324-224926"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 8,
+      "h30000_best_periodic_mean": 2.5882904529571533,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_8/20260324-224926"
+    },
+    {
+      "root_label": "generic_sparse_blockdiag_ns200k_sc6em3",
+      "root_display_name": "blockdiag MLP (sc=6e-3)",
+      "model_family": "mlp",
+      "seed": 4,
+      "h30000_best_periodic_mean": 2.7175800800323486,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_mlp_blockdiag_dysts_20260415/paper_followup_recipes/generic_sparse_blockdiag_ns200k_sc6em3/dysts_WangSun/dt_0p005392498749791912/seed_4/20260416-021510"
+    },
+    {
+      "root_label": "lista_dense_promoted_stage4",
+      "root_display_name": "dense LISTA",
+      "model_family": "lista",
+      "seed": 6,
+      "h30000_best_periodic_mean": 2.7591936588287354,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/dense_lista_paper_rerun_stage4_20260309/paper_rerun/lista_dense_ns200k_lr5em5_klr5em6_wd1em4_rc3em2_pc1ep0_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_6/20260325-012705"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 6,
+      "h30000_best_periodic_mean": 3.0208580493927,
+      "h30000_best_periodic_mode": "periodic_40",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_WangSun/dt_0p001348124687447978/seed_6/20260325-000043"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 0,
+      "h30000_best_periodic_mean": 3.0326220989227295,
+      "h30000_best_periodic_mode": "periodic_5",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_WangSun/dt_0p001348124687447978/seed_0/20260309-134521"
+    },
+    {
+      "root_label": "generic_sparse_blockdiag_ns200k_sc6em3",
+      "root_display_name": "blockdiag MLP (sc=6e-3)",
+      "model_family": "mlp",
+      "seed": 5,
+      "h30000_best_periodic_mean": 3.14152193069458,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_mlp_blockdiag_dysts_20260415/paper_followup_recipes/generic_sparse_blockdiag_ns200k_sc6em3/dysts_WangSun/dt_0p005392498749791912/seed_5/20260416-021511"
+    }
+  ],
+  "outputs": [
+    "docs/figures/dysts_phase_portraits/wang_sun_h30000_best_root_phase_portrait.png",
+    "docs/figures/dysts_phase_portraits/wang_sun_h30000_best_root_phase_portrait.pdf"
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "system": "dysts:Duffing",
+  "selection_basis": "lowest H30000 best-periodic forecasting MSE across all completed checked-in Dysts long-horizon roots, seeds, and periodic re-encoding cadences",
+  "collector_csvs": [
+    "results/dysts_long_horizon_eval_20260414/collect/forecasting_rows.csv",
+    "results/dysts_long_horizon_eval_mlp_blockdiag_20260415/collect/forecasting_rows.csv"
+  ],
+  "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+  "root_display_name": "blockdiag LISTA (sc=3e-3)",
+  "model_family": "lista",
+  "seed": 2,
+  "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_2/20260309-132056",
+  "reeval_results_json": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_2/20260309-132056/reeval_dysts_long_horizon_h5000_h10000_h20000_h30000/evaluation_results_checkpoint.json",
+  "selected_rollout_artifacts": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_2/20260309-132056/reeval_dysts_long_horizon_h5000_h10000_h20000_h30000/evaluation_checkpoint/dysts:Duffing/selected_rollout_artifacts.pt",
+  "status": "complete",
+  "horizon": 30000,
+  "h30000_best_periodic_mean": 0.8576026558876038,
+  "h30000_best_periodic_mode": "periodic_20",
+  "num_candidates_considered": 70,
+  "top_candidates": [
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 2,
+      "h30000_best_periodic_mean": 0.8576026558876038,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_2/20260309-132056"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 7,
+      "h30000_best_periodic_mean": 0.8687556982040405,
+      "h30000_best_periodic_mode": "periodic_10",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_Duffing/dt_0p0003725420903484178/seed_7/20260324-233900"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 0,
+      "h30000_best_periodic_mean": 1.1690950393676758,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_0/20260309-131758"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 1,
+      "h30000_best_periodic_mean": 1.3426761627197266,
+      "h30000_best_periodic_mode": "periodic_10",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_Duffing/dt_0p0003725420903484178/seed_1/20260309-123524"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 0,
+      "h30000_best_periodic_mean": 1.584128975868225,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_Duffing/dt_0p0003725420903484178/seed_0/20260309-123530"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 4,
+      "h30000_best_periodic_mean": 1.6160770654678345,
+      "h30000_best_periodic_mode": "periodic_1",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_Duffing/dt_0p0003725420903484178/seed_4/20260324-233900"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 9,
+      "h30000_best_periodic_mean": 1.7682303190231323,
+      "h30000_best_periodic_mode": "periodic_10",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_9/20260324-222138"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 7,
+      "h30000_best_periodic_mean": 1.857735514640808,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_7/20260324-222137"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc3em3",
+      "root_display_name": "blockdiag LISTA (sc=3e-3)",
+      "model_family": "lista",
+      "seed": 6,
+      "h30000_best_periodic_mean": 2.317478895187378,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc3em3/dysts_Duffing/dt_0p0003725420903484178/seed_6/20260324-222137"
+    },
+    {
+      "root_label": "lista_blockdiag_ns200k_denseopt_sc6em3",
+      "root_display_name": "blockdiag LISTA (sc=6e-3)",
+      "model_family": "lista",
+      "seed": 5,
+      "h30000_best_periodic_mean": 2.69392991065979,
+      "h30000_best_periodic_mode": "periodic_20",
+      "run_dir": "/network/scratch/l/lia/skae/paper_followup_recipes_200k_20260309/paper_followup_recipes/lista_blockdiag_ns200k_denseopt_sc6em3/dysts_Duffing/dt_0p0003725420903484178/seed_5/20260324-233901"
+    }
+  ],
+  "outputs": [
+    "docs/figures/dysts_phase_portraits/duffing_h30000_best_root_phase_portrait.png",
+    "docs/figures/dysts_phase_portraits/duffing_h30000_best_root_phase_portrait.pdf"
+  ]
+}
