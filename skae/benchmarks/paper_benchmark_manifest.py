@@ -101,6 +101,16 @@ PAPER_BENCHMARK_MODELS: Sequence[PaperBenchmarkModel] = (
         sparsity_coeff=0.0025,
     ),
     PaperBenchmarkModel(
+        variant="generic_sparse_blockdiag",
+        config_name="generic_sparse",
+        res_coeff=1.0,
+        reconst_coeff=0.03,
+        pred_coeff=1.0,
+        sparsity_coeff=0.0025,
+        k_structure="block_diagonal",
+        k_block_size=16,
+    ),
+    PaperBenchmarkModel(
         variant="lista_dense",
         config_name="lista_parity_generic_sparse",
         res_coeff=1.0,

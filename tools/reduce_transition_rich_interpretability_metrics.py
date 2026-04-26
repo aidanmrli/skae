@@ -24,6 +24,7 @@ import csv
 import json
 import math
 import re
+import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -137,6 +138,21 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=64,
         help="maximum number of switch trajectories to render in each switch raster",
+    )
+    parser.add_argument(
+        "--progress_every_runs",
+        type=int,
+        default=1,
+        help="print a reducer progress line after every N completed run specs",
+    )
+    parser.add_argument(
+        "--flush_every_runs",
+        type=int,
+        default=0,
+        help=(
+            "rewrite partial reducer artifacts after every N completed run specs; "
+            "set to 0 to only write final outputs"
+        ),
     )
     return parser.parse_args()
 
@@ -1595,6 +1611,139 @@ def _write_summary(path: Path, rows: Sequence[Dict[str, object]]) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
+def _write_manifest(
+    path: Path,
+    *,
+    args: argparse.Namespace,
+    root_labels: Sequence[str],
+    systems: Sequence[str],
+    seeds: Sequence[int],
+    freeze_support_horizons: Sequence[int],
+    support_definitions: Sequence[Tuple[str, float]],
+    visual_supports: Optional[set[str]],
+    num_specs: int,
+    completed_specs: int,
+    rows: Sequence[Dict[str, object]],
+    failures: Sequence[Dict[str, object]],
+    status: str,
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "rows_csv": args.rows_csv,
+                "root_labels": list(root_labels),
+                "systems": list(systems),
+                "seeds": list(seeds),
+                "num_trajectories": args.num_trajectories,
+                "trajectory_length": args.trajectory_length,
+                "family_jaccard_threshold": args.family_jaccard_threshold,
+                "freeze_support_horizons": list(freeze_support_horizons),
+                "max_freeze_states": args.max_freeze_states,
+                "max_jacobian_states": args.max_jacobian_states,
+                "min_jacobian_states": args.min_jacobian_states,
+                "save_visuals": bool(args.save_visuals),
+                "visual_supports": sorted(visual_supports) if visual_supports is not None else [],
+                "visual_max_points": args.visual_max_points,
+                "visual_max_switch_trajectories": args.visual_max_switch_trajectories,
+                "support_definitions": [
+                    {"scheme": scheme, "value": value} for scheme, value in support_definitions
+                ],
+                "num_runs": num_specs,
+                "completed_runs": completed_specs,
+                "remaining_runs": max(0, num_specs - completed_specs),
+                "num_rows": len(rows),
+                "num_failures": len(failures),
+                "status": status,
+            },
+            indent=2,
+        )
+    )
+
+
+def _write_progress(
+    path: Path,
+    *,
+    completed_specs: int,
+    num_specs: int,
+    rows: Sequence[Dict[str, object]],
+    failures: Sequence[Dict[str, object]],
+    elapsed_seconds: float,
+    last_spec: Optional[RunSpec],
+    last_status: Optional[str],
+    last_error: Optional[str],
+) -> None:
+    payload: Dict[str, object] = {
+        "completed_runs": completed_specs,
+        "num_runs": num_specs,
+        "remaining_runs": max(0, num_specs - completed_specs),
+        "num_rows": len(rows),
+        "num_failures": len(failures),
+        "elapsed_seconds": elapsed_seconds,
+    }
+    if last_spec is not None:
+        payload["last_completed_spec"] = {
+            "root_label": last_spec.root_label,
+            "system_key": last_spec.system_key,
+            "seed": last_spec.seed,
+            "run_dir": last_spec.run_dir,
+            "status": last_status,
+        }
+    if last_error:
+        payload["last_error"] = last_error
+    path.write_text(json.dumps(payload, indent=2))
+
+
+def _flush_outputs(
+    output_dir: Path,
+    *,
+    args: argparse.Namespace,
+    root_labels: Sequence[str],
+    systems: Sequence[str],
+    seeds: Sequence[int],
+    freeze_support_horizons: Sequence[int],
+    support_definitions: Sequence[Tuple[str, float]],
+    visual_supports: Optional[set[str]],
+    num_specs: int,
+    completed_specs: int,
+    rows: Sequence[Dict[str, object]],
+    failures: Sequence[Dict[str, object]],
+    status: str,
+    elapsed_seconds: float,
+    last_spec: Optional[RunSpec],
+    last_status: Optional[str],
+    last_error: Optional[str],
+) -> None:
+    _write_csv(output_dir / "interpretability_rows.csv", rows)
+    _write_summary(output_dir / "interpretability_summary.md", rows)
+    (output_dir / "failures.json").write_text(json.dumps(list(failures), indent=2))
+    _write_manifest(
+        output_dir / "manifest.json",
+        args=args,
+        root_labels=root_labels,
+        systems=systems,
+        seeds=seeds,
+        freeze_support_horizons=freeze_support_horizons,
+        support_definitions=support_definitions,
+        visual_supports=visual_supports,
+        num_specs=num_specs,
+        completed_specs=completed_specs,
+        rows=rows,
+        failures=failures,
+        status=status,
+    )
+    _write_progress(
+        output_dir / "progress.json",
+        completed_specs=completed_specs,
+        num_specs=num_specs,
+        rows=rows,
+        failures=failures,
+        elapsed_seconds=elapsed_seconds,
+        last_spec=last_spec,
+        last_status=last_status,
+        last_error=last_error,
+    )
+
+
 def reduce_run(
     spec: RunSpec,
     *,
@@ -1916,71 +2065,120 @@ def main() -> None:
 
     rows: List[Dict[str, object]] = []
     failures: List[Dict[str, object]] = []
-    for spec in specs:
+    num_specs = len(specs)
+    start_time = time.time()
+    progress_every_runs = max(1, int(args.progress_every_runs))
+    flush_every_runs = max(0, int(args.flush_every_runs))
+    last_completed_spec: Optional[RunSpec] = None
+    last_completed_status: Optional[str] = None
+    last_completed_error: Optional[str] = None
+    _flush_outputs(
+        output_dir,
+        args=args,
+        root_labels=root_labels,
+        systems=systems,
+        seeds=seeds,
+        freeze_support_horizons=freeze_support_horizons,
+        support_definitions=support_definitions,
+        visual_supports=visual_supports,
+        num_specs=num_specs,
+        completed_specs=0,
+        rows=rows,
+        failures=failures,
+        status="running",
+        elapsed_seconds=0.0,
+        last_spec=None,
+        last_status=None,
+        last_error=None,
+    )
+    for spec_index, spec in enumerate(specs, start=1):
+        last_completed_spec = spec
+        last_completed_status = "ok"
+        last_completed_error = None
         try:
-            rows.extend(
-                reduce_run(
-                    spec,
-                    num_trajectories=args.num_trajectories,
-                    trajectory_length=args.trajectory_length,
-                    eval_seed=args.eval_seed,
-                    endpoint_rollout_steps=args.endpoint_rollout_steps,
-                    device=args.device,
-                    ridge_lambda=args.ridge_lambda,
-                    min_operator_transitions=args.min_operator_transitions,
-                    support_definitions=support_definitions,
-                    family_jaccard_threshold=args.family_jaccard_threshold,
-                    freeze_support_horizons=freeze_support_horizons,
-                    max_freeze_states=args.max_freeze_states,
-                    max_jacobian_states=args.max_jacobian_states,
-                    min_jacobian_states=args.min_jacobian_states,
-                    save_visuals=bool(args.save_visuals),
-                    visual_supports=visual_supports,
-                    visual_output_dir=(output_dir / "visuals") if args.save_visuals else None,
-                    visual_max_points=args.visual_max_points,
-                    visual_max_switch_trajectories=args.visual_max_switch_trajectories,
-                )
+            spec_rows = reduce_run(
+                spec,
+                num_trajectories=args.num_trajectories,
+                trajectory_length=args.trajectory_length,
+                eval_seed=args.eval_seed,
+                endpoint_rollout_steps=args.endpoint_rollout_steps,
+                device=args.device,
+                ridge_lambda=args.ridge_lambda,
+                min_operator_transitions=args.min_operator_transitions,
+                support_definitions=support_definitions,
+                family_jaccard_threshold=args.family_jaccard_threshold,
+                freeze_support_horizons=freeze_support_horizons,
+                max_freeze_states=args.max_freeze_states,
+                max_jacobian_states=args.max_jacobian_states,
+                min_jacobian_states=args.min_jacobian_states,
+                save_visuals=bool(args.save_visuals),
+                visual_supports=visual_supports,
+                visual_output_dir=(output_dir / "visuals") if args.save_visuals else None,
+                visual_max_points=args.visual_max_points,
+                visual_max_switch_trajectories=args.visual_max_switch_trajectories,
             )
+            rows.extend(spec_rows)
         except Exception as exc:  # pragma: no cover - reducer should keep going across bad runs
+            last_completed_status = "failed"
+            last_completed_error = repr(exc)
             failures.append(
                 {
                     "root_label": spec.root_label,
                     "system_key": spec.system_key,
                     "seed": spec.seed,
                     "run_dir": spec.run_dir,
-                    "error": repr(exc),
+                    "error": last_completed_error,
                 }
             )
+        elapsed_seconds = time.time() - start_time
+        if spec_index % progress_every_runs == 0 or spec_index == num_specs:
+            print(
+                (
+                    f"[{spec_index}/{num_specs}] {last_completed_status} "
+                    f"root={spec.root_label} system={spec.system_key} seed={spec.seed} "
+                    f"rows={len(rows)} failures={len(failures)} elapsed_s={elapsed_seconds:.1f}"
+                ),
+                flush=True,
+            )
+        if flush_every_runs > 0 and (spec_index % flush_every_runs == 0 or spec_index == num_specs):
+            _flush_outputs(
+                output_dir,
+                args=args,
+                root_labels=root_labels,
+                systems=systems,
+                seeds=seeds,
+                freeze_support_horizons=freeze_support_horizons,
+                support_definitions=support_definitions,
+                visual_supports=visual_supports,
+                num_specs=num_specs,
+                completed_specs=spec_index,
+                rows=rows,
+                failures=failures,
+                status="running" if spec_index < num_specs else "complete",
+                elapsed_seconds=elapsed_seconds,
+                last_spec=last_completed_spec,
+                last_status=last_completed_status,
+                last_error=last_completed_error,
+            )
 
-    _write_csv(output_dir / "interpretability_rows.csv", rows)
-    _write_summary(output_dir / "interpretability_summary.md", rows)
-    (output_dir / "failures.json").write_text(json.dumps(failures, indent=2))
-    (output_dir / "manifest.json").write_text(
-        json.dumps(
-            {
-                "rows_csv": args.rows_csv,
-                "root_labels": root_labels,
-                "systems": systems,
-                "seeds": seeds,
-                "num_trajectories": args.num_trajectories,
-                "trajectory_length": args.trajectory_length,
-                "family_jaccard_threshold": args.family_jaccard_threshold,
-                "freeze_support_horizons": freeze_support_horizons,
-                "max_freeze_states": args.max_freeze_states,
-                "max_jacobian_states": args.max_jacobian_states,
-                "min_jacobian_states": args.min_jacobian_states,
-                "save_visuals": bool(args.save_visuals),
-                "visual_supports": sorted(visual_supports) if visual_supports is not None else [],
-                "visual_max_points": args.visual_max_points,
-                "visual_max_switch_trajectories": args.visual_max_switch_trajectories,
-                "support_definitions": [
-                    {"scheme": scheme, "value": value} for scheme, value in support_definitions
-                ],
-                "num_rows": len(rows),
-                "num_failures": len(failures),
-            },
-            indent=2,
-        )
+    _flush_outputs(
+        output_dir,
+        args=args,
+        root_labels=root_labels,
+        systems=systems,
+        seeds=seeds,
+        freeze_support_horizons=freeze_support_horizons,
+        support_definitions=support_definitions,
+        visual_supports=visual_supports,
+        num_specs=num_specs,
+        completed_specs=num_specs,
+        rows=rows,
+        failures=failures,
+        status="complete",
+        elapsed_seconds=time.time() - start_time,
+        last_spec=last_completed_spec,
+        last_status=last_completed_status,
+        last_error=last_completed_error,
     )
     print(
         json.dumps(

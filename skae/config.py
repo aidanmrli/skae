@@ -129,9 +129,32 @@ Config
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field, asdict
-from typing import List, Optional
+from dataclasses import dataclass, field, asdict, fields
+from typing import List, Optional, Type, TypeVar
 import json
+
+
+T = TypeVar("T")
+
+
+def _filter_dataclass_kwargs(dataclass_type: Type[T], values: Optional[dict]) -> dict:
+    """Keep only kwargs accepted by a dataclass constructor.
+
+    Older checkpoints may serialize fields that no longer exist in the current
+    config schema. Filtering here keeps config loading backward-compatible for
+    evaluation and analysis jobs.
+    """
+
+    if not isinstance(values, dict):
+        return {}
+    valid_names = {field_info.name for field_info in fields(dataclass_type)}
+    return {key: value for key, value in values.items() if key in valid_names}
+
+
+def _build_dataclass(dataclass_type: Type[T], values: Optional[dict]) -> T:
+    """Construct a dataclass while ignoring unknown serialized keys."""
+
+    return dataclass_type(**_filter_dataclass_kwargs(dataclass_type, values))
 
 
 @dataclass
@@ -558,40 +581,50 @@ class Config:
         env_dict = config_dict.get("ENV", {})
         env = EnvConfig(
             ENV_NAME=env_dict.get("ENV_NAME", "duffing"),
-            PARABOLIC=ParabolicConfig(**env_dict.get("PARABOLIC", {})),
-            DUFFING=DuffingConfig(**env_dict.get("DUFFING", {})),
-            PENDULUM=PendulumConfig(**env_dict.get("PENDULUM", {})),
-            LOTKA_VOLTERRA=LotkaVolterraConfig(**env_dict.get("LOTKA_VOLTERRA", {})),
-            LORENZ63=Lorenz63Config(**env_dict.get("LORENZ63", {})),
-            LYAPUNOV=LyapunovConfig(**env_dict.get("LYAPUNOV", {})),
-            BLENDED=BlendedConfig(**env_dict.get("BLENDED", {})),
-            MULTIWELL=MultiWellConfig(**env_dict.get("MULTIWELL", {})),
-            GATED_LOCAL_LINEAR=GatedLocalLinearConfig(**env_dict.get("GATED_LOCAL_LINEAR", {})),
-            GATED_TRANSFER_LINEAR=GatedTransferLinearConfig(**env_dict.get("GATED_TRANSFER_LINEAR", {})),
-            KURAMOTO=KuramotoConfig(**env_dict.get("KURAMOTO", {})),
-            HOPFIELD=HopfieldConfig(**env_dict.get("HOPFIELD", {})),
-            COMPETITIVE_LV=CompetitiveLVConfig(**env_dict.get("COMPETITIVE_LV", {})),
-            CLAUDE_CATALOG=ClaudeCatalogConfig(**env_dict.get("CLAUDE_CATALOG", {})),
-            DYSTS=DystsConfig(**env_dict.get("DYSTS", {})),
+            PARABOLIC=_build_dataclass(ParabolicConfig, env_dict.get("PARABOLIC", {})),
+            DUFFING=_build_dataclass(DuffingConfig, env_dict.get("DUFFING", {})),
+            PENDULUM=_build_dataclass(PendulumConfig, env_dict.get("PENDULUM", {})),
+            LOTKA_VOLTERRA=_build_dataclass(LotkaVolterraConfig, env_dict.get("LOTKA_VOLTERRA", {})),
+            LORENZ63=_build_dataclass(Lorenz63Config, env_dict.get("LORENZ63", {})),
+            LYAPUNOV=_build_dataclass(LyapunovConfig, env_dict.get("LYAPUNOV", {})),
+            BLENDED=_build_dataclass(BlendedConfig, env_dict.get("BLENDED", {})),
+            MULTIWELL=_build_dataclass(MultiWellConfig, env_dict.get("MULTIWELL", {})),
+            GATED_LOCAL_LINEAR=_build_dataclass(GatedLocalLinearConfig, env_dict.get("GATED_LOCAL_LINEAR", {})),
+            GATED_TRANSFER_LINEAR=_build_dataclass(GatedTransferLinearConfig, env_dict.get("GATED_TRANSFER_LINEAR", {})),
+            KURAMOTO=_build_dataclass(KuramotoConfig, env_dict.get("KURAMOTO", {})),
+            HOPFIELD=_build_dataclass(HopfieldConfig, env_dict.get("HOPFIELD", {})),
+            COMPETITIVE_LV=_build_dataclass(CompetitiveLVConfig, env_dict.get("COMPETITIVE_LV", {})),
+            CLAUDE_CATALOG=_build_dataclass(ClaudeCatalogConfig, env_dict.get("CLAUDE_CATALOG", {})),
+            DYSTS=_build_dataclass(DystsConfig, env_dict.get("DYSTS", {})),
         )
         
         model_dict = config_dict.get("MODEL", {})
         encoder_dict = model_dict.get("ENCODER", {})
-        lista = ListaConfig(**encoder_dict.get("LISTA", {}))
-        hyperlista = HyperListaConfig(**encoder_dict.get("HYPERLISTA", {}))
-        encoder = EncoderConfig(**{k: v for k, v in encoder_dict.items() if k not in ["LISTA", "HYPERLISTA"]})
+        lista = _build_dataclass(ListaConfig, encoder_dict.get("LISTA", {}))
+        hyperlista = _build_dataclass(HyperListaConfig, encoder_dict.get("HYPERLISTA", {}))
+        encoder = EncoderConfig(
+            **_filter_dataclass_kwargs(
+                EncoderConfig,
+                {k: v for k, v in encoder_dict.items() if k not in ["LISTA", "HYPERLISTA"]},
+            )
+        )
         encoder.LISTA = lista
         encoder.HYPERLISTA = hyperlista
-        decoder = DecoderConfig(**model_dict.get("DECODER", {}))
+        decoder = _build_dataclass(DecoderConfig, model_dict.get("DECODER", {}))
         
-        structured = StructuredLatentConfig(**model_dict.get("STRUCTURED", {}))
-        block_loss = BlockLossConfig(**model_dict.get("BLOCK_LOSS", {}))
-        soft_block = SoftBlockConfig(**model_dict.get("SOFT_BLOCK", {}))
-        model = ModelConfig(**{
-            k: v
-            for k, v in model_dict.items()
-            if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS", "SOFT_BLOCK"]
-        })
+        structured = _build_dataclass(StructuredLatentConfig, model_dict.get("STRUCTURED", {}))
+        block_loss = _build_dataclass(BlockLossConfig, model_dict.get("BLOCK_LOSS", {}))
+        soft_block = _build_dataclass(SoftBlockConfig, model_dict.get("SOFT_BLOCK", {}))
+        model = ModelConfig(
+            **_filter_dataclass_kwargs(
+                ModelConfig,
+                {
+                    k: v
+                    for k, v in model_dict.items()
+                    if k not in ["ENCODER", "DECODER", "STRUCTURED", "BLOCK_LOSS", "SOFT_BLOCK"]
+                },
+            )
+        )
         model.ENCODER = encoder
         model.DECODER = decoder
         model.STRUCTURED = structured
@@ -600,10 +633,14 @@ class Config:
         
         train_dict = config_dict.get("TRAIN", {})
         train = TrainConfig(
-            **{k: v for k, v in train_dict.items() if k != "HARD_INIT_OVERSAMPLE"}
+            **_filter_dataclass_kwargs(
+                TrainConfig,
+                {k: v for k, v in train_dict.items() if k != "HARD_INIT_OVERSAMPLE"},
+            )
         )
-        train.HARD_INIT_OVERSAMPLE = TrainConfig.HardInitOversampleConfig(
-            **train_dict.get("HARD_INIT_OVERSAMPLE", {})
+        train.HARD_INIT_OVERSAMPLE = _build_dataclass(
+            TrainConfig.HardInitOversampleConfig,
+            train_dict.get("HARD_INIT_OVERSAMPLE", {}),
         )
         
         return cls(
