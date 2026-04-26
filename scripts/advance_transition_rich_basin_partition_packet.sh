@@ -294,26 +294,22 @@ write_root_specs "${FINAL_ROOT_SPECS_FILE}" "${FINAL_PASS}" "${MODEL_VARIANTS_CS
 
 FINAL_INTERP_DIR="${RESULTS_DIR}/interpretability_final_pass${FINAL_PASS}"
 FINAL_COMPARE_DIR="${RESULTS_DIR}/final_comparison_pass${FINAL_PASS}"
-
-REDUCE_JOB_ID=$(
+QUEUE_MANIFEST_JSON="${AUTOMATION_DIR}/interpretability_pass${FINAL_PASS}_queue.json"
+eval "$(
   ROWS_CSV="${FINAL_ROWS_CSV}" \
   OUT_DIR="${FINAL_INTERP_DIR}" \
   ROOT_LABELS_FILE="${FINAL_ROOT_SPECS_FILE}" \
   SEEDS_CSV="${SEEDS_CSV}" \
-    sbatch scripts/reduce_transition_rich_interpretability_metrics.sh | awk '{print $4}'
-)
-
-SUMMARY_JOB_ID=$(
+  FINAL_COMPARE_DIR="${FINAL_COMPARE_DIR}" \
   FORECAST_ROWS_CSV="${FINAL_ROWS_CSV}" \
-  INTERPRETABILITY_ROWS_CSV="${FINAL_INTERP_DIR}/interpretability_rows.csv" \
-  OUT_DIR="${FINAL_COMPARE_DIR}" \
   CANDIDATE_ROOTS_CSV="${CANDIDATE_ROOTS_CSV}" \
   CONTROL_ROOTS_CSV="${CONTROL_ROOTS_CSV}" \
   SUPPORT_SCHEME="${SUPPORT_SCHEME}" \
   SUBSET="${SUBSET}" \
   GOOD_THRESHOLD="${GOOD_THRESHOLD}" \
-    sbatch --dependency=afterok:"${REDUCE_JOB_ID}" scripts/summarize_transition_rich_final_comparison.sh | awk '{print $4}'
-)
+  QUEUE_MANIFEST_JSON="${QUEUE_MANIFEST_JSON}" \
+    bash "${ROOT_DIR}/scripts/queue_transition_rich_interpretability_shards.sh"
+)"
 
 cat > "${AUTOMATION_DIR}/advance_pass${CURRENT_PASS}.json" <<EOF
 {
@@ -321,14 +317,18 @@ cat > "${AUTOMATION_DIR}/advance_pass${CURRENT_PASS}.json" <<EOF
   "finalized": true,
   "request_rows": ${REQUEST_ROWS},
   "final_pass": ${FINAL_PASS},
-  "reduce_job_id": "${REDUCE_JOB_ID}",
+  "reduce_shard_job_ids": "${SHARD_JOB_IDS_CSV}",
+  "merge_job_id": "${MERGE_JOB_ID}",
   "summary_job_id": "${SUMMARY_JOB_ID}",
   "final_rows_csv": "${FINAL_ROWS_CSV}",
   "final_interpretability_dir": "${FINAL_INTERP_DIR}",
-  "final_comparison_dir": "${FINAL_COMPARE_DIR}"
+  "final_comparison_dir": "${FINAL_COMPARE_DIR}",
+  "log_dir": "${LOG_DIR}",
+  "queue_manifest_json": "${QUEUE_MANIFEST_JSON}"
 }
 EOF
 
 echo "No further rescue requested. Finalized packet at pass ${FINAL_PASS}."
-echo "Interpretability reducer: ${REDUCE_JOB_ID}"
+echo "Interpretability shard reducers: ${SHARD_JOB_IDS_CSV}"
+echo "Interpretability merge: ${MERGE_JOB_ID}"
 echo "Final comparison summary: ${SUMMARY_JOB_ID}"

@@ -139,7 +139,7 @@ TRAIN_ARGS=(
   --log_dir "${LOG_DIR}"
 )
 
-if [[ -n "${lista_alpha}" ]]; then
+if [[ -n "${lista_alpha:-}" ]]; then
   TRAIN_ARGS+=(--lista_alpha "${lista_alpha}")
 fi
 if [[ -n "${hard_init_oversample:-}" ]]; then
@@ -172,7 +172,7 @@ fi
 if [[ -n "${hard_init_jitter_scale:-}" ]]; then
   TRAIN_ARGS+=(--hard_init_jitter_scale "${hard_init_jitter_scale}")
 fi
-if [[ -n "${lista_num_loops}" ]]; then
+if [[ -n "${lista_num_loops:-}" ]]; then
   TRAIN_ARGS+=(--lista_num_loops "${lista_num_loops}")
 fi
 if [[ -n "${lista_use_momentum:-}" ]]; then
@@ -181,10 +181,10 @@ fi
 if [[ -n "${lista_momentum_beta:-}" ]]; then
   TRAIN_ARGS+=(--lista_momentum_beta "${lista_momentum_beta}")
 fi
-if [[ -n "${lista_linear_encoder}" ]]; then
+if [[ -n "${lista_linear_encoder:-}" ]]; then
   TRAIN_ARGS+=(--lista_linear_encoder "${lista_linear_encoder}")
 fi
-if [[ -n "${lista_final_op}" ]]; then
+if [[ -n "${lista_final_op:-}" ]]; then
   TRAIN_ARGS+=(--lista_final_op "${lista_final_op}")
 fi
 if [[ -n "${lista_precode_mode:-}" ]]; then
@@ -214,13 +214,13 @@ fi
 if [[ -n "${encoder_topk_groups:-}" ]]; then
   TRAIN_ARGS+=(--encoder_topk_groups "${encoder_topk_groups}")
 fi
-if [[ -n "${decoder_coherence_weight}" ]]; then
+if [[ -n "${decoder_coherence_weight:-}" ]]; then
   TRAIN_ARGS+=(--decoder_coherence_weight "${decoder_coherence_weight}")
 fi
-if [[ -n "${k_structure}" ]]; then
+if [[ -n "${k_structure:-}" ]]; then
   TRAIN_ARGS+=(--k_structure "${k_structure}")
 fi
-if [[ -n "${k_block_size}" ]]; then
+if [[ -n "${k_block_size:-}" ]]; then
   TRAIN_ARGS+=(--k_block_size "${k_block_size}")
 fi
 if [[ -n "${k_num_blocks:-}" ]]; then
