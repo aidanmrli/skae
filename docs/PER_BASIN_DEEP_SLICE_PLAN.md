@@ -98,8 +98,8 @@ The current Table 1 (global slice) **does not change**: it remains the reference
 | Launcher script | done | `scripts/queue_per_basin_deep_eval.sh`. |
 | Markdown plan | done | this file. |
 | Smoke test on 1 system / 1 seed | done | 16 s on a `long`-partition `salloc` node. `duffing_triple_well` returned `support_freeze_template_count=3` (vs `1` under global slice) and populated `wrong_over_base` ratios. |
-| Submit per-basin shards (5 shards across 2 packets) | submitted 2026-04-27 | Job IDs: 9388212, 9388213 (LISTA packet) and 9388215, 9388216, 9388217 (boundary MLP packet); partition `long-cpu`, 16 GB, 12 h walltime, 4 CPUs. |
-| Merge per-packet shard outputs | submitted with `afterok` dependency | Merge jobs 9388214 (LISTA) and 9388218 (boundary MLP). |
+| Submit per-basin shards (5 shards across 2 packets) | complete | Job IDs: 9388212, 9388213 (LISTA packet) and 9388215, 9388216, 9388217 (boundary MLP packet) all completed with exit `0:0`; partition `long-cpu`, 16 GB, 12 h walltime, 4 CPUs. |
+| Merge per-packet shard outputs | complete | Merge jobs 9388214 (LISTA) and 9388218 (boundary MLP) completed with exit `0:0`. Merged outputs exist at both `interpretability_per_basin_deep_pass1/interpretability_rows.csv` paths: 9,181 lines for the LISTA packet and 13,555 lines for the boundary-MLP packet. |
 | Re-run `scripts/build_per_system_stats_and_forest.py` against new CSVs | pending | Add a per-basin variant that reads from `interpretability_per_basin_deep_pass1/`. |
 | Add appendix table to LaTeX | pending | Will *not* overwrite Table 1; will be a new appendix table. |
 

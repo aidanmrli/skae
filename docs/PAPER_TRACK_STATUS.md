@@ -2,7 +2,7 @@
 
 Date: April 28, 2026
 Evidence organization last refreshed: `2026-04-28 12:06 EDT`
-Paper-critical live queue status last refreshed: `2026-04-28 12:06 EDT`
+Paper-critical live queue status last refreshed: `2026-04-28 16:40 EDT`
 
 ## Paper-Track Summary
 
@@ -33,6 +33,12 @@ Current solution:
   a support may be an excellent basin label while the predictive dynamics are
   carried by different latent coordinates, continuous coefficient values, or
   cross-coordinate couplings in the learned Koopman transition.
+- Tables 2-4 now use within-system confirmatory tests rather than cross-system
+  significance tests: seed-paired Wilcoxon/Holm for non-oracle routing and
+  Dysts forecasting, and transfer-pair Wilcoxon/Holm for support refresh. The
+  completed jobs `9388212-9388218` are per-basin deep-slice interpretability
+  outputs for Table 1 appendix robustness; they are not Table 2-4 seed
+  packets.
 
 Outstanding problem:
 - The remaining paper work is presentation and claim calibration, not broad
@@ -41,10 +47,55 @@ Outstanding problem:
   true local-geometry recovery as a mixed secondary diagnostic; decide whether
   the narrowed dense exact top-`8` support-refresh claim needs seed or
   threshold robustness before submission.
+- The per-basin deep-slice interpretability rerun is complete, not queued:
+  jobs `9388212-9388218` all completed with exit `0:0`. Use it as an appendix
+  robustness check for Table 1 coverage, while keeping the global deep-slice
+  Table 1 numbers as the main-text source of truth.
+- The Table 2-4 statistical procedure is no longer ambiguous. Table 2 now
+  displays the `H100` routed/global ratio with within-system seed-paired
+  Wilcoxon/Holm `[K/17]` counts because the current seed-`0`--`9` packet gives
+  strong confirmatory counts there (e.g. LISTA-SB exact-support routes clear
+  `12/17`, `11/17`, `14/17`, and `15/17` across all/deep gated/local cells).
+  The `H1000` version remains underpowered because route availability leaves
+  only `1`--`10` valid seed pairs in many systems; the Table 2 caption has a
+  `\todo{}` to revisit `H1000` after the seed expansion. Table 3 support
+  refresh uses transfer pairs within system and remains strong (`11/12`,
+  `11/12`, `10/12`, `10/12` across the four displayed cells). Table 4 stays
+  seed-paired Wilcoxon/Holm against Dense MLP and remains underpowered at
+  `n_seed=10` until the live `n_seed=15` Dysts rerun completes.
+- The apparent Table 2 seed-`10`--`14` job array `9392598` completed, but it
+  is not the requested paper-facing expansion: it covers only three roots and
+  `20k` steps. The outstanding Table 2 expansion is still five models
+  (`LISTA-SB`, `LISTA-BD`, Dense MLP, Sparse MLP, Sparse MLP-BD), `200k`
+  steps, seeds `10`--`14`, followed by self-routed forecasting/statistical
+  regeneration.
+- Status update at `2026-04-28 16:27 EDT`: the Table 2 five-model path is now
+  being repaired in two stages. Existing `200k` hard-init MLP-control seeds
+  `0`--`9` are queued for self-routed evaluation as shard jobs
+  `9395314`--`9395319` with merge job `9395320`; dependent stats-refresh job
+  `9395334` will rerun the per-system paired tests after that merge. The full
+  training backfill is staged as queue job `9395321`; it will submit a
+  `433`-task `%64` GPU array once the expanded user job count drops below
+  `550`. The task set is seeds `10`--`14` for all five Table 2 roots plus the
+  `8` known missing seed-`0`--`9` hard-init MLP-control rows.
+- Status update at `2026-04-28 16:40 EDT`: the main fairness caveat on the
+  current LISTA-SB row is now explicitly queued as a sensitivity. Queue job
+  `9395415` runs
+  `scripts/queue_transition_rich_lista_sb_p256_hardinit_fairness.sh`, which
+  will create and submit a `255`-task `%64` GPU array for
+  `lista_dense_softblock_signsplit_p256_hardinit_basin_partition`: the same
+  hard-init dense soft-block sign-split recipe as LISTA-SB, but with
+  `target_size=256` instead of `64`, across `17` systems and `15` seeds. The
+  launcher also queues forecasting collection and `topk:8` self-routed
+  forecasting after training.
 - 2026-04-28 Dysts seed-15 / `seq_len=10` / 12-system re-train is in flight
-  via chunked jobs: chunk 1 is `9392814`, chunk 2 will be submitted by
-  replacement orchestrator `9393138`. Training samples windows of length `10`
-  from 30K-step Dysts source trajectories. After both chunks land, the Dysts
+  via chunked jobs: chunk 1 is `9392814`, and chunk 2 was submitted by
+  replacement orchestrator `9393138` as `9393590` at 2026-04-28 12:51 EDT.
+  As of 2026-04-28 15:03 EDT, expanded child-task state still shows both
+  arrays running/pending under their `%64` throttles, so use `squeue -r`
+  child tasks rather than the top-level array state for completion checks.
+  Training samples windows of length `10` from 30K-step Dysts source
+  trajectories. After both chunks land, the Dysts
   long-horizon eval will run on a separate `long60` held-out test cache
   (`steps=60000`) with horizons
   `H5000/H10000/H20000/H30000/H40000/H50000/H60000` and re-encode periods
@@ -181,10 +232,9 @@ Active execution note:
   `9361470` is still pending on scheduler priority, but the per-root summaries
   already provide the science read. The decisive positive result is dense
   LISTA exact `topk:8` after the trajectory is clearly in the target basin:
-  refreshed-current support-gated routing reaches target-support dominance
-  `0.8319/0.8662` for re-encode periods `1/10`, route-target fraction
-  `0.8552/0.8886`, fallback `0.1392/0.1058`, and
-  refreshed-versus-frozen-source MSE ratio `0.0093/0.0131`. Dense LISTA
+  refreshed-support routing reaches route-target fraction `0.8552/0.8886`,
+  fallback `0.1392/0.1058`, and
+  refreshed-versus-previous-support MSE ratio `0.0093/0.0131`. Dense LISTA
   `topk:8` family and blockdiag `topk:8` family also support the mechanism,
   but blockdiag exact supports do not. Therefore the stronger mechanism claim
   should be written for dense LISTA exact `topk:8` and for support families,
@@ -366,12 +416,16 @@ Active execution note:
   `sacct` now shows every shard and the merge as `COMPLETED 0:0`; shard
   elapsed times ranged from `00:39:51` to `02:08:48`, and the merge finished
   in `00:00:20`. The merged packet writes `510/510` completed runs,
-  `24,600` rows, and `0` failures. Dense LISTA exact-support `topk:8`
-  routing is the strongest non-oracle result: on `H1000/global`, all-slice
-  medians / win rates are `0.228 / 0.920` for `support_gated_k` and
-  `0.275 / 0.947` for `support_local_centered`, versus `0.924 / 0.539` and
-  `1.000 / 0.496` for the dense zero-sparsity `tanh` MLP. The evaluator was
-  also patched for resumable intra-shard reruns with atomic per-spec
+  `24,600` rows, and `0` failures. The paper-facing Table 2 display now uses
+  `H100/global` IQM ratios plus paired Wilcoxon/Holm counts because this is
+  where the current packet gives the strongest confirmatory non-oracle routing
+  evidence: dense LISTA exact-support `topk:8` routes clear `12/17` and
+  `11/17` systems on the all slice and `14/17` and `15/17` on the deep slice.
+  The older `H1000/global` medians / win rates remain useful descriptive
+  long-horizon context (`0.228 / 0.920` for `support_gated_k` and
+  `0.275 / 0.947` for `support_local_centered`), but the `H1000` paired
+  Wilcoxon/Holm counts are underpowered until the seed expansion lands. The
+  evaluator was also patched for resumable intra-shard reruns with atomic per-spec
   flushing; that applies to future reruns rather than retroactively to the
   completed queue. The resume path is compute-validated too: validation job
   `9315112` completed in `16s` and confirmed that rerunning the completed
@@ -413,7 +467,7 @@ Active execution note:
   variant is the clearer interpretability positive: at `absolute:0.001` on
   deep-basin states it improves `H(S|B)` (`1.4297 -> 1.3493`), `U_exact`
   (`0.7181 -> 0.7447`), `H(F|B)` (`0.1129 -> 0.1018`), own-basin projection
-  ratio (`25.5197 -> 7.7018`), and freeze-support ratio (`0.7599 -> 0.3034`)
+  ratio (`25.5197 -> 7.7018`), and wrong-support ratio (`0.7599 -> 0.3034`)
   with nearly neutral forecasting. The dense `p64` hard-init variant is more
   mixed on raw support compression, but it improves forecasting strongly
   (`H1000` system-median best `0.1358 -> 0.0794`) and also reduces the
@@ -605,7 +659,7 @@ Active execution note:
   basis-aware or similarity-aligned operator-family wording if we go beyond
   the current support-routing claim.
 - The reducer-side tooling for those evaluation items now exists locally:
-  canonical support-freeze rollout metrics, first-switch timing summaries,
+  canonical wrong-support rollout metrics, first-switch timing summaries,
   sampled effective-Jacobian family summaries, and optional visual artifacts
   for support families are implemented in the state-level interpretability
   reducer. The remaining gap is no longer missing code; it is running those

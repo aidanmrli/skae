@@ -10,6 +10,7 @@
   "tables": [
     "table2_routing.csv",
     "table3_dysts.csv",
+    "persystem_wilcoxon_entropy_fixed17.csv",
     "table1_hardinit_iqm.csv",
     "persystem_summary_fixed17.csv",
     "persystem_wilcoxon_fixed17.csv",

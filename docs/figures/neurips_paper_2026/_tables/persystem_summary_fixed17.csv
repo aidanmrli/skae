@@ -1,10 +1,10 @@
 root_label,label,horizon,K_systems_better,K_systems_better_ttest,N_systems_tested,median_diff_log10,iqm_raw,log10_iqr_systems
-lista_blockdiag_signsplit_hardinit_basin_partition,SLK-BD,100,14,14,17,-1.7124032698633544,0.017497517420755018,0.9098709947958872
-lista_blockdiag_signsplit_hardinit_basin_partition,SLK-BD,500,14,14,17,-1.808473177728695,0.06815127488355044,1.5297827220483127
-lista_blockdiag_signsplit_hardinit_basin_partition,SLK-BD,1000,15,15,17,-1.8887990482921793,0.06991133866702307,1.6653164804405436
-lista_dense_softblock_signsplit_p64_hardinit_basin_partition,SLK-SB,100,15,15,17,-1.316223627522819,0.02554598010811996,0.8923019256169793
-lista_dense_softblock_signsplit_p64_hardinit_basin_partition,SLK-SB,500,14,14,17,-1.5263118223692371,0.060730020028400986,0.5565098143653998
-lista_dense_softblock_signsplit_p64_hardinit_basin_partition,SLK-SB,1000,15,15,17,-1.7197369195323167,0.07075082122874271,0.6264703237375586
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,100,14,14,17,-1.7124032698633544,0.017497517420755018,0.9098709947958872
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,500,14,14,17,-1.808473177728695,0.06815127488355044,1.5297827220483127
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,1000,15,15,17,-1.8887990482921793,0.06991133866702307,1.6653164804405436
+lista_dense_softblock_signsplit_p64_hardinit_basin_partition,LISTA-SB,100,15,15,17,-1.316223627522819,0.02554598010811996,0.8923019256169793
+lista_dense_softblock_signsplit_p64_hardinit_basin_partition,LISTA-SB,500,14,14,17,-1.5263118223692371,0.060730020028400986,0.5565098143653998
+lista_dense_softblock_signsplit_p64_hardinit_basin_partition,LISTA-SB,1000,15,15,17,-1.7197369195323167,0.07075082122874271,0.6264703237375586
 mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",100,15,15,17,-1.6212076154097792,0.01627364031959782,1.357357307718446
 mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",500,15,15,17,-1.9156233901081876,0.05129199543782698,1.2387764187521233
 mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",1000,17,16,17,-1.9798586607618012,0.04519314763206628,1.1311190060597893

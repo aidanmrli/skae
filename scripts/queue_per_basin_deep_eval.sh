@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Queue the per-basin deep-slice interpretability re-evaluation for the five
-# boundary-emphasized rows of Table 1 (SLK-BD, SLK-SB, Sparse MLP BD,
+# boundary-emphasized rows of Table 1 (LISTA-BD, LISTA-SB, Sparse MLP BD,
 # Sparse MLP, Dense MLP no-shrink).
 #
 # Motivation: under the global top-quartile depth criterion, four of the 17

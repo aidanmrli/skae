@@ -1,12 +1,11 @@
 """
-Per-system paired Wilcoxon + Holm correction for paper Tables 2 (routing),
-3 (support refresh), and 4 (Dysts long-horizon forecasting).
+Per-system significance checks for paper Tables 2, 3, and 4.
 
-Mirrors the framework already used for Table 1: within each system, use the
-N seeds as paired (candidate, baseline) values; run a one-sided Wilcoxon
-signed-rank test; Holm-correct across the systems within each
-(candidate, slice) cell; report K/N where K is the number of systems passing
-Holm at alpha=0.05.
+The confirmatory pattern mirrors Table 1 where seeds are the replicate unit:
+within each system, run a one-sided paired Wilcoxon signed-rank test and
+Holm-correct across systems inside the table cell. Table 3 is the exception:
+the refresh packet has one training seed, so the within-system paired unit is
+the controlled transfer pair (refreshed-support vs previous-support).
 
 Outputs JSON to docs/figures/neurips_paper_2026/_tables/per_system_paired_tests.json
 so the paper-side tables and prose can be updated by hand.
@@ -24,7 +23,11 @@ from scipy import stats
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ROUTING_CSV = REPO_ROOT / "results" / "transition_rich_self_routed_forecasting_20260420" / "self_routed_forecasting_rows.csv"
+ROUTING_CSVS = [
+    REPO_ROOT / "results" / "transition_rich_self_routed_forecasting_20260420" / "self_routed_forecasting_rows.csv",
+    REPO_ROOT / "results" / "transition_rich_self_routed_forecasting_hardinit_mlp_controls_seed0to9_20260428" / "self_routed_forecasting_rows.csv",
+]
+ROUTING_HORIZON = 100
 REFRESH_CSV = REPO_ROOT / "results" / "periodic_support_refresh_fixed17_seed0_20260425" / "merged" / "periodic_support_refresh_rows.csv"
 DYSTS_PRIMARY_CSV = REPO_ROOT / "results" / "dysts_long_horizon_eval_20260414" / "collect" / "forecasting_rows.csv"
 DYSTS_MLPBD_CSV = REPO_ROOT / "results" / "dysts_long_horizon_eval_mlp_blockdiag_20260415" / "collect" / "forecasting_rows.csv"
@@ -33,7 +36,9 @@ OUT_JSON = REPO_ROOT / "docs" / "figures" / "neurips_paper_2026" / "_tables" / "
 ROUTING_MODELS = {
     "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": "LISTA-SB",
     "lista_blockdiag_signsplit_hardinit_basin_partition": "LISTA-BD",
-    "mlp_zero_sparse_basin_partition_control": "Dense MLP",
+    "mlp_sparse_blockdiag_hardinit_basin_partition_control": "Sparse MLP, BD",
+    "mlp_sparse_hardinit_basin_partition_control": "Sparse MLP",
+    "mlp_zero_sparse_hardinit_basin_partition_control": "Dense MLP",
 }
 
 REFRESH_MODELS = {
@@ -215,17 +220,23 @@ def per_system_paired_wilcoxon(
 # TABLE 2: routing
 # ----------------------------------------------------------------------------
 def analyze_routing() -> dict:
-    df = pd.read_csv(ROUTING_CSV)
+    frames = [pd.read_csv(path, low_memory=False) for path in ROUTING_CSVS if path.exists()]
+    if not frames:
+        raise FileNotFoundError("No routing CSVs found")
+    df = pd.concat(frames, ignore_index=True, sort=False)
     df = df[df["support_definition"] == "topk:8"].copy()
     df = df[df["root_label"].isin(ROUTING_MODELS)]
 
-    df["log10_ratio"] = np.log10(df["h1000_over_global"].astype(float))
+    ratio_col = f"h{ROUTING_HORIZON}_over_global"
+    df["log10_ratio"] = np.log10(df[ratio_col].astype(float))
 
     expected_systems = sorted(df["system_key"].dropna().unique().tolist())
 
     out = {}
     routes = ["support_gated_k", "support_local_centered", "family_local_centered"]
-    slices = {"all": "all", "deep": "q1"}
+    # In the self-routed evaluator, q1 is the boundary quartile and q4 is the
+    # deepest quartile by basin-depth margin.
+    slices = {"all": "all", "deep": "q4"}
 
     for root_label, display in ROUTING_MODELS.items():
         out[display] = {}
@@ -245,7 +256,8 @@ def analyze_routing() -> dict:
                     alternative="less",
                     expected_systems=expected_systems,
                 )
-                res["cell"] = cell_summary(sub["h1000_over_global"].astype(float))
+                res["cell"] = cell_summary(sub[ratio_col].astype(float))
+                res["horizon"] = ROUTING_HORIZON
                 out[display][slice_name][route] = res
     return out
 
@@ -254,11 +266,17 @@ def analyze_routing() -> dict:
 # TABLE 3: refresh
 # ----------------------------------------------------------------------------
 def analyze_refresh() -> dict:
-    df = pd.read_csv(REFRESH_CSV)
+    df = pd.read_csv(REFRESH_CSV, low_memory=False)
     df = df[df["root_label"].isin(REFRESH_MODELS)].copy()
     df = df[df["status"] == "ok"]
     df = df[df["support_definition"] == "topk:8"]
     df = df[df["object_kind"] == "support"]  # exact-support refresh; family is reported separately
+    if "transfer_success" in df:
+        df = df[df["transfer_success"] == True]  # noqa: E712
+    if "start_mode" in df:
+        df = df[df["start_mode"] == "post_start"]
+    if "rollout_mode" in df:
+        df = df[df["rollout_mode"] == "current_support_gated_periodic"]
 
     ratio_col = "refreshed_gated_mse_vs_frozen_source_gated_ratio"
     df = df.dropna(subset=[ratio_col]).copy()
@@ -380,7 +398,7 @@ def main():
             for route, res in routes.items():
                 print(f"  {model:12s}  {slice_name:5s}  {route:25s}  {fmt(res)}")
 
-    print("\n=== TABLE 3 (Refresh) — cell IQM of refreshed/frozen ratio ===")
+    print("\n=== TABLE 3 (Refresh) - cell IQM of refreshed/previous-support ratio ===")
     for model, periods in refresh.items():
         for period_label, res in periods.items():
             print(f"  {model:10s}  {period_label:10s}  {fmt(res)}")

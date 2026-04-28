@@ -3,58 +3,44 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: neurips_sparse_koopman_multibasin.aux
 The style file: plainnat.bst
 Database file #1: neurips_sparse_koopman_multibasin.bib
-Warning--I didn't find a database entry for "koopman1931hamiltonian"
-Warning--I didn't find a database entry for "williams2015data"
-Warning--I didn't find a database entry for "lusch2018deep"
-Warning--I didn't find a database entry for "azencot2020forecasting"
-Warning--I didn't find a database entry for "lan2013linearization"
-Warning--I didn't find a database entry for "pan2024lifting"
-Warning--I didn't find a database entry for "olshausen1997sparse"
-Warning--I didn't find a database entry for "gregor2010learning"
-Warning--I didn't find a database entry for "ghahramani2000variational"
-Warning--I didn't find a database entry for "peitz2019koopman"
-Warning--I didn't find a database entry for "mamakoukas2019local"
-Warning--I didn't find a database entry for "blischke2023learning"
-Warning--empty title in donoho_optimally_2003
-You've used 30 entries,
+You've used 32 entries,
             2773 wiz_defined-function locations,
-            855 strings with 12288 characters,
-and the built_in function-call counts, 14833 in all, are:
-= -- 1463
-> -- 713
-< -- 22
-+ -- 243
-- -- 213
-* -- 1280
-:= -- 2299
-add.period$ -- 156
-call.type$ -- 30
-change.case$ -- 159
-chr.to.int$ -- 30
-cite$ -- 61
-duplicate$ -- 646
-empty$ -- 1213
-format.name$ -- 265
-if$ -- 3119
+            858 strings with 12780 characters,
+and the built_in function-call counts, 16100 in all, are:
+= -- 1584
+> -- 791
+< -- 24
++ -- 269
+- -- 237
+* -- 1384
+:= -- 2487
+add.period$ -- 166
+call.type$ -- 32
+change.case$ -- 174
+chr.to.int$ -- 32
+cite$ -- 64
+duplicate$ -- 699
+empty$ -- 1307
+format.name$ -- 293
+if$ -- 3396
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 31
-newline$ -- 220
-num.names$ -- 120
-pop$ -- 238
+missing$ -- 33
+newline$ -- 233
+num.names$ -- 128
+pop$ -- 263
 preamble$ -- 1
-purify$ -- 131
+purify$ -- 143
 quote$ -- 0
-skip$ -- 459
+skip$ -- 504
 stack$ -- 0
-substring$ -- 656
-swap$ -- 73
-text.length$ -- 3
+substring$ -- 713
+swap$ -- 86
+text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 325
-warning$ -- 1
-while$ -- 137
+type$ -- 347
+warning$ -- 0
+while$ -- 147
 width$ -- 0
-write$ -- 524
-(There were 13 warnings)
+write$ -- 557

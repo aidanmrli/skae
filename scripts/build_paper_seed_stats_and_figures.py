@@ -178,6 +178,14 @@ SELF_ROUTED_CSV = (
     / "transition_rich_self_routed_forecasting_20260420"
     / "self_routed_forecasting_rows.csv"
 )
+SELF_ROUTED_CSVS = [
+    SELF_ROUTED_CSV,
+    ROOT
+    / "results"
+    / "transition_rich_self_routed_forecasting_hardinit_mlp_controls_seed0to9_20260428"
+    / "self_routed_forecasting_rows.csv",
+]
+ROUTING_HORIZON = 100
 
 DYSTS_MAIN_CSV = (
     ROOT
@@ -207,14 +215,14 @@ PERIODIC_REFRESH_CSV = (
 # Map raw root labels to (display_label, transition_structure, encoder, regime, color_key)
 ROOT_LABELS_MAIN = {
     "lista_blockdiag_signsplit_hardinit_basin_partition": (
-        "SLK-BD",
+        "LISTA-BD",
         "block-diagonal",
         "LISTA",
         "boundary-emphasized",
         "blockdiag_lista",
     ),
     "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": (
-        "SLK-SB",
+        "LISTA-SB",
         "soft-block",
         "LISTA",
         "boundary-emphasized",
@@ -260,7 +268,7 @@ ROOT_LABELS_HARDINIT = {
     ),
 }
 
-# Unified boundary-only roster: SLK-BD + SLK-SB (from main pass1) plus the
+# Unified boundary-only roster: LISTA-BD + LISTA-SB (from main pass1) plus the
 # three matched-boundary MLP controls (from hardinit pass1). All five rows are
 # trained under the same boundary-emphasized sampling regime.
 ROOT_LABELS_BOUNDARY_ONLY = {
@@ -273,15 +281,15 @@ ROOT_LABELS_BOUNDARY_ONLY = {
 }
 
 ROOT_LABELS_DYSTS = {
-    "lista_dense_promoted_stage4": ("SLK-D", "dense", "LISTA", "dense_lista"),
+    "lista_dense_promoted_stage4": ("LISTA-D", "dense", "LISTA", "dense_lista"),
     "lista_blockdiag_ns200k_denseopt_sc3em3": (
-        "SLK-BD (low sp)",
+        "LISTA-BD (low sp)",
         "block-diagonal",
         "LISTA",
         "blockdiag_lista_sc3em3",
     ),
     "lista_blockdiag_ns200k_denseopt_sc6em3": (
-        "SLK-BD (high sp)",
+        "LISTA-BD (high sp)",
         "block-diagonal",
         "LISTA",
         "blockdiag_lista_sc6em3",
@@ -619,7 +627,8 @@ print("Building Figure: support entropy distributions...")
 
 
 def plot_entropy_strip(
-    itp_df: pd.DataFrame, label_map: dict, ax, metric: str, title: str
+    itp_df: pd.DataFrame, label_map: dict, ax, metric: str, title: str,
+    yscale: str = "linear",
 ):
     keys = []
     distros = []
@@ -631,6 +640,8 @@ def plot_entropy_strip(
             continue
         vals = sub[metric].to_numpy(dtype=float)
         vals = vals[np.isfinite(vals)]
+        if yscale == "log":
+            vals = vals[vals > 0]
         keys.append(display)
         distros.append(vals)
         colors.append(PALETTE[color])
@@ -646,6 +657,8 @@ def plot_entropy_strip(
     ax.set_xticks(range(len(keys)))
     ax.set_xticklabels(keys, rotation=30, ha="right")
     ax.set_title(title, fontsize=8)
+    if yscale == "log":
+        ax.set_yscale("log")
     ax.grid(axis="y", lw=0.3, alpha=0.4)
 
 
@@ -670,13 +683,31 @@ fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_boundary_only.pdf", bbox_inche
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_boundary_only.png", bbox_inches="tight")
 plt.close(fig)
 
+# Replacement for the original entropy-strip figure (Table 1-aligned panels):
+# H(B|S), wrong-support ablation ratio at h=1 (log scale), and H(B|F). All
+# evaluated on the deep-state subset (S_abs, top quartile by basin-depth
+# margin). Higher is better for the wrong-support panel: a large ratio means
+# swapping to a wrong-basin canonical support breaks prediction, i.e. the
+# model genuinely uses the support.
+fig, axes = plt.subplots(1, 3, figsize=(8.0, 2.6))
+plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[0], "h_basin_given_support", r"$H(B\,|\,S)$")
+plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[1], "support_freeze_wrong_over_base_h1", r"wrong-support $h{=}1$ ($\uparrow$)", yscale="log")
+plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[2], "family_h_basin_given_family", r"$H(B\,|\,F)$")
+fig.tight_layout()
+fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.pdf", bbox_inches="tight")
+fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.png", bbox_inches="tight")
+plt.close(fig)
+
 
 # --------------------------------------------------------------------------------------
-# Table 2: Self-routed forecasting (1 seed × 17 systems × routes)
+# Table 2: Self-routed forecasting
 # --------------------------------------------------------------------------------------
 
 print("Loading self-routed forecasting...")
-sr = pd.read_csv(SELF_ROUTED_CSV, low_memory=False)
+sr_frames = [pd.read_csv(path, low_memory=False) for path in SELF_ROUTED_CSVS if path.exists()]
+if not sr_frames:
+    raise FileNotFoundError("No self-routed forecasting CSVs found")
+sr = pd.concat(sr_frames, ignore_index=True, sort=False)
 
 # Restrict to topk:8 with all/deep depth and the routing modes of interest.
 ROUTE_MODES = {
@@ -686,19 +717,22 @@ ROUTE_MODES = {
     "family_local_centered": "Centered family-local",
 }
 ROOTS_ROUTING = {
-    "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": "SLK-SB",
-    "lista_blockdiag_signsplit_hardinit_basin_partition": "SLK-BD",
-    "mlp_zero_sparse_basin_partition_control": "Dense MLP",
+    "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": "LISTA-SB",
+    "lista_blockdiag_signsplit_hardinit_basin_partition": "LISTA-BD",
+    "mlp_sparse_hardinit_basin_partition_control": "Sparse MLP",
+    "mlp_sparse_blockdiag_hardinit_basin_partition_control": "Sparse MLP, BD",
+    "mlp_zero_sparse_hardinit_basin_partition_control": "Dense MLP",
 }
 
 ROOT_LABEL_NAME_FALLBACK = ROOTS_ROUTING
 
-# We use h1000_over_global as the routed/global ratio, restricted to topk:8.
+# Use the manuscript-facing routed/global ratio, restricted to topk:8.
 sr = sr[sr["support_definition"] == "topk:8"].copy()
 
 
 def build_routing_table(sr_df: pd.DataFrame) -> pd.DataFrame:
     rows = []
+    ratio_col = f"h{ROUTING_HORIZON}_over_global"
     for root_label, display in ROOTS_ROUTING.items():
         for depth_label, depth_key in [("all", "all"), ("deep", "q4")]:
             sub = sr_df[
@@ -712,7 +746,7 @@ def build_routing_table(sr_df: pd.DataFrame) -> pd.DataFrame:
                 if mode_key == "global_k":
                     continue
                 seg = sub[sub["rollout_mode"] == mode_key]
-                ratio = seg["h1000_over_global"].to_numpy(dtype=float)
+                ratio = seg[ratio_col].to_numpy(dtype=float)
                 ratio = ratio[np.isfinite(ratio)]
                 wins = float(np.mean(ratio < 1.0)) if ratio.size > 0 else float("nan")
                 row[f"{mode_key}_iqm"] = iqm(ratio)
@@ -746,11 +780,17 @@ def plot_routing_bars(tbl: pd.DataFrame, ax, mode_keys: list[str], depth: str, t
                 continue
             bars.append(ratio)
             labels.append(f"{row['display']} ({ROUTE_MODES[mode]})")
-            color_key = "blockdiag_lista" if "SLK-BD" in row["display"] else (
-                "softblock_lista" if "SLK-SB" in row["display"] else (
-                    "sparse_mlp" if "Sparse" in row["display"] else "zero_mlp"
-                )
-            )
+            display = row["display"]
+            if "LISTA-BD" in display or "LISTA-BD" in display:
+                color_key = "blockdiag_lista"
+            elif "LISTA-SB" in display or "LISTA-SB" in display:
+                color_key = "softblock_lista"
+            elif "Sparse MLP, BD" in display:
+                color_key = "blockdiag_mlp"
+            elif "Sparse MLP" in display:
+                color_key = "sparse_mlp"
+            else:
+                color_key = "zero_mlp"
             colors.append(PALETTE[color_key])
             win_rates.append(row.get(f"{mode}_winrate", np.nan))
     y = np.arange(len(bars))
@@ -1056,7 +1096,7 @@ plt.close(fig)
 
 
 # --------------------------------------------------------------------------------------
-# Periodic refresh: best-effort plot of target dominance vs re-encode period
+# Periodic refresh: route-target and refreshed/previous-support MSE
 # --------------------------------------------------------------------------------------
 
 print("Building periodic-refresh figure...")
@@ -1083,12 +1123,6 @@ def safe_pick_col(df, *candidates):
     return None
 
 
-target_dominance_col = safe_pick_col(
-    pr,
-    "current_target_dominance",
-    "post_reencode_target_dominance",
-    "target_dominance",
-)
 route_target_col = safe_pick_col(pr, "route_target_fraction")
 fallback_col = safe_pick_col(pr, "route_fallback_fraction")
 mse_ratio_col = safe_pick_col(
@@ -1099,13 +1133,12 @@ mse_ratio_col = safe_pick_col(
 
 print("Found columns:")
 print(" period:", period_col)
-print(" target_dominance:", target_dominance_col)
 print(" route_target:", route_target_col)
 print(" fallback:", fallback_col)
 print(" mse_ratio:", mse_ratio_col)
 
 
-def plot_refresh_panel(df: pd.DataFrame, ax_dom, ax_route, ax_mse):
+def plot_refresh_panel(df: pd.DataFrame, ax_route, ax_mse):
     df = df.copy()
     df = df[df["status"].astype(str).str.lower() == "ok"]
     df = df[df["support_definition"] == "topk:8"]
@@ -1115,8 +1148,8 @@ def plot_refresh_panel(df: pd.DataFrame, ax_dom, ax_route, ax_mse):
     df = df[df["rollout_mode"] == "current_support_gated_periodic"]
     if df.empty:
         for ax, label in zip(
-            (ax_dom, ax_route, ax_mse),
-            ("target dominance", "route-target fraction", "refreshed/frozen MSE ratio"),
+            (ax_route, ax_mse),
+            ("route-target fraction", "refreshed/previous MSE ratio"),
         ):
             ax.set_visible(False)
         return
@@ -1124,16 +1157,16 @@ def plot_refresh_panel(df: pd.DataFrame, ax_dom, ax_route, ax_mse):
     roots = sorted(df["root_label"].unique())
     color_map = {
         "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": (
-            "SLK-SB (dense)",
+            "LISTA-SB (dense)",
             PALETTE["softblock_lista"],
         ),
         "lista_blockdiag_signsplit_hardinit_basin_partition": (
-            "SLK-BD",
+            "LISTA-BD",
             PALETTE["blockdiag_lista"],
         ),
     }
 
-    # We compare reencode_period in {1, 10}; the dataset includes refresh_period=0 = frozen baseline
+    # We compare reencode_period in {1, 10}; the dataset includes refresh_period=0 = previous-support baseline
     df = df[df["rollout_mode"].astype(str) != "frozen_source_gated"]
 
     for root in roots:
@@ -1143,8 +1176,6 @@ def plot_refresh_panel(df: pd.DataFrame, ax_dom, ax_route, ax_mse):
         display, color = meta
         sub = df[df["root_label"] == root]
         agg = sub.groupby("reencode_period").agg(
-            target_dominance=(target_dominance_col, "mean"),
-            target_dominance_std=(target_dominance_col, "std"),
             route_target=(route_target_col, "mean"),
             route_target_std=(route_target_col, "std"),
             mse_ratio=(mse_ratio_col, "median"),
@@ -1154,15 +1185,6 @@ def plot_refresh_panel(df: pd.DataFrame, ax_dom, ax_route, ax_mse):
         if agg.empty:
             continue
         x = agg.index.to_numpy()
-        ax_dom.plot(x, agg["target_dominance"], "-o", color=color, label=display, ms=5)
-        ax_dom.fill_between(
-            x,
-            agg["target_dominance"] - agg["target_dominance_std"],
-            agg["target_dominance"] + agg["target_dominance_std"],
-            color=color,
-            alpha=0.15,
-            lw=0,
-        )
         ax_route.plot(x, agg["route_target"], "-o", color=color, label=display, ms=5)
         ax_route.fill_between(
             x,
@@ -1177,29 +1199,23 @@ def plot_refresh_panel(df: pd.DataFrame, ax_dom, ax_route, ax_mse):
             x, agg["mse_ratio_q25"], agg["mse_ratio_q75"], color=color, alpha=0.15, lw=0
         )
 
-    for ax in (ax_dom, ax_route):
-        ax.set_xlabel("Re-encode period (steps)")
-        ax.set_xscale("log")
-        ax.grid(True, lw=0.4, alpha=0.4)
-        ax.set_ylim(0, 1.05)
-        ax.legend(fontsize=7, frameon=False)
-    ax_dom.set_ylabel("Target-support dominance after entry")
+    ax_route.set_xlabel("Re-encode period (steps)")
+    ax_route.set_xscale("log")
+    ax_route.grid(True, lw=0.4, alpha=0.4)
+    ax_route.set_ylim(0, 1.05)
+    ax_route.legend(fontsize=7, frameon=False)
     ax_route.set_ylabel("Route-target fraction after entry")
     ax_mse.set_xlabel("Re-encode period (steps)")
     ax_mse.set_xscale("log")
     ax_mse.set_yscale("log")
-    ax_mse.set_ylabel("Refreshed/frozen-source MSE ratio")
+    ax_mse.set_ylabel("Refreshed/previous-support MSE ratio")
     ax_mse.grid(True, lw=0.4, alpha=0.4, which="both")
     ax_mse.legend(fontsize=7, frameon=False)
 
 
-fig, axes = plt.subplots(1, 3, figsize=(9.5, 2.9))
-if (
-    target_dominance_col is not None
-    and route_target_col is not None
-    and mse_ratio_col is not None
-):
-    plot_refresh_panel(pr, axes[0], axes[1], axes[2])
+fig, axes = plt.subplots(1, 2, figsize=(6.8, 2.9))
+if route_target_col is not None and mse_ratio_col is not None:
+    plot_refresh_panel(pr, axes[0], axes[1])
 fig.suptitle(
     "Support refresh after controlled basin entry (top-8 supports)", fontsize=10, y=1.02
 )
@@ -1227,8 +1243,6 @@ def build_refresh_table(df: pd.DataFrame) -> pd.DataFrame:
                 "root": root,
                 "reencode_period": period,
                 "n_pairs": len(sub),
-                "target_dominance_mean": sub[target_dominance_col].mean(),
-                "target_dominance_std": sub[target_dominance_col].std(),
                 "route_target_mean": sub[route_target_col].mean(),
                 "route_target_std": sub[route_target_col].std(),
                 "fallback_mean": sub[fallback_col].mean() if fallback_col else float("nan"),

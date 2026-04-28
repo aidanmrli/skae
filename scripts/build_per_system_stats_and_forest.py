@@ -104,18 +104,18 @@ HARDINIT_INTERP = (
     / "interpretability_rows.csv"
 )
 
-# Boundary-only roster: SLK-BD, SLK-SB (from main); Sparse MLP, Sparse MLP BD,
+# Boundary-only roster: LISTA-BD, LISTA-SB (from main); Sparse MLP, Sparse MLP BD,
 # Dense MLP no-shrink (from boundary MLP controls packet). The control for the
 # paired Wilcoxon is the boundary Dense MLP no-shrink (`zero_mlp`).
 ROOTS = {
     "lista_blockdiag_signsplit_hardinit_basin_partition": {
-        "label": "SLK-BD",
+        "label": "LISTA-BD",
         "long": "Sparse Latent Koopman, block-diagonal LISTA",
         "color": "blockdiag_lista",
         "source": "main",
     },
     "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": {
-        "label": "SLK-SB",
+        "label": "LISTA-SB",
         "long": "Sparse Latent Koopman, soft-block LISTA",
         "color": "softblock_lista",
         "source": "main",

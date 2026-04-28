@@ -67,15 +67,24 @@ chain.
    Columns should report routed/global error ratio and win rate on all states
    and on states far from basin boundaries. Include the no-sparsity MLP control
    because it is the clearest negative routing comparator.
+   *2026-04-28 statistics note.* Use within-system seed-paired Wilcoxon tests
+   on `log(routed/global)` ratios, Holm-corrected across the `17` systems, and
+   report `[K/17]` in the table. Cross-system sign counts may be used only as
+   descriptive direction checks because route availability leaves few valid
+   seed pairs for several systems.
 
 4. **Figure 2: Support refresh and routing during basin transfer.**
    Purpose: make the routing mechanism visual rather than only tabular.
    Recommended panels: state-space trajectory with evaluation-only basin
    labels, inferred support object over time, refresh events, route-target
    fraction or fallback over time, and rollout comparison between global `K`,
-   stale/frozen source support, and refreshed-current support routing. Caption
+   previous source-basin support, and refreshed-support routing. Caption
    rule: distinguish controlled-transfer evidence from a deployment-ready
    intervention/control claim.
+   *2026-04-28 statistics note.* If this is kept as a table in the manuscript,
+   the confirmatory statistic is a within-system paired Wilcoxon test over
+   controlled transfer pairs (refreshed-support vs previous-support), with
+   Holm correction across the `12` systems with transfer coverage.
 
 5. **Table 3: Dysts long-horizon forecasting.**
    Purpose: answer whether sparse-latent Koopman models remain competitive
@@ -95,8 +104,8 @@ chain.
    from the prior `13`-element grid to
    `{50, 75, 100, 200, 400, 600, 1000}`. Cell point estimate is the IQM of
    per-system IQM-over-seeds; primary in-cell stat is per-system paired
-   Wilcoxon vs Dense MLP, Holm-corrected over the `12` systems; companion
-   sign-test on per-system IQM-deltas reported in the body text. Keep this
+   Wilcoxon vs Dense MLP, Holm-corrected over the `12` systems. Directional
+   sign counts may be reported only descriptively. Keep this
    table after alignment and routing so it reads as external forecasting
    support, not as the central interpretability evidence.
 
@@ -118,11 +127,17 @@ chain.
   List system name, basin count used for evaluation, basin-label source,
   whether it is clean away from basin boundaries, transition-rich, boundary-stress, or
   mechanism/falsification oriented, and which main figure/table uses it.
-- **Appendix Table A3: Matched hard-init controls.**
+- **Appendix Table A3: Per-basin deep-slice robustness check.**
+  Use the completed `interpretability_per_basin_deep_pass1` packets to repeat
+  the Table 1 support/freeze diagnostics under a per-basin top-quartile deep
+  slice. This appendix should be framed as coverage robustness for the
+  wrong-support ablation, not as a replacement for the global
+  deep-slice Table 1 numbers.
+- **Appendix Table A4: Matched hard-init controls.**
   Summarize the near-boundary-sampling sparse MLP, block-diagonal sparse MLP,
   and no-shrink dense MLP controls. This is the guardrail that prevents a
   LISTA-only claim.
-- **Appendix Table A4: Centered local-law, zero-intercept, true-geometry, and
+- **Appendix Table A5: Centered local-law, zero-intercept, true-geometry, and
   random-partition diagnostics.**
   Use this to show the calibrated mechanism story: centered local laws are
   useful, zero-intercept local laws fail, true-geometry recovery is mixed, and
@@ -132,7 +147,7 @@ chain.
   the current mixed result, this is better as a falsification/limitation figure
   comparing learned local operators, true Jacobians/eigendirections, basin
   baselines, and random partitions.
-- **Appendix Table A5: Fair `200k`, hard-system, and historical-provenance
+- **Appendix Table A6: Fair `200k`, hard-system, and historical-provenance
   benchmark summary.**
   Keep the repaired `200k` cross-system benchmark, Kuramoto/Hopfield
   hard-system results, dense recipe-selection provenance, and `50k` audit in
@@ -380,10 +395,9 @@ Current result:
   `1.000 / 0.496` for centered local laws.
 - The direct periodic-support-refresh ablation supports the rollout mechanism
   after target-basin entry for dense sparse-latent exact top-`8` supports.
-  Refreshed-current support gating reaches target-support dominance
-  `0.8319 / 0.8662`, route-target fraction `0.8552 / 0.8886`, fallback
-  `0.1392 / 0.1058`, and refreshed-versus-frozen MSE ratio `0.0093 / 0.0131`
-  for re-encode periods `1 / 10`. Support-family routing is cleaner, while
+  Refreshed-support gating reaches route-target fraction `0.8552 / 0.8886`,
+  fallback `0.1392 / 0.1058`, and refreshed-versus-previous-support MSE ratio
+  `0.0093 / 0.0131` for re-encode periods `1 / 10`. Support-family routing is cleaner, while
   block-diagonal exact supports remain weaker.
 
 Interpretation:
