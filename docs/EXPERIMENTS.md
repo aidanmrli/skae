@@ -2,7 +2,7 @@
 
 Date: April 28, 2026
 Evidence organization last refreshed: `2026-04-28 12:06 EDT`
-Paper-critical live queue status last refreshed: `2026-04-28 16:40 EDT`
+Paper-critical live queue status last refreshed: `2026-04-28 19:09 EDT`
 
 ## Current Status Summary
 
@@ -61,6 +61,15 @@ Solution/status:
   for `lista_dense_softblock_signsplit_p256_hardinit_basin_partition`, changing
   only the paper-facing LISTA-SB recipe's latent dimension from `64` to `256`,
   then queue forecasting collection and non-oracle self-routed evaluation.
+- A Dysts LISTA soft-block `d_z=256` add-on for Table 4 is queued via
+  [scripts/queue_dysts_seq10_lista_softblock_p256_seeds0to14.sh](/home/mila/l/lia/skae/scripts/queue_dysts_seq10_lista_softblock_p256_seeds0to14.sh).
+  Launcher job `9396890` completed with exit `0:0`, built a `12` systems x
+  `15` seeds task table (`180` training tasks), and submitted training array
+  `9396894` plus dependent long-horizon eval launcher `9396895`.
+  The row uses `sequence_length=10`, sparsity coefficient `0.006`, dense LISTA
+  sign-split supports, and a 16-block soft-block transition penalty at
+  `d_z=256`, followed by the same `H5000`--`H60000` `long60` Dysts evaluation
+  chain after training.
 
 Outstanding problem:
 - Convert the evidence map into final paper prose, tables, and figures while
@@ -95,7 +104,9 @@ Outstanding problem:
   than architecture or sparsity; job `9395415` queues the matched `d_z=256`
   sensitivity needed to answer that directly.
   Table 4 remains limited by the current `n_seed=10` exact-test floor until
-  the in-flight `n_seed=15` Dysts rerun lands.
+  the in-flight `n_seed=15` Dysts rerun lands; the new LISTA soft-block
+  `d_z=256` add-on is a separate sensitivity row and is not yet part of the
+  current manuscript table.
 
 ### 2026-04-28: Table 2 display switched to H100 pending seed expansion
 

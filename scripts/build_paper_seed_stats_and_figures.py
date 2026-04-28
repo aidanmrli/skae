@@ -527,7 +527,7 @@ build_horizon_curve(
     fc_boundary_only,
     ROOT_LABELS_BOUNDARY_ONLY,
     ax,
-    "Multibasin forecasting (boundary-emphasized sampling, all rows)",
+    "17-system multibasin forecasting performance",
 )
 fig.tight_layout()
 fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves_boundary_only.pdf", bbox_inches="tight")

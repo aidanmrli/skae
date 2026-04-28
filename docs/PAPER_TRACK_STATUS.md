@@ -2,7 +2,7 @@
 
 Date: April 28, 2026
 Evidence organization last refreshed: `2026-04-28 12:06 EDT`
-Paper-critical live queue status last refreshed: `2026-04-28 16:40 EDT`
+Paper-critical live queue status last refreshed: `2026-04-28 19:09 EDT`
 
 ## Paper-Track Summary
 
@@ -103,6 +103,15 @@ Outstanding problem:
   new, narrower system list (drops `Duffing`, `SprottTorus`,
   `RikitakeDynamo`) and interpreted as forecasting beyond the 30K training
   source horizon.
+- A Dysts LISTA soft-block `d_z=256` sensitivity row has also been queued using
+  [scripts/queue_dysts_seq10_lista_softblock_p256_seeds0to14.sh](/home/mila/l/lia/skae/scripts/queue_dysts_seq10_lista_softblock_p256_seeds0to14.sh).
+  Launcher job `9396890` completed with exit `0:0`, built the `180`-task table,
+  and submitted training array `9396894` plus dependent long-horizon eval
+  launcher `9396895`. It matches the new Table 4 scope (`12` Dysts systems,
+  seeds `0`--`14`, `200k` steps, `sequence_length=10`, sparsity coefficient
+  `0.006`) and uses a dense LISTA sign-split encoder with a 16-block soft-block
+  transition penalty at `d_z=256`. Treat it as an add-on sensitivity until its
+  training and `long60` evaluation chain complete.
 - The paper-facing prose should always explain why the next
   experiment follows: label agreement asks whether the support says where the
   state is; routing asks whether the support helps predict where it goes next.

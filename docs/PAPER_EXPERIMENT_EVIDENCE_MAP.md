@@ -108,6 +108,14 @@ chain.
    sign counts may be reported only descriptively. Keep this
    table after alignment and routing so it reads as external forecasting
    support, not as the central interpretability evidence.
+   *2026-04-28 add-on sensitivity.* A LISTA soft-block `d_z=256` row has been
+   queued to match the new Table 3/Dysts scope: `12` systems, seeds `0`--`14`,
+   `200k` steps, `sequence_length=10`, sparsity coefficient `0.006`, dense
+   LISTA sign-split supports, and a 16-block soft-block transition penalty.
+   Launcher `9396890` completed cleanly and submitted training array `9396894`
+   plus dependent long-horizon eval launcher `9396895`. Treat this as an
+   add-on sensitivity until the training and `long60` evaluation chain lands,
+   not as part of the current manuscript table.
 
 6. **Figure 3, optional main or appendix: Dysts long-horizon visual packet.**
    Purpose: show representative long-horizon rollouts and avoid a purely
@@ -451,10 +459,22 @@ Current result:
   `H{5K..60K}` (single rollout to `H=60000` using a separate `long60`
   held-out test cache), and reduced re-encode periods
   `{50, 75, 100, 200, 400, 600, 1000}`. Training chunk 1 is job `9392814`;
-  replacement orchestrator `9393138` will submit chunk 2 and then the 60K eval
-  chain. The previous numbers below remain the source of truth
-  until that re-run lands; once it does, this section will be rewritten
-  against the new data.*
+  replacement orchestrator `9393138` submitted chunk 2 as job `9393590`, and
+  the downstream 60K eval chain will follow after the expanded child tasks
+  finish. Check completion with `squeue -r` child tasks rather than top-level
+  array state. The previous numbers below remain the source of truth until
+  that re-run lands; once it does, this section will be rewritten against the
+  new data.*
+- A separate LISTA soft-block `d_z=256` Dysts sensitivity row is queued under
+  [scripts/queue_dysts_seq10_lista_softblock_p256_seeds0to14.sh](/home/mila/l/lia/skae/scripts/queue_dysts_seq10_lista_softblock_p256_seeds0to14.sh).
+  Launcher `9396890` completed with exit `0:0`, built a `180`-task table under
+  [results/dysts_seq10_lista_softblock_p256_sc6em3_seeds0to14_20260428](/home/mila/l/lia/skae/results/dysts_seq10_lista_softblock_p256_sc6em3_seeds0to14_20260428),
+  and submitted training array `9396894` plus dependent long-horizon eval
+  launcher `9396895`. The row uses the same `12` Dysts systems, seeds
+  `0`--`14`, `200k` training steps, `sequence_length=10`, and sparsity
+  coefficient `0.006` as the main re-run, with dense LISTA sign-split supports
+  and a 16-block soft-block transition penalty at `d_z=256`. Do not interpret
+  it until both training and the `H{5K..60K}` `long60` evaluation chain finish.
 - The seven-root Dysts long-horizon comparison is complete. Dense sparse-latent
   Koopman is best in aggregate at `H5000/H10000` with median best-periodic MSE
   `0.1285 / 0.9778`.
@@ -495,6 +515,7 @@ Next drafting step:
   all-roots `H30000` best-root phase portraits as visual appendix material.
 
 Primary artifacts:
+- [results/dysts_seq10_lista_softblock_p256_sc6em3_seeds0to14_20260428](/home/mila/l/lia/skae/results/dysts_seq10_lista_softblock_p256_sc6em3_seeds0to14_20260428)
 - [results/dysts_long_horizon_eval_20260414](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_20260414)
 - [results/dysts_long_horizon_eval_mlp_blockdiag_20260415](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_mlp_blockdiag_20260415)
 - [docs/figures/dysts_phase_portraits/dysts_h30000_best_root_phase_portraits_manifest.json](/home/mila/l/lia/skae/docs/figures/dysts_phase_portraits/dysts_h30000_best_root_phase_portraits_manifest.json)
