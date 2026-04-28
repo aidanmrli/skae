@@ -1,30 +1,38 @@
 # Paper Track Status
 
-Date: April 26, 2026
-Evidence organization last refreshed: `2026-04-26 14:11 EDT`
-Paper-critical live queue status last refreshed: `2026-04-25 17:35 EDT`
+Date: April 28, 2026
+Evidence organization last refreshed: `2026-04-28 12:06 EDT`
+Paper-critical live queue status last refreshed: `2026-04-28 12:06 EDT`
 
 ## Paper-Track Summary
 
 Problem being solved:
 - The paper now needs an evidence-first experiments narrative matching the
-  draft setup: multibasin Koopman learning, sparse supports as local chart
-  indicators, model-produced support objects, and support-based routing.
+  draft setup: multibasin Koopman learning, sparse supports as inspectable
+  support objects, model-produced support objects, and support-based routing.
+- The narrative must make a sharp distinction between two claims: a support can
+  identify where a state is, while a stronger and separate test is whether that
+  support selects useful latent coordinates or a useful local linear law for
+  prediction.
 
 Current solution:
 - Use [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
   as the drafting order and display plan for the experiments section.
 - Keep the main paper evidence in this order:
-  1. basin-support alignment with labels used only for evaluation;
+  1. support agreement with basin labels, with labels used only for evaluation;
   2. non-oracle support-routed local prediction using the same support objects;
   3. long-horizon forecasting competitiveness;
   4. supporting and falsification diagnostics.
 - Build the main displays in the same order: support maps, fixed-`17`
   alignment/forecasting table, non-oracle routing table, support
   refresh/routing figure, and Dysts long-horizon table.
-- Keep basin-support alignment as the primary interpretability goal. Do not
-  reframe the paper around basin-block alignment or around training-time access
-  to basin counts.
+- Keep active supports, not pre-specified latent blocks, as the primary
+  interpretability object. Do not reframe the paper around basin-block
+  alignment or around training-time access to basin counts.
+- State explicitly that support-label agreement is necessary but insufficient:
+  a support may be an excellent basin label while the predictive dynamics are
+  carried by different latent coordinates, continuous coefficient values, or
+  cross-coordinate couplings in the learned Koopman transition.
 
 Outstanding problem:
 - The remaining paper work is presentation and claim calibration, not broad
@@ -33,6 +41,20 @@ Outstanding problem:
   true local-geometry recovery as a mixed secondary diagnostic; decide whether
   the narrowed dense exact top-`8` support-refresh claim needs seed or
   threshold robustness before submission.
+- 2026-04-28 Dysts seed-15 / `seq_len=10` / 12-system re-train is in flight
+  via chunked jobs: chunk 1 is `9392814`, chunk 2 will be submitted by
+  replacement orchestrator `9393138`. Training samples windows of length `10`
+  from 30K-step Dysts source trajectories. After both chunks land, the Dysts
+  long-horizon eval will run on a separate `long60` held-out test cache
+  (`steps=60000`) with horizons
+  `H5000/H10000/H20000/H30000/H40000/H50000/H60000` and re-encode periods
+  `{50, 75, 100, 200, 400, 600, 1000}`. Table 4 will be redrawn against this
+  new, narrower system list (drops `Duffing`, `SprottTorus`,
+  `RikitakeDynamo`) and interpreted as forecasting beyond the 30K training
+  source horizon.
+- The paper-facing prose should always explain why the next
+  experiment follows: label agreement asks whether the support says where the
+  state is; routing asks whether the support helps predict where it goes next.
 
 ## Goal
 
@@ -56,20 +78,23 @@ The paper target is now explicit:
 - distinguish **endpoint basin** from **finite-horizon transition**; the new branch is intentionally transition-rich even though endpoint basins remain well defined
 - write **tests before any system-specific code**, then calibrate toy systems before queueing model sweeps
 - keep training-time method design label-free: do not assume known basin counts or basin labels outside benchmark diagnostics
-- prioritize basin-support alignment, support-view clustering, recurring-support reuse, and local predictive structure over MSE-only reporting
-- measure long-horizon forecasting at `H100`, `H500`, and `H1000` as the main
-  downstream functional test of the basin-support hypothesis: if sparsity
-  helps because the Koopman state retains basin identity, forecasting should
-  be strongest deep inside a basin and weakest near separatrices where the
-  local chart is ambiguous
+- prioritize support agreement with basin labels, support-view clustering,
+  recurring-support reuse, and local predictive structure over MSE-only
+  reporting
+- measure long-horizon forecasting at `H100`, `H500`, and `H1000` as a
+  downstream functional test of the support-label hypothesis: if sparsity
+  helps because the Koopman state retains basin identity and that identity is
+  dynamically useful, forecasting should be strongest away from separatrices
+  and weakest near separatrices where the relevant local law is ambiguous
 - use oracle basin-depth / separatrix-proximity slices only for benchmark
   evaluation; do not turn those signals into training-time assumptions
 - treat local-law interpretability as basis-aware and symmetry-aware: do not require different basin eigenvalues as the success criterion; instead compare raw and similarity-aligned operator/Jacobian families together with support-family uniqueness up to alignment
 - treat the local-versus-global evidence as currently strongest against the
-  trained model's learned global `K`, not against every possible global
-  centered refit. The centered-chart packet supports support-local laws on
-  covered states, especially deep in basins, but the separately refit
-  global-centered comparison remains weaker and should be written cautiously.
+  trained model's learned global transition, not against every possible global
+  centered refit. The centered local-law packet supports support-conditioned
+  laws on covered states, especially away from basin boundaries, but the
+  separately refit global-centered comparison remains weaker and should be
+  written cautiously.
 - use the two reviewer-response branches as falsification diagnostics:
   [true_jacobian_geometry_experiment_20260423.md](/home/mila/l/lia/skae/docs/planning/true_jacobian_geometry_experiment_20260423.md)
   tests true local-geometry agreement, and
@@ -80,7 +105,8 @@ The paper target is now explicit:
   true-geometry result is a secondary, mixed falsification diagnostic:
   LISTA support families often beat random count-matched partitions near
   attractors, but the zero-sparse MLP often has lower absolute
-  projected-Jacobian error because its chart is closer to identity. The
+  projected-Jacobian error because its latent representation is closer to the
+  identity map. The
   controlled-transfer result is sharper: dense LISTA exact `topk:8` supports
   switch well after a deliberate state-space bridge, while zero-sparse MLP
   exact supports remain weak; support-family switching is strong for all roots
@@ -92,7 +118,7 @@ The paper target is now explicit:
   training sampling regime matched across compared roots; treat hard-init
   oversampling as a separate factor and report standard versus hard-init as
   separate table entries rather than folding them into one causal read
-- do not treat chart-switch localization or sparse-only mechanism claims as the branch acceptance criterion; those are supporting context, while the live branch question is basin separation on the fixed `17` systems
+- do not treat local-switch localization or sparse-only mechanism claims as the branch acceptance criterion; those are supporting context, while the live branch question is basin separation on the fixed `17` systems
 - treat **`200k` as the only main-text training budget** for the frozen benchmark and hard-system supporting packets and this should only be done once we have compelling and significant results at a 20k budget
 - use **`20k` as the working training budget** for forward interpretability and metric-diagnosis runs on the fixed `17`-system shortlist while the recipe is still moving, and reserve `200k` on that branch for the final locked confirmatory rerun plus the now-completed narrow default-sampling forecast-floor check on the best `v6` / `v7` roots
 - use **`1` seed as the default working budget** for forward interpretability diagnostics on the fixed `17`-system shortlist while the branch is still choosing methods and metrics, and expand to `10` seeds only after a seed-`0` result looks strong enough to justify a paper-facing robustness check

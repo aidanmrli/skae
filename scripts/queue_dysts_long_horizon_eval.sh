@@ -9,11 +9,12 @@
 #   DATE_TAG=20260414
 #   RESULTS_DIR=results/dysts_long_horizon_eval_${DATE_TAG}
 #   TASK_DIR=${RESULTS_DIR}/task_tables
-#   OUTPUT_TAG=dysts_long_horizon_h5000_h10000_h20000_h30000
+#   OUTPUT_TAG=dysts_long_horizon_h5k_to_h60k_seq10
 #   ARRAY_PARALLEL=48
 #   VALIDATION_INDEX=0
 #   EVAL_TIME_LIMIT=03:00:00
 #   INPUT_ROOT_SPECS_TSV=/abs/path/to/custom_root_specs.tsv
+#   HORIZONS="5000 10000 20000 30000 40000 50000 60000"
 #
 #SBATCH --job-name=queue_dysts_long_eval
 #SBATCH --ntasks=1
@@ -40,16 +41,17 @@ RESULTS_DIR="${RESULTS_DIR:-results/dysts_long_horizon_eval_${DATE_TAG}}"
 TASK_DIR="${TASK_DIR:-${RESULTS_DIR}/task_tables}"
 COLLECT_DIR="${COLLECT_DIR:-${RESULTS_DIR}/collect}"
 QUEUE_DIR="${QUEUE_DIR:-${RESULTS_DIR}/queue}"
-OUTPUT_TAG="${OUTPUT_TAG:-dysts_long_horizon_h5000_h10000_h20000_h30000}"
+OUTPUT_TAG="${OUTPUT_TAG:-dysts_long_horizon_h5k_to_h60k_seq10}"
 ARRAY_PARALLEL="${ARRAY_PARALLEL:-48}"
 VALIDATION_INDEX="${VALIDATION_INDEX:-0}"
 INPUT_ROOT_SPECS_TSV="${INPUT_ROOT_SPECS_TSV:-}"
 EVAL_DEVICE="${EVAL_DEVICE:-cpu}"
 DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cache}"
-DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-full}"
+DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-long60}"
 DYSTS_CACHE_SPLIT="${DYSTS_CACHE_SPLIT:-test}"
 DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS:-2}"
 BATCH_SIZE="${BATCH_SIZE:-100}"
+HORIZONS="${HORIZONS:-5000 10000 20000 30000 40000 50000 60000}"
 EVAL_TIME_LIMIT="${EVAL_TIME_LIMIT:-03:00:00}"
 
 mkdir -p "${TASK_DIR}" "${COLLECT_DIR}" "${QUEUE_DIR}"
@@ -66,6 +68,8 @@ echo "Git commit: $(git rev-parse HEAD)"
 echo "Date: $(date)"
 echo "RESULTS_DIR: ${RESULTS_DIR}"
 echo "OUTPUT_TAG: ${OUTPUT_TAG}"
+echo "DYSTS_CACHE_PROFILE: ${DYSTS_CACHE_PROFILE}"
+echo "HORIZONS: ${HORIZONS}"
 echo "EVAL_TIME_LIMIT: ${EVAL_TIME_LIMIT}"
 
 BUILD_ARGS=(
@@ -111,6 +115,7 @@ VALIDATE_JOB_ID=$(
   DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR}" \
   DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS}" \
   BATCH_SIZE="${BATCH_SIZE}" \
+  HORIZONS="${HORIZONS}" \
   sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterany:${CACHE_JOB_ID} --array=${VALIDATION_INDEX}-${VALIDATION_INDEX}%1 scripts/run_dysts_long_horizon_eval_array.sh
 )
 
@@ -123,6 +128,7 @@ EVAL_JOB_ID=$(
   DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR}" \
   DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS}" \
   BATCH_SIZE="${BATCH_SIZE}" \
+  HORIZONS="${HORIZONS}" \
   sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterok:${VALIDATE_JOB_ID} --array=0-$((TASK_COUNT - 1))%${ARRAY_PARALLEL} scripts/run_dysts_long_horizon_eval_array.sh
 )
 
@@ -143,6 +149,8 @@ cat > "${QUEUE_RECORD_JSON}" <<EOF
   "root_specs_snapshot_tsv": "${ROOT_SPECS_SNAPSHOT_TSV}",
   "systems_file": "${SYSTEMS_FILE}",
   "output_tag": "${OUTPUT_TAG}",
+  "dysts_cache_profile": "${DYSTS_CACHE_PROFILE}",
+  "horizons": "${HORIZONS}",
   "task_count": ${TASK_COUNT},
   "system_count": ${SYSTEM_COUNT},
   "array_parallel": ${ARRAY_PARALLEL},

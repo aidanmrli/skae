@@ -1,0 +1,35 @@
+{
+  "lista_blockdiag_signsplit_hardinit_basin_partition": {
+    "H100_pvalue": 0.14208221435546875,
+    "H100_n_systems": 17,
+    "H100_median_diff": -0.01950647593052555,
+    "H500_pvalue": 0.15302276611328125,
+    "H500_n_systems": 17,
+    "H500_median_diff": -0.02652206607162952,
+    "H1000_pvalue": 0.00278472900390625,
+    "H1000_n_systems": 17,
+    "H1000_median_diff": -0.04376263325684702
+  },
+  "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": {
+    "H100_pvalue": 0.1764373779296875,
+    "H100_n_systems": 17,
+    "H100_median_diff": -0.02171283189414277,
+    "H500_pvalue": 0.0950469970703125,
+    "H500_n_systems": 17,
+    "H500_median_diff": -0.03421958277208938,
+    "H1000_pvalue": 0.004669189453125,
+    "H1000_n_systems": 17,
+    "H1000_median_diff": -0.037507960862583574
+  },
+  "mlp_sparse_basin_partition_control": {
+    "H100_pvalue": 0.18891143798828125,
+    "H100_n_systems": 17,
+    "H100_median_diff": -0.004611057521995268,
+    "H500_pvalue": 0.07271575927734375,
+    "H500_n_systems": 17,
+    "H500_median_diff": -0.014206964668119298,
+    "H1000_pvalue": 0.00643157958984375,
+    "H1000_n_systems": 17,
+    "H1000_median_diff": -0.02342192409560087
+  }
+}

@@ -15,20 +15,17 @@ DYSTS_SYSTEMS: Sequence[str] = (
     "dysts:Chua",
     "dysts:Dadras",
     "dysts:DequanLi",
-    "dysts:Duffing",
     "dysts:Hadley",
     "dysts:LorenzCoupled",
     "dysts:LuChenCheng",
     "dysts:MultiChua",
     "dysts:QiChen",
-    "dysts:RikitakeDynamo",
     "dysts:Sakarya",
     "dysts:SanUmSrisuchinwong",
     "dysts:ShimizuMorioka",
-    "dysts:SprottTorus",
     "dysts:WangSun",
 )
-DEFAULT_SEEDS: Sequence[int] = tuple(range(10))
+DEFAULT_SEEDS: Sequence[int] = tuple(range(15))
 
 
 @dataclass(frozen=True)
@@ -315,7 +312,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seeds_csv", default=None, help="Optional comma-separated seeds.")
     parser.add_argument(
         "--output_tag",
-        default="dysts_long_horizon_h5000_h10000_h20000_h30000",
+        default="dysts_long_horizon_h5k_to_h60k_seq10",
         help="Output tag used to derive expected reevaluation subdirectories.",
     )
     return parser.parse_args()

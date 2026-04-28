@@ -6,14 +6,15 @@
 #   TASK_TSV=<path>
 #
 # Optional env vars:
-#   OUTPUT_TAG=dysts_long_horizon_h5000_h10000_h20000_h30000
+#   OUTPUT_TAG=dysts_long_horizon_h5k_to_h60k_seq10
 #   CHECKPOINT_NAME=checkpoint
 #   EVAL_DEVICE=cpu
-#   DYSTS_CACHE_PROFILE=full
+#   DYSTS_CACHE_PROFILE=long60
 #   DYSTS_CACHE_SPLIT=test
 #   DYSTS_CACHE_DIR=/network/scratch/l/lia/skae/dysts_native_cache
 #   DYSTS_CACHE_NUM_WORKERS=2
 #   BATCH_SIZE=100
+#   HORIZONS="5000 10000 20000 30000 40000 50000 60000"
 #   ARRAY_OFFSET=0
 #
 #SBATCH --job-name=dysts_long_eval
@@ -48,14 +49,15 @@ echo "Git commit: $(git rev-parse HEAD)"
 echo "Date: $(date)"
 
 TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
-OUTPUT_TAG="${OUTPUT_TAG:-dysts_long_horizon_h5000_h10000_h20000_h30000}"
+OUTPUT_TAG="${OUTPUT_TAG:-dysts_long_horizon_h5k_to_h60k_seq10}"
 CHECKPOINT_NAME="${CHECKPOINT_NAME:-checkpoint}"
 EVAL_DEVICE="${EVAL_DEVICE:-cpu}"
-DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-full}"
+DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-long60}"
 DYSTS_CACHE_SPLIT="${DYSTS_CACHE_SPLIT:-test}"
 DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cache}"
 DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS:-2}"
 BATCH_SIZE="${BATCH_SIZE:-100}"
+HORIZONS="${HORIZONS:-}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
 
 TASK_ID=${SLURM_ARRAY_TASK_ID:-0}
@@ -101,6 +103,9 @@ echo "System: ${system_key}"
 echo "Seed: ${seed}"
 echo "Run Dir: ${run_dir}"
 echo "Output Tag: ${OUTPUT_TAG}"
+if [[ -n "${HORIZONS}" ]]; then
+  echo "Horizons: ${HORIZONS}"
+fi
 echo "Start Time: $(date)"
 echo "============================================="
 
@@ -118,6 +123,11 @@ CMD=(
   --dysts-cache-num-workers "${DYSTS_CACHE_NUM_WORKERS}"
 )
 
+if [[ -n "${HORIZONS}" ]]; then
+  HORIZONS_NORMALIZED="${HORIZONS//,/ }"
+  read -r -a HORIZON_ARGS <<< "${HORIZONS_NORMALIZED}"
+  CMD+=(--horizons "${HORIZON_ARGS[@]}")
+fi
 if [[ -n "${DYSTS_CACHE_DIR}" ]]; then
   CMD+=(--dysts-cache-dir "${DYSTS_CACHE_DIR}")
 fi

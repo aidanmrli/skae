@@ -1,0 +1,24 @@
+{
+  "fixed17_horizon_curves": "fig_fixed17_horizon_curves.pdf",
+  "fixed17_seed_strips": "fig_fixed17_seed_strips.pdf",
+  "fixed17_entropy_strips": "fig_fixed17_entropy_strips.pdf",
+  "routing_ratios": "fig_routing_ratios.pdf",
+  "dysts_long_horizon": "fig_dysts_long_horizon.pdf",
+  "appfig_fixed17_perseed_histograms": "appfig_fixed17_perseed_histograms.pdf",
+  "appfig_dysts_perseed_histograms": "appfig_dysts_perseed_histograms.pdf",
+  "appfig_fixed17_entropy_histograms": "appfig_fixed17_entropy_histograms.pdf",
+  "tables": [
+    "table2_routing.csv",
+    "table3_dysts.csv",
+    "table1_hardinit_iqm.csv",
+    "persystem_summary_fixed17.csv",
+    "persystem_wilcoxon_fixed17.csv",
+    "table_refresh.csv",
+    "table1_boundary_only.csv",
+    "table1_main_iqm.csv"
+  ],
+  "wilcoxon": [
+    "wilcoxon_significance_main.json",
+    "wilcoxon_significance_hardinit.json"
+  ]
+}

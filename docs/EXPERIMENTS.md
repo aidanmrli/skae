@@ -1,16 +1,21 @@
 # Experiments (Core)
 
-Date: April 26, 2026
-Evidence organization last refreshed: `2026-04-26 14:11 EDT`
-Paper-critical live queue status last refreshed: `2026-04-25 19:25 EDT`
+Date: April 28, 2026
+Evidence organization last refreshed: `2026-04-28 12:06 EDT`
+Paper-critical live queue status last refreshed: `2026-04-28 12:06 EDT`
 
 ## Current Status Summary
 
 Problem we are solving:
 - Reorganize the experiment record so the NeurIPS experiments section follows
-  the paper's causal chain: sparse supports align with basins, those same
-  supports route useful local predictors without oracle labels, and
+  the paper's causal chain: sparse supports agree with basin labels when labels
+  are used only for evaluation, those same supports route useful local
+  predictors without oracle labels, and
   sparse-latent Koopman models remain competitive at long horizons.
+- Make the motivation for each experiment clear to an external reader: support
+  agreement with basin labels is a static membership test, while support-routed
+  prediction is a separate dynamical test of whether the same support selects
+  useful latent coordinates or local linear laws.
 
 Current paper-facing approach:
 - Use [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
@@ -24,7 +29,7 @@ Current paper-facing approach:
 
 Solution/status:
 - The live documentation is now organized around four evidence buckets:
-  basin-support alignment, non-oracle support-routed local prediction,
+  support agreement with basin labels, non-oracle support-routed local prediction,
   long-horizon forecasting competitiveness, and supporting/falsification
   evidence.
 - [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
@@ -36,28 +41,98 @@ Outstanding problem:
   basins and for top-`8` routing; support families are more robust but less
   LISTA-specific; true local-geometry recovery remains a secondary mixed
   diagnostic.
+- Keep the text from implying that a good basin label is automatically a good
+  predictor selector. A support may identify where a state is while prediction
+  depends on inactive coordinates, continuous latent coefficients, or
+  cross-coordinate coupling in the learned transition.
 - The immediate display-production priority is Figure 1 support maps, Table 1
   fixed-`17` alignment/forecasting, Table 2 non-oracle routing, Figure 2
-  support refresh/routing, and Table 3 Dysts long-horizon forecasting.
+  support refresh/routing, and Table 3 Dysts long-horizon forecasting. The
+  new Dysts table is now explicitly an `H<=60000` extrapolation-beyond-training
+  stress test: training uses 30K-step Dysts source trajectories with
+  `sequence_length=10`, while held-out evaluation uses a separate 60K test
+  cache.
+
+### 2026-04-28: Dysts re-train at sequence_length=10, 15 seeds, 12-system subset
+
+- Decision: re-run the Dysts long-horizon track at `sequence_length=10` (was
+  `8`) for the narrowed `5`-recipe paper-facing Dysts set. Per-system seed
+  count goes from `10` to `15`
+  so that within-system paired Wilcoxon + Holm at `alpha/12 ≈ 4.2e-3` has
+  exact-test floor headroom (with `n=15`, the one-sided Wilcoxon `p`-floor is
+  `1/2^15 ≈ 3e-5`, well below Holm).
+- System scope: `12` Dysts systems (drop `Duffing`, `SprottTorus`,
+  `RikitakeDynamo` from the prior `15`-system list to save compute):
+  `dysts:Chua, dysts:Dadras, dysts:DequanLi, dysts:Hadley,
+  dysts:LorenzCoupled, dysts:LuChenCheng, dysts:MultiChua, dysts:QiChen,
+  dysts:Sakarya, dysts:SanUmSrisuchinwong, dysts:ShimizuMorioka,
+  dysts:WangSun`.
+- Re-encode periods reduced to `{50, 75, 100, 200, 400, 600, 1000}` (was
+  `{1, 5, 10, 20, 40, 60, 80, 100, 200, 300, 400, 500, 1000}`). This is
+  the new default `EvaluationSettings.dysts_periodic_reencode_periods`.
+- Long-horizon eval is extended to `H5000, H10000, H20000, H30000, H40000,
+  H50000, H60000` in a single rollout to `H=60000` with periodic re-encoding;
+  MSE is read off the same trajectory at each requested horizon. This is an
+  extrapolation-beyond-training-horizon test because the training cache remains
+  the `full` 30K-step source trajectory profile, while evaluation uses the new
+  eval-only `long60` Dysts cache profile (`steps=60000`, `trajectories=200`,
+  `warmup=2000`). New default `DEFAULT_HORIZONS` in
+  `tools/evaluate_dysts_long_horizon_run.py`.
+- Recipe set narrowed from `7` to `5` to save compute and consolidate
+  hyperparameters. Drop `lista_blockdiag_ns200k_denseopt_sc3em3` and
+  `generic_sparse_blockdiag_ns200k_sc3em3` (the low-sparsity block-diagonal
+  variants). Apply the high-sparsity coefficient `sc=0.006` uniformly to
+  the remaining sparsity-coefficient recipes:
+  `generic_sparse_ns200k_best` (was `0.0025`),
+  `generic_sparse_blockdiag_ns200k_sc6em3` (already `0.006`),
+  `lista_blockdiag_ns200k_denseopt_sc6em3` (already `0.006`),
+  `lista_dense_promoted_stage4` (was `0.003`).
+  `generic_sparse_sc0_ns200k_best` (the dense-MLP zero-sparsity baseline)
+  stays at `sc=0.0`. Final task count: `5 recipes × 12 systems × 15 seeds
+  = 900 training tasks`.
+- Training launcher: `scripts/_queue_dysts_seq10_seeds0to14.sh` (sbatch
+  wrapper around `queue_paper_followup_recipes.sh`). Output dir
+  `/network/scratch/l/lia/skae/paper_followup_recipes_200k_seq10_seeds0to14_20260428/`.
+  Cluster `MaxSubmitJobs=1000` and the in-flight `255`-task multibasin
+  array forced a chunked submission: training array submitted as two
+  array jobs over the same TSV: chunk 1 covers tasks `0-699`
+  (`ARRAY_OFFSET=0`, `9392814`) and chunk 2 covers tasks `700-899`
+  (`ARRAY_OFFSET=700`, queued by `scripts/_dysts_chunk2_watchdog.sh` once
+  the user job count drops below `800`).
+- After training completes, the long-horizon eval will be queued via
+  `scripts/queue_dysts_long_horizon_eval.sh` with `OUTPUT_TAG=
+  dysts_long_horizon_h5k_to_h60k_seq10`, `DYSTS_CACHE_PROFILE=long60`, and
+  `HORIZONS="5000 10000 20000 30000 40000 50000 60000"`. The original
+  orchestrator job `9392878` was canceled before it could submit chunk 2 or
+  the invalid 100K/full-cache eval, and replacement orchestrator `9393138` was
+  submitted with the corrected 60K eval path.
+- Implications for the paper: Table 4 changes from `15`-system `n=10`-seed at
+  horizons `5K/10K/20K/30K` to `12`-system `n=15`-seed at horizons
+  `5K..60K` (seven horizons), with `sequence_length=10` and the reduced
+  re-encode-period grid. Interpret this as held-out long-rollout stability out
+  to twice the 30K training source horizon, not as a claim that training saw
+  60K windows.
 
 ## Paper Evidence Map
 
 The experiments section should be written in this order:
 
 1. **Do sparse supports align with basins when labels are used only for evaluation?**
-   Lead with fixed-`17` deep-basin alignment and make basin-support alignment,
-   not basin-block alignment, the target claim.
+   Lead with fixed-`17` agreement between supports and basin labels and make
+   active supports, not pre-specified latent blocks, the target interpretability
+   object.
 2. **Do those same supports select useful local predictors without oracle basin labels?**
    Lead with exact top-`8` self-routed forecasting and the direct
    periodic-support-refresh ablation; use support families as robustness
-   evidence.
+   evidence. This is the dynamical test that follows naturally after the
+   static label-agreement test.
 3. **Do sparse-latent Koopman models remain competitive for long-horizon forecasting?**
    Present Dysts as the external long-horizon stress test, not as direct
-   basin-support evidence.
+   support-label evidence.
 4. **Other useful things.**
-   Keep centered-chart diagnostics, true-geometry checks, controlled transfer,
-   phase portraits, tuning provenance, and superseded packets as supporting or
-   appendix material unless they answer a specific objection.
+   Keep centered local-law diagnostics, true-geometry checks, controlled
+   transfer, phase portraits, tuning provenance, and superseded packets as
+   supporting or appendix material unless they answer a specific objection.
 
 Detailed result summaries and artifact links live in
 [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md),
@@ -71,9 +146,10 @@ Fixed-`17` LISTA root/result lookup:
 
 Problem we are solving:
 - Show on the fixed `17`-system interpretability shortlist both that the models
-  learn identifiable basin-support structure and that some induced sparsity is
-  essential for good finite-dimensional Koopman representations when multiple
-  basins or fixed points coexist. LISTA is one structured way to induce that
+  learn identifiable support structure that agrees with basin labels and that
+  some induced sparsity is essential for good finite-dimensional Koopman
+  representations when multiple basins or fixed points coexist. LISTA is one
+  structured way to induce that
   sparsity; it is not the claim by itself.
 
 Current paper-facing approach:
@@ -84,20 +160,26 @@ Current paper-facing approach:
   `cal_square_4`, `checkerboard_potential`, `duffing_triple_well`,
   `snic_multi`, `transition_routes_4`, `var_depth_gradient_4`,
   `var_diamond_4`, and `var_l_shape_5`.
-- Treat basin-support alignment as the primary branch objective. Within that
-  branch, the main downstream functional check should be long-horizon
-  forecasting at `H100`, `H500`, and `H1000`: if sparsity helps because the
-  Koopman representation retains which basin the system currently occupies,
-  then that information should improve long-horizon rollouts, not just short-
-  horizon or one-step metrics.
+- Treat support agreement with basin labels as the primary interpretability
+  objective. Within that branch, the main downstream functional check should be
+  long-horizon forecasting at `H100`, `H500`, and `H1000`: if sparsity helps
+  because the Koopman representation retains which basin the system currently
+  occupies and that information is dynamically useful, then it should improve
+  long-horizon rollouts, not just short-horizon or one-step metrics.
+- Treat this as two linked but non-identical objectives. First, the support
+  should identify basin membership or a coherent part of a basin. Second, the
+  support should be useful for selecting prediction behavior. The second does
+  not follow automatically from the first, because the columns or subspaces of
+  the learned transition that carry local dynamics need not be the same
+  coordinates that mark basin membership.
 - The local-law evidence currently answers a narrow version of the
-  local-versus-global question. In the completed centered-chart packet,
-  support-local laws beat the model's learned global `K` especially in deep
-  in-basin `q4` slices, but the comparison against a separately refit
-  global-centered slope is weaker. Therefore the safe current statement is
-  "support-local laws beat the learned global Koopman law on the covered
-  states," not "support-local laws beat every possible global refit under
-  equal regularization and data accounting."
+  local-versus-global question. In the completed centered local-law packet,
+  support-conditioned laws beat the model's learned global transition
+  especially on states far from basin boundaries, but the comparison against a
+  separately refit global-centered slope is weaker. Therefore the safe current
+  statement is "support-conditioned laws beat the learned global Koopman law on
+  the covered states," not "support-conditioned laws beat every possible global
+  refit under equal regularization and data accounting."
 - The two reviewer-response mechanism branches now have second-audited
   seed-`0` fixed-`17` outputs. The first outputs under
   `*_20260423_cached` and `*_20260423` are superseded for paper claims, and
@@ -1726,6 +1808,18 @@ Assumption split:
 
 ## Outstanding problems (active)
 
+- **Per-basin deep-slice interpretability re-evaluation** (queued 2026-04-27):
+  the wrong-support-freeze diagnostic in Table 1 of the paper draft has $K/13$
+  rather than $K/17$ coverage because four systems
+  (`arrested_spiral`, `cal_asymmetric_3`, `duffing_triple_well`,
+  `var_l_shape_5`) have a global-quartile deep slice concentrated in a single
+  basin. We are re-evaluating the five boundary-emphasized roots under a
+  per-basin top-quartile depth criterion to restore 17/17 coverage; full
+  protocol and status in
+  [PER_BASIN_DEEP_SLICE_PLAN.md](/home/mila/l/lia/skae/docs/PER_BASIN_DEEP_SLICE_PLAN.md).
+  No retraining required (eval-only re-run from saved checkpoints). The
+  existing global-slice numbers in
+  `interpretability_final_pass1/` remain the source-of-truth in the meantime.
 - Documentation-to-manuscript conversion is now the immediate paper blocker:
   use the evidence order in
   [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
@@ -1733,6 +1827,16 @@ Assumption split:
   basin/support figure, non-oracle routing table, and Dysts long-horizon table.
   Keep queue-era chronology, tuning provenance, and superseded result packets
   out of the main narrative unless they answer a specific objection.
+- **Dysts `seq_len=10`, `n=15`, H<=60K rerun is live** (queued 2026-04-28):
+  Dysts training uses 30K-step source trajectories and windows of length `10`;
+  held-out long-horizon evaluation will use a separate `long60` test cache to
+  evaluate `H5000/H10000/H20000/H30000/H40000/H50000/H60000`. Chunk 1
+  training job is `9392814`; replacement orchestrator `9393138` will submit
+  chunk 2 and then the 60K eval chain after training completes. Outstanding
+  problem: wait for those jobs to land, collect
+  `results/dysts_long_horizon_eval_seq10_h60k_seeds0to14_20260428/`, and
+  redraw the Dysts table from that packet instead of the superseded 30K/100K
+  plan.
 - The true-Jacobian/eigendirection and controlled-transfer branches now have
   corrected seed-`0` fixed-`17` outputs. The active blocker is no longer
   execution coverage; it is claim calibration. True geometry is mixed and
@@ -3533,6 +3637,18 @@ Assumption split:
   alignment-aware reducer extensions are implemented.
 
 ## Queue Status
+
+- As of `2026-04-28 12:06 EDT`, the corrected Dysts `seq_len=10`,
+  `n=15`, H<=60K pipeline is queued but not yet evaluated. Dysts training chunk
+  1 is job `9392814` (`700` array tasks, pending at refresh time). The original
+  Dysts orchestrator `9392878` was canceled before it submitted chunk 2 or the
+  invalid H100K/full-cache eval path. Replacement orchestrator `9393138` is
+  pending; it will submit chunk 2 (`tasks 700-899`) once user job count drops
+  below `800`, then submit `scripts/queue_dysts_long_horizon_eval.sh` with
+  `OUTPUT_TAG=dysts_long_horizon_h5k_to_h60k_seq10`,
+  `DYSTS_CACHE_PROFILE=long60`, and horizons
+  `5000 10000 20000 30000 40000 50000 60000`. Expected eval results path:
+  [results/dysts_long_horizon_eval_seq10_h60k_seeds0to14_20260428](/home/mila/l/lia/skae/results/dysts_long_horizon_eval_seq10_h60k_seeds0to14_20260428).
 
 - April 26 documentation pass: no new SLURM jobs were submitted and no live
   queue state was rechecked. The active documentation state is now the

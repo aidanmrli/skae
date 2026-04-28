@@ -1089,8 +1089,8 @@ Examples:
     parser.add_argument('--dysts_native_cache', action='store_true',
                         help='Use native dysts trajectory cache for training data')
     parser.add_argument('--dysts_cache_profile', type=str, default=None,
-                        choices=['smoke', 'full'],
-                        help='Named dysts cache profile (smoke or full)')
+                        choices=['smoke', 'full', 'long60'],
+                        help='Named dysts cache profile (smoke, full, or long60)')
     parser.add_argument('--dysts_cache_steps', type=int, default=None,
                         help='Length of each cached dysts trajectory')
     parser.add_argument('--dysts_cache_trajectories', type=int, default=None,

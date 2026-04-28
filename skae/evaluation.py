@@ -1360,18 +1360,12 @@ class EvaluationSettings:
     seed_offset: int = 12345
     # Dysts-specific extended reencode periods
     dysts_periodic_reencode_periods: Sequence[int] = (
-        1,
-        5,
-        10,
-        20,
-        40,
-        60,
-        80,
+        50,
+        75,
         100,
         200,
-        300,
         400,
-        500,
+        600,
         1000,
     )
     dysts_phase_portrait_reencode_periods: Sequence[int] = (0, 1, 100, 200, 300, 400, 500, 1000)

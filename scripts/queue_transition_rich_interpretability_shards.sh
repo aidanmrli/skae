@@ -64,6 +64,7 @@ SUPPORT_SCHEME="${SUPPORT_SCHEME:-absolute:0.001}"
 SUBSET="${SUBSET:-deep}"
 GOOD_THRESHOLD="${GOOD_THRESHOLD:-50}"
 QUEUE_MANIFEST_JSON="${QUEUE_MANIFEST_JSON:-}"
+DEPTH_SLICE_MODE="${DEPTH_SLICE_MODE:-global}"
 
 mkdir -p "${OUT_DIR}" "${OUT_DIR}/shards" "${LOG_DIR}"
 
@@ -99,6 +100,7 @@ for root_label in "${ROOT_LABELS[@]}"; do
     SEEDS_CSV="${SEEDS_CSV}" \
     PROGRESS_EVERY_RUNS="${PROGRESS_EVERY_RUNS}" \
     FLUSH_EVERY_RUNS="${FLUSH_EVERY_RUNS}" \
+    DEPTH_SLICE_MODE="${DEPTH_SLICE_MODE}" \
       sbatch \
         --job-name="tr_interp_${slug}" \
         --time="${REDUCE_WALLTIME}" \

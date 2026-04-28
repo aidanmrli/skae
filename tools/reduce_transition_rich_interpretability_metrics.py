@@ -91,6 +91,18 @@ def _parse_args() -> argparse.Namespace:
         help="greedy Jaccard threshold used to merge exact supports into support families",
     )
     parser.add_argument(
+        "--depth_slice_mode",
+        choices=["global", "per_basin"],
+        default="global",
+        help=(
+            "How to compute the deep/boundary state subsets. 'global' (default) "
+            "uses the top quartile of basin-depth margin across all states; "
+            "'per_basin' uses the top quartile within each basin so every "
+            "basin contributes to the deep slice (required for the wrong-"
+            "support-freeze diagnostic on systems with very unequal basin depths)."
+        ),
+    )
+    parser.add_argument(
         "--freeze_support_horizons",
         default="1,5,10,20",
         help="comma-separated rollout horizons for canonical support-freeze interventions",
@@ -507,7 +519,27 @@ def canonical_support_masks_by_basin(
     return canonical
 
 
-def _margin_subsets(states: torch.Tensor, centers: torch.Tensor) -> Dict[str, np.ndarray]:
+def _margin_subsets(
+    states: torch.Tensor,
+    centers: torch.Tensor,
+    *,
+    basin_labels: Optional[np.ndarray] = None,
+    depth_slice_mode: str = "global",
+) -> Dict[str, np.ndarray]:
+    """Compute (all, deep, boundary) state masks based on basin-depth margin.
+
+    `depth_slice_mode == "global"` (default, backward-compatible): the deep
+    quartile is taken over the global margin distribution, so a system whose
+    deep states are concentrated in one basin will have other basins
+    underrepresented in the "deep" slice.
+
+    `depth_slice_mode == "per_basin"`: the top-quartile cut is computed
+    *within each basin*, so every basin contributes its own relative-deep
+    states. This guarantees that diagnostics requiring multiple basins on
+    the deep slice (e.g. wrong-support-freeze) are well-defined for systems
+    whose attractors have very unequal absolute margins. Requires
+    `basin_labels`.
+    """
     flat = states.reshape(-1, states.shape[-1])
     dists = torch.cdist(flat, centers.to(dtype=flat.dtype))
     if dists.shape[1] < 2:
@@ -515,6 +547,46 @@ def _margin_subsets(states: torch.Tensor, centers: torch.Tensor) -> Dict[str, np
         return {"all": valid, "deep": valid, "boundary": valid}
     smallest = torch.topk(dists, k=2, largest=False, dim=1).values
     margins = (smallest[:, 1] - smallest[:, 0]).cpu().numpy()
+    n = margins.size
+    if depth_slice_mode == "per_basin":
+        if basin_labels is None:
+            raise ValueError(
+                "depth_slice_mode='per_basin' requires basin_labels"
+            )
+        flat_basins = np.asarray(basin_labels).reshape(-1)
+        if flat_basins.size != n:
+            raise ValueError(
+                f"basin_labels size {flat_basins.size} does not match "
+                f"flattened state count {n}"
+            )
+        deep_mask = np.zeros(n, dtype=bool)
+        boundary_mask = np.zeros(n, dtype=bool)
+        for b in np.unique(flat_basins):
+            if int(b) < 0:
+                continue
+            sel = flat_basins == b
+            if not sel.any():
+                continue
+            mar_b = margins[sel]
+            if mar_b.size < 4:
+                # Too few samples to define quartiles reliably; treat all as
+                # deep (consistent with prior single-bucket fallback).
+                deep_mask[sel] = True
+                boundary_mask[sel] = True
+                continue
+            deep_b = float(np.quantile(mar_b, 0.75))
+            bnd_b = float(np.quantile(mar_b, 0.25))
+            deep_mask[sel] = mar_b >= deep_b
+            boundary_mask[sel] = mar_b <= bnd_b
+        return {
+            "all": np.ones(n, dtype=bool),
+            "deep": deep_mask,
+            "boundary": boundary_mask,
+        }
+    if depth_slice_mode != "global":
+        raise ValueError(
+            f"depth_slice_mode must be 'global' or 'per_basin', got {depth_slice_mode!r}"
+        )
     deep_cut = float(np.quantile(margins, 0.75))
     boundary_cut = float(np.quantile(margins, 0.25))
     return {
@@ -1765,6 +1837,7 @@ def reduce_run(
     visual_output_dir: Optional[Path],
     visual_max_points: int,
     visual_max_switch_trajectories: int,
+    depth_slice_mode: str = "global",
 ) -> List[Dict[str, object]]:
     checkpoint_path = Path(spec.run_dir) / "checkpoint.pt"
     cfg, env, model = _load_checkpoint_model(checkpoint_path, spec.system_key, device)
@@ -1782,7 +1855,12 @@ def reduce_run(
     )
     latents = _encode_trajectories(model, trajectories, device)
     block_offset, block_sizes = _block_layout_from_model(model)
-    subset_masks = _margin_subsets(trajectories, centers)
+    subset_masks = _margin_subsets(
+        trajectories,
+        centers,
+        basin_labels=basin_labels.cpu().numpy() if depth_slice_mode == "per_basin" else None,
+        depth_slice_mode=depth_slice_mode,
+    )
     sampled_jacobian_indices, jacobian_subset_masks = _sample_state_indices(
         subset_masks,
         max_states_per_subset=max_jacobian_states,
@@ -2116,6 +2194,7 @@ def main() -> None:
                 visual_output_dir=(output_dir / "visuals") if args.save_visuals else None,
                 visual_max_points=args.visual_max_points,
                 visual_max_switch_trajectories=args.visual_max_switch_trajectories,
+                depth_slice_mode=args.depth_slice_mode,
             )
             rows.extend(spec_rows)
         except Exception as exc:  # pragma: no cover - reducer should keep going across bad runs

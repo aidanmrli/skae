@@ -1,0 +1,11 @@
+\begin{tabular}{@{}l rrr r r r rr@{}}
+\toprule
+Model & H100\,$\downarrow$ & H500\,$\downarrow$ & H1000\,$\downarrow$ & $|S|$\,$\downarrow$ & $H(B\!\mid\!S)$\,$\downarrow$ & $H(B\!\mid\!F)$\,$\downarrow$ & wr.\,$h{=}1$\,$\uparrow$ & wr.\,$h{=}20$\,$\uparrow$ \\
+\midrule
+LISTA-BD & $0.0175$\,$\bigl[\,\mathbf{14/17}\,\bigr]$ & $0.0682$\,$\bigl[\,\mathbf{14/17}\,\bigr]$ & $0.0699$\,$\bigl[\,\mathbf{15/17}\,\bigr]$ & $101$\,$\bigl[\,\mathbf{17/17}\,\bigr]$ & $0$ & \underline{$0$}\,$\bigl[\,\mathbf{13/17}\,\bigr]$ & \underline{$8.1\!\times\!10^3$}\,$\bigl[\,\mathbf{13/13}\,\bigr]$ & $16.4$\,$\bigl[\,\mathbf{10/13}\,\bigr]$ \\
+LISTA-SB & $0.0255$\,$\bigl[\,\mathbf{15/17}\,\bigr]$ & $0.0607$\,$\bigl[\,\mathbf{14/17}\,\bigr]$ & $0.0708$\,$\bigl[\,\mathbf{15/17}\,\bigr]$ & \underline{$27$}\,$\bigl[\,\mathbf{17/17}\,\bigr]$ & $0$ & $0.055$\,$\bigl[\,\mathbf{11/17}\,\bigr]$ & $3.0\!\times\!10^3$\,$\bigl[\,\mathbf{13/13}\,\bigr]$ & $8.22$\,$\bigl[\,\mathbf{7/13}\,\bigr]$ \\
+Sparse MLP, BD & \underline{$0.0163$}\,$\bigl[\,\mathbf{15/17}\,\bigr]$ & $0.0513$\,$\bigl[\,\mathbf{15/17}\,\bigr]$ & \underline{$0.0452$}\,$\bigl[\,\mathbf{17/17}\,\bigr]$ & $106$\,$\bigl[\,\mathbf{17/17}\,\bigr]$ & $0$ & $0.00043$\,$\bigl[\,\mathbf{12/17}\,\bigr]$ & $6.3\!\times\!10^3$\,$\bigl[\,\mathbf{13/13}\,\bigr]$ & $35.2$\,$\bigl[\,\mathbf{12/13}\,\bigr]$ \\
+Sparse MLP & $0.0183$\,$\bigl[\,\mathbf{14/17}\,\bigr]$ & \underline{$0.0421$}\,$\bigl[\,\mathbf{15/17}\,\bigr]$ & $0.0465$\,$\bigl[\,\mathbf{17/17}\,\bigr]$ & $106$\,$\bigl[\,\mathbf{17/17}\,\bigr]$ & $0$ & \underline{$0$}\,$\bigl[\,\mathbf{13/17}\,\bigr]$ & $6.5\!\times\!10^3$\,$\bigl[\,\mathbf{13/13}\,\bigr]$ & \underline{$35.3$}\,$\bigl[\,\mathbf{12/13}\,\bigr]$ \\
+Dense MLP, no shrink & $0.665$\,\emph{[baseline]} & $2.68$\,\emph{[baseline]} & $3.07$\,\emph{[baseline]} & $254$\,\emph{[baseline]} & $0.0012$ & $0.9$\,\emph{[baseline]} & $8.68$\,\emph{[baseline]} & $1.35$\,\emph{[baseline]} \\
+\bottomrule
+\end{tabular}

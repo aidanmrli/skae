@@ -17,6 +17,11 @@ DYSTS_CACHE_PROFILES: Dict[str, Dict[str, int]] = {
         "trajectories": 200,
         "warmup": 2000,
     },
+    "long60": {
+        "steps": 60000,
+        "trajectories": 200,
+        "warmup": 2000,
+    },
 }
 
 _DEFAULT_SHARED_CACHE_DIR = Path("/network/scratch/l/lia/skae/dysts_native_cache")
@@ -41,4 +46,3 @@ def apply_dysts_cache_profile(cfg, profile_name: str) -> Dict[str, int]:
     cfg.ENV.DYSTS.CACHE_TRAJECTORIES = int(profile["trajectories"])
     cfg.ENV.DYSTS.CACHE_WARMUP = int(profile["warmup"])
     return profile
-

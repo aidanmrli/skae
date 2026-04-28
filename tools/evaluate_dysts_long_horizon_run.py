@@ -18,7 +18,15 @@ from skae.evaluation import EvaluationSettings, evaluate_model
 from skae.model import make_model
 
 
-DEFAULT_HORIZONS: Tuple[int, ...] = (5000, 10000, 20000, 30000)
+DEFAULT_HORIZONS: Tuple[int, ...] = (
+    5000,
+    10000,
+    20000,
+    30000,
+    40000,
+    50000,
+    60000,
+)
 
 
 def _get_device(device_arg: str) -> str:
@@ -255,7 +263,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="auto", help="Device: auto/cpu/cuda/mps.")
     parser.add_argument(
         "--output-tag",
-        default="dysts_long_horizon_h5000_h10000_h20000_h30000",
+        default="dysts_long_horizon_h5k_to_h60k_seq10",
         help="Reevaluation output tag.",
     )
     parser.add_argument("--batch-size", type=int, default=100, help="Held-out rollout batch size.")
