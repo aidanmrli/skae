@@ -2,6 +2,7 @@
 
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{mathrsfs}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{graphicx}
@@ -27,11 +28,19 @@
 \newcommand{\blkdiag}{\operatorname{blkdiag}}
 \newcommand{\argmin}{\operatorname*{arg\,min}}
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\sign}{sign}
 \providecommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 \providecommand{\note}[1]{\textcolor{magenta}{[NOTE: #1]}}
 
 \theoremstyle{plain}
 \newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
 \newcommand{\placeholder}[2]{%
   \begin{figure}[ht]
   \centering
@@ -141,23 +150,75 @@ The training losses described later are built from these reconstructed and rolle
 \paragraph{Model discovers basins unsupervised.} In the intended training and deployment setting, the model is not given basin labels, the number of basins, or trajectory-to-basin assignments. When benchmark basin annotations are available, they are reserved for post-hoc evaluation; they are not used to choose the model, train the encoder or transition, or route predictions.
 
 \section{Sparse supports as local-regime indicators}
-\label{sec:sparse-coding}
+\label{sec:sparse-supports}
 
-Section~\ref{sec:problem} ruled out a single global linearization for multibasin systems, yet a Koopman autoencoder applies one shared transition $K$ everywhere. The representation itself must therefore carry whatever distinguishes one local law from another, and we want this carrier to be \emph{inspectable}: continuous coordinates for prediction within a region, and a discrete object naming the active region. Sparse coding supplies both \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003}. For a dictionary $D\in\R^{d_x\times d_z}$ and $\lambda>0$, the encoder
-\begin{equation}
-  z^\star(x)=\argmin_z\;\tfrac{1}{2}\norm{x-Dz}_2^2+\lambda\norm{z}_1
-  \label{eq:sparse_coding}
-\end{equation}
-returns coefficients that describe state within a region together with an active set, the \emph{support} $S(x)=\{i:z^\star_i(x)\ne 0\}$, that serves as the discrete indicator. The following standard property of \cref{eq:sparse_coding}, a direct consequence of the LASSO KKT conditions, makes the geometric bias precise.
+The problem formulation leaves a simple constraint: the Koopman autoencoder uses
+one latent transition \(K\), so any information about which local predictive
+description is appropriate must be carried by the representation \(z=E_\theta(x)\).
+A dense code may store this information implicitly, but a sparse code exposes this information through its active set \(S(x)=\{i:z_i\neq 0\}\). The coefficients
+\(z_{S(x)}\) can encode the continuous state within a local regime, while the
+support can serve as a discrete, label-free candidate for the current regime. The claim is mechanistic: sparsity gives the
+model a natural object whose geometric and predictive meaning can be tested.
 
-\begin{proposition}[Piecewise-affine sparse encoders]
-\label{prop:piecewise-affine}
-For any $D$ and $\lambda>0$, the map $x\mapsto z^\star(x)$ defined by \cref{eq:sparse_coding} is continuous on $\R^{d_x}$, and there is a partition of $\R^{d_x}$ into finitely many convex polyhedral cells $\{C_S\}_{S\subseteq\{1,\dots,d_z\}}$ such that on the interior of each $C_S$ the encoder is affine in $x$ with active set exactly $S$.
-\end{proposition}
+The following theorem and corollaries explain why supports are the right object to
+study. Here, ``support'' means exact zero support, but the thresholded and top-\(k\)
+supports used later are empirical heuristics and not exact algebraic identities.
 
-The encoder thus partitions input space into support-indexed cells, with each cell mapped affinely into the $|S|$-dimensional latent subspace spanned by its active coordinates. A single transition $K$ then advances the latent state along that cell's active subspace; when $x$ crosses a cell boundary, the support changes and a different submatrix of $K$ carries the dynamics. Multibasin systems---where each basin admits its own linearization but no global one exists---are precisely the regime in which a region-indexed code has predictive content: cell membership encodes \emph{which} local law applies, while the continuous coefficients evolve under it.
+\begin{theorem}[Support-stratified Koopman predictors]
+\label{thm:support-local-affine}
+Let \(E:\mathbb R^{d_x}\to\mathbb R^{d_z}\) be single-valued and piecewise
+affine on a finite polyhedral stratification. Let
+\(D_\phi(z)=D_{\rm dec}z+b_{\rm dec}\) be affine, let
+\(K\in\mathbb R^{d_z\times d_z}\), and define
+\(F_h(x)=D_{\rm dec}K^hE(x)+b_{\rm dec}\). Then \(F_h\) is piecewise affine for
+every \(h\ge1\). Moreover, after a finite refinement, the signed support of
+\(E(x)\) is constant on each stratum. On any refined stratum \(\mathcal S\), with
+exact support \(S_{\mathcal S}=\supp(E(x))\), we have
+\(F_h(x)=D_{\rm dec}(K^h)_{:,S_{\mathcal S}}E_{S_{\mathcal S}}(x)+b_{\rm dec}\)
+for all \(x\in\mathcal S\). For any fixed re-encoding period \(p\), every finite
+composition of \(G_p(x)=D_{\rm dec}K^pE(x)+b_{\rm dec}\) is also piecewise affine
+on a finite itinerary stratification.
+\end{theorem}
 
-This is a structural argument, not a guarantee. \Cref{prop:piecewise-affine} fixes $D$, but in our model the dictionary, shrinkage scale, and $K$ are co-trained against the prediction objective \cref{eq:training_objective}, and only training pressure can drive cell boundaries to coincide with basin boundaries. Whether it does so is an empirical question, and the argument decomposes into two claims that we evaluate separately. Statically, the support of an encoded state should reduce uncertainty about the basin. Dynamically, the same support should select \emph{which} active subspace of $K$, or which fitted local linear law, advances prediction. The first does not imply the second: an encoder could mark basin identity with some always-active coordinates while routing prediction through unrelated ones. \Cref{sec:experiments} reports support--basin entropy for the static claim and a wrong-support ablation plus support-conditioned routing for the dynamical one.
+This theorem states that exact supports select active latent
+coordinates, and hence active columns of \(K^h\), within a finite collection of
+local affine decoded predictors. The full state-space affine map may still
+depend on the encoder piece, so two regions with the same support need not have
+identical local dynamics.
+
+The assumptions of Theorem~\ref{thm:support-local-affine} hold for the sparse
+encoders used to motivate our model.
+
+\begin{corollary}[Exact sparse coding]
+\label{cor:lasso-pwa-short}
+Let \(D\in\mathbb R^{d_x\times d_z}\) be the linear decoder/dictionary and
+let \(\lambda>0\). Suppose that, for every \(x\), the objective
+\(\frac12\|x-Dz\|_2^2+\lambda\|z\|_1\) has a unique minimizer, and define
+\(E_{\rm sc}(x)\) to be that minimizer. Then \(E_{\rm sc}\) is continuous and
+piecewise affine on a finite polyhedral stratification. Hence the decoded
+Koopman predictor \(x\mapsto DK^hE_{\rm sc}(x)\) is support-stratified
+piecewise affine as in Theorem~\ref{thm:support-local-affine}.
+\end{corollary}
+
+\begin{corollary}[Finite-depth LISTA]
+\label{cor:lista-pwa-short}
+Let \(T_\tau(y)_i=\sign(y_i)\max\{|y_i|-\tau_i,0\}\) be
+coordinatewise soft-thresholding. If \(c:\mathbb R^{d_x}\to\mathbb R^{d_z}\) is
+piecewise affine and
+\(u^{(0)}(x)=T_\tau(c(x))\),
+\(u^{(q+1)}(x)=T_\tau(S_{\rm L}u^{(q)}(x)+c(x))\), then the finite-depth encoder
+\(E_{\rm LISTA}(x)=u^{(Q)}(x)\) is single-valued and piecewise affine on a finite
+polyhedral stratification. Hence Theorem~\ref{thm:support-local-affine} applies.
+This includes affine, ReLU, and leaky-ReLU pre-codes \(c=f_\theta(x)\).
+\end{corollary}
+
+Formal definitions, detailed statements, and proofs of
+Theorem~\ref{thm:support-local-affine} and
+Corollaries~\ref{cor:lasso-pwa-short}--\ref{cor:lista-pwa-short} are deferred to
+Appendix~\ref{app:pwa-supports}.
+In the following sections, we investigate: (1) whether supports agree with
+withheld basin labels, and (2) whether those same supports select useful local
+predictors.
 
 \section{Method}
 \label{sec:method}
@@ -184,7 +245,7 @@ Our main sparse encoder uses LISTA-style amortized sparse inference \citep{grego
   u_t^{(0)}=\shrink(c_t,\tau),\qquad u_t^{(q+1)}=\shrink(Su_t^{(q)}+c_t,\tau),\qquad z_t=u_t^{(Q)}.
   \label{eq:lista}
 \end{equation}
-Here $\shrink(a,\tau)=\operatorname{sign}(a)\max(|a|-\tau,0)$ is the standard elementwise soft-thresholding map, $S$ is learned, and $\tau$ sets the shrinkage scale. The thresholding operation gives the encoder an explicit mechanism for selecting active coordinates, while the learned pre-code and refinement weights allow the selection rule to adapt to the prediction objective.
+Here $\shrink(a,\tau)=\sign(a)\max(|a|-\tau,0)$ is the standard elementwise soft-thresholding map, $S$ is learned, and $\tau$ sets the shrinkage scale. The thresholding operation gives the encoder an explicit mechanism for selecting active coordinates, while the learned pre-code and refinement weights allow the selection rule to adapt to the prediction objective.
 
 \paragraph{Transition families.}
 We vary the structure of $K$ separately from the encoder, which separates the effect of induced sparsity from the effect of the latent transition. The dense transition leaves $K$ unrestricted. The block-diagonal transition partitions the latent coordinates into $M$ groups and constrains
@@ -545,6 +606,877 @@ LISTA replaces an iterative sparse-coding solver with a learned finite-depth shr
 
 Observed supports also define a simple label-free graph: nodes are exact supports or merged support families, and edges are support transitions seen along rollouts. This graph view is not used as a training signal in the reported experiments, but it explains why supports are useful objects to expose. A support node can index a local predictor, a support-family node can absorb small threshold perturbations, and an observed edge can record when the representation moves from one local chart to another. The routing experiments in \cref{tab:self_routing} test the one-step predictive version of this idea without assuming a known number of basins or known basin membership during training or deployment.
 
+\section{Proofs}
+\subsection{Piecewise-affine encoders with sparse supports induce local affine Koopman predictors}
+\label{app:pwa-supports}
+
+Once the
+encoder is piecewise affine, exact sparse supports induce a finite
+support-stratified collection of local affine decoded Koopman predictors.
+Throughout this subsection, unless explicitly stated otherwise, ``support''
+means the exact zero support \(\{i:E_i(x)\neq 0\}\). We use the convention
+\(\sign(0)=0\), so coordinatewise sign vectors take values in
+\(\{-1,0,+1\}^{d_z}\).
+
+Throughout, write \([d_z] := \{1,\ldots,d_z\}\). For a vector
+\(v\in\mathbb R^{d_z}\) and a set \(S\subseteq[d_z]\), \(v_S\)
+denotes the subvector with indices in \(S\). For a matrix \(M\), \(M_{:,S}\)
+denotes the submatrix consisting of the columns indexed by \(S\).
+
+\begin{definition}[Polyhedral stratum]
+A polyhedral stratum in \(\mathbb R^n\) is a set that can be written as the
+solution set of finitely many affine equalities and strict affine inequalities:
+\[
+\mathcal C
+=
+\left\{
+x\in\mathbb R^n:
+a_i^\top x=\alpha_i \ \text{for } i\in I_=,\quad
+b_j^\top x<\beta_j \ \text{for } j\in I_<,\quad
+c_k^\top x>\gamma_k \ \text{for } k\in I_>
+\right\}.
+\]
+The stratum may have dimension smaller than \(n\). Empty sets are allowed in
+intermediate constructions, but are omitted from stratifications.
+\end{definition}
+
+\begin{definition}[Finite polyhedral stratification]
+A finite polyhedral stratification of \(\mathbb R^n\) is a finite collection
+\(\mathscr C=\{\mathcal C_r\}_{r=1}^R\) of nonempty polyhedral strata such that
+\(\mathbb R^n=\bigsqcup_{r=1}^R \mathcal C_r\), where \(\bigsqcup\) denotes
+disjoint union.
+\end{definition}
+
+\begin{definition}[Piecewise-affine map]
+A map \(E:\mathbb R^{d_x}\to\mathbb R^{d_z}\) is piecewise affine on a finite
+polyhedral stratification \(\mathscr C=\{\mathcal C_r\}_{r=1}^R\) if, for each
+\(r\), there exist \(A_r\in\mathbb R^{d_z\times d_x}\) and
+\(a_r\in\mathbb R^{d_z}\) such that \(E(x)=A_r x+a_r\) for all
+\(x\in\mathcal C_r\).
+\end{definition}
+
+We will use two elementary closure facts.
+
+\begin{lemma}[Affine preimages of polyhedral strata]
+Let \(L:\mathbb R^n\to\mathbb R^m\) be affine, say \(L(x)=Mx+b\).
+If \(\mathcal P\subseteq\mathbb R^m\) is a polyhedral stratum, then
+\(L^{-1}(\mathcal P)\) is either empty or a polyhedral stratum in
+\(\mathbb R^n\). Consequently, if \(\{\mathcal P_j\}_{j=1}^N\) is a finite
+polyhedral stratification of \(\mathbb R^m\), then the nonempty sets
+\(L^{-1}(\mathcal P_j)\), \(j=1,\ldots,N\), form a finite polyhedral
+stratification of \(\mathbb R^n\).
+\end{lemma}
+
+\begin{proof}
+Write \(\mathcal P\) as
+\[
+\mathcal P
+=
+\left\{
+y\in\mathbb R^m:
+\ell_i(y)=0 \ \text{for } i\in I_=,\quad
+g_j(y)<0 \ \text{for } j\in I_<,\quad
+h_k(y)>0 \ \text{for } k\in I_>
+\right\},
+\]
+where \(\ell_i,g_j,h_k\) are affine functions. Then
+\[
+L^{-1}(\mathcal P)
+=
+\left\{
+x\in\mathbb R^n:
+\ell_i(Mx+b)=0 \ \text{for } i\in I_=,
+g_j(Mx+b)<0 \ \text{for } j\in I_<,
+h_k(Mx+b)>0 \ \text{for } k\in I_>
+\right\}.
+\]
+Each composed function \(\ell_i(Mx+b)\), \(g_j(Mx+b)\), and \(h_k(Mx+b)\) is
+affine in \(x\). Hence \(L^{-1}(\mathcal P)\) is a polyhedral stratum, unless
+the system is inconsistent, in which case it is empty.
+
+If \(\{\mathcal P_j\}_{j=1}^N\) is a stratification of \(\mathbb R^m\), then
+the preimages \(L^{-1}(\mathcal P_j)\) are pairwise disjoint because the
+\(\mathcal P_j\)'s are pairwise disjoint, and they cover \(\mathbb R^n\)
+because the \(\mathcal P_j\)'s cover \(\mathbb R^m\). Removing empty preimages
+therefore gives a finite polyhedral stratification of \(\mathbb R^n\).
+\end{proof}
+
+\begin{lemma}[Finite sign refinement by affine functions]
+Let \(\mathcal C\subseteq\mathbb R^n\) be a polyhedral stratum, and let
+\(g_1,\ldots,g_N:\mathbb R^n\to\mathbb R\) be affine functions. For each sign
+vector \(\rho=(\rho_1,\ldots,\rho_N)\in\{-1,0,+1\}^N\), define
+\[
+\mathcal C_\rho
+=
+\left\{
+x\in\mathcal C:
+g_j(x)<0 \ \text{if } \rho_j=-1,\quad
+g_j(x)=0 \ \text{if } \rho_j=0,\quad
+g_j(x)>0 \ \text{if } \rho_j=+1
+\right\}.
+\]
+Then the nonempty sets \(\mathcal C_\rho\) form a finite polyhedral
+stratification of \(\mathcal C\). On each such stratum, the signs of
+\(g_1,\ldots,g_N\) are constant.
+\end{lemma}
+
+\begin{proof}
+Each \(\mathcal C_\rho\) is obtained from \(\mathcal C\) by adding finitely
+many affine equalities and strict affine inequalities. Hence every nonempty
+\(\mathcal C_\rho\) is a polyhedral stratum. For each \(x\in\mathcal C\), every
+number \(g_j(x)\) is exactly one of negative, zero, or positive. Thus \(x\)
+belongs to exactly one of the sets \(\mathcal C_\rho\). Since there are only
+\(3^N\) possible sign vectors, the resulting stratification is finite.
+\end{proof}
+
+\setcounter{theorem}{0}
+\begin{theorem}[Piecewise-affine sparse encoders induce local affine Koopman predictors]
+Let \(E:\mathbb R^{d_x}\to\mathbb R^{d_z}\) be a single-valued encoder. Assume
+that \(E\) is piecewise affine on a finite polyhedral stratification
+\(\mathscr C=\{\mathcal C_r\}_{r=1}^R\) of \(\mathbb R^{d_x}\). Thus, for every
+\(r\), there exist
+\(A_r\in\mathbb R^{d_z\times d_x}\) and \(a_r\in\mathbb R^{d_z}\) such that
+\(E(x)=A_r x+a_r\) for all \(x\in\mathcal C_r\).
+
+Let the decoder be affine, \(D_\phi(z)=D_{\mathrm{dec}}z+b_{\mathrm{dec}}\),
+where \(D_{\mathrm{dec}}\in\mathbb R^{d_x\times d_z}\) and
+\(b_{\mathrm{dec}}\in\mathbb R^{d_x}\), and let
+\(K\in\mathbb R^{d_z\times d_z}\) be the latent transition matrix. For
+\(h\ge 1\), define the decoded \(h\)-step open-loop Koopman predictor
+\[
+F_h(x)
+=
+D_{\mathrm{dec}}K^hE(x)+b_{\mathrm{dec}}.
+\]
+
+Then the following statements hold.
+
+\begin{enumerate}
+\item The map \(F_h\) is piecewise affine on the same stratification
+\(\mathscr C\). More precisely, on each \(\mathcal C_r\),
+\(F_h(x)=M_{r,h}x+m_{r,h}\), where
+\(M_{r,h}=D_{\mathrm{dec}}K^hA_r\) and
+\(m_{r,h}=D_{\mathrm{dec}}K^h a_r+b_{\mathrm{dec}}\).
+
+\item There is a finite polyhedral refinement of \(\mathscr C\) on which the
+signed latent support \(\sign(E(x))\in\{-1,0,+1\}^{d_z}\) is constant on every
+stratum. In particular, the unsigned support
+\(\supp(E(x))=\{i\in[d_z]:E_i(x)\neq 0\}\) is also constant on every refined
+stratum.
+
+\item Let \(\mathcal S\) be one of the refined strata from part \(2\), and let
+\(S_\mathcal S=\supp(E(x))\) be the support on that stratum. Then, for all
+\(x\in\mathcal S\),
+\[
+F_h(x)
+=
+D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}E_{S_\mathcal S}(x)
++
+b_{\mathrm{dec}}.
+\]
+Thus, on a fixed support stratum, only the active latent coordinates and the
+corresponding columns of \(K^h\) participate in the decoded predictor. For
+\(h=1\), these are precisely the corresponding columns of \(K\).
+
+\item Fix a re-encoding period \(p\ge 1\), and define the periodically
+re-encoded segment map \(G_p(x)=D_{\mathrm{dec}}K^pE(x)+b_{\mathrm{dec}}\).
+Then \(G_p\) is piecewise affine on a finite polyhedral stratification. Moreover,
+for every finite number \(T\ge 1\) of re-encoding segments, the \(T\)-fold
+composition
+\[
+G_p^{\circ T}
+=
+\underbrace{G_p\circ G_p\circ\cdots\circ G_p}_{T\ \text{times}}
+\]
+is piecewise affine on a finite polyhedral itinerary stratification. Each
+itinerary stratum is determined by the finite sequence of encoder regions
+visited by the rollout.
+\end{enumerate}
+\end{theorem}
+
+This theorem is an architectural statement. It shows that piecewise-affine
+encoders induce a finite collection of support-stratified affine decoded
+predictors. It does not by itself imply that supports recover basins, that the
+local affine predictors are accurate, or that the learned finite-dimensional
+coordinates are exactly Koopman-invariant.
+
+\paragraph{Scope of the support identity.}
+The identity in part 3 is an exact zero-support identity. It should not be
+read as an exact statement about thresholded or top-\(k\) support rules unless
+the omitted coordinates vanish. For any externally chosen set
+\(S\subseteq[d_z]\), the exact decomposition is
+\[
+F_h(x)
+=
+D_{\mathrm{dec}}(K^h)_{:,S}E_S(x)
++
+D_{\mathrm{dec}}(K^h)_{:,S^c}E_{S^c}(x)
++
+b_{\mathrm{dec}}.
+\]
+Here \(S^c=[d_z]\setminus S\). The omitted-coordinate contribution is zero
+whenever \(E_{S^c}(x)=0\), but the converse need not hold. In general,
+\[
+D_{\mathrm{dec}}(K^h)_{:,S^c}E_{S^c}(x)=0
+\quad\Longleftrightarrow\quad
+E_{S^c}(x)\in
+\ker\!\left(D_{\mathrm{dec}}(K^h)_{:,S^c}\right).
+\]
+Thus this vanishing is equivalent to \(E_{S^c}(x)=0\) only under the additional
+injectivity condition
+\(\ker(D_{\mathrm{dec}}(K^h)_{:,S^c})=\{0\}\). Moreover, the support selects
+the active columns of \(K^h\), but the full affine state-space predictor also
+depends on the encoder stratum through \(E_S(x)=(A_r x+a_r)_S\). Thus two
+refined strata can share the same support while inducing different affine maps
+in state space.
+
+\begin{proof}
+We prove the four claims in order.
+
+\paragraph{Part 1.}
+Fix a stratum \(\mathcal C_r\). By assumption, \(E(x)=A_r x+a_r\) for all
+\(x\in\mathcal C_r\). Therefore, for \(x\in\mathcal C_r\),
+\[
+\begin{aligned}
+F_h(x)
+&=
+D_{\mathrm{dec}}K^hE(x)+b_{\mathrm{dec}} \\
+&=
+D_{\mathrm{dec}}K^h(A_r x+a_r)+b_{\mathrm{dec}} \\
+&=
+D_{\mathrm{dec}}K^hA_r x
++
+D_{\mathrm{dec}}K^h a_r
++
+b_{\mathrm{dec}}.
+\end{aligned}
+\]
+Thus \(F_h\) is affine on \(\mathcal C_r\), with
+\(M_{r,h}=D_{\mathrm{dec}}K^hA_r\) and
+\(m_{r,h}=D_{\mathrm{dec}}K^h a_r+b_{\mathrm{dec}}\).
+Since there are finitely many strata \(\mathcal C_r\), the map \(F_h\) is
+piecewise affine on \(\mathscr C\).
+
+\paragraph{Part 2.}
+Fix a stratum \(\mathcal C_r\). On \(\mathcal C_r\), the \(i\)-th coordinate of
+the encoder is the affine scalar function \(E_i(x)=e_i^\top(A_r x+a_r)\), where
+\(e_i\) is the \(i\)-th standard basis vector of \(\mathbb R^{d_z}\). Apply the
+finite sign-refinement lemma to the affine functions
+\(g_{r,i}(x)=e_i^\top(A_r x+a_r)\), \(i=1,\ldots,d_z\). For each sign vector
+\(\rho\in\{-1,0,+1\}^{d_z}\), define
+\[
+\mathcal C_{r,\rho}
+=
+\left\{
+x\in\mathcal C_r:
+g_{r,i}(x)<0 \ \text{if }\rho_i=-1,\quad
+g_{r,i}(x)=0 \ \text{if }\rho_i=0,\quad
+g_{r,i}(x)>0 \ \text{if }\rho_i=+1
+\right\}.
+\]
+The nonempty sets \(\mathcal C_{r,\rho}\), over all \(r\) and \(\rho\), form a
+finite polyhedral refinement of \(\mathscr C\). Indeed, for each fixed \(r\)
+they stratify \(\mathcal C_r\), and the original \(\mathcal C_r\)'s already
+stratify \(\mathbb R^{d_x}\).
+
+By construction, \(\sign(E(x))=\rho\) for all \(x\in\mathcal C_{r,\rho}\).
+Hence the signed support is constant on every refined stratum. The unsigned
+support is obtained by forgetting the signs,
+\(\supp(E(x))=\{i:\rho_i\neq 0\}\), and is therefore also constant on every
+refined stratum.
+
+\paragraph{Part 3.}
+Let \(\mathcal S=\mathcal C_{r,\rho}\) be one of the refined strata from part
+\(2\), and define \(S_\mathcal S=\{i\in[d_z]:\rho_i\neq 0\}\). For every
+\(x\in\mathcal S\), we have \(E_i(x)=0\) for all \(i\notin S_\mathcal S\).
+Thus \(E(x)\) has zero coordinates outside \(S_\mathcal S\). Therefore
+\(K^hE(x)=(K^h)_{:,S_\mathcal S}E_{S_\mathcal S}(x)\).
+Substituting this identity into the decoded predictor gives
+\[
+F_h(x)
+=
+D_{\mathrm{dec}}K^hE(x)+b_{\mathrm{dec}}
+=
+D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}E_{S_\mathcal S}(x)
++
+b_{\mathrm{dec}}.
+\]
+This proves that the local predictor on \(\mathcal S\) uses only the active
+latent coordinates and the corresponding columns of \(K^h\).
+
+\paragraph{Part 4.}
+The map \(G_p\) is exactly \(F_p\), so by part \(1\) it is piecewise affine on a
+finite polyhedral stratification. Let
+\(\mathscr P=\{\mathcal P_1,\ldots,\mathcal P_N\}\) be such a stratification,
+and write \(G_p(x)=B_jx+c_j\) for all \(x\in\mathcal P_j\).
+
+We prove that every finite composition \(G_p^{\circ T}\) is piecewise affine by
+constructing itinerary strata. Define \(G_p^{\circ 0}\) to be the identity map.
+For an itinerary
+\(\alpha=(\alpha_0,\alpha_1,\ldots,\alpha_{T-1})\in\{1,\ldots,N\}^T\), define
+the final itinerary cell
+\[
+\Omega_\alpha
+=
+\left\{
+x\in\mathbb R^{d_x}:
+G_p^{\circ s}(x)\in\mathcal P_{\alpha_s}
+\ \text{for }s=0,\ldots,T-1
+\right\}.
+\]
+The nonempty sets \(\Omega_\alpha\) cover \(\mathbb R^{d_x}\), because every
+point has a unique stratum membership at each of the finitely many times
+\(0,\ldots,T-1\). They are pairwise disjoint because the strata
+\(\mathcal P_j\) are pairwise disjoint.
+
+It remains to show that each nonempty \(\Omega_\alpha\) is polyhedral and that
+\(G_p^{\circ T}\) is affine on it. For \(t=0,\ldots,T\), define the partial
+itinerary cell
+\[
+\Omega_{\alpha,t}
+=
+\left\{
+x\in\mathbb R^{d_x}:
+G_p^{\circ s}(x)\in\mathcal P_{\alpha_s}
+\ \text{for }s=0,\ldots,t-1
+\right\},
+\]
+with the convention that \(\Omega_{\alpha,0}=\mathbb R^{d_x}\). Then
+\(\Omega_{\alpha,T}=\Omega_\alpha\). We prove by induction on \(t\) that each
+nonempty \(\Omega_{\alpha,t}\) is a polyhedral stratum and that
+\(G_p^{\circ t}\) is affine on \(\Omega_{\alpha,t}\).
+
+For \(t=0\), \(\Omega_{\alpha,0}=\mathbb R^{d_x}\), which is a polyhedral
+stratum, and \(G_p^{\circ 0}(x)=x\) is affine.
+
+Assume the claim holds for some \(t<T\). Thus, on \(\Omega_{\alpha,t}\),
+\(G_p^{\circ t}(x)=L_t x+\ell_t\) for some matrix \(L_t\) and vector
+\(\ell_t\). The next partial cell is
+\[
+\Omega_{\alpha,t+1}
+=
+\Omega_{\alpha,t}
+\cap
+\left\{x:L_t x+\ell_t\in\mathcal P_{\alpha_t}\right\}.
+\]
+By the affine-preimage lemma, the second set is either empty or a polyhedral
+stratum. Its intersection with the polyhedral stratum \(\Omega_{\alpha,t}\) is
+therefore either empty or a polyhedral stratum.
+
+On any nonempty \(\Omega_{\alpha,t+1}\), we have
+\(G_p^{\circ t}(x)\in\mathcal P_{\alpha_t}\), and on \(\mathcal P_{\alpha_t}\)
+the map \(G_p\) has the affine formula \(G_p(y)=B_{\alpha_t}y+c_{\alpha_t}\).
+Therefore, for \(x\in\Omega_{\alpha,t+1}\),
+\[
+\begin{aligned}
+G_p^{\circ(t+1)}(x)
+&=
+G_p(G_p^{\circ t}(x))  \\
+&=
+B_{\alpha_t}(L_t x+\ell_t)+c_{\alpha_t} \\
+&=
+(B_{\alpha_t}L_t)x+(B_{\alpha_t}\ell_t+c_{\alpha_t}),
+\end{aligned}
+\]
+which is affine in \(x\). This completes the induction.
+
+Taking \(t=T\), each nonempty final cell \(\Omega_\alpha\) is polyhedral and
+\(G_p^{\circ T}\) is affine on it. Since there are only finitely many
+itineraries \(\alpha\in\{1,\ldots,N\}^T\), the nonempty final cells give a finite
+polyhedral stratification, and \(G_p^{\circ T}\) is piecewise affine.
+\end{proof}
+
+\setcounter{corollary}{0}
+\begin{corollary}[Exact sparse coding under uniqueness]
+Let \(B\in\mathbb R^{d_x\times d_z}\) and \(\lambda>0\), and, for each
+\(x\in\mathbb R^{d_x}\), consider the lasso sparse-coding problem
+\[
+E_{\mathrm{lasso}}(x)
+=
+z^\star(x)
+=
+\arg\min_{z\in\mathbb R^{d_z}}
+\left\{
+\frac12\|x-Bz\|_2^2+\lambda\|z\|_1
+\right\}.
+\]
+Assume that the minimizer is unique for every \(x\in\mathbb R^{d_x}\). Then
+\(E_{\mathrm{lasso}}\) is single-valued, continuous, and piecewise affine on a
+finite polyhedral stratification. Consequently, the general theorem applies
+with \(E=E_{\mathrm{lasso}}\). In particular, for every \(h\ge 1\),
+\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}\) is
+piecewise affine, and on every refined support stratum \(\mathcal S\),
+\[
+D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}
+=
+D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
+(E_{\mathrm{lasso}}(x))_{S_\mathcal S}
++
+b_{\mathrm{dec}}.
+\]
+
+The uniqueness assumption is essential. It is satisfied, for example, if
+\(B\) has full column rank.
+\end{corollary}
+
+\begin{proof}
+For fixed \(x\), define
+\(J_x(z)=\frac12\|x-Bz\|_2^2+\lambda\|z\|_1\). Because \(\lambda>0\),
+\(J_x(z)\ge \lambda\|z\|_1\), and hence \(J_x(z)\to\infty\) as
+\(\|z\|_1\to\infty\). Since \(J_x\) is continuous, a minimizer exists. By
+assumption, this minimizer is unique.
+
+We first derive the optimality conditions from first principles. Let
+\(r=x-Bz\). We claim that \(z\) minimizes \(J_x\) if and only if
+\(B^\top(x-Bz)=\lambda\gamma\) for some \(\gamma\in\mathbb R^{d_z}\)
+satisfying
+\[
+\gamma_i=
+\begin{cases}
+\sign(z_i), & z_i\neq 0,\\
+\text{some number in }[-1,1], & z_i=0.
+\end{cases}
+\]
+
+First suppose \(z\) is a minimizer. Let \(b_i\) denote the \(i\)-th column of
+\(B\). The differentiable part of \(J_x\) has coordinate derivative
+\[
+\frac{\partial}{\partial z_i}
+\left(
+\frac12\|x-Bz\|_2^2
+\right)
+=
+b_i^\top(Bz-x)
+=
+-b_i^\top r.
+\]
+
+If \(z_i>0\), then for sufficiently small perturbations in the \(i\)-th
+coordinate the absolute-value term is differentiable with derivative \(+1\).
+Optimality of \(z\) therefore gives \(-b_i^\top r+\lambda=0\), or equivalently
+\(b_i^\top r=\lambda\).
+If \(z_i<0\), the absolute-value term has derivative \(-1\), and optimality
+gives \(-b_i^\top r-\lambda=0\), or equivalently \(b_i^\top r=-\lambda\).
+If \(z_i=0\), then moving in the positive coordinate direction by \(t>0\) gives
+\[
+J_x(z+t e_i)-J_x(z)
+=
+t(-b_i^\top r+\lambda)+O(t^2).
+\]
+Since \(z\) is a minimizer, the first-order coefficient must be nonnegative:
+\(-b_i^\top r+\lambda\ge 0\), so \(b_i^\top r\le \lambda\).
+Moving in the negative coordinate direction gives
+\[
+J_x(z-t e_i)-J_x(z)
+=
+t(b_i^\top r+\lambda)+O(t^2),
+\]
+and hence \(b_i^\top r+\lambda\ge 0\), so \(b_i^\top r\ge -\lambda\). Thus,
+when \(z_i=0\), \(|b_i^\top r|\le \lambda\).
+Combining the three cases gives the claimed condition.
+
+Conversely, suppose the claimed condition holds. Let \(w\in\mathbb R^{d_z}\)
+be arbitrary. Since \(r=x-Bz\), we have \(x-Bw=x-Bz-B(w-z)=r-B(w-z)\).
+Therefore
+\[
+\begin{aligned}
+J_x(w)-J_x(z)
+&=
+\frac12\|r-B(w-z)\|_2^2-\frac12\|r\|_2^2
++
+\lambda(\|w\|_1-\|z\|_1) \\
+&=
+-r^\top B(w-z)
++
+\frac12\|B(w-z)\|_2^2
++
+\lambda(\|w\|_1-\|z\|_1).
+\end{aligned}
+\]
+The condition \(B^\top r=\lambda\gamma\) gives
+\(r^\top B(w-z)=(B^\top r)^\top(w-z)=\lambda\gamma^\top(w-z)\).
+Hence
+\[
+J_x(w)-J_x(z)
+=
+\frac12\|B(w-z)\|_2^2
++
+\lambda\bigl(\|w\|_1-\|z\|_1-\gamma^\top(w-z)\bigr).
+\]
+For each coordinate \(i\), the definition of \(\gamma_i\) gives
+\(|w_i|-|z_i|\ge \gamma_i(w_i-z_i)\).
+Indeed, if \(z_i>0\), then \(\gamma_i=1\) and this inequality is
+\(|w_i|-z_i\ge w_i-z_i\), which follows from \(|w_i|\ge w_i\). If \(z_i<0\),
+then \(\gamma_i=-1\) and the inequality is
+\(|w_i|+z_i\ge -w_i+z_i\), which follows from \(|w_i|\ge -w_i\). If \(z_i=0\),
+then \(|\gamma_i|\le 1\), so \(|w_i|\ge \gamma_i w_i\). Summing over
+coordinates gives
+\(\|w\|_1-\|z\|_1\ge \gamma^\top(w-z)\). Thus
+\(J_x(w)-J_x(z)\ge \frac12\|B(w-z)\|_2^2\ge 0\).
+Since \(w\) was arbitrary, \(z\) minimizes \(J_x\). This proves the optimality
+criterion.
+
+We now construct the affine pieces. Let \(A\subseteq[d_z]\) be a candidate
+active set and let \(s\in\{-1,+1\}^{A}\) be a candidate sign vector. We use
+the convention that, when \(A=\varnothing\),
+all matrices and vectors restricted to \(A\) have the corresponding empty
+dimensions and the formula below gives the zero vector.
+
+Assume \(B_A^\top B_A\) is invertible. Define the affine candidate
+\[
+z_A^{A,s}(x)
+=
+(B_A^\top B_A)^{-1}(B_A^\top x-\lambda s),
+\qquad
+z_{A^c}^{A,s}(x)=0.
+\]
+Define the corresponding residual \(r_{A,s}(x)=x-B_Az_A^{A,s}(x)\).
+Now define
+\[
+P_{A,s}
+=
+\left\{
+x\in\mathbb R^{d_x}:
+s_i z_i^{A,s}(x)\ge 0 \ \text{for all } i\in A,\quad
+|b_j^\top r_{A,s}(x)|\le \lambda \ \text{for all } j\notin A
+\right\}.
+\]
+The functions \(z_i^{A,s}(x)\) and \(b_j^\top r_{A,s}(x)\) are affine in
+\(x\). Hence \(P_{A,s}\) is a closed polyhedron.
+
+For \(x\in P_{A,s}\), the active residual equation holds by construction:
+\[
+B_A^\top r_{A,s}(x)
+=
+B_A^\top x
+-
+B_A^\top B_A z_A^{A,s}(x)
+=
+\lambda s.
+\]
+For inactive indices \(j\notin A\), the definition of \(P_{A,s}\) gives
+\(|b_j^\top r_{A,s}(x)|\le \lambda\).
+For active indices \(i\in A\), if \(z_i^{A,s}(x)\neq 0\), then
+\(s_i z_i^{A,s}(x)>0\), so \(\sign(z_i^{A,s}(x))=s_i\).
+If \(z_i^{A,s}(x)=0\), then \(s_i\in[-1,1]\), which is allowed by the
+zero-coordinate optimality condition. Therefore the optimality criterion above
+shows that \(z^{A,s}(x)\) is a minimizer of \(J_x\). Since the minimizer is
+unique, \(E_{\mathrm{lasso}}(x)=z^{A,s}(x)\) for all \(x\in P_{A,s}\).
+Thus \(E_{\mathrm{lasso}}\) is affine on each such polyhedron.
+
+It remains to show that these finitely many polyhedra cover
+\(\mathbb R^{d_x}\). Fix \(x\), and let
+\(z^\star=E_{\mathrm{lasso}}(x)\), \(A=\supp(z^\star)\), and
+\(s=\sign(z^\star_A)\).
+We claim that \(B_A^\top B_A\) must be invertible. If \(A=\varnothing\), this
+is true by convention. Otherwise, suppose \(B_A^\top B_A\) is singular. Then
+there exists a nonzero vector \(h\in\mathbb R^{|A|}\) such that \(B_Ah=0\).
+Let \(r^\star=x-B_Az^\star_A\). The active optimality equations give
+\(B_A^\top r^\star=\lambda s\).
+Multiplying by \(h\), we obtain
+\[
+\lambda s^\top h
+=
+h^\top B_A^\top r^\star
+=
+(B_Ah)^\top r^\star
+=
+0.
+\]
+Thus \(s^\top h=0\).
+For sufficiently small nonzero \(t\), the vector \(z^\star_A+th\) has the same
+coordinate signs as \(z^\star_A\). Also,
+\[
+B_A(z^\star_A+th)
+=
+B_Az^\star_A+tB_Ah
+=
+B_Az^\star_A,
+\]
+so the residual is unchanged. Since the signs are unchanged,
+\[
+\|z^\star_A+th\|_1
+=
+s^\top(z^\star_A+th)
+=
+s^\top z^\star_A+t s^\top h
+=
+s^\top z^\star_A
+=
+\|z^\star_A\|_1.
+\]
+Therefore \(z^\star_A+th\), extended by zeros on \(A^c\), gives the same
+objective value as \(z^\star\). This contradicts uniqueness. Hence
+\(B_A^\top B_A\) is invertible.
+
+Since \(B_A^\top B_A\) is invertible, the active optimality equation
+\(B_A^\top(x-B_Az^\star_A)=\lambda s\) implies
+\[
+z^\star_A
+=
+(B_A^\top B_A)^{-1}(B_A^\top x-\lambda s)
+=
+z_A^{A,s}(x).
+\]
+The inactive optimality inequalities give
+\(|b_j^\top r_{A,s}(x)|\le \lambda\) for all \(j\notin A\), and the sign
+conditions give \(s_i z_i^{A,s}(x)>0\) for all \(i\in A\).
+Thus \(x\in P_{A,s}\). Therefore the finite collection of polyhedra \(P_{A,s}\),
+over all \(A\subseteq[d_z]\) and \(s\in\{-1,+1\}^A\) with
+\(B_A^\top B_A\) invertible, covers \(\mathbb R^{d_x}\).
+
+The sets \(P_{A,s}\) may overlap on boundaries. To obtain a genuine
+stratification, take the finite family of all affine functions appearing in the
+defining inequalities of all the polyhedra \(P_{A,s}\), and stratify
+\(\mathbb R^{d_x}\) according to the signs of those functions. By the finite
+sign-refinement lemma, this gives a finite polyhedral stratification. On every
+stratum, membership in each \(P_{A,s}\) is constant. Since the \(P_{A,s}\)'s
+cover \(\mathbb R^{d_x}\), each stratum lies inside at least one \(P_{A,s}\).
+On that stratum, \(E_{\mathrm{lasso}}(x)=z^{A,s}(x)\), which is affine in
+\(x\). If a stratum lies inside more than one such
+polyhedron, the corresponding affine formulas agree on the stratum because
+they all equal the unique minimizer. Hence \(E_{\mathrm{lasso}}\) is piecewise
+affine on a finite polyhedral stratification.
+
+The general theorem now applies directly with \(E=E_{\mathrm{lasso}}\). Therefore
+the decoded \(h\)-step Koopman predictor
+\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}\) is
+piecewise affine, and on each refined support stratum \(\mathcal S\) it uses
+only the active coordinates:
+\[
+D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}
+=
+D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
+(E_{\mathrm{lasso}}(x))_{S_\mathcal S}
++
+b_{\mathrm{dec}}.
+\]
+
+We finally prove continuity of \(E_{\mathrm{lasso}}\). Let \(x_n\to x\), and set
+\(z_n=E_{\mathrm{lasso}}(x_n)\).
+Since \(z_n\) minimizes \(J_{x_n}\),
+\[
+\frac12\|x_n-Bz_n\|_2^2+\lambda\|z_n\|_1
+\le
+\frac12\|x_n\|_2^2.
+\]
+In particular, \(\lambda\|z_n\|_1\le\frac12\|x_n\|_2^2\).
+The sequence \((x_n)\) is bounded, so \((z_n)\) is bounded. Let
+\((z_{n_k})\) be any convergent subsequence, and write \(z_{n_k}\to \bar z\).
+For every \(w\in\mathbb R^{d_z}\), optimality of \(z_{n_k}\) gives
+\[
+J_{x_{n_k}}(z_{n_k})
+\le
+J_{x_{n_k}}(w).
+\]
+Taking \(k\to\infty\), using continuity of \(J_x(z)\) jointly in \((x,z)\),
+gives
+\[
+J_x(\bar z)\le J_x(w)
+\qquad
+\text{for all }w.
+\]
+Thus \(\bar z\) is a minimizer of \(J_x\). By uniqueness,
+\(\bar z=E_{\mathrm{lasso}}(x)\).
+Every convergent subsequence of \((z_n)\) has the same limit
+\(E_{\mathrm{lasso}}(x)\), and \((z_n)\) is bounded. Therefore
+\(z_n\to E_{\mathrm{lasso}}(x)\).
+So \(E_{\mathrm{lasso}}\) is continuous.
+
+If \(B\) has full column rank, then \(B^\top B\) is positive definite, so the
+quadratic term \(z\mapsto \frac12\|x-Bz\|_2^2\) is strictly convex. The term
+\(\lambda\|z\|_1\) is convex. The sum of a
+strictly convex function and a convex function is strictly convex, so \(J_x\)
+has at most one minimizer. Since a minimizer exists, it is unique. Hence full
+column rank is a sufficient condition for the uniqueness assumption.
+\end{proof}
+
+\begin{corollary}[Finite-depth LISTA encoders]
+Let \(Q\ge 0\) be an integer. Let
+\(c:\mathbb R^{d_x}\to\mathbb R^{d_z}\) be a single-valued pre-code that is
+piecewise affine on a finite polyhedral stratification. This includes the affine
+special case \(c(x)=Wx+b\), where \(W\in\mathbb R^{d_z\times d_x}\) and
+\(b\in\mathbb R^{d_z}\). Let \(S_{\mathrm{L}}\in\mathbb R^{d_z\times d_z}\),
+let \(\tau\in\mathbb R_{\ge 0}^{d_z}\), and define the coordinatewise
+soft-thresholding map by
+\([T_\tau(y)]_i=\sign(y_i)\max\{|y_i|-\tau_i,0\}\).
+Consider the finite-depth LISTA encoder
+\[
+u^{(0)}(x)=T_\tau(c(x)),
+\]
+\[
+u^{(q+1)}(x)=T_\tau(S_{\mathrm{L}}u^{(q)}(x)+c(x)),
+\qquad
+q=0,\ldots,Q-1,
+\]
+and
+\[
+E_{\mathrm{LISTA}}(x)=u^{(Q)}(x).
+\]
+Here \(Q\) counts the number of refinement steps after the initial
+thresholding; when \(Q=0\), the encoder is simply
+\(E_{\mathrm{LISTA}}=u^{(0)}\). Then \(E_{\mathrm{LISTA}}\) is
+single-valued and piecewise affine on a finite polyhedral stratification of
+\(\mathbb R^{d_x}\). Consequently, the general theorem applies with
+\(E=E_{\mathrm{LISTA}}\). In particular, for every \(h\ge 1\),
+\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}\) is
+piecewise affine, and on every refined support stratum \(\mathcal S\),
+\[
+D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}
+=
+D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
+(E_{\mathrm{LISTA}}(x))_{S_\mathcal S}
++
+b_{\mathrm{dec}}.
+\]
+\end{corollary}
+
+\begin{proof}
+We first show that the soft-thresholding map \(T_\tau\) is piecewise affine on
+a finite polyhedral stratification of \(\mathbb R^{d_z}\).
+
+For one coordinate, define
+\(t_i(y_i)=\sign(y_i)\max\{|y_i|-\tau_i,0\}\).
+Equivalently,
+\[
+t_i(y_i)
+=
+\begin{cases}
+y_i+\tau_i, & y_i<-\tau_i,\\
+0, & -\tau_i\le y_i\le \tau_i,\\
+y_i-\tau_i, & y_i>\tau_i.
+\end{cases}
+\]
+To obtain a disjoint stratification, split the real line into the nonempty and
+distinct sets among \((-\infty,-\tau_i)\), \(\{-\tau_i\}\),
+\((-\tau_i,\tau_i)\), \(\{\tau_i\}\), and \((\tau_i,\infty)\).
+The phrase ``distinct'' only matters when \(\tau_i=0\), in which case
+\(\{-\tau_i\}=\{\tau_i\}\) and \((-\tau_i,\tau_i)\) is empty. On each
+remaining piece, \(t_i\) is affine: \(t_i(y_i)=y_i+\tau_i\) on
+\((-\infty,-\tau_i)\), \(t_i(y_i)=0\) on the pieces contained in
+\([-\tau_i,\tau_i]\), and \(t_i(y_i)=y_i-\tau_i\) on \((\tau_i,\infty)\).
+Taking Cartesian products of these one-dimensional strata over
+\(i=1,\ldots,d_z\) gives a finite polyhedral stratification of
+\(\mathbb R^{d_z}\). On each product stratum \(\mathcal P\), there exist a
+diagonal matrix \(R_\mathcal P\) and a vector \(r_\mathcal P\) such that
+\(T_\tau(y)=R_\mathcal P y+r_\mathcal P\) for all \(y\in\mathcal P\).
+Thus \(T_\tau\) is piecewise affine.
+
+Let \(\mathscr C^c=\{\mathcal C_\alpha^c\}_\alpha\) be a finite polyhedral
+stratification on which the pre-code \(c\) is affine.
+Thus, on each \(\mathcal C_\alpha^c\), there exist
+\(W_\alpha^c\) and \(b_\alpha^c\) such that
+\(c(x)=W_\alpha^c x+b_\alpha^c\) for all \(x\in\mathcal C_\alpha^c\).
+If \(c(x)=Wx+b\) is globally affine, this stratification has one stratum.
+
+We now prove by induction over the LISTA depth that every \(u^{(q)}\) is
+piecewise affine on a finite polyhedral stratification that refines
+\(\mathscr C^c\).
+
+For the initial step, let \(\mathcal P\) be one of the threshold strata for
+\(T_\tau\). On a fixed pre-code stratum \(\mathcal C_\alpha^c\), the set
+\[
+\mathcal C_\alpha^c
+\cap
+\{x:W_\alpha^c x+b_\alpha^c\in\mathcal P\}
+\]
+is either empty or a polyhedral stratum: it is the intersection of
+\(\mathcal C_\alpha^c\) with the affine preimage of \(\mathcal P\). The
+nonempty sets of this form, over all \(\alpha\) and all threshold strata
+\(\mathcal P\), form a finite polyhedral stratification of
+\(\mathbb R^{d_x}\) refining \(\mathscr C^c\). On such a stratum,
+\[
+\begin{aligned}
+u^{(0)}(x)
+&=
+T_\tau(c(x)) \\
+&=
+R_\mathcal P(W_\alpha^c x+b_\alpha^c)+r_\mathcal P \\
+&=
+(R_\mathcal P W_\alpha^c)x+(R_\mathcal P b_\alpha^c+r_\mathcal P),
+\end{aligned}
+\]
+which is affine in \(x\). Therefore \(u^{(0)}\) is piecewise affine.
+
+Now assume that, for some \(q\ge 0\), \(u^{(q)}\) is piecewise affine on a
+finite polyhedral stratification
+\(\mathscr C^{(q)}=\{\mathcal C_\beta^{(q)}\}_\beta\) that refines
+\(\mathscr C^c\). Thus, on each stratum
+\(\mathcal C_\beta^{(q)}\), there exist \(A_\beta^{(q)}\) and
+\(a_\beta^{(q)}\) such that
+\(u^{(q)}(x)=A_\beta^{(q)}x+a_\beta^{(q)}\).
+Because \(\mathscr C^{(q)}\) refines \(\mathscr C^c\), the pre-code is also
+affine on \(\mathcal C_\beta^{(q)}\); write
+\(c(x)=W_\beta^c x+b_\beta^c\) for all \(x\in\mathcal C_\beta^{(q)}\).
+On this same stratum, the next pre-threshold vector is
+\[
+\begin{aligned}
+v^{(q+1)}(x)
+&=
+S_{\mathrm{L}}u^{(q)}(x)+c(x)\\
+&=
+S_{\mathrm{L}}(A_\beta^{(q)}x+a_\beta^{(q)})+W_\beta^c x+b_\beta^c\\
+&=
+(S_{\mathrm{L}}A_\beta^{(q)}+W_\beta^c)x
++
+(S_{\mathrm{L}}a_\beta^{(q)}+b_\beta^c),
+\end{aligned}
+\]
+which is affine in \(x\).
+
+Let \(\mathcal P\) again be a threshold stratum for \(T_\tau\). The set
+\[
+\mathcal C_\beta^{(q)}
+\cap
+\{x:v^{(q+1)}(x)\in\mathcal P\}
+\]
+is either empty or a polyhedral stratum: it is the intersection of
+\(\mathcal C_\beta^{(q)}\) with the affine preimage of \(\mathcal P\). These
+nonempty intersections, over all \(\beta\) and all threshold strata
+\(\mathcal P\), give a finite polyhedral refinement of
+\(\mathscr C^{(q)}\), and hence still refine \(\mathscr C^c\). On such a
+refined stratum,
+\[
+\begin{aligned}
+u^{(q+1)}(x)
+&=
+T_\tau(v^{(q+1)}(x))\\
+&=
+R_\mathcal P v^{(q+1)}(x)+r_\mathcal P\\
+&=
+R_\mathcal P\bigl((S_{\mathrm{L}}A_\beta^{(q)}+W_\beta^c)x
++
+(S_{\mathrm{L}}a_\beta^{(q)}+b_\beta^c)\bigr)
++
+r_\mathcal P,
+\end{aligned}
+\]
+which is affine in \(x\). Thus \(u^{(q+1)}\) is piecewise affine on a finite
+polyhedral stratification that refines \(\mathscr C^c\).
+
+By induction, \(E_{\mathrm{LISTA}}(x)=u^{(Q)}(x)\) is piecewise affine on a
+finite polyhedral stratification. The encoder is
+single-valued because it is defined by deterministic compositions of functions.
+
+The general theorem now applies with \(E=E_{\mathrm{LISTA}}\). Hence
+\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}\) is
+piecewise affine, and on each refined support stratum \(\mathcal S\),
+\[
+D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}
+=
+D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
+(E_{\mathrm{LISTA}}(x))_{S_\mathcal S}
++
+b_{\mathrm{dec}}.
+\]
+
+When the pre-code is written as \(c(x)=f_\theta(x)\), this corollary applies
+literally whenever \(f_\theta\) is piecewise affine, for example an affine,
+ReLU, or leaky-ReLU MLP. It does not automatically cover smooth pre-codes such
+as tanh, sigmoid, GELU, or SiLU networks, or input-dependent normalizations,
+unless a separate approximation or regularity argument is supplied.
+\end{proof}
+
 \section{Additional experimental details}
 \label{app:experimental_details}
 
@@ -581,7 +1513,7 @@ System & State dimension \\
 
 The Dysts systems have system-specific native integration intervals, so the cached sequences should be interpreted as benchmark observation sequences rather than as trajectories normalized to a common physical time. Coordinates are standardized before training and evaluation. The models never observe the vector field, the continuous solver, or the native integration substeps; they receive uniformly spaced stored states and are evaluated in stored-step units. This is why the Dysts table reports horizons such as $H5000$ and $H60000$ rather than a shared physical-time horizon.
 
-\paragraph{Recipe-selection provenance.}
+\paragraph{Training recipe selection.}
 Earlier exploratory sweeps varied LISTA depth, shrinkage scale, sparsity coefficient, sign-split encodings, transition structure, and MLP sparsity controls. Those pilots used shorter budgets or broader system lists, so their numeric grids are not treated as final protocol here. The paper-facing appendix instead reports the fixed model rows, training budgets, validation rule, held-out splits, and statistical units used for the final claims.
 In particular, staged recipe-discovery sweeps with $10{,}000$-step, three-seed cells and one-step training windows were used only to choose candidate recipes. They are not pooled with the final $200{,}000$-step, held-out-split evaluations and should not be interpreted as paper evidence.
 
@@ -656,28 +1588,22 @@ System & Geometry & Basins & Used in \\
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_seed_strips_boundary_only}
+\includegraphics[width=\linewidth]{figs/fig_fixed17_seed_strips_boundary_only}
 \caption{Per-(system, seed) forecasting MSE at $H100$, $H500$, and $H1000$ on the multibasin benchmark. Black bars are IQM values. The Dense MLP has a much heavier upper tail at every horizon.}
 \label{fig:fixed17_seed_strips}
 \end{figure}
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_fixed17_perseed_histograms}
+\includegraphics[width=\linewidth]{figs/appfig_fixed17_perseed_histograms}
 \caption{Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon ($H100$, $H500$, $H1000$); the top row shows the LISTA finalists with the standard-sampling MLP controls (for completeness), and the bottom row shows the matched boundary-emphasized MLP controls used in the main-text comparison. Histograms are over the $\log_{10}$ raw MSE.}
 \label{fig:appfig_fixed17_perseed}
 \end{figure}
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_fixed17_entropy_histograms}
-\caption{Per-(system, seed) histograms of basin/support agreement metrics on the deep-state slice ($S_{\rm abs}$). Top row: LISTA finalists with standard-sampling MLP controls. Bottom row: matched boundary-emphasized MLP controls used in the main-text comparison. Lower is better for $H(B\mid S)$ and $H(S\mid B)$; higher is better for $U_{\rm exact}$.}
-\label{fig:appfig_fixed17_entropy}
-\end{figure}
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_dysts_perseed_histograms}
+\includegraphics[width=\linewidth]{figs/appfig_dysts_perseed_histograms}
 \caption{Per-(system, seed) forecasting MSE distributions on the Dysts long-horizon benchmark.}
 \label{fig:appfig_dysts_perseed}
 \end{figure}
@@ -691,7 +1617,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_forest}
+\includegraphics[width=\linewidth]{figs/fig_fixed17_forest}
 \caption{Per-system effect sizes at $H{=}1000$ versus the Dense MLP baseline. Each point is one benchmark system; the $x$-coordinate is the per-system median paired $\log_{10}$-MSE difference (candidate minus baseline) over $10$ seeds, with whiskers showing the $95\%$ bootstrap interval. Filled markers clear Holm-corrected $\alpha{=}0.05$. Numerical values are in \cref{tab:persystem_h1000}.}
 \label{fig:fixed17_forest}
 \end{figure}
@@ -701,7 +1627,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=100$ on the $17$-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. $\Delta$ is the per-system median paired $\log_{10}$-MSE difference (candidate $-$ baseline) over the $10$ seeds; $p_{\rm H}$ is the one-sided paired Wilcoxon signed-rank $p$-value, Holm-corrected across the $17$ systems within each candidate column. Bold $\Delta$: Holm-corrected $p<0.05$ in favor of the candidate.}
 \label{tab:persystem_h100}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h100.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_h100.tex}}
 \end{table}
 
 \begin{table}[ht]
@@ -709,7 +1635,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=500$ on the $17$-system multibasin benchmark. Format identical to \cref{tab:persystem_h100}.}
 \label{tab:persystem_h500}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h500.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_h500.tex}}
 \end{table}
 
 \begin{table}[ht]
@@ -717,7 +1643,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=1000$ on the $17$-system multibasin benchmark. This is the numerical version of the forest plot in \cref{fig:fixed17_forest}. Format identical to \cref{tab:persystem_h100}.}
 \label{tab:persystem_h1000}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h1000.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_h1000.tex}}
 \end{table}
 
 \subsection*{Per-system audit of the interpretability columns}
@@ -731,7 +1657,7 @@ Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full 
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for $|S|$ (mean active-coordinate count on the deep slice) on the $17$-system multibasin benchmark. Alternative: candidate $|S|<$ baseline $|S|$. Lower (more negative) is better for the candidate. Latent dimension is $d_z{=}64$ for LISTA-SB and $d_z{=}256$ for LISTA-BD and the MLP rows.}
 \label{tab:persystem_size}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_MeanSupportSize.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_MeanSupportSize.tex}}
 \end{table}
 
 \begin{table}[ht]
@@ -739,7 +1665,7 @@ Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full 
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for $H(B\mid F)$ (basin uncertainty given the support \emph{family}, deep slice). Alternative: candidate $H(B\mid F)<$ baseline. Lower is better for the candidate.}
 \label{tab:persystem_hbf}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_HBgivenF.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_HBgivenF.tex}}
 \end{table}
 
 \begin{table}[ht]
@@ -747,7 +1673,7 @@ Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full 
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}1$ (deep slice). Alternative: candidate ratio $>$ baseline. Higher is better for the candidate (using the wrong support hurts the prediction more, indicating the model genuinely uses the support).}
 \label{tab:persystem_freeze_h1}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_FreezeWrongH1.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_FreezeWrongH1.tex}}
 \end{table}
 
 \begin{table}[ht]
@@ -755,7 +1681,7 @@ Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full 
 \caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}20$. Alternative: candidate $>$ baseline. Higher is better.}
 \label{tab:persystem_freeze_h20}
 \setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_FreezeWrongH20.tex}}
+\resizebox{\textwidth}{!}{\input{tables/table_persystem_FreezeWrongH20.tex}}
 \end{table}
 
 \section{Full per-system Dysts tables}
@@ -766,7 +1692,7 @@ The per-(system, seed) Dysts MSE values are released as \texttt{table3\_dysts.cs
 \section{Falsification: oracle, random, and latent-cluster controls}
 \label{app:falsification}
 
-The routing experiments include three falsification controls that we summarise here. (i) Oracle-conditioned $A_{\rm basin}$ fits beat the global $K$ on $93$--$100\%$ of evaluated deep rows for every model family, including the dense no-sparsity MLP. This says local centred laws exist for many representations once a good partition is supplied; the sparse-latent contribution is that the model itself supplies an inspectable, label-free partition that does this work. (ii) Random count-matched partitions and latent $k$-means clusters do not reproduce the routed/global ratios in \cref{tab:self_routing}: support-conditioned routing improves on these controls by an order of magnitude on the deep slice for the sparse-latent rows. (iii) On the local-Jacobian recovery diagnostic, LISTA support families often beat random count-matched partitions near attractors but the dense no-sparsity MLP can have lower absolute projected-Jacobian error because its representation is closer to the identity map. We therefore do not claim recovery of true Jacobian eigendirections; we claim support-conditioned local prediction and support-label agreement.
+The routing experiments include two falsification controls that we summarise here. (i) Oracle-conditioned $A_{\rm basin}$ fits beat the global $K$ on $93$--$100\%$ of evaluated deep rows for every model family, including the dense no-sparsity MLP. This says local centred laws exist for many representations once a good partition is supplied; the sparse-latent contribution is that the model itself supplies an inspectable, label-free partition that does this work. (ii) Random count-matched partitions and latent $k$-means clusters do not reproduce the routed/global ratios in \cref{tab:self_routing}: support-conditioned routing improves on these controls by an order of magnitude on the deep slice for the sparse-latent rows. 
 
 \bibliographystyle{plainnat}
 \bibliography{neurips_sparse_koopman_multibasin}
