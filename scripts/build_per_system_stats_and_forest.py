@@ -8,24 +8,27 @@ docs/figures/neurips_paper_2026/_tables/persystem_wilcoxon_fixed17.json
 docs/figures/neurips_paper_2026/_tables/table1_boundary_only.csv
 docs/figures/neurips_paper_2026/_tables/table1_boundary_only.tex
 
-Per-system paired Wilcoxon design
----------------------------------
-For each system (17 of them) and each (candidate, control) pair, we have 10
-paired seeds. We run a one-sided paired t-test on the per-seed
-log10(best-periodic MSE) values (candidate < control). The paired t-test on
-log-MSE has continuous p-values and is more powerful than Wilcoxon for N=10
-when the within-system log-MSE distribution is roughly Gaussian, which is the
-case here (per-seed log-MSE within a fixed system is dominated by training-time
-variability and is approximately normal). We also report the corresponding
-Wilcoxon p-values for robustness. We then apply Holm step-down correction
-across the 17 systems for each (candidate, control, horizon) combination at
-alpha=0.05, and report:
+Per-system paired testing design
+--------------------------------
+For each system (17 of them) and each (candidate, control) pair, we use the
+common completed paired seeds, up to 15 per system in the current paper-facing
+packet. The manuscript-facing confirmatory test is a one-sided paired Wilcoxon
+signed-rank test on per-seed deltas. Forecasting uses paired
+log10(best-periodic MSE) differences (candidate < control), while the
+interpretability metrics below use the metric-specific directions documented in
+docs/EXPERIMENTS.md and in the manuscript appendix. Holm step-down correction
+is applied across the systems for each (candidate, control, metric/horizon)
+combination at alpha=0.05, and we report:
 
 - K: number of systems where Holm-corrected p < 0.05 (candidate < control).
 - median_diff_log10: per-system median paired log-MSE difference, then median
   across the 17 systems. This is in log10 raw-MSE units.
-- per_system effect sizes (mean paired log-MSE diff with 95% bootstrap CI over
-  10 paired seeds) for the forest plot.
+- per_system effect sizes (paired log-MSE diff with 95% bootstrap CI over the
+  common completed seeds) for the forest plot.
+
+Paired t-test p-values are still written as supporting diagnostics in the
+supplementary CSV, but the K/N counts and appendix bolding use the Wilcoxon
+Holm-corrected p-values.
 
 The control is always the boundary-emphasized Dense MLP (no shrink) in this
 analysis, so all rows live in the same sampling regime.
@@ -75,38 +78,34 @@ PALETTE = {
 HORIZONS = (100, 500, 1000)
 ALPHA = 0.05  # significance level for Holm-corrected per-system tests
 
-MAIN_FC = (
+FC_CSVS = [
     ROOT
     / "results"
-    / "transition_rich_basin_partition_final_seed10_20260409"
-    / "collect_pass1"
-    / "forecasting_rows.csv"
-)
-HARDINIT_FC = (
+    / "transition_rich_table2_5model_seed15_backfill_20260428"
+    / "collect_pass0"
+    / "forecasting_rows.csv",
     ROOT
     / "results"
-    / "transition_rich_hardinit_mlp_controls_seed10_20260416"
-    / "collect_pass1"
-    / "forecasting_rows.csv"
-)
-MAIN_INTERP = (
+    / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
+    / "collect_pass0"
+    / "forecasting_rows.csv",
+]
+INTERP_CSVS = [
     ROOT
     / "results"
-    / "transition_rich_basin_partition_final_seed10_20260409"
-    / "interpretability_final_pass1"
-    / "interpretability_rows.csv"
-)
-HARDINIT_INTERP = (
+    / "transition_rich_table2_5model_seed15_backfill_20260428"
+    / "interpretability_pass0"
+    / "interpretability_rows.csv",
     ROOT
     / "results"
-    / "transition_rich_hardinit_mlp_controls_seed10_20260416"
-    / "interpretability_final_pass1"
-    / "interpretability_rows.csv"
-)
+    / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
+    / "interpretability_pass0"
+    / "interpretability_rows.csv",
+]
 
-# Boundary-only roster: LISTA-BD, LISTA-SB (from main); Sparse MLP, Sparse MLP BD,
-# Dense MLP no-shrink (from boundary MLP controls packet). The control for the
-# paired Wilcoxon is the boundary Dense MLP no-shrink (`zero_mlp`).
+# Boundary-only roster: LISTA-BD; matched-dimension LISTA-SB d_z=256; Sparse
+# MLP, Sparse MLP BD, Dense MLP no-shrink. The control for the paired Wilcoxon
+# is the boundary Dense MLP no-shrink (`zero_mlp`).
 ROOTS = {
     "lista_blockdiag_signsplit_hardinit_basin_partition": {
         "label": "LISTA-BD",
@@ -114,7 +113,7 @@ ROOTS = {
         "color": "blockdiag_lista",
         "source": "main",
     },
-    "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": {
+    "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": {
         "label": "LISTA-SB",
         "long": "Sparse Latent Koopman, soft-block LISTA",
         "color": "softblock_lista",
@@ -146,14 +145,10 @@ BASELINE = "mlp_zero_sparse_hardinit_basin_partition_control"
 # --------------------------------------------------------------------------------------
 
 print("Loading forecasting CSVs...")
-fc_main = pd.read_csv(MAIN_FC, low_memory=False)
-fc_hard = pd.read_csv(HARDINIT_FC, low_memory=False)
-fc = pd.concat([fc_main, fc_hard], ignore_index=True)
+fc = pd.concat([pd.read_csv(path, low_memory=False) for path in FC_CSVS], ignore_index=True)
 fc = fc[fc["root_label"].isin(ROOTS.keys())].copy()
 
-itp_main = pd.read_csv(MAIN_INTERP, low_memory=False)
-itp_hard = pd.read_csv(HARDINIT_INTERP, low_memory=False)
-itp = pd.concat([itp_main, itp_hard], ignore_index=True)
+itp = pd.concat([pd.read_csv(path, low_memory=False) for path in INTERP_CSVS], ignore_index=True)
 itp = itp[itp["root_label"].isin(ROOTS.keys())].copy()
 deep_mask = (itp["support_scheme"] == "absolute:0.001") & (itp["subset"] == "deep")
 itp_deep = itp[deep_mask].copy()
@@ -266,7 +261,7 @@ for root_label, meta in ROOTS.items():
             log_c = np.log10(c)
             log_b = np.log10(b)
             paired = log_c - log_b
-            # One-sided paired t-test (alternative: candidate < control means paired<0)
+            # Supporting diagnostic only; manuscript K/N uses Wilcoxon below.
             try:
                 t_res = stats.ttest_rel(log_c, log_b, alternative="less")
                 p_val = float(t_res.pvalue)
@@ -285,7 +280,7 @@ for root_label, meta in ROOTS.items():
             # (the natural location estimate paired with Wilcoxon)
             pairwise = (log_c[:, None] - log_b[None, :]).ravel()
             hl_diff = float(np.median(pairwise))
-            # Bootstrap CI on per-seed paired log-diff (10 paired seeds);
+            # Bootstrap CI on per-seed paired log-diff over common seeds;
             # bootstrap the *median* to be consistent with the Wilcoxon test
             # (rank-based, robust to outlier seeds).
             rng = np.random.default_rng(abs(hash(("forest", root_label, h, sysname))) % 2**32)
@@ -305,7 +300,8 @@ for root_label, meta in ROOTS.items():
             per_sys_n.append(int(c.size))
         per_sys_p = np.array(per_sys_p)
         per_sys_p_wilcoxon = np.array(per_sys_p_wilcoxon)
-        # Holm correction across systems (paired t-test p-values, more powerful for N=10)
+        # Holm correction across systems. The manuscript-facing counts use
+        # adj_w from Wilcoxon; adj is retained as a supporting t-test diagnostic.
         valid_mask = np.isfinite(per_sys_p)
         adj = np.full_like(per_sys_p, np.nan)
         if valid_mask.any():
@@ -342,9 +338,9 @@ per_system_df.to_csv(TBL_DIR / "persystem_wilcoxon_fixed17.csv", index=False)
 # --------------------------------------------------------------------------------------
 # Per-system Wilcoxon for the discriminative interpretability metrics on the
 # deep-state slice. We test each candidate row against the same Dense MLP
-# no-shrink baseline used for forecasting. H(S|B) is "lower is better" so we
+# no-shrink baseline used for forecasting. H(S_abs|B) is "lower is better" so we
 # use alternative='less'; U_exact is "higher is better" so we use 'greater'.
-# H(B|S) saturates at 0 for sparse rows on this slice; we skip it.
+# H(B|S_abs) saturates at 0 for sparse rows on this slice; we skip it.
 # --------------------------------------------------------------------------------------
 
 print("Running per-system Wilcoxon on entropy metrics (deep slice)...")
@@ -770,14 +766,14 @@ linesA.append(r"\end{tabular}")
 
 # --------------------------------------------------------------------------------------
 # Option B: K/N as primary (large), IQM as small secondary, on every cell.
-# Entropy/U_exact columns get K/N as well; H(B|S) is saturated so no K/N.
+# Entropy/U_exact columns get K/N as well; H(B|S_abs) is saturated so no K/N.
 # Best value per column is underlined.
 # --------------------------------------------------------------------------------------
 
 # Determine "best" indices per column.
 # For forecasting columns (H100, H500, H1000): higher K/N first, lower IQM as tiebreak.
-# For H(B|S): lower IQM (everyone is 0 for sparse rows so they tie).
-# For H(S|B): lower IQM is better.
+# For H(B|S_abs): lower IQM (everyone is 0 for sparse rows so they tie).
+# For H(S_abs|B): lower IQM is better.
 # For U_exact: higher IQM is better.
 
 candidate_indices = [
@@ -832,7 +828,7 @@ def underline(s: str) -> str:
     return f"\\underline{{{s}}}"
 
 
-# Best per column: |S| (lower better), H(B|F) (lower better),
+# Best per column: |S_abs| (lower better), H(B|F_abs) (lower better),
 # freeze-wrong h1 and h20 (higher better — wrong support hurts more = good).
 best_MeanSupportSize = best_idx_entropy("MeanSupportSize", lower_is_better=True)
 best_HBgivenF = best_idx_entropy("HBgivenF", lower_is_better=True)
@@ -867,7 +863,7 @@ linesB: list[str] = []
 linesB.append(r"\begin{tabular}{@{}l rrr r r r rr@{}}")
 linesB.append(r"\toprule")
 linesB.append(
-    rf"Model & H100\,{DOWN} & H500\,{DOWN} & H1000\,{DOWN} & $|S|$\,{DOWN} & $H(B\!\mid\!S)$\,{DOWN} & $H(B\!\mid\!F)$\,{DOWN} & wr.\,$h{{=}}1$\,{UP} & wr.\,$h{{=}}20$\,{UP} \\"
+    rf"Model & H100\,{DOWN} & H500\,{DOWN} & H1000\,{DOWN} & $|S_{{\rm abs}}|$\,{DOWN} & $H(B\!\mid\!S_{{\rm abs}})$\,{DOWN} & $H(B\!\mid\!F_{{\rm abs}})$\,{DOWN} & wr.\,$h{{=}}1$\,{UP} & wr.\,$h{{=}}20$\,{UP} \\"
 )
 linesB.append(r"\midrule")
 for i, row in enumerate(main_table_rows):
@@ -904,11 +900,11 @@ for i, row in enumerate(main_table_rows):
             )
             size_cell = f"{size_primary}{kn_str}"
 
-    # H(B|S) — saturated, no K/N
+    # H(B|S_abs) -- saturated, no K/N
     hbs_v = row["HBgivenS"]
     hbs_cell = f"${fmt_num(hbs_v, sig=2)}$" if np.isfinite(hbs_v) else "--"
 
-    # H(B|F) cell
+    # H(B|F_abs) cell
     hbf_v = row["HBgivenF"]
     fam_uniq = row["FamilyUniqueCount"]
     if not np.isfinite(hbf_v):
@@ -917,7 +913,7 @@ for i, row in enumerate(main_table_rows):
         hbf_primary = f"${fmt_num(hbf_v, sig=2)}$"
         if i in best_HBgivenF:
             hbf_primary = underline(hbf_primary)
-        fam_part = f"\\,{{\\scriptsize $|F|{{=}}{fam_uniq:.0f}$}}" if np.isfinite(fam_uniq) else ""
+        fam_part = f"\\,{{\\scriptsize $|F_{{\\rm abs}}|{{=}}{fam_uniq:.0f}$}}" if np.isfinite(fam_uniq) else ""
         if is_baseline:
             hbf_cell = f"{hbf_primary}{fam_part}\\,\\emph{{[baseline]}}"
         else:
@@ -1119,8 +1115,8 @@ for H_VAL in (100, 500):
 
 # --------------------------------------------------------------------------------------
 # Per-system appendix tables for the new interpretability metrics
-#  - mean_support_size (|S|)
-#  - family_h_basin_given_family (H(B|F))
+#  - mean_support_size (|S_abs|)
+#  - family_h_basin_given_family (H(B|F_abs))
 #  - support_freeze_wrong_over_base_h1
 #  - support_freeze_wrong_over_base_h20
 # Each table: 17 rows × 4 candidates, per-system median paired diff +
@@ -1132,8 +1128,8 @@ for H_VAL in (100, 500):
 print("Building per-system interpretability appendix tables...")
 
 INTERP_APPENDIX_METRICS = {
-    "MeanSupportSize": ("mean_support_size", "less", "$|S|$ (mean active count)"),
-    "HBgivenF": ("family_h_basin_given_family", "less", "$H(B\\mid F)$ (family-level)"),
+    "MeanSupportSize": ("mean_support_size", "less", "$|S_{\\rm abs}|$ (mean active count)"),
+    "HBgivenF": ("family_h_basin_given_family", "less", "$H(B\\mid F_{\\rm abs})$ (family-level)"),
     "FreezeWrongH1": ("support_freeze_wrong_over_base_h1", "greater", "wrong-support-freeze MSE ratio at $h{=}1$"),
     "FreezeWrongH20": ("support_freeze_wrong_over_base_h20", "greater", "wrong-support-freeze MSE ratio at $h{=}20$"),
 }

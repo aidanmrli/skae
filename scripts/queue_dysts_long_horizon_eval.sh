@@ -11,10 +11,14 @@
 #   TASK_DIR=${RESULTS_DIR}/task_tables
 #   OUTPUT_TAG=dysts_long_horizon_h5k_to_h60k_seq10
 #   ARRAY_PARALLEL=48
+#   EVAL_PACK_SIZE=12
 #   VALIDATION_INDEX=0
 #   EVAL_TIME_LIMIT=03:00:00
+#   MAX_EXISTING_JOBS_BEFORE_SUBMIT=10000
 #   INPUT_ROOT_SPECS_TSV=/abs/path/to/custom_root_specs.tsv
 #   HORIZONS="5000 10000 20000 30000 40000 50000 60000"
+#   DYSTS_PERIODIC_REENCODE_PERIODS="50 75 100 200 400 600 1000"
+#   DYSTS_DT_MULTIPLIER=1
 #
 #SBATCH --job-name=queue_dysts_long_eval
 #SBATCH --ntasks=1
@@ -43,6 +47,7 @@ COLLECT_DIR="${COLLECT_DIR:-${RESULTS_DIR}/collect}"
 QUEUE_DIR="${QUEUE_DIR:-${RESULTS_DIR}/queue}"
 OUTPUT_TAG="${OUTPUT_TAG:-dysts_long_horizon_h5k_to_h60k_seq10}"
 ARRAY_PARALLEL="${ARRAY_PARALLEL:-48}"
+EVAL_PACK_SIZE="${EVAL_PACK_SIZE:-12}"
 VALIDATION_INDEX="${VALIDATION_INDEX:-0}"
 INPUT_ROOT_SPECS_TSV="${INPUT_ROOT_SPECS_TSV:-}"
 EVAL_DEVICE="${EVAL_DEVICE:-cpu}"
@@ -52,7 +57,25 @@ DYSTS_CACHE_SPLIT="${DYSTS_CACHE_SPLIT:-test}"
 DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS:-2}"
 BATCH_SIZE="${BATCH_SIZE:-100}"
 HORIZONS="${HORIZONS:-5000 10000 20000 30000 40000 50000 60000}"
+DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS:-}"
+DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-1}"
 EVAL_TIME_LIMIT="${EVAL_TIME_LIMIT:-03:00:00}"
+MAX_EXISTING_JOBS_BEFORE_SUBMIT="${MAX_EXISTING_JOBS_BEFORE_SUBMIT:-10000}"
+SUBMIT_WAIT_SECONDS="${SUBMIT_WAIT_SECONDS:-300}"
+
+wait_for_submit_capacity() {
+  local label="$1"
+  while true; do
+    local active_jobs
+    active_jobs=$(squeue -u "${USER}" -h -r | wc -l)
+    if (( active_jobs <= MAX_EXISTING_JOBS_BEFORE_SUBMIT )); then
+      echo "Submit capacity available for ${label}: active_jobs=${active_jobs}, threshold=${MAX_EXISTING_JOBS_BEFORE_SUBMIT}"
+      return 0
+    fi
+    echo "Waiting to submit ${label}: active_jobs=${active_jobs}, threshold=${MAX_EXISTING_JOBS_BEFORE_SUBMIT}; sleeping ${SUBMIT_WAIT_SECONDS}s"
+    sleep "${SUBMIT_WAIT_SECONDS}"
+  done
+}
 
 mkdir -p "${TASK_DIR}" "${COLLECT_DIR}" "${QUEUE_DIR}"
 
@@ -70,7 +93,11 @@ echo "RESULTS_DIR: ${RESULTS_DIR}"
 echo "OUTPUT_TAG: ${OUTPUT_TAG}"
 echo "DYSTS_CACHE_PROFILE: ${DYSTS_CACHE_PROFILE}"
 echo "HORIZONS: ${HORIZONS}"
+echo "DYSTS_PERIODIC_REENCODE_PERIODS: ${DYSTS_PERIODIC_REENCODE_PERIODS}"
+echo "DYSTS_DT_MULTIPLIER: ${DYSTS_DT_MULTIPLIER}"
 echo "EVAL_TIME_LIMIT: ${EVAL_TIME_LIMIT}"
+echo "EVAL_PACK_SIZE: ${EVAL_PACK_SIZE}"
+echo "MAX_EXISTING_JOBS_BEFORE_SUBMIT: ${MAX_EXISTING_JOBS_BEFORE_SUBMIT}"
 
 BUILD_ARGS=(
   --output_tsv "${TASK_TSV}"
@@ -97,12 +124,14 @@ if (( VALIDATION_INDEX < 0 || VALIDATION_INDEX >= TASK_COUNT )); then
   exit 1
 fi
 
+wait_for_submit_capacity "test cache prebuild"
 CACHE_JOB_ID=$(
   SYSTEMS_FILE="${SYSTEMS_FILE}" \
   CACHE_DIR="${DYSTS_CACHE_DIR}" \
   CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS}" \
   PROFILES="${DYSTS_CACHE_PROFILE}" \
   SPLITS="${DYSTS_CACHE_SPLIT}" \
+  DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER}" \
   sbatch --parsable -p long --array=0-$((SYSTEM_COUNT - 1)) scripts/prebuild_dysts_cache_matrix.sh
 )
 
@@ -116,9 +145,12 @@ VALIDATE_JOB_ID=$(
   DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS}" \
   BATCH_SIZE="${BATCH_SIZE}" \
   HORIZONS="${HORIZONS}" \
+  DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS}" \
   sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterany:${CACHE_JOB_ID} --array=${VALIDATION_INDEX}-${VALIDATION_INDEX}%1 scripts/run_dysts_long_horizon_eval_array.sh
 )
 
+EVAL_ARRAY_TASK_COUNT=$(( (TASK_COUNT + EVAL_PACK_SIZE - 1) / EVAL_PACK_SIZE ))
+wait_for_submit_capacity "packed reevaluation array"
 EVAL_JOB_ID=$(
   TASK_TSV="${TASK_TSV}" \
   OUTPUT_TAG="${OUTPUT_TAG}" \
@@ -129,13 +161,16 @@ EVAL_JOB_ID=$(
   DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS}" \
   BATCH_SIZE="${BATCH_SIZE}" \
   HORIZONS="${HORIZONS}" \
-  sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterok:${VALIDATE_JOB_ID} --array=0-$((TASK_COUNT - 1))%${ARRAY_PARALLEL} scripts/run_dysts_long_horizon_eval_array.sh
+  DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS}" \
+  PACK_SIZE="${EVAL_PACK_SIZE}" \
+  sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterok:${VALIDATE_JOB_ID} --array=0-$((EVAL_ARRAY_TASK_COUNT - 1))%${ARRAY_PARALLEL} scripts/run_dysts_long_horizon_eval_packed_array.sh
 )
 
 COLLECT_JOB_ID=$(
   TASK_TSV="${TASK_TSV}" \
   OUT_DIR="${COLLECT_DIR}" \
   OUTPUT_TAG="${OUTPUT_TAG}" \
+  HORIZONS="${HORIZONS}" \
   sbatch --parsable -p long --dependency=afterany:${EVAL_JOB_ID} scripts/collect_dysts_long_horizon_forecasting.sh
 )
 
@@ -151,9 +186,13 @@ cat > "${QUEUE_RECORD_JSON}" <<EOF
   "output_tag": "${OUTPUT_TAG}",
   "dysts_cache_profile": "${DYSTS_CACHE_PROFILE}",
   "horizons": "${HORIZONS}",
+  "dysts_periodic_reencode_periods": "${DYSTS_PERIODIC_REENCODE_PERIODS}",
+  "dysts_dt_multiplier": "${DYSTS_DT_MULTIPLIER}",
   "task_count": ${TASK_COUNT},
   "system_count": ${SYSTEM_COUNT},
   "array_parallel": ${ARRAY_PARALLEL},
+  "eval_pack_size": ${EVAL_PACK_SIZE},
+  "eval_array_task_count": ${EVAL_ARRAY_TASK_COUNT},
   "eval_time_limit": "${EVAL_TIME_LIMIT}",
   "validation_index": ${VALIDATION_INDEX},
   "cache_job_id": "${CACHE_JOB_ID}",

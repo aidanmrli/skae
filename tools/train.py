@@ -1059,6 +1059,10 @@ Examples:
                         help='Override ENV.HOPFIELD.NUM_PATTERNS')
     parser.add_argument('--competitive_lv_num_species', type=int, default=None,
                         help='Override ENV.COMPETITIVE_LV.NUM_SPECIES')
+    parser.add_argument('--competitive_lv_interaction_scale', type=float, default=None,
+                        help='Override ENV.COMPETITIVE_LV.INTERACTION_SCALE')
+    parser.add_argument('--competitive_lv_system_seed', type=int, default=None,
+                        help='Override ENV.COMPETITIVE_LV.SYSTEM_SEED for fixed-system CLV sweeps')
     parser.add_argument('--lyapunov_dim', type=int, default=None,
                         help='Lyapunov state dimension (default: 2)')
     parser.add_argument('--lyapunov_num_basins', type=int, default=None,
@@ -1383,6 +1387,10 @@ Examples:
         cfg.ENV.HOPFIELD.NUM_PATTERNS = args.hopfield_num_patterns
     if args.competitive_lv_num_species is not None:
         cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = args.competitive_lv_num_species
+    if args.competitive_lv_interaction_scale is not None:
+        cfg.ENV.COMPETITIVE_LV.INTERACTION_SCALE = args.competitive_lv_interaction_scale
+    if args.competitive_lv_system_seed is not None:
+        cfg.ENV.COMPETITIVE_LV.SYSTEM_SEED = args.competitive_lv_system_seed
 
     # Lyapunov environment overrides
     if args.lyapunov_dim is not None:

@@ -48,13 +48,26 @@ def _read_tasks(path: Path) -> List[Dict[str, str]]:
 
 
 def _horizon_mean(system_data: Dict, mode_name: str, horizon: int) -> Optional[float]:
+    return _horizon_metric(system_data, mode_name, horizon, "mean")
+
+
+def _horizon_metric(
+    system_data: Dict,
+    mode_name: str,
+    horizon: int,
+    key: str,
+) -> Optional[float]:
     return _safe_float(
         system_data.get("modes", {})
         .get(mode_name, {})
         .get("horizons", {})
         .get(str(horizon), {})
-        .get("mean")
+        .get(key)
     )
+
+
+def _best_summary_metric(summary: Dict, key: str) -> Optional[float]:
+    return _safe_float(summary.get(key))
 
 
 def _extract_row(
@@ -81,11 +94,25 @@ def _extract_row(
     }
     for horizon in horizons:
         row[f"h{horizon}_no_reencode_mean"] = None
+        row[f"h{horizon}_no_reencode_full_finite_fraction"] = None
+        row[f"h{horizon}_no_reencode_finite_step_fraction"] = None
         row[f"h{horizon}_every_step_mean"] = None
+        row[f"h{horizon}_every_step_full_finite_fraction"] = None
+        row[f"h{horizon}_every_step_finite_step_fraction"] = None
         row[f"h{horizon}_best_periodic_mean"] = None
         row[f"h{horizon}_best_periodic_mode"] = None
+        row[f"h{horizon}_best_periodic_full_finite_fraction"] = None
+        row[f"h{horizon}_best_periodic_finite_step_fraction"] = None
+        row[f"h{horizon}_best_periodic_num_full_horizon_finite"] = None
+        row[f"h{horizon}_best_periodic_median_finite_prefix_length"] = None
+        row[f"h{horizon}_best_periodic_min_finite_prefix_length"] = None
         row[f"h{horizon}_best_reset_mean"] = None
         row[f"h{horizon}_best_reset_mode"] = None
+        row[f"h{horizon}_best_reset_full_finite_fraction"] = None
+        row[f"h{horizon}_best_reset_finite_step_fraction"] = None
+        row[f"h{horizon}_best_reset_num_full_horizon_finite"] = None
+        row[f"h{horizon}_best_reset_median_finite_prefix_length"] = None
+        row[f"h{horizon}_best_reset_min_finite_prefix_length"] = None
 
     if not eval_json.exists():
         return row
@@ -109,15 +136,57 @@ def _extract_row(
     for horizon in horizons:
         horizon_key = str(horizon)
         row[f"h{horizon}_no_reencode_mean"] = _horizon_mean(system_data, "no_reencode", horizon)
+        row[f"h{horizon}_no_reencode_full_finite_fraction"] = _horizon_metric(
+            system_data, "no_reencode", horizon, "full_horizon_finite_fraction"
+        )
+        row[f"h{horizon}_no_reencode_finite_step_fraction"] = _horizon_metric(
+            system_data, "no_reencode", horizon, "finite_step_fraction"
+        )
         row[f"h{horizon}_every_step_mean"] = _horizon_mean(system_data, "every_step", horizon)
+        row[f"h{horizon}_every_step_full_finite_fraction"] = _horizon_metric(
+            system_data, "every_step", horizon, "full_horizon_finite_fraction"
+        )
+        row[f"h{horizon}_every_step_finite_step_fraction"] = _horizon_metric(
+            system_data, "every_step", horizon, "finite_step_fraction"
+        )
 
         best_periodic = system_data.get("best_periodic", {}).get(horizon_key, {})
         row[f"h{horizon}_best_periodic_mean"] = _safe_float(best_periodic.get("mean"))
         row[f"h{horizon}_best_periodic_mode"] = best_periodic.get("mode")
+        row[f"h{horizon}_best_periodic_full_finite_fraction"] = _best_summary_metric(
+            best_periodic, "full_horizon_finite_fraction"
+        )
+        row[f"h{horizon}_best_periodic_finite_step_fraction"] = _best_summary_metric(
+            best_periodic, "finite_step_fraction"
+        )
+        row[f"h{horizon}_best_periodic_num_full_horizon_finite"] = _best_summary_metric(
+            best_periodic, "num_full_horizon_finite"
+        )
+        row[f"h{horizon}_best_periodic_median_finite_prefix_length"] = _best_summary_metric(
+            best_periodic, "median_finite_prefix_length"
+        )
+        row[f"h{horizon}_best_periodic_min_finite_prefix_length"] = _best_summary_metric(
+            best_periodic, "min_finite_prefix_length"
+        )
 
         best_reset = system_data.get("best_reset", {}).get(horizon_key, {})
         row[f"h{horizon}_best_reset_mean"] = _safe_float(best_reset.get("mean"))
         row[f"h{horizon}_best_reset_mode"] = best_reset.get("mode")
+        row[f"h{horizon}_best_reset_full_finite_fraction"] = _best_summary_metric(
+            best_reset, "full_horizon_finite_fraction"
+        )
+        row[f"h{horizon}_best_reset_finite_step_fraction"] = _best_summary_metric(
+            best_reset, "finite_step_fraction"
+        )
+        row[f"h{horizon}_best_reset_num_full_horizon_finite"] = _best_summary_metric(
+            best_reset, "num_full_horizon_finite"
+        )
+        row[f"h{horizon}_best_reset_median_finite_prefix_length"] = _best_summary_metric(
+            best_reset, "median_finite_prefix_length"
+        )
+        row[f"h{horizon}_best_reset_min_finite_prefix_length"] = _best_summary_metric(
+            best_reset, "min_finite_prefix_length"
+        )
 
         if row[f"h{horizon}_best_periodic_mean"] is None:
             complete = False
@@ -153,12 +222,20 @@ def _per_root_summary(rows: Iterable[Dict[str, object]], horizons: Sequence[int]
             "n_pending": len(group) - len(complete_rows),
         }
         for horizon in horizons:
-            vals = [
+            mse_vals = [
                 _safe_float(row.get(f"h{horizon}_best_periodic_mean"))
                 for row in complete_rows
             ]
-            vals = [value for value in vals if value is not None]
-            payload[f"h{horizon}_median_best_periodic_mean"] = median(vals) if vals else None
+            mse_vals = [value for value in mse_vals if value is not None]
+            payload[f"h{horizon}_median_best_periodic_mean"] = median(mse_vals) if mse_vals else None
+            coverage_vals = [
+                _safe_float(row.get(f"h{horizon}_best_periodic_full_finite_fraction"))
+                for row in complete_rows
+            ]
+            coverage_vals = [value for value in coverage_vals if value is not None]
+            payload[f"h{horizon}_median_best_periodic_full_finite_fraction"] = (
+                median(coverage_vals) if coverage_vals else None
+            )
         summary[root_label] = payload
     return summary
 
@@ -189,10 +266,14 @@ def _write_markdown(
         )
         for horizon in horizons:
             value = payload.get(f"h{horizon}_median_best_periodic_mean")
+            coverage = payload.get(f"h{horizon}_median_best_periodic_full_finite_fraction")
             if value is None:
                 continue
+            suffix = ""
+            if coverage is not None:
+                suffix = f", median full-finite coverage: `{coverage:.3g}`"
             lines.append(
-                f"  median best-periodic MSE at `H{int(horizon)}`: `{value:.6g}`"
+                f"  median best-periodic MSE at `H{int(horizon)}`: `{value:.6g}`{suffix}"
             )
     if pending:
         lines.extend(

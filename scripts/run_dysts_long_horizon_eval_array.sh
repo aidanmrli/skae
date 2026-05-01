@@ -15,6 +15,7 @@
 #   DYSTS_CACHE_NUM_WORKERS=2
 #   BATCH_SIZE=100
 #   HORIZONS="5000 10000 20000 30000 40000 50000 60000"
+#   DYSTS_PERIODIC_REENCODE_PERIODS="50 75 100 200 400 600 1000"
 #   ARRAY_OFFSET=0
 #
 #SBATCH --job-name=dysts_long_eval
@@ -58,6 +59,7 @@ DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cac
 DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS:-2}"
 BATCH_SIZE="${BATCH_SIZE:-100}"
 HORIZONS="${HORIZONS:-}"
+DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS:-}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
 
 TASK_ID=${SLURM_ARRAY_TASK_ID:-0}
@@ -106,6 +108,9 @@ echo "Output Tag: ${OUTPUT_TAG}"
 if [[ -n "${HORIZONS}" ]]; then
   echo "Horizons: ${HORIZONS}"
 fi
+if [[ -n "${DYSTS_PERIODIC_REENCODE_PERIODS}" ]]; then
+  echo "Dysts periodic reencode periods: ${DYSTS_PERIODIC_REENCODE_PERIODS}"
+fi
 echo "Start Time: $(date)"
 echo "============================================="
 
@@ -127,6 +132,11 @@ if [[ -n "${HORIZONS}" ]]; then
   HORIZONS_NORMALIZED="${HORIZONS//,/ }"
   read -r -a HORIZON_ARGS <<< "${HORIZONS_NORMALIZED}"
   CMD+=(--horizons "${HORIZON_ARGS[@]}")
+fi
+if [[ -n "${DYSTS_PERIODIC_REENCODE_PERIODS}" ]]; then
+  PERIODS_NORMALIZED="${DYSTS_PERIODIC_REENCODE_PERIODS//,/ }"
+  read -r -a PERIOD_ARGS <<< "${PERIODS_NORMALIZED}"
+  CMD+=(--dysts-periodic-reencode-periods "${PERIOD_ARGS[@]}")
 fi
 if [[ -n "${DYSTS_CACHE_DIR}" ]]; then
   CMD+=(--dysts-cache-dir "${DYSTS_CACHE_DIR}")

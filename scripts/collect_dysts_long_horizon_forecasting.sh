@@ -9,6 +9,7 @@
 # Optional env vars:
 #   OUTPUT_TAG=dysts_long_horizon_h5000_h10000_h20000_h30000
 #   CHECKPOINT_NAME=checkpoint
+#   HORIZONS="5000 10000 20000 30000"
 #
 #SBATCH --job-name=dysts_long_collect
 #SBATCH --ntasks=1
@@ -34,6 +35,7 @@ TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
 OUT_DIR="${OUT_DIR:?OUT_DIR is required}"
 OUTPUT_TAG="${OUTPUT_TAG:-dysts_long_horizon_h5000_h10000_h20000_h30000}"
 CHECKPOINT_NAME="${CHECKPOINT_NAME:-checkpoint}"
+HORIZONS="${HORIZONS:-5000 10000 20000 30000}"
 
 echo "Host: $(hostname)"
 echo "Repo: ${ROOT_DIR}"
@@ -46,4 +48,5 @@ uv run python tools/collect_dysts_long_horizon_forecasting.py \
   --task-tsv "${TASK_TSV}" \
   --out-dir "${OUT_DIR}" \
   --output-tag "${OUTPUT_TAG}" \
-  --checkpoint-name "${CHECKPOINT_NAME}"
+  --checkpoint-name "${CHECKPOINT_NAME}" \
+  --horizons ${HORIZONS}

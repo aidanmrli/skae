@@ -108,6 +108,15 @@ echo "DT: ${env_dt}"
 if [[ -n "${kuramoto_num_oscillators:-}" ]]; then
   echo "KURAMOTO_NUM_OSCILLATORS: ${kuramoto_num_oscillators}"
 fi
+if [[ -n "${kuramoto_topology:-}" ]]; then
+  echo "KURAMOTO_TOPOLOGY: ${kuramoto_topology}"
+fi
+if [[ -n "${kuramoto_omega_mode:-}" ]]; then
+  echo "KURAMOTO_OMEGA_MODE: ${kuramoto_omega_mode}"
+fi
+if [[ -n "${kuramoto_omega_spread:-}" ]]; then
+  echo "KURAMOTO_OMEGA_SPREAD: ${kuramoto_omega_spread}"
+fi
 if [[ -n "${hopfield_num_neurons:-}" ]]; then
   echo "HOPFIELD_NUM_NEURONS: ${hopfield_num_neurons}"
 fi
@@ -116,6 +125,12 @@ if [[ -n "${hopfield_num_patterns:-}" ]]; then
 fi
 if [[ -n "${competitive_lv_num_species:-}" ]]; then
   echo "COMPETITIVE_LV_NUM_SPECIES: ${competitive_lv_num_species}"
+fi
+if [[ -n "${competitive_lv_interaction_scale:-}" ]]; then
+  echo "COMPETITIVE_LV_INTERACTION_SCALE: ${competitive_lv_interaction_scale}"
+fi
+if [[ -n "${competitive_lv_system_seed:-}" ]]; then
+  echo "COMPETITIVE_LV_SYSTEM_SEED: ${competitive_lv_system_seed}"
 fi
 echo "LOG_DIR: ${LOG_DIR}"
 echo "Start Time: $(date)"
@@ -346,6 +361,15 @@ fi
 if [[ -n "${kuramoto_num_oscillators:-}" ]]; then
   TRAIN_ARGS+=(--kuramoto_num_oscillators "${kuramoto_num_oscillators}")
 fi
+if [[ -n "${kuramoto_topology:-}" ]]; then
+  TRAIN_ARGS+=(--kuramoto_topology "${kuramoto_topology}")
+fi
+if [[ -n "${kuramoto_omega_mode:-}" ]]; then
+  TRAIN_ARGS+=(--kuramoto_omega_mode "${kuramoto_omega_mode}")
+fi
+if [[ -n "${kuramoto_omega_spread:-}" ]]; then
+  TRAIN_ARGS+=(--kuramoto_omega_spread "${kuramoto_omega_spread}")
+fi
 if [[ -n "${hopfield_num_neurons:-}" ]]; then
   TRAIN_ARGS+=(--hopfield_num_neurons "${hopfield_num_neurons}")
 fi
@@ -354,6 +378,12 @@ if [[ -n "${hopfield_num_patterns:-}" ]]; then
 fi
 if [[ -n "${competitive_lv_num_species:-}" ]]; then
   TRAIN_ARGS+=(--competitive_lv_num_species "${competitive_lv_num_species}")
+fi
+if [[ -n "${competitive_lv_interaction_scale:-}" ]]; then
+  TRAIN_ARGS+=(--competitive_lv_interaction_scale "${competitive_lv_interaction_scale}")
+fi
+if [[ -n "${competitive_lv_system_seed:-}" ]]; then
+  TRAIN_ARGS+=(--competitive_lv_system_seed "${competitive_lv_system_seed}")
 fi
 if [[ "${standardize:-0}" == "1" ]]; then
   TRAIN_ARGS+=(--standardize)

@@ -91,7 +91,9 @@ def _parse_args() -> argparse.Namespace:
         default="global_k,support_gated_k,support_block_gated_k,support_local_centered,family_local_centered",
         help=(
             "comma-separated rollout modes from "
-            "{global_k,support_gated_k,support_block_gated_k,support_local_centered,family_local_centered}"
+            "{global_k,support_gated_k,support_block_gated_k,support_local_centered,"
+            "family_local_centered,oracle_basin_local_centered,latent_kmeans_local_centered,"
+            "random_count_matched_local_centered}"
         ),
     )
     parser.add_argument(
@@ -228,6 +230,49 @@ def _support_key_to_str(key: object) -> str:
     return str(key)
 
 
+def _fit_count_matched_random_labels(reference_labels: np.ndarray, *, seed: int) -> np.ndarray:
+    counts = Counter(reference_labels.tolist())
+    labels: List[object] = []
+    for index, count in enumerate(counts.values()):
+        labels.extend([f"random::{index}"] * int(count))
+    rng = np.random.default_rng(seed)
+    rng.shuffle(labels)
+    return np.asarray(labels, dtype=object)
+
+
+def _dict_centers_from_labels(x: np.ndarray, labels: np.ndarray) -> Dict[object, np.ndarray]:
+    centers: Dict[object, np.ndarray] = {}
+    for label in Counter(labels.tolist()).keys():
+        mask = labels == label
+        if bool(np.any(mask)):
+            centers[label] = x[mask].mean(axis=0).astype(np.float32, copy=False)
+    return centers
+
+
+def _assign_nearest_dict_centers(x: np.ndarray, centers: Dict[object, np.ndarray]) -> np.ndarray:
+    labels = list(centers.keys())
+    out = np.empty(x.shape[0], dtype=object)
+    out[:] = None
+    if not labels or x.size == 0:
+        return out
+    center_matrix = np.stack([centers[label] for label in labels], axis=0).astype(np.float32, copy=False)
+    distances = ((x[:, None, :] - center_matrix[None, :, :]) ** 2).sum(axis=2)
+    nearest = distances.argmin(axis=1)
+    for row_index, center_index in enumerate(nearest.tolist()):
+        out[row_index] = labels[int(center_index)]
+    return out
+
+
+def _assign_nearest_array_centers(x: np.ndarray, centers: Optional[np.ndarray]) -> np.ndarray:
+    out = np.empty(x.shape[0], dtype=object)
+    out[:] = None
+    if centers is None or centers.size == 0 or x.size == 0:
+        return out
+    center_matrix = centers.astype(np.float32, copy=False)
+    distances = ((x[:, None, :] - center_matrix[None, :, :]) ** 2).sum(axis=2)
+    return distances.argmin(axis=1).astype(object)
+
+
 def _fit_class_bundle(
     fit_latents: np.ndarray,
     fit_basin_labels: np.ndarray,
@@ -238,6 +283,8 @@ def _fit_class_bundle(
     min_operator_transitions: int,
     family_jaccard_threshold: float,
     block_masks: Dict[int, np.ndarray],
+    max_partition_classes: int,
+    random_control_seed: int,
 ) -> Dict[str, object]:
     support_mask = REDUCER._support_mask(fit_latents, scheme=scheme, value=value)
     support_keys = REDUCER._support_keys(support_mask)
@@ -265,6 +312,57 @@ def _fit_class_bundle(
         ridge_lambda,
         min_transitions=min_operator_transitions,
     )
+    basin_cur = fit_basin_labels[:, :-1].reshape(-1).astype(object)
+    basin_ops, basin_centers, basin_counts = CENTERED._fit_partition_centered(
+        x_fit,
+        y_fit,
+        basin_cur,
+        ridge_lambda,
+        min_transitions=min_operator_transitions,
+    )
+
+    target_control_classes = int(len(family_counts))
+    latent_kmeans_ops: Dict[object, np.ndarray] = {}
+    latent_kmeans_centers: Dict[object, np.ndarray] = {}
+    latent_kmeans_counts: Counter[object] = Counter()
+    latent_kmeans_assignment_centers: Dict[object, np.ndarray] = {}
+    random_ops: Dict[object, np.ndarray] = {}
+    random_centers: Dict[object, np.ndarray] = {}
+    random_counts: Counter[object] = Counter()
+    random_assignment_centers: Dict[object, np.ndarray] = {}
+    if 2 <= target_control_classes <= int(max_partition_classes) and x_fit.shape[0] >= target_control_classes:
+        kmeans_center_tensor = REDUCER._kmeans_centers(
+            torch.from_numpy(x_fit).to(dtype=torch.float32),
+            target_control_classes,
+        )
+        kmeans_labels = REDUCER._assign_nearest_centers(
+            torch.from_numpy(x_fit).unsqueeze(0).to(dtype=torch.float32),
+            kmeans_center_tensor,
+        ).reshape(-1).cpu().numpy().astype(object)
+        latent_kmeans_ops, latent_kmeans_centers, latent_kmeans_counts = CENTERED._fit_partition_centered(
+            x_fit,
+            y_fit,
+            kmeans_labels,
+            ridge_lambda,
+            min_transitions=min_operator_transitions,
+        )
+        latent_kmeans_assignment_centers = {
+            int(index): center.cpu().numpy().astype(np.float32, copy=False)
+            for index, center in enumerate(kmeans_center_tensor)
+        }
+
+        random_labels = _fit_count_matched_random_labels(
+            family_cur,
+            seed=random_control_seed,
+        )
+        random_ops, random_centers, random_counts = CENTERED._fit_partition_centered(
+            x_fit,
+            y_fit,
+            random_labels,
+            ridge_lambda,
+            min_transitions=min_operator_transitions,
+        )
+        random_assignment_centers = _dict_centers_from_labels(x_fit, random_labels)
 
     flat_support_mask = support_mask[:, :-1, :].reshape(-1, support_mask.shape[-1])
     support_prototypes = OPSEL._prototype_masks_from_exact_support(
@@ -301,6 +399,17 @@ def _fit_class_bundle(
         "family_counts": family_counts,
         "family_prototypes": family_prototypes,
         "support_key_to_family": key_to_family,
+        "basin_ops": basin_ops,
+        "basin_centers": basin_centers,
+        "basin_counts": basin_counts,
+        "latent_kmeans_ops": latent_kmeans_ops,
+        "latent_kmeans_centers": latent_kmeans_centers,
+        "latent_kmeans_counts": latent_kmeans_counts,
+        "latent_kmeans_assignment_centers": latent_kmeans_assignment_centers,
+        "random_ops": random_ops,
+        "random_centers": random_centers,
+        "random_counts": random_counts,
+        "random_assignment_centers": random_assignment_centers,
     }
 
 
@@ -351,6 +460,29 @@ def _predict_gated_k(
 ) -> np.ndarray:
     centered = latent - center
     return center + (centered * source_mask.astype(centered.dtype, copy=False)) @ global_k
+
+
+def _apply_centered_partition(
+    current_latent: np.ndarray,
+    labels: np.ndarray,
+    *,
+    operators: Dict[object, np.ndarray],
+    centers: Dict[object, np.ndarray],
+    fallback: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    next_valid = fallback.copy()
+    used = np.zeros(current_latent.shape[0], dtype=bool)
+    route_labels = np.full(current_latent.shape[0], FALLBACK_ROUTE, dtype=object)
+    for label in {item for item in labels.tolist() if item is not None}:
+        select = labels == label
+        operator = operators.get(label)
+        center = centers.get(label)
+        if operator is None or center is None:
+            continue
+        next_valid[select] = _predict_centered(current_latent[select], center, operator)
+        used[select] = True
+        route_labels[select] = label
+    return next_valid, used, route_labels
 
 
 def _summarize_route_metrics(
@@ -460,6 +592,15 @@ def _rollout_self_routed(
     family_centers: Dict[object, np.ndarray],
     family_prototypes: Dict[object, np.ndarray],
     support_key_to_family: Dict[object, object],
+    basin_ops: Dict[object, np.ndarray],
+    basin_centers: Dict[object, np.ndarray],
+    state_partition_centers: Optional[np.ndarray],
+    latent_kmeans_ops: Dict[object, np.ndarray],
+    latent_kmeans_centers: Dict[object, np.ndarray],
+    latent_kmeans_assignment_centers: Dict[object, np.ndarray],
+    random_ops: Dict[object, np.ndarray],
+    random_centers: Dict[object, np.ndarray],
+    random_assignment_centers: Dict[object, np.ndarray],
 ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
     model.eval()
     model_device = next(model.parameters()).device
@@ -553,6 +694,43 @@ def _rollout_self_routed(
                     )
                     used_local[step, valid_indices[select]] = True
                     labels[select] = f"block::{_support_key_to_str(support_key)}"
+
+            elif rollout_mode == "oracle_basin_local_centered":
+                with torch.no_grad():
+                    current_state = model.decode(
+                        torch.from_numpy(current_latent).to(device=model_device, dtype=x0.dtype)
+                    ).detach().cpu().numpy().astype(np.float32, copy=False)
+                basin_ids = _assign_nearest_array_centers(current_state, state_partition_centers)
+                next_valid, used, labels = _apply_centered_partition(
+                    current_latent,
+                    basin_ids,
+                    operators=basin_ops,
+                    centers=basin_centers,
+                    fallback=next_valid,
+                )
+                used_local[step, valid_indices[used]] = True
+
+            elif rollout_mode == "latent_kmeans_local_centered":
+                kmeans_ids = _assign_nearest_dict_centers(current_latent, latent_kmeans_assignment_centers)
+                next_valid, used, labels = _apply_centered_partition(
+                    current_latent,
+                    kmeans_ids,
+                    operators=latent_kmeans_ops,
+                    centers=latent_kmeans_centers,
+                    fallback=next_valid,
+                )
+                used_local[step, valid_indices[used]] = True
+
+            elif rollout_mode == "random_count_matched_local_centered":
+                random_ids = _assign_nearest_dict_centers(current_latent, random_assignment_centers)
+                next_valid, used, labels = _apply_centered_partition(
+                    current_latent,
+                    random_ids,
+                    operators=random_ops,
+                    centers=random_centers,
+                    fallback=next_valid,
+                )
+                used_local[step, valid_indices[used]] = True
 
             else:
                 raise ValueError(f"Unknown rollout mode '{rollout_mode}'")
@@ -935,6 +1113,11 @@ def evaluate_run(
         if isinstance(fit_basin_labels, torch.Tensor)
         else np.asarray(fit_basin_labels)
     )
+    state_partition_centers = (
+        centers.detach().cpu().numpy().astype(np.float32, copy=False)
+        if isinstance(centers, torch.Tensor)
+        else np.asarray(centers, dtype=np.float32)
+    )
     fit_latents = REDUCER._encode_trajectories(model, fit_trajectories, device)
 
     max_horizon = int(max(horizons))
@@ -960,10 +1143,15 @@ def evaluate_run(
             min_operator_transitions=min_operator_transitions,
             family_jaccard_threshold=family_jaccard_threshold,
             block_masks=block_masks,
+            max_partition_classes=max_partition_classes,
+            random_control_seed=20260430 + int(spec.seed),
         )
 
         support_class_count_total = int(len(class_bundle["support_counts"]))
         family_class_count_total = int(len(class_bundle["family_counts"]))
+        basin_class_count_total = int(len(class_bundle["basin_counts"]))
+        latent_kmeans_class_count_total = int(len(class_bundle["latent_kmeans_counts"]))
+        random_class_count_total = int(len(class_bundle["random_counts"]))
         support_modes_allowed = support_class_count_total <= int(max_partition_classes)
 
         predictions_by_mode: Dict[str, np.ndarray] = {}
@@ -990,6 +1178,15 @@ def evaluate_run(
                 family_centers=class_bundle["family_centers"],
                 family_prototypes=class_bundle["family_prototypes"],
                 support_key_to_family=class_bundle["support_key_to_family"],
+                basin_ops=class_bundle["basin_ops"],
+                basin_centers=class_bundle["basin_centers"],
+                state_partition_centers=state_partition_centers,
+                latent_kmeans_ops=class_bundle["latent_kmeans_ops"],
+                latent_kmeans_centers=class_bundle["latent_kmeans_centers"],
+                latent_kmeans_assignment_centers=class_bundle["latent_kmeans_assignment_centers"],
+                random_ops=class_bundle["random_ops"],
+                random_centers=class_bundle["random_centers"],
+                random_assignment_centers=class_bundle["random_assignment_centers"],
             )
             predictions_by_mode[rollout_mode] = predictions
             route_metrics_by_mode[rollout_mode] = route_metrics
@@ -1019,6 +1216,12 @@ def evaluate_run(
                             "fit_support_class_count_fit": float(len(class_bundle["support_ops"])),
                             "fit_family_class_count_total": float(family_class_count_total),
                             "fit_family_class_count_fit": float(len(class_bundle["family_ops"])),
+                            "fit_basin_class_count_total": float(basin_class_count_total),
+                            "fit_basin_class_count_fit": float(len(class_bundle["basin_ops"])),
+                            "fit_latent_kmeans_class_count_total": float(latent_kmeans_class_count_total),
+                            "fit_latent_kmeans_class_count_fit": float(len(class_bundle["latent_kmeans_ops"])),
+                            "fit_random_class_count_total": float(random_class_count_total),
+                            "fit_random_class_count_fit": float(len(class_bundle["random_ops"])),
                             "route_coverage_fraction": None,
                             "fallback_fraction": None,
                             "route_switch_rate": None,
@@ -1061,6 +1264,12 @@ def evaluate_run(
                         "fit_support_class_count_fit": float(len(class_bundle["support_ops"])),
                         "fit_family_class_count_total": float(family_class_count_total),
                         "fit_family_class_count_fit": float(len(class_bundle["family_ops"])),
+                        "fit_basin_class_count_total": float(basin_class_count_total),
+                        "fit_basin_class_count_fit": float(len(class_bundle["basin_ops"])),
+                        "fit_latent_kmeans_class_count_total": float(latent_kmeans_class_count_total),
+                        "fit_latent_kmeans_class_count_fit": float(len(class_bundle["latent_kmeans_ops"])),
+                        "fit_random_class_count_total": float(random_class_count_total),
+                        "fit_random_class_count_fit": float(len(class_bundle["random_ops"])),
                         **route_summary,
                         **horizon_stats,
                         "skip_reason": "",

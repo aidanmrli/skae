@@ -1235,6 +1235,7 @@ class CompetitiveLotkaVolterra(Env):
         self.interaction_mode = str(lv_cfg.INTERACTION_MODE).lower()
         self.r_mode = str(lv_cfg.R_MODE).lower()
         self.interaction_scale = float(lv_cfg.INTERACTION_SCALE)
+        self.system_seed = getattr(lv_cfg, "SYSTEM_SEED", None)
         self.positivity_clip = bool(lv_cfg.POSITIVITY_CLIP)
         self.survival_threshold = float(lv_cfg.SURVIVAL_THRESHOLD)
         self.init_min = float(lv_cfg.INIT_MIN)
@@ -1263,7 +1264,10 @@ class CompetitiveLotkaVolterra(Env):
         return 0
 
     def _make_rng(self, offset: int = 0) -> torch.Generator:
-        seed = int(getattr(self.cfg, "SEED", 0)) + 43 + offset
+        base_seed = self.system_seed
+        if base_seed is None:
+            base_seed = int(getattr(self.cfg, "SEED", 0))
+        seed = int(base_seed) + 43 + offset
         return torch.Generator().manual_seed(seed)
 
     def _init_growth_rates(self) -> torch.Tensor:

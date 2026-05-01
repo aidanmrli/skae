@@ -259,6 +259,13 @@ def parse_args() -> argparse.Namespace:
         default=list(DEFAULT_HORIZONS),
         help="Evaluation horizons.",
     )
+    parser.add_argument(
+        "--dysts-periodic-reencode-periods",
+        nargs="+",
+        type=int,
+        default=None,
+        help="Periodic reencoding periods to test for Dysts systems.",
+    )
     parser.add_argument("--checkpoint-name", default="checkpoint", help="Checkpoint stem to evaluate.")
     parser.add_argument("--device", default="auto", help="Device: auto/cpu/cuda/mps.")
     parser.add_argument(
@@ -290,6 +297,11 @@ def main() -> None:
     run_dir = Path(args.run_dir).expanduser().resolve()
     system = str(args.system)
     horizons = tuple(sorted({int(h) for h in args.horizons}))
+    dysts_periodic_reencode_periods = (
+        tuple(sorted({int(p) for p in args.dysts_periodic_reencode_periods}))
+        if args.dysts_periodic_reencode_periods is not None
+        else tuple(EvaluationSettings().dysts_periodic_reencode_periods)
+    )
     checkpoint_name = str(args.checkpoint_name)
     output_tag = str(args.output_tag)
 
@@ -326,6 +338,7 @@ def main() -> None:
     settings = EvaluationSettings(
         systems=(system,),
         horizons=horizons,
+        dysts_periodic_reencode_periods=dysts_periodic_reencode_periods,
         batch_size=int(args.batch_size),
         save_rollout_artifacts=True,
         save_plots=bool(args.save_plots),
@@ -355,6 +368,7 @@ def main() -> None:
         "device": device,
         "output_tag": output_tag,
         "horizons": list(horizons),
+        "dysts_periodic_reencode_periods": list(dysts_periodic_reencode_periods),
         "batch_size": int(args.batch_size),
         "dysts_cache_profile": str(args.dysts_cache_profile),
         "dysts_cache_split": str(args.dysts_cache_split),

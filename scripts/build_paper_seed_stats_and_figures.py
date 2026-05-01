@@ -185,7 +185,7 @@ SELF_ROUTED_CSVS = [
     / "transition_rich_self_routed_forecasting_hardinit_mlp_controls_seed0to9_20260428"
     / "self_routed_forecasting_rows.csv",
 ]
-ROUTING_HORIZON = 100
+ROUTING_HORIZON = 1000
 
 DYSTS_MAIN_CSV = (
     ROOT
@@ -684,15 +684,15 @@ fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_boundary_only.png", bbox_inche
 plt.close(fig)
 
 # Replacement for the original entropy-strip figure (Table 1-aligned panels):
-# H(B|S), wrong-support ablation ratio at h=1 (log scale), and H(B|F). All
+# H(B|S_abs), wrong-support ablation ratio at h=1 (log scale), and H(B|F_abs). All
 # evaluated on the deep-state subset (S_abs, top quartile by basin-depth
 # margin). Higher is better for the wrong-support panel: a large ratio means
 # swapping to a wrong-basin canonical support breaks prediction, i.e. the
 # model genuinely uses the support.
 fig, axes = plt.subplots(1, 3, figsize=(8.0, 2.6))
-plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[0], "h_basin_given_support", r"$H(B\,|\,S)$")
+plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[0], "h_basin_given_support", r"$H(B\,|\,S_{\rm abs})$")
 plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[1], "support_freeze_wrong_over_base_h1", r"wrong-support $h{=}1$ ($\uparrow$)", yscale="log")
-plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[2], "family_h_basin_given_family", r"$H(B\,|\,F)$")
+plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[2], "family_h_basin_given_family", r"$H(B\,|\,F_{\rm abs})$")
 fig.tight_layout()
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.pdf", bbox_inches="tight")
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.png", bbox_inches="tight")
@@ -1047,8 +1047,8 @@ plt.close(fig)
 # Appendix: Fixed-17 entropy distributions across systems
 fig, axes = plt.subplots(2, 3, figsize=(9.5, 5.2), constrained_layout=True)
 for col_idx, metric in enumerate([
-    ("h_basin_given_support", r"$H(B|S)$"),
-    ("h_support_given_basin", r"$H(S|B)$"),
+    ("h_basin_given_support", r"$H(B|S_{\rm abs})$"),
+    ("h_support_given_basin", r"$H(S_{\rm abs}|B)$"),
     ("u_exact", r"$U_{\rm exact}$"),
 ]):
     metric_key, metric_name = metric

@@ -1,0 +1,16 @@
+table,horizon,subset,route,value,K,N,n,cap_log10,notes
+Table1,H100,all,forecasting_vs_dense,0.019828976386980595,15,17,15,,cross-system IQM of per-system seed IQMs; seed-paired Wilcoxon/Holm vs Dense MLP
+Table1,H500,all,forecasting_vs_dense,0.06404961871411943,15,17,15,,cross-system IQM of per-system seed IQMs; seed-paired Wilcoxon/Holm vs Dense MLP
+Table1,H1000,all,forecasting_vs_dense,0.07573655700968901,15,17,15,,cross-system IQM of per-system seed IQMs; seed-paired Wilcoxon/Holm vs Dense MLP
+Table2,H100,all,support_gated_k,0.8857020950889736,1,17,151,15.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H100,all,support_local_centered,0.8773677146265779,2,17,151,15.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H100,all,family_local_centered,0.20871955530519012,11,17,255,15.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H100,deep,support_gated_k,0.9150174242679251,1,17,146,15.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H100,deep,support_local_centered,0.908601203194381,2,17,146,15.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H100,deep,family_local_centered,0.06818686418951515,13,17,240,15.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H1000,all,support_gated_k,0.8066966611902521,8,17,26,37.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H1000,all,support_local_centered,0.8008032279899752,8,17,26,37.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H1000,all,family_local_centered,0.017302760447328057,15,17,85,37.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H1000,deep,support_gated_k,0.857462752802043,8,17,21,37.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H1000,deep,support_local_centered,0.843807719053467,7,17,21,37.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm
+Table2,H1000,deep,family_local_centered,5.025865400917605e-05,15,17,70,37.0,finite routed/global ratio IQM; K/N uses censored seed-slot Wilcoxon/Holm

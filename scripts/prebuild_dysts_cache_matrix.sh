@@ -11,6 +11,7 @@
 #   CACHE_NUM_WORKERS=2
 #   PROFILES="smoke full"
 #   SPLITS="train val test"
+#   DYSTS_DT_MULTIPLIER=1
 #
 #SBATCH --job-name=prebuild_dysts_cache
 #SBATCH --ntasks=1
@@ -32,6 +33,7 @@ CACHE_DIR="${CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cache}"
 CACHE_NUM_WORKERS="${CACHE_NUM_WORKERS:-2}"
 PROFILES_STR="${PROFILES:-smoke full}"
 SPLITS_STR="${SPLITS:-train val test}"
+DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-1}"
 
 if [[ ! -f "${SYSTEMS_FILE}" ]]; then
   echo "Missing SYSTEMS_FILE=${SYSTEMS_FILE}"
@@ -72,6 +74,7 @@ echo "Profile: ${PROFILE}"
 echo "Split: ${SPLIT}"
 echo "CACHE_DIR: ${CACHE_DIR}"
 echo "CACHE_NUM_WORKERS: ${CACHE_NUM_WORKERS}"
+echo "DYSTS_DT_MULTIPLIER: ${DYSTS_DT_MULTIPLIER}"
 echo "Start Time: $(date)"
 echo "============================================="
 
@@ -81,6 +84,7 @@ uv run python tools/prebuild_dysts_cache.py \
   --splits "${SPLIT}" \
   --cache_dir "${CACHE_DIR}" \
   --cache_num_workers "${CACHE_NUM_WORKERS}" \
+  --dt_multiplier "${DYSTS_DT_MULTIPLIER}" \
   --standardize
 
 EXIT_CODE=$?
@@ -89,4 +93,3 @@ echo "End Time: $(date)"
 echo "Exit Code: ${EXIT_CODE}"
 echo "============================================="
 exit ${EXIT_CODE}
-

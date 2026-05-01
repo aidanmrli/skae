@@ -8,6 +8,7 @@ from skae.config import get_config
 from skae.data import make_env
 from skae.evaluation import (
     EvaluationSettings,
+    _finite_coverage_stats,
     _rollout_event_trigger_reencode_with_diagnostics,
     evaluate_model,
     rollout_every_step_reencode,
@@ -171,6 +172,22 @@ def test_support_margin_event_trigger_uses_min_ratio_threshold():
     assert diagnostics["support_margin_ratio"][0, 0].item() == pytest.approx(1.2, rel=1e-6)
     assert bool(diagnostics["support_margin_trigger_mask"][0, 0].item()) is True
     assert bool(diagnostics["threshold_trigger_mask"][0, 0].item()) is True
+
+
+def test_finite_coverage_stats_reports_full_and_prefix_coverage():
+    predictions = torch.ones(5, 3, 2)
+    predictions[2:, 1, :] = torch.nan
+    predictions[4:, 2, :] = torch.inf
+
+    stats = _finite_coverage_stats(predictions, horizon=5)
+
+    assert stats["num_initial_conditions"] == 3
+    assert stats["num_full_horizon_finite"] == 1
+    assert stats["full_horizon_finite_fraction"] == pytest.approx(1.0 / 3.0)
+    assert stats["finite_step_fraction"] == pytest.approx(11.0 / 15.0)
+    assert stats["mean_finite_prefix_length"] == pytest.approx((5 + 2 + 4) / 3)
+    assert stats["median_finite_prefix_length"] == pytest.approx(4)
+    assert stats["min_finite_prefix_length"] == 2
 
 
 def test_evaluate_model_generates_outputs(tmp_path):

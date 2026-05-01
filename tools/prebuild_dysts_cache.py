@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import List
 
-from skae.config import get_config
+from skae.config import apply_env_dt_override, get_config
 from skae.data import DystsTrajectoryCache, make_env
 from skae.dysts_cache_profiles import (
     DYSTS_CACHE_PROFILES,
@@ -48,6 +48,24 @@ def _load_systems(args: argparse.Namespace) -> List[str]:
     return deduped
 
 
+def _apply_dysts_dt_multiplier(cfg, multiplier: float) -> float:
+    """Apply a multiplier to the intrinsic Dysts timestep and return the dt used."""
+
+    multiplier = float(multiplier)
+    if multiplier <= 0.0:
+        raise ValueError("--dt_multiplier must be positive")
+
+    base_cfg = get_config("lista_nonlinear")
+    base_cfg.ENV.ENV_NAME = cfg.ENV.ENV_NAME
+    base_cfg.ENV.DYSTS.STANDARDIZE = bool(cfg.ENV.DYSTS.STANDARDIZE)
+    base_cfg.ENV.DYSTS.IC_NOISE_SCALE = float(cfg.ENV.DYSTS.IC_NOISE_SCALE)
+    base_env = make_env(base_cfg)
+    base_dt = float(getattr(base_env.unwrapped, "dt"))
+    dt_used = base_dt * multiplier
+    apply_env_dt_override(cfg, dt_used, env_name=cfg.ENV.ENV_NAME)
+    return dt_used
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Prebuild dysts train/val/test caches for reuse across experiments"
@@ -73,6 +91,12 @@ def main() -> None:
     parser.add_argument("--cache_num_workers", type=int, default=2, help="Workers for cache build fallback")
     parser.add_argument("--ic_noise_scale", type=float, default=0.2, help="IC perturbation scale")
     parser.add_argument(
+        "--dt_multiplier",
+        type=float,
+        default=1.0,
+        help="Multiplier applied to each Dysts system's intrinsic timestep.",
+    )
+    parser.add_argument(
         "--standardize",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -91,6 +115,7 @@ def main() -> None:
     print(f"Splits: {args.splits}")
     print(f"Cache dir: {args.cache_dir}")
     print(f"Standardize: {standardize}")
+    print(f"DT multiplier: {args.dt_multiplier}")
     print(f"Cache workers: {args.cache_num_workers}")
     print(f"Total cache jobs: {total}")
     print("=" * 80)
@@ -117,13 +142,14 @@ def main() -> None:
                     cfg.ENV.DYSTS.CACHE_SPLIT = split
                     cfg.ENV.DYSTS.CACHE_NUM_WORKERS = int(args.cache_num_workers)
                     apply_dysts_cache_profile(cfg, profile)
+                    dt_used = _apply_dysts_dt_multiplier(cfg, float(args.dt_multiplier))
 
                     env = make_env(cfg)
                     t0 = time.perf_counter()
                     cache = DystsTrajectoryCache(env.unwrapped, cfg)
                     dt = time.perf_counter() - t0
                     print(
-                        f"  -> ok shape={tuple(cache.trajectories.shape)} elapsed={dt:.1f}s",
+                        f"  -> ok dt={dt_used:.8g} shape={tuple(cache.trajectories.shape)} elapsed={dt:.1f}s",
                         flush=True,
                     )
                 except Exception as exc:

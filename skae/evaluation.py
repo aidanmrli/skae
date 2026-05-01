@@ -573,6 +573,50 @@ def _compute_horizon_metric_stats(
     return mean, std, valid_errors.tolist(), int(valid_mask.sum().item())
 
 
+def _finite_coverage_stats(predictions: torch.Tensor, horizon: int) -> Dict[str, float | int]:
+    """Summarize rollout finiteness through a requested horizon.
+
+    The MSE reducer intentionally uses finite-prefix ``nanmean`` for historical
+    continuity. These fields make the masking explicit: a rollout can have a
+    finite prefix MSE while failing to remain finite through the whole horizon.
+    """
+
+    horizon = min(horizon, predictions.size(0))
+    if horizon <= 0:
+        return {
+            "num_initial_conditions": int(predictions.size(1)) if predictions.dim() >= 2 else 0,
+            "num_full_horizon_finite": 0,
+            "full_horizon_finite_fraction": float("nan"),
+            "finite_step_fraction": float("nan"),
+            "mean_finite_prefix_length": float("nan"),
+            "median_finite_prefix_length": float("nan"),
+            "min_finite_prefix_length": 0,
+        }
+
+    finite_steps = torch.isfinite(predictions[:horizon]).all(dim=-1)
+    if finite_steps.dim() != 2:
+        raise ValueError(
+            "Expected predictions with shape [time, batch, dim] for finite coverage stats."
+        )
+
+    batch_size = int(finite_steps.size(1))
+    full_horizon_finite = finite_steps.all(dim=0)
+    # Prefix length is stricter than total finite count if a mode ever produces
+    # intermittent non-finite values.
+    finite_prefix = finite_steps.cumprod(dim=0).sum(dim=0).to(torch.float32)
+    return {
+        "num_initial_conditions": batch_size,
+        "num_full_horizon_finite": int(full_horizon_finite.sum().item()),
+        "full_horizon_finite_fraction": float(full_horizon_finite.to(torch.float32).mean().item())
+        if batch_size > 0
+        else float("nan"),
+        "finite_step_fraction": float(finite_steps.to(torch.float32).mean().item()),
+        "mean_finite_prefix_length": float(finite_prefix.mean().item()) if batch_size > 0 else float("nan"),
+        "median_finite_prefix_length": float(finite_prefix.median().item()) if batch_size > 0 else float("nan"),
+        "min_finite_prefix_length": int(finite_prefix.min().item()) if batch_size > 0 else 0,
+    }
+
+
 def _cumulative_mse_curve(per_step_values: torch.Tensor) -> List[float]:
     """Compute cumulative MSE curve averaged across initial conditions."""
 
@@ -1664,19 +1708,37 @@ def evaluate_model(
                 rmse_per_dim_mean, rmse_per_dim_std, rmse_per_dim_ic, rmse_per_dim_num_valid = (
                     _compute_horizon_metric_stats(l2_error_per_dim, horizon)
                 )
+                finite_coverage = _finite_coverage_stats(pred_cpu, horizon)
+                num_initial_conditions = int(finite_coverage["num_initial_conditions"])
                 horizons_metrics[str(horizon)] = {
                     "mean": mean,
                     "std": std,
                     "num_valid": num_valid,
+                    "num_valid_fraction": (
+                        float(num_valid) / float(num_initial_conditions)
+                        if num_initial_conditions > 0
+                        else float("nan")
+                    ),
                     "values": per_ic,
                     "per_dim_mean": per_dim_mean,
                     "per_dim_std": per_dim_std,
                     "per_dim_num_valid": per_dim_num_valid,
+                    "per_dim_num_valid_fraction": (
+                        float(per_dim_num_valid) / float(num_initial_conditions)
+                        if num_initial_conditions > 0
+                        else float("nan")
+                    ),
                     "per_dim_values": per_dim_ic,
                     "rmse_per_dim_mean": rmse_per_dim_mean,
                     "rmse_per_dim_std": rmse_per_dim_std,
                     "rmse_per_dim_num_valid": rmse_per_dim_num_valid,
+                    "rmse_per_dim_num_valid_fraction": (
+                        float(rmse_per_dim_num_valid) / float(num_initial_conditions)
+                        if num_initial_conditions > 0
+                        else float("nan")
+                    ),
                     "rmse_per_dim_values": rmse_per_dim_ic,
+                    **finite_coverage,
                 }
 
                 if mode_name.startswith("periodic_") and num_valid > 0:
@@ -1738,6 +1800,12 @@ def evaluate_model(
                 "mean": best_mode[1],
                 "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
                 "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
+                "num_valid_fraction": best_horizon_metrics.get("num_valid_fraction"),
+                "full_horizon_finite_fraction": best_horizon_metrics.get("full_horizon_finite_fraction"),
+                "finite_step_fraction": best_horizon_metrics.get("finite_step_fraction"),
+                "num_full_horizon_finite": best_horizon_metrics.get("num_full_horizon_finite"),
+                "median_finite_prefix_length": best_horizon_metrics.get("median_finite_prefix_length"),
+                "min_finite_prefix_length": best_horizon_metrics.get("min_finite_prefix_length"),
             }
 
             if best_mode_name in mode_metrics:
@@ -1774,6 +1842,12 @@ def evaluate_model(
                 "mean": best_mean,
                 "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
                 "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
+                "num_valid_fraction": best_horizon_metrics.get("num_valid_fraction"),
+                "full_horizon_finite_fraction": best_horizon_metrics.get("full_horizon_finite_fraction"),
+                "finite_step_fraction": best_horizon_metrics.get("finite_step_fraction"),
+                "num_full_horizon_finite": best_horizon_metrics.get("num_full_horizon_finite"),
+                "median_finite_prefix_length": best_horizon_metrics.get("median_finite_prefix_length"),
+                "min_finite_prefix_length": best_horizon_metrics.get("min_finite_prefix_length"),
             }
 
         # Save qualitative plots when requested

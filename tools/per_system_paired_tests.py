@@ -4,8 +4,13 @@ Per-system significance checks for paper Tables 2, 3, and 4.
 The confirmatory pattern mirrors Table 1 where seeds are the replicate unit:
 within each system, run a one-sided paired Wilcoxon signed-rank test and
 Holm-correct across systems inside the table cell. Table 3 is the exception:
-the refresh packet has one training seed, so the within-system paired unit is
-the controlled transfer pair (refreshed-support vs previous-support).
+the within-system paired unit is the controlled transfer instance
+(refreshed-support vs previous-support), with all completed seeds contributing
+transfer instances.
+
+For Tables 2 and 3, the paper-facing LISTA-SB row uses the matched-dimension
+``d_z=256`` artifacts. Table 3 additionally includes any completed matched
+plain-LISTA and MLP-control refresh packets when present.
 
 Outputs JSON to docs/figures/neurips_paper_2026/_tables/per_system_paired_tests.json
 so the paper-side tables and prose can be updated by hand.
@@ -24,17 +29,54 @@ from scipy import stats
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ROUTING_CSVS = [
-    REPO_ROOT / "results" / "transition_rich_self_routed_forecasting_20260420" / "self_routed_forecasting_rows.csv",
-    REPO_ROOT / "results" / "transition_rich_self_routed_forecasting_hardinit_mlp_controls_seed0to9_20260428" / "self_routed_forecasting_rows.csv",
+    REPO_ROOT
+    / "results"
+    / "transition_rich_table2_5model_seed15_backfill_20260428"
+    / "self_routed_forecasting"
+    / "self_routed_forecasting_rows.csv",
+    REPO_ROOT
+    / "results"
+    / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
+    / "self_routed_forecasting"
+    / "self_routed_forecasting_rows.csv",
 ]
-ROUTING_HORIZON = 100
-REFRESH_CSV = REPO_ROOT / "results" / "periodic_support_refresh_fixed17_seed0_20260425" / "merged" / "periodic_support_refresh_rows.csv"
-DYSTS_PRIMARY_CSV = REPO_ROOT / "results" / "dysts_long_horizon_eval_20260414" / "collect" / "forecasting_rows.csv"
-DYSTS_MLPBD_CSV = REPO_ROOT / "results" / "dysts_long_horizon_eval_mlp_blockdiag_20260415" / "collect" / "forecasting_rows.csv"
-OUT_JSON = REPO_ROOT / "docs" / "figures" / "neurips_paper_2026" / "_tables" / "per_system_paired_tests.json"
+ROUTING_HORIZONS = [100, 1000]
+ROUTING_EXPECTED_SEEDS = list(range(15))
+REFRESH_CSVS = [
+    REPO_ROOT
+    / "results"
+    / "periodic_support_refresh_fixed17_seed0to14_20260429"
+    / "merged"
+    / "periodic_support_refresh_rows.csv",
+    REPO_ROOT
+    / "results"
+    / "periodic_support_refresh_lista_sb_p256_seed0to14_20260430"
+    / "merged"
+    / "periodic_support_refresh_rows.csv",
+    REPO_ROOT
+    / "results"
+    / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
+    / "periodic_support_refresh"
+    / "merged"
+    / "periodic_support_refresh_rows.csv",
+    REPO_ROOT
+    / "results"
+    / "periodic_support_refresh_mlp_controls_seed0to14_20260430"
+    / "merged"
+    / "periodic_support_refresh_rows.csv",
+]
+DYSTS_CSVS = [
+    REPO_ROOT
+    / "results"
+    / "dysts_long_horizon_eval_seq10_h60k_seeds0to14_20260428"
+    / "collect"
+    / "forecasting_rows.csv",
+]
+TBL_DIR = REPO_ROOT / "docs" / "figures" / "neurips_paper_2026" / "_tables"
+OUT_JSON = TBL_DIR / "per_system_paired_tests.json"
 
 ROUTING_MODELS = {
-    "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": "LISTA-SB",
+    "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": "LISTA-SB",
     "lista_blockdiag_signsplit_hardinit_basin_partition": "LISTA-BD",
     "mlp_sparse_blockdiag_hardinit_basin_partition_control": "Sparse MLP, BD",
     "mlp_sparse_hardinit_basin_partition_control": "Sparse MLP",
@@ -42,18 +84,20 @@ ROUTING_MODELS = {
 }
 
 REFRESH_MODELS = {
-    "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": "LISTA-SB",
+    "lista_dense_signsplit_p256_hardinit_basin_partition": "LISTA",
+    "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": "LISTA-SB",
     "lista_blockdiag_signsplit_hardinit_basin_partition": "LISTA-BD",
+    "mlp_sparse_blockdiag_hardinit_basin_partition_control": "Sparse MLP, BD",
+    "mlp_sparse_hardinit_basin_partition_control": "Sparse MLP",
+    "mlp_zero_sparse_hardinit_basin_partition_control": "Dense MLP",
 }
 
 DYSTS_BASELINE = "generic_sparse_sc0_ns200k_best"
 DYSTS_DISPLAY = {
     "lista_dense_promoted_stage4": "LISTA-D",
-    "lista_blockdiag_ns200k_denseopt_sc3em3": "LISTA-BD (low sp)",
-    "lista_blockdiag_ns200k_denseopt_sc6em3": "LISTA-BD (high sp)",
+    "lista_blockdiag_ns200k_denseopt_sc6em3": "LISTA-BD",
     "generic_sparse_ns200k_best": "Sparse MLP",
-    "generic_sparse_blockdiag_ns200k_sc3em3": "Sparse MLP, BD (low sp)",
-    "generic_sparse_blockdiag_ns200k_sc6em3": "Sparse MLP, BD (high sp)",
+    "generic_sparse_blockdiag_ns200k_sc6em3": "Sparse MLP, BD",
     "generic_sparse_sc0_ns200k_best": "Dense MLP",
 }
 
@@ -64,7 +108,7 @@ def iqm(values) -> float:
     Falls back to plain mean when n<4 (IQR is degenerate).
     """
     arr = np.asarray(list(values), dtype=float)
-    arr = arr[~np.isnan(arr)]
+    arr = arr[np.isfinite(arr)]
     if len(arr) == 0:
         return float("nan")
     if len(arr) < 4:
@@ -80,7 +124,7 @@ def iqm(values) -> float:
 def cell_summary(values) -> dict:
     """Cross-rollout summary of a cell: IQM, median, IQR endpoints, n."""
     arr = np.asarray(list(values), dtype=float)
-    arr = arr[~np.isnan(arr)]
+    arr = arr[np.isfinite(arr)]
     if len(arr) == 0:
         return {"n": 0, "iqm": float("nan"), "median": float("nan"),
                 "q25": float("nan"), "q75": float("nan")}
@@ -90,6 +134,45 @@ def cell_summary(values) -> dict:
         "median": float(np.median(arr)),
         "q25": float(np.percentile(arr, 25)),
         "q75": float(np.percentile(arr, 75)),
+    }
+
+
+def system_iqm_summary(
+    df: pd.DataFrame,
+    value_col: str,
+    system_col: str = "system_key",
+    positive_only: bool = False,
+) -> dict:
+    """Summarize by per-system IQM, then cross-system IQM."""
+    rows = []
+    for system, grp in df.groupby(system_col, sort=True):
+        values = pd.to_numeric(grp[value_col], errors="coerce")
+        values = values[np.isfinite(values)]
+        if positive_only:
+            values = values[values > 0.0]
+        if len(values) == 0:
+            continue
+        rows.append({"system": system, "iqm": iqm(values), "n": int(len(values))})
+    arr = np.asarray([row["iqm"] for row in rows], dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if len(arr) == 0:
+        return {
+            "n_systems": 0,
+            "iqm": float("nan"),
+            "median": float("nan"),
+            "q25": float("nan"),
+            "q75": float("nan"),
+            "std": float("nan"),
+            "per_system": rows,
+        }
+    return {
+        "n_systems": int(len(arr)),
+        "iqm": iqm(arr),
+        "median": float(np.median(arr)),
+        "q25": float(np.percentile(arr, 25)),
+        "q75": float(np.percentile(arr, 75)),
+        "std": float(np.std(arr, ddof=1)) if len(arr) > 1 else 0.0,
+        "per_system": rows,
     }
 
 
@@ -105,6 +188,14 @@ def holm_corrected(p_values: list[float]) -> list[float]:
         running_max = max(running_max, scaled)
         adj[i] = min(running_max, 1.0)
     return adj
+
+
+def is_finite_nonnegative(value) -> bool:
+    return pd.notna(value) and math.isfinite(float(value)) and float(value) >= 0.0
+
+
+def is_finite_positive(value) -> bool:
+    return pd.notna(value) and math.isfinite(float(value)) and float(value) > 0.0
 
 
 def per_system_paired_wilcoxon(
@@ -219,6 +310,141 @@ def per_system_paired_wilcoxon(
 # ----------------------------------------------------------------------------
 # TABLE 2: routing
 # ----------------------------------------------------------------------------
+def routing_censor_cap(df: pd.DataFrame, horizon: int) -> float:
+    """Choose a finite log-scale sentinel beyond observed finite log-ratios."""
+    route_col = f"h{horizon}_mean"
+    global_col = f"global_h{horizon}_mean"
+    finite_deltas = []
+    for _, row in df.iterrows():
+        route_mse = row[route_col]
+        global_mse = row[global_col]
+        if is_finite_positive(route_mse) and is_finite_positive(global_mse):
+            finite_deltas.append(float(np.log10(route_mse) - np.log10(global_mse)))
+    if not finite_deltas:
+        return 12.0
+    return float(math.ceil(max(12.0, max(abs(delta) for delta in finite_deltas))) + 1.0)
+
+
+def censored_routing_delta(route_mse, global_mse, cap: float) -> tuple[float, str]:
+    """Return log10(route/global), censoring invalid H-step comparisons.
+
+    Finite catastrophic values are kept. A finite routed value with an invalid
+    same-model global value is a censored routed win; the reverse is a censored
+    loss. If both sides are invalid or a seed row is absent, the seed is neutral.
+    """
+    route_ok = is_finite_nonnegative(route_mse)
+    global_ok = is_finite_nonnegative(global_mse)
+    if route_ok and global_ok:
+        route_val = float(route_mse)
+        global_val = float(global_mse)
+        if route_val > 0.0 and global_val > 0.0:
+            delta = float(np.log10(route_val) - np.log10(global_val))
+            return float(np.clip(delta, -cap, cap)), "finite_finite"
+        if route_val == 0.0 and global_val > 0.0:
+            return -cap, "zero_routed_good"
+        if route_val > 0.0 and global_val == 0.0:
+            return cap, "zero_global_bad_denominator"
+        return 0.0, "both_zero_neutral"
+    if route_ok and not global_ok:
+        return -cap, "routed_finite_global_invalid_win"
+    if not route_ok and global_ok:
+        return cap, "routed_invalid_global_finite_loss"
+    return 0.0, "both_invalid_neutral"
+
+
+def per_system_censored_routing_wilcoxon(
+    df: pd.DataFrame,
+    horizon: int,
+    expected_systems: list[str],
+    expected_seeds: list[int],
+    cap: float,
+) -> dict:
+    route_col = f"h{horizon}_mean"
+    global_col = f"global_h{horizon}_mean"
+    rows = []
+    raw_ps = []
+    all_deltas = []
+    class_counts: dict[str, int] = defaultdict(int)
+
+    for system in expected_systems:
+        system_deltas = []
+        seed_rows = []
+        sys_df = df[df["system_key"] == system]
+        for seed in expected_seeds:
+            seed_df = sys_df[sys_df["seed"] == seed]
+            if seed_df.empty:
+                delta, reason = 0.0, "missing_row_neutral"
+                route_mse = float("nan")
+                global_mse = float("nan")
+            else:
+                row = seed_df.iloc[-1]
+                route_mse = row[route_col]
+                global_mse = row[global_col]
+                delta, reason = censored_routing_delta(route_mse, global_mse, cap)
+            class_counts[reason] += 1
+            system_deltas.append(delta)
+            all_deltas.append(delta)
+            seed_rows.append({
+                "seed": int(seed),
+                "delta_log10": float(delta),
+                "reason": reason,
+                "route_mse": float(route_mse) if pd.notna(route_mse) else float("nan"),
+                "global_mse": float(global_mse) if pd.notna(global_mse) else float("nan"),
+            })
+
+        deltas = np.asarray(system_deltas, dtype=float)
+        if np.allclose(deltas, 0.0):
+            p_raw = 1.0
+            reason = "all_neutral"
+        else:
+            p_raw = float(stats.wilcoxon(deltas, alternative="less", zero_method="wilcox").pvalue)
+            reason = ""
+        raw_ps.append(p_raw)
+        rows.append({
+            "system": system,
+            "n": int(len(deltas)),
+            "median_delta": float(np.median(deltas)),
+            "iqm_delta": iqm(deltas),
+            "p_raw": p_raw,
+            "p_holm": float("nan"),
+            "passes": False,
+            "reason": reason,
+            "seed_rows": seed_rows,
+        })
+
+    adj_ps = holm_corrected(raw_ps)
+    for row, p_holm in zip(rows, adj_ps):
+        row["p_holm"] = float(p_holm)
+        row["passes"] = bool(p_holm < 0.05)
+    k = sum(1 for row in rows if row["passes"])
+
+    iqm_deltas = [row["iqm_delta"] for row in rows if not math.isnan(row["iqm_delta"])]
+    n_in_direction = sum(1 for delta in iqm_deltas if delta < 0.0)
+    n_total = len(iqm_deltas)
+    sign_p = (
+        float(stats.binomtest(n_in_direction, n_total, p=0.5, alternative="greater").pvalue)
+        if n_total
+        else float("nan")
+    )
+
+    return {
+        "K": int(k),
+        "N": int(len(rows)),
+        "censor_cap_log10": float(cap),
+        "censor_class_counts": dict(class_counts),
+        "censored_log10_cell": {
+            "iqm_delta": iqm(all_deltas),
+            "ratio_from_iqm_delta": float(10.0 ** iqm(all_deltas)),
+        },
+        "sign_test_iqm": {
+            "n_in_direction": int(n_in_direction),
+            "n_total": int(n_total),
+            "p_value": sign_p,
+        },
+        "per_system": rows,
+    }
+
+
 def analyze_routing() -> dict:
     frames = [pd.read_csv(path, low_memory=False) for path in ROUTING_CSVS if path.exists()]
     if not frames:
@@ -227,46 +453,154 @@ def analyze_routing() -> dict:
     df = df[df["support_definition"] == "topk:8"].copy()
     df = df[df["root_label"].isin(ROUTING_MODELS)]
 
-    ratio_col = f"h{ROUTING_HORIZON}_over_global"
-    df["log10_ratio"] = np.log10(df[ratio_col].astype(float))
-
     expected_systems = sorted(df["system_key"].dropna().unique().tolist())
-
-    out = {}
     routes = ["support_gated_k", "support_local_centered", "family_local_centered"]
     # In the self-routed evaluator, q1 is the boundary quartile and q4 is the
     # deepest quartile by basin-depth margin.
     slices = {"all": "all", "deep": "q4"}
 
-    for root_label, display in ROUTING_MODELS.items():
-        out[display] = {}
-        for slice_name, depth_value in slices.items():
-            out[display][slice_name] = {}
-            for route in routes:
-                sub = df[
-                    (df["root_label"] == root_label)
-                    & (df["depth_stratum"] == depth_value)
-                    & (df["rollout_mode"] == route)
-                ].dropna(subset=["log10_ratio"])
-                res = per_system_paired_wilcoxon(
-                    sub,
-                    system_col="system_key",
-                    seed_col="seed",
-                    delta_col="log10_ratio",
-                    alternative="less",
-                    expected_systems=expected_systems,
-                )
-                res["cell"] = cell_summary(sub[ratio_col].astype(float))
-                res["horizon"] = ROUTING_HORIZON
-                out[display][slice_name][route] = res
+    global_cols = ["root_label", "system_key", "seed", "depth_stratum", "support_definition"]
+    for horizon in ROUTING_HORIZONS:
+        global_cols.append(f"h{horizon}_mean")
+    global_df = df[df["rollout_mode"] == "global_k"][global_cols].rename(
+        columns={f"h{horizon}_mean": f"global_h{horizon}_mean" for horizon in ROUTING_HORIZONS}
+    )
+    routed = df[df["rollout_mode"].isin(routes)].merge(
+        global_df,
+        on=["root_label", "system_key", "seed", "depth_stratum", "support_definition"],
+        how="left",
+    )
+
+    out = {}
+    summary_rows = []
+    for horizon in ROUTING_HORIZONS:
+        horizon_key = f"H{horizon}"
+        ratio_col = f"h{horizon}_over_global"
+        cap = routing_censor_cap(routed, horizon)
+        out[horizon_key] = {}
+        for root_label, display in ROUTING_MODELS.items():
+            out[horizon_key][display] = {}
+            for slice_name, depth_value in slices.items():
+                out[horizon_key][display][slice_name] = {}
+                for route in routes:
+                    sub = routed[
+                        (routed["root_label"] == root_label)
+                        & (routed["depth_stratum"] == depth_value)
+                        & (routed["rollout_mode"] == route)
+                    ]
+                    res = per_system_censored_routing_wilcoxon(
+                        sub,
+                        horizon=horizon,
+                        expected_systems=expected_systems,
+                        expected_seeds=ROUTING_EXPECTED_SEEDS,
+                        cap=cap,
+                    )
+                    finite_ratios = pd.to_numeric(sub[ratio_col], errors="coerce")
+                    finite_ratio_mask = np.isfinite(finite_ratios) & (finite_ratios > 0.0)
+                    finite_ratios = finite_ratios[finite_ratio_mask]
+                    finite_sub = sub.loc[finite_ratio_mask].copy()
+                    finite_sub["_finite_ratio"] = finite_ratios.to_numpy()
+                    res["cell"] = cell_summary(finite_ratios)
+                    res["system_cell"] = system_iqm_summary(
+                        finite_sub,
+                        "_finite_ratio",
+                        positive_only=True,
+                    )
+                    res["horizon"] = horizon
+                    out[horizon_key][display][slice_name][route] = res
+                    summary_rows.append({
+                        "horizon": horizon_key,
+                        "model": display,
+                        "subset": slice_name,
+                        "route": route,
+                        "finite_ratio_iqm": res["system_cell"]["iqm"],
+                        "finite_ratio_global_iqm": res["cell"]["iqm"],
+                        "finite_ratio_n": res["cell"]["n"],
+                        "finite_ratio_n_systems": res["system_cell"]["n_systems"],
+                        "censored_log10_iqm_ratio": res["censored_log10_cell"]["ratio_from_iqm_delta"],
+                        "K": res["K"],
+                        "N": res["N"],
+                        **{f"censor_{key}": value for key, value in res["censor_class_counts"].items()},
+                    })
+
+    pd.DataFrame(summary_rows).to_csv(TBL_DIR / "table2_routing_h100_h1000_censored_seed15_summary.csv", index=False)
     return out
 
 
 # ----------------------------------------------------------------------------
 # TABLE 3: refresh
 # ----------------------------------------------------------------------------
+
+
+def _tex_number(value: float) -> str:
+    if value is None or not math.isfinite(float(value)):
+        return "--"
+    value = float(value)
+    abs_value = abs(value)
+    if abs_value == 0.0:
+        return "0"
+    if abs_value >= 1000.0 or abs_value < 1e-3:
+        mantissa, exponent = f"{value:.2e}".split("e")
+        mantissa = mantissa.rstrip("0").rstrip(".")
+        exponent_int = int(exponent)
+        return rf"{mantissa}\times10^{{{exponent_int}}}"
+    if abs_value < 0.1:
+        return f"{value:.3f}".rstrip("0").rstrip(".")
+    return f"{value:.3g}"
+
+
+def write_refresh_period_table(summary_df: pd.DataFrame) -> None:
+    """Write a compact Table-3 tabular grouped by refresh period.
+
+    The route-target cells are descriptive IQMs. The MSE-ratio cells mirror
+    Table 2 style: point estimate followed by the per-system Wilcoxon/Holm
+    count. IQRs remain in the CSV for appendix/provenance use.
+    """
+    if summary_df.empty:
+        return
+
+    rows_by_model_period = {
+        (str(row["model"]), int(row["period"])): row
+        for row in summary_df.to_dict(orient="records")
+        if int(row.get("n_rows", 0) or 0) > 0
+    }
+
+    lines = [
+        r"\begin{tabular}{@{}l cc cc@{}}",
+        r"\toprule",
+        r"& \multicolumn{2}{c}{Period $1$} & \multicolumn{2}{c}{Period $10$} \\",
+        r"\cmidrule(lr){2-3}\cmidrule(l){4-5}",
+        r"Model & Target-route & MSE ratio & Target-route & MSE ratio \\",
+        r"\midrule",
+    ]
+
+    for display in REFRESH_MODELS.values():
+        cells = []
+        has_data = False
+        for period in (1, 10):
+            row = rows_by_model_period.get((display, period))
+            if row is None:
+                cells.extend(["--", "--"])
+                continue
+            has_data = True
+            route = row.get("route_target_iqm", float("nan"))
+            ratio = row.get("mse_ratio_iqm", float("nan"))
+            k = int(row.get("K", 0) or 0)
+            n = int(row.get("N", 0) or 0)
+            cells.append(rf"${_tex_number(route)}$")
+            cells.append(rf"${_tex_number(ratio)}\,[{k}/{n}]$")
+        if has_data:
+            lines.append(f"{display} & {' & '.join(cells)} \\\\")
+
+    lines.extend([r"\bottomrule", r"\end{tabular}"])
+    (TBL_DIR / "table3_support_refresh_period_grouped.tex").write_text("\n".join(lines))
+
+
 def analyze_refresh() -> dict:
-    df = pd.read_csv(REFRESH_CSV, low_memory=False)
+    frames = [pd.read_csv(path, low_memory=False) for path in REFRESH_CSVS if path.exists()]
+    if not frames:
+        raise FileNotFoundError("No refresh CSVs found")
+    df = pd.concat(frames, ignore_index=True, sort=False)
     df = df[df["root_label"].isin(REFRESH_MODELS)].copy()
     df = df[df["status"] == "ok"]
     df = df[df["support_definition"] == "topk:8"]
@@ -286,6 +620,7 @@ def analyze_refresh() -> dict:
     expected_systems = sorted(df["system_key"].dropna().unique().tolist())
 
     out = {}
+    summary_rows = []
     periods = [1.0, 10.0]
     for root_label, display in REFRESH_MODELS.items():
         out[display] = {}
@@ -300,7 +635,28 @@ def analyze_refresh() -> dict:
                 expected_systems=expected_systems,
             )
             res["cell"] = cell_summary(sub[ratio_col].astype(float))
+            res["system_cell"] = system_iqm_summary(sub, ratio_col, positive_only=True)
+            res["route_target_cell"] = system_iqm_summary(sub, "route_target_fraction")
+            res["fallback_cell"] = system_iqm_summary(sub, "route_fallback_fraction")
             out[display][f"period_{int(period)}"] = res
+            summary_rows.append({
+                "model": display,
+                "period": int(period),
+                "route_target_iqm": res["route_target_cell"]["iqm"],
+                "route_target_std_systems": res["route_target_cell"]["std"],
+                "fallback_iqm": res["fallback_cell"]["iqm"],
+                "mse_ratio_iqm": res["system_cell"]["iqm"],
+                "mse_ratio_q25_systems": res["system_cell"]["q25"],
+                "mse_ratio_q75_systems": res["system_cell"]["q75"],
+                "mse_ratio_global_iqm": res["cell"]["iqm"],
+                "n_systems": res["system_cell"]["n_systems"],
+                "n_rows": res["cell"]["n"],
+                "K": res["K"],
+                "N": res["N"],
+            })
+    summary_df = pd.DataFrame(summary_rows)
+    summary_df.to_csv(TBL_DIR / "table3_support_refresh_matched_summary.csv", index=False)
+    write_refresh_period_table(summary_df)
     return out
 
 
@@ -308,12 +664,13 @@ def analyze_refresh() -> dict:
 # TABLE 4: Dysts long horizon
 # ----------------------------------------------------------------------------
 def analyze_dysts() -> dict:
-    primary = pd.read_csv(DYSTS_PRIMARY_CSV)
-    supp = pd.read_csv(DYSTS_MLPBD_CSV)
-    df = pd.concat([primary, supp], ignore_index=True, sort=False)
+    frames = [pd.read_csv(path, low_memory=False) for path in DYSTS_CSVS if path.exists()]
+    if not frames:
+        raise FileNotFoundError("No Dysts CSVs found")
+    df = pd.concat(frames, ignore_index=True, sort=False)
     df = df[df["root_label"].isin(DYSTS_DISPLAY)].copy()
 
-    horizons = [5000, 10000, 20000, 30000]
+    horizons = [5000, 10000, 20000, 30000, 40000, 50000, 60000]
     horizon_cols = {h: f"h{h}_best_periodic_mean" for h in horizons}
     needed = list(horizon_cols.values())
 
@@ -363,11 +720,17 @@ def analyze_dysts() -> dict:
 
 
 def main():
-    print(f"Reading routing rows from {ROUTING_CSV}")
+    print("Reading routing rows from:")
+    for path in ROUTING_CSVS:
+        print(f"  - {path}")
     routing = analyze_routing()
-    print(f"Reading refresh rows from {REFRESH_CSV}")
+    print("Reading refresh rows from:")
+    for path in REFRESH_CSVS:
+        print(f"  - {path}")
     refresh = analyze_refresh()
-    print(f"Reading Dysts rows from {DYSTS_PRIMARY_CSV} + {DYSTS_MLPBD_CSV}")
+    print("Reading Dysts rows from:")
+    for path in DYSTS_CSVS:
+        print(f"  - {path}")
     dysts = analyze_dysts()
 
     summary = {
@@ -384,19 +747,24 @@ def main():
     def fmt(res):
         s = res["sign_test_iqm"]
         cell = res.get("cell")
+        system_cell = res.get("system_cell")
         cell_str = ""
-        if cell:
+        if system_cell:
+            cell_str = f" sys_iqm={system_cell['iqm']:.3g} (systems={system_cell['n_systems']})"
+        elif cell:
             cell_str = f" iqm={cell['iqm']:.3g} (n={cell['n']})"
         return (f"K/N = {res['K']}/{res['N']}  "
                 f"sign-iqm {s['n_in_direction']}/{s['n_total']} (p={s['p_value']:.2e})"
                 f"{cell_str}")
 
     # Print human-readable summary
-    print("\n=== TABLE 2 (Routing) — cell IQM of routed/global ratio ===")
-    for model, slices in routing.items():
-        for slice_name, routes in slices.items():
-            for route, res in routes.items():
-                print(f"  {model:12s}  {slice_name:5s}  {route:25s}  {fmt(res)}")
+    print("\n=== TABLE 2 (Routing) — finite-ratio IQM; K/N uses censored seed-15 Wilcoxon/Holm ===")
+    for horizon, models in routing.items():
+        print(f"  {horizon}")
+        for model, slices in models.items():
+            for slice_name, routes in slices.items():
+                for route, res in routes.items():
+                    print(f"    {model:14s}  {slice_name:5s}  {route:25s}  {fmt(res)}")
 
     print("\n=== TABLE 3 (Refresh) - cell IQM of refreshed/previous-support ratio ===")
     for model, periods in refresh.items():

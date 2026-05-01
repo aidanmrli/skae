@@ -1,0 +1,97 @@
+horizon,system_key,best_root_label,best_display,best_mse_iqm
+100,dysts:Chua,lista_bd,LISTA-BD,6.0770703255132374e-05
+100,dysts:Dadras,lista,LISTA,0.00027085782286507144
+100,dysts:DequanLi,lista_bd,LISTA-BD,0.00020281293628998572
+100,dysts:Hadley,sparse_mlp_bd,Sparse MLP-BD,0.00015392814280592858
+100,dysts:LorenzCoupled,dense_mlp_tanh,Dense MLP,0.0008130443041278856
+100,dysts:LuChenCheng,lista,LISTA,6.991873306105845e-05
+100,dysts:MultiChua,lista,LISTA,7.578695138883112e-05
+100,dysts:QiChen,lista,LISTA,0.00013208820122852856
+100,dysts:Sakarya,sparse_mlp,Sparse MLP,0.0005357046362145286
+100,dysts:SanUmSrisuchinwong,sparse_mlp,Sparse MLP,0.00019463247943862856
+100,dysts:ShimizuMorioka,sparse_mlp,Sparse MLP,8.070366831296789e-05
+100,dysts:WangSun,sparse_mlp,Sparse MLP,0.0004791659718777857
+500,dysts:Chua,lista_bd,LISTA-BD,0.0005831825630073429
+500,dysts:Dadras,lista,LISTA,0.00461443693244027
+500,dysts:DequanLi,lista,LISTA,0.0030809801537543
+500,dysts:Hadley,sparse_mlp_bd,Sparse MLP-BD,0.0025525569217279
+500,dysts:LorenzCoupled,lista,LISTA,0.012834639288484998
+500,dysts:LuChenCheng,lista,LISTA,0.0009095235478265571
+500,dysts:MultiChua,lista,LISTA,0.0010255738161503716
+500,dysts:QiChen,lista,LISTA,0.0016441787925681427
+500,dysts:Sakarya,lista,LISTA,0.009318429211686715
+500,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.0028969283282224007
+500,dysts:ShimizuMorioka,lista,LISTA,0.0009812592013206428
+500,dysts:WangSun,sparse_mlp,Sparse MLP,0.008454138745686787
+1000,dysts:Chua,lista_bd,LISTA-BD,0.0018102609153304427
+1000,dysts:Dadras,lista,LISTA,0.02510524913668627
+1000,dysts:DequanLi,lista,LISTA,0.009629381820559458
+1000,dysts:Hadley,lista,LISTA,0.008343252087277986
+1000,dysts:LorenzCoupled,lista,LISTA,0.05448232325060023
+1000,dysts:LuChenCheng,lista,LISTA,0.0026404413594198575
+1000,dysts:MultiChua,lista,LISTA,0.003944138730210872
+1000,dysts:QiChen,lista,LISTA,0.0055123179751847004
+1000,dysts:Sakarya,sparse_mlp,Sparse MLP,0.024705436080694174
+1000,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.009225660735475127
+1000,dysts:ShimizuMorioka,lista_bd,LISTA-BD,0.0033256816677748853
+1000,dysts:WangSun,sparse_mlp,Sparse MLP,0.04292104180370054
+1500,dysts:Chua,lista_bd,LISTA-BD,0.003845858121556828
+1500,dysts:Dadras,lista,LISTA,0.05868637615016524
+1500,dysts:DequanLi,lista,LISTA,0.01942490214215852
+1500,dysts:Hadley,lista,LISTA,0.017852812207170842
+1500,dysts:LorenzCoupled,lista,LISTA,0.19435160926410128
+1500,dysts:LuChenCheng,lista,LISTA,0.005563982629350199
+1500,dysts:MultiChua,lista,LISTA,0.010426981574190485
+1500,dysts:QiChen,lista,LISTA,0.015745908953249416
+1500,dysts:Sakarya,sparse_mlp,Sparse MLP,0.059276910764830396
+1500,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.019414023895348773
+1500,dysts:ShimizuMorioka,lista,LISTA,0.006906815205833686
+1500,dysts:WangSun,lista,LISTA,0.202799063708101
+2000,dysts:Chua,lista_bd,LISTA-BD,0.006710252325449628
+2000,dysts:Dadras,lista,LISTA,0.10795802410159785
+2000,dysts:DequanLi,lista,LISTA,0.03481411162231646
+2000,dysts:Hadley,lista,LISTA,0.0319608149251767
+2000,dysts:LorenzCoupled,lista,LISTA,0.5472273273127419
+2000,dysts:LuChenCheng,lista_bd,LISTA-BD,0.009458192757197743
+2000,dysts:MultiChua,lista,LISTA,0.023002505568521313
+2000,dysts:QiChen,sparse_mlp,Sparse MLP,0.0375918690115213
+2000,dysts:Sakarya,sparse_mlp,Sparse MLP,0.11782931429999212
+2000,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.038018007629684
+2000,dysts:ShimizuMorioka,lista,LISTA,0.0117715871892869
+2000,dysts:WangSun,lista,LISTA,0.43390774726867676
+3000,dysts:Chua,lista_bd,LISTA-BD,0.014041253099484072
+3000,dysts:Dadras,lista,LISTA,0.32020972456250874
+3000,dysts:DequanLi,lista_bd,LISTA-BD,0.09687867334910796
+3000,dysts:Hadley,lista_bd,LISTA-BD,0.07589095618043626
+3000,dysts:LorenzCoupled,lista,LISTA,1.3220350572041102
+3000,dysts:LuChenCheng,lista_bd,LISTA-BD,0.0188402983226946
+3000,dysts:MultiChua,lista,LISTA,0.06274415020431788
+3000,dysts:QiChen,lista_bd,LISTA-BD,0.1367322270359311
+3000,dysts:Sakarya,sparse_mlp,Sparse MLP,0.370987485562052
+3000,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.1497109532356262
+3000,dysts:ShimizuMorioka,sparse_mlp,Sparse MLP,0.03672853085611543
+3000,dysts:WangSun,lista,LISTA,0.8348675966262817
+4000,dysts:Chua,lista_bd,LISTA-BD,0.025472756741302314
+4000,dysts:Dadras,lista_bd,LISTA-BD,0.6827419527939388
+4000,dysts:DequanLi,lista_bd,LISTA-BD,0.21736096484320502
+4000,dysts:Hadley,lista,LISTA,0.1474792797650609
+4000,dysts:LorenzCoupled,lista,LISTA,2.110459634235927
+4000,dysts:LuChenCheng,lista_bd,LISTA-BD,0.036354465410113286
+4000,dysts:MultiChua,lista,LISTA,0.1345410006386893
+4000,dysts:QiChen,lista_bd,LISTA-BD,0.3221683310610907
+4000,dysts:Sakarya,sparse_mlp,Sparse MLP,0.7153926576886859
+4000,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.45678031870297026
+4000,dysts:ShimizuMorioka,lista,LISTA,0.12209840651069363
+4000,dysts:WangSun,lista,LISTA,1.452980637550354
+5000,dysts:Chua,lista_bd,LISTA-BD,0.04467774368822571
+5000,dysts:Dadras,lista_bd,LISTA-BD,1.0177471382277352
+5000,dysts:DequanLi,lista_bd,LISTA-BD,0.3999227413109371
+5000,dysts:Hadley,lista,LISTA,0.24271233592714578
+5000,dysts:LorenzCoupled,lista,LISTA,2.9366787501743863
+5000,dysts:LuChenCheng,lista_bd,LISTA-BD,0.07369325948613024
+5000,dysts:MultiChua,lista,LISTA,0.2397799619606563
+5000,dysts:QiChen,sparse_mlp_bd,Sparse MLP-BD,0.5535231530666351
+5000,dysts:Sakarya,sparse_mlp,Sparse MLP,1.1797254085540771
+5000,dysts:SanUmSrisuchinwong,lista_bd,LISTA-BD,0.7294712747846331
+5000,dysts:ShimizuMorioka,lista,LISTA,0.3063695856503078
+5000,dysts:WangSun,sparse_mlp,Sparse MLP,2.047178404671805

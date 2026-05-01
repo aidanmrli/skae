@@ -1,13 +1,13 @@
 root_label,label,horizon,K_systems_better,K_systems_better_ttest,N_systems_tested,median_diff_log10,iqm_raw,log10_iqr_systems
-lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,100,14,14,17,-1.7124032698633544,0.017497517420755018,0.9098709947958872
-lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,500,14,14,17,-1.808473177728695,0.06815127488355044,1.5297827220483127
-lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,1000,15,15,17,-1.8887990482921793,0.06991133866702307,1.6653164804405436
-lista_dense_softblock_signsplit_p64_hardinit_basin_partition,LISTA-SB,100,15,15,17,-1.316223627522819,0.02554598010811996,0.8923019256169793
-lista_dense_softblock_signsplit_p64_hardinit_basin_partition,LISTA-SB,500,14,14,17,-1.5263118223692371,0.060730020028400986,0.5565098143653998
-lista_dense_softblock_signsplit_p64_hardinit_basin_partition,LISTA-SB,1000,15,15,17,-1.7197369195323167,0.07075082122874271,0.6264703237375586
-mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",100,15,15,17,-1.6212076154097792,0.01627364031959782,1.357357307718446
-mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",500,15,15,17,-1.9156233901081876,0.05129199543782698,1.2387764187521233
-mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",1000,17,16,17,-1.9798586607618012,0.04519314763206628,1.1311190060597893
-mlp_sparse_hardinit_basin_partition_control,Sparse MLP,100,14,14,17,-1.710647953945616,0.01826593321424697,1.5360031437156434
-mlp_sparse_hardinit_basin_partition_control,Sparse MLP,500,15,15,17,-1.9911577555107656,0.042074759368551845,1.7195783312230009
-mlp_sparse_hardinit_basin_partition_control,Sparse MLP,1000,17,16,17,-2.035265971153261,0.0464949156183542,1.969942108986213
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,100,15,15,17,-1.682645149860732,0.0170485948430492,0.9695363338828513
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,500,15,14,17,-1.8053177588639728,0.06505940847065562,1.2971160360477856
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,1000,15,15,17,-1.8715850982697664,0.05935375448334809,1.0285528709385674
+lista_dense_softblock_signsplit_p256_hardinit_basin_partition,LISTA-SB,100,15,15,17,-1.6703766486850535,0.019828976386980595,0.9183363168548817
+lista_dense_softblock_signsplit_p256_hardinit_basin_partition,LISTA-SB,500,15,15,17,-1.7078748954442067,0.06404961871411943,1.273503928609867
+lista_dense_softblock_signsplit_p256_hardinit_basin_partition,LISTA-SB,1000,15,15,17,-1.7847613851103887,0.07573655700968901,1.3705866805245792
+mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",100,15,15,17,-1.6276960394502644,0.020258482723932894,1.5194095705272679
+mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",500,15,15,17,-1.9660874820604775,0.052129952272735286,1.2238900722823671
+mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",1000,17,15,17,-2.137501523416191,0.055277618444056535,1.3260259418654594
+mlp_sparse_hardinit_basin_partition_control,Sparse MLP,100,15,15,17,-1.5948081961728446,0.021794507804784934,1.544732746385343
+mlp_sparse_hardinit_basin_partition_control,Sparse MLP,500,15,15,17,-1.9036025977222453,0.049410250889773,1.5897159210131506
+mlp_sparse_hardinit_basin_partition_control,Sparse MLP,1000,17,15,17,-1.8276423758858233,0.05368340595455333,1.832772955940891

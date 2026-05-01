@@ -1,0 +1,2806 @@
+{
+  "forecasting_csv": "results/dysts_dt30_basinblock_p256_seq10_100k_20260430/long_horizon_eval/collect/forecasting_rows.csv",
+  "seed": 0,
+  "horizons": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000
+  ],
+  "root_labels": [
+    "lista",
+    "lista_bd",
+    "lista_sb",
+    "sparse_mlp",
+    "sparse_mlp_bd",
+    "dense_mlp_tanh"
+  ],
+  "file_stem_suffix": "all_models_dt30",
+  "rows": [
+    {
+      "system": "dysts:Chua",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/chua_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/chua_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -1.8567533883929253,
+        1.5969825974583627,
+        -2.2691804713368415,
+        2.201298717296124
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-101352",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-101352/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Chua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-115407",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-115407/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Chua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-134356",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-134356/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Chua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-160238",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-160238/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Chua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-101350",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-101350/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Chua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-121800",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-121800/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Chua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0023278682492673397,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.003238751320168376,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.004692098591476679,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0016488112742081285,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.004830298945307732,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.04217799752950668,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.008660875260829926,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.012876749970018864,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.01759212091565132,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.008990276604890823,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.019701309502124786,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.10619667172431946,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.021423811092972755,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.0312214232981205,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.03954591229557991,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.029074853286147118,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.05070354416966438,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.21069234609603882,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.044507063925266266,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.07508564740419388,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.07806041091680527,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.07622434943914413,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.09334447234869003,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.33417588472366333,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.07396166026592255,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.15250498056411743,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.14624904096126556,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.1555565446615219,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.1556929349899292,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.47419989109039307,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:Dadras",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/dadras_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/dadras_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -3.3762155427932736,
+        3.286758946418763,
+        -3.0240532364606856,
+        2.8428566815614706
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-122650",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-122650/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Dadras/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-142212",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-142212/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Dadras/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-102303",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-102303/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Dadras/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-115633",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-115633/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Dadras/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-124134",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-124134/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Dadras/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-135201",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-135201/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Dadras/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.01946856454014778,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.050850968807935715,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.17656058073043823,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_25",
+          "mse": 0.3438248038291931,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_25",
+          "mse": 0.3438248038291931,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.3998372256755829,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.09543507546186447,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.07773669064044952,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.6870195865631104,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_25",
+          "mse": 0.5615816116333008,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_25",
+          "mse": 0.5615816116333008,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.6448204517364502,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.268468976020813,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_100",
+          "mse": 0.1552286595106125,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 1.156580924987793,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_25",
+          "mse": 1.213391900062561,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_25",
+          "mse": 1.213391900062561,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.7679427862167358,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.8943734169006348,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.32742735743522644,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 1.897429347038269,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_25",
+          "mse": 2.0620534420013428,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_25",
+          "mse": 2.0620534420013428,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_50",
+          "mse": 1.3571869134902954,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_100",
+          "mse": 1.1236854791641235,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_50",
+          "mse": 0.5578668713569641,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 2.2945189476013184,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_25",
+          "mse": 2.5311901569366455,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_25",
+          "mse": 2.5311901569366455,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_50",
+          "mse": 1.8170541524887085,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:DequanLi",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/dequan_li_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/dequan_li_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.3254477340579034,
+        4.4111880505681045,
+        -2.9837884687185285,
+        3.58676540720463
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-102304",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-102304/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:DequanLi/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-114704",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-114704/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:DequanLi/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-130630",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-130630/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:DequanLi/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-151817",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-151817/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:DequanLi/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-102304",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-102304/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:DequanLi/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-113526",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-113526/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:DequanLi/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.010714019648730755,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.29364535212516785,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.019164593890309334,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.02453426830470562,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.02453426830470562,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.05469002202153206,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.03939344361424446,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_50",
+          "mse": 1.379392385482788,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.07382314652204514,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.12585262954235077,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.12585262954235077,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.17774362862110138,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.10908711701631546,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_50",
+          "mse": 3.139463424682617,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.18681998550891876,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.403116375207901,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.403116375207901,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.4072021245956421,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.2802669405937195,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_50",
+          "mse": 5.1028289794921875,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.4799649119377136,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.985453724861145,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.985453724861145,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.7344174981117249,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.5078451037406921,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_50",
+          "mse": 6.251068592071533,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.965258777141571,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_200",
+          "mse": 1.6573154926300049,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 1.6573154926300049,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 1.0979045629501343,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:Hadley",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/hadley_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/hadley_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -4.440055799102783,
+        3.866369332885747,
+        -2.4536325795173646,
+        2.379357176494601
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-122708",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-122708/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Hadley/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-143619",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-143619/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Hadley/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-102304",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-102304/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Hadley/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-122021",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-122021/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Hadley/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-131046",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-131046/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Hadley/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-144528",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-144528/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Hadley/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.008536290377378464,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.004248383454978466,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.01770849898457527,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.05774872750043869,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.05774872750043869,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.007400701753795147,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.03418345749378204,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.015338591299951077,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.05231267586350441,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.2481124848127365,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.2481124848127365,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.026011895388364792,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.08740478754043579,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.03184245154261589,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.11510676145553589,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.6490471363067627,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.6490471363067627,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.05776168406009674,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.1842973381280899,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.059354495257139206,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.229176327586174,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_200",
+          "mse": 1.314325213432312,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 1.314325213432312,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.10155807435512543,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.31950172781944275,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.10619879513978958,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.4266282021999359,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_200",
+          "mse": 2.1671433448791504,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 2.1671433448791504,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.16030997037887573,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:LorenzCoupled",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/lorenz_coupled_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/lorenz_coupled_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.569402630877495,
+        2.807060798954964,
+        -2.710946513390541,
+        3.0658200597524665
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-232713",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-232713/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LorenzCoupled/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260501-005115",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260501-005115/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LorenzCoupled/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-224101",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-224101/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LorenzCoupled/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260501-005605",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260501-005605/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LorenzCoupled/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-110010",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-110010/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LorenzCoupled/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-123954",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_LorenzCoupled/dt_0p0097258209701621464/seed_0/20260430-123954/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LorenzCoupled/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_25",
+          "mse": 3.894876480102539,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.2479596883058548,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.12805569171905518,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.09319992363452911,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.016876911744475365,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.015996653586626053,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_10",
+          "mse": 7.962646484375,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_50",
+          "mse": 1.4247034788131714,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_100",
+          "mse": 1.0988891124725342,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.675884485244751,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.2762809693813324,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.48675212264060974,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_10",
+          "mse": 9.86389446258545,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_50",
+          "mse": 2.8481411933898926,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_100",
+          "mse": 2.219697952270508,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_100",
+          "mse": 1.9392589330673218,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_100",
+          "mse": 1.3132280111312866,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_50",
+          "mse": 1.4514919519424438,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_10",
+          "mse": 11.409528732299805,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_50",
+          "mse": 3.9213736057281494,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_150",
+          "mse": 3.4617204666137695,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_150",
+          "mse": 2.9382410049438477,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_100",
+          "mse": 1.9644949436187744,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_50",
+          "mse": 2.1444482803344727,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_10",
+          "mse": 11.962947845458984,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_50",
+          "mse": 4.854307174682617,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_100",
+          "mse": 4.388509750366211,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_150",
+          "mse": 3.6580982208251953,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_100",
+          "mse": 2.2863688468933105,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_50",
+          "mse": 2.500619888305664,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:LuChenCheng",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/lu_chen_cheng_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/lu_chen_cheng_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.3034801442146304,
+        2.4446447855949405,
+        -2.2855132157087326,
+        3.282398344922067
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-133722",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-133722/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LuChenCheng/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-155402",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-155402/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LuChenCheng/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-110001",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-110001/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LuChenCheng/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-125659",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-125659/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LuChenCheng/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-174335",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-174335/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LuChenCheng/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-190527",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-190527/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:LuChenCheng/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.001967423828318715,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.004047007765620947,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0057955472730100155,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0060977996326982975,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0060977996326982975,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.005363490432500839,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.007144336123019457,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.011825948022305965,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.023790467530488968,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.010955143719911575,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.010955143719911575,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.04308304190635681,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.01951131969690323,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.022418297827243805,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.08842917531728745,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.017817197367548943,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.017817197367548943,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.17064552009105682,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.04386575147509575,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.034939296543598175,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.2202729731798172,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.027598178014159203,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.027598178014159203,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.41337281465530396,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.06960668414831161,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.06449775397777557,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.36253559589385986,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.04638081416487694,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.04638081416487694,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.636720597743988,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:MultiChua",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/multi_chua_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/multi_chua_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -1.7866229135990144,
+        2.835102105855942,
+        -2.121100418567657,
+        2.348226773738861
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-145713",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-145713/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:MultiChua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-164934",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-164934/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:MultiChua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-193828",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-193828/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:MultiChua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-213150",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-213150/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:MultiChua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-150627",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-150627/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:MultiChua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-165104",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_MultiChua/dt_0p013553858976496259/seed_0/20260430-165104/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:MultiChua/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.004193190950900316,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.008503356948494911,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.007649797014892101,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.00859154388308525,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.00859154388308525,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.007486662827432156,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.01946624368429184,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.04455690458416939,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.04414692893624306,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.03743915259838104,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.03743915259838104,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.044666633009910583,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.05907292291522026,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_100",
+          "mse": 0.10680056363344193,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.11657428741455078,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_100",
+          "mse": 0.09978927671909332,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_100",
+          "mse": 0.09978927671909332,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.12735691666603088,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.13917052745819092,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_100",
+          "mse": 0.1900271475315094,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.24722768366336823,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_100",
+          "mse": 0.2121250480413437,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_100",
+          "mse": 0.2121250480413437,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.2747185230255127,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.2633209526538849,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_100",
+          "mse": 0.3161867558956146,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.39147835969924927,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_100",
+          "mse": 0.3290240168571472,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_100",
+          "mse": 0.3290240168571472,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.4502185583114624,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:QiChen",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/qi_chen_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/qi_chen_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -1706.3393382113236,
+        30091.662509710528,
+        -57000.97618451966,
+        3231.9014473475454
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-180139",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-180139/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:QiChen/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-214916",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-214916/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:QiChen/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-151848",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-151848/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:QiChen/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-180836",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-180836/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:QiChen/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-183033",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-183033/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:QiChen/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-200646",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-200646/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:QiChen/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.008041972294449806,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.008650749921798706,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_100",
+          "mse": 5.286680698394775,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.09971413761377335,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.005182030610740185,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.026412291452288628,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.09596893936395645,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.14189350605010986,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 549681.8125,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.4824264943599701,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.08661101013422012,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.14214448630809784,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_100",
+          "mse": 0.36898690462112427,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.4763580560684204,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 22357534720.0,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_100",
+          "mse": 1.2114912271499634,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.3255230188369751,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.49767687916755676,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.6073218584060669,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.5890881419181824,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 1023463930200064.0,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_100",
+          "mse": 1.6514410972595215,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.4083057641983032,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.6316570043563843,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.7076153755187988,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_50",
+          "mse": 0.7986003160476685,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 4.99752575923724e+19,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_100",
+          "mse": 2.277374505996704,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.47884127497673035,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.8564469218254089,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:Sakarya",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/sakarya_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/sakarya_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.610003699970245,
+        3.101933703136446,
+        -3.4695771735191343,
+        3.178598117160797
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-151847",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-151847/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Sakarya/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-172402",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-172402/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Sakarya/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-191801",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-191801/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Sakarya/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-212654",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-212654/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Sakarya/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-153417",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-153417/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Sakarya/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-194411",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-194411/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:Sakarya/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_25",
+          "mse": 0.024228837341070175,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_25",
+          "mse": 0.028291307389736176,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_25",
+          "mse": 0.04910537600517273,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.015476282685995102,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.015476282685995102,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.2238355278968811,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_25",
+          "mse": 0.08515055477619171,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_25",
+          "mse": 0.09869057685136795,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.1678703874349594,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.05926792323589325,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.05926792323589325,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.5276325941085815,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_25",
+          "mse": 0.3918464779853821,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_25",
+          "mse": 0.3380544185638428,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.3818811774253845,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.17454677820205688,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.17454677820205688,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.795530378818512,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_25",
+          "mse": 0.8526512980461121,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_25",
+          "mse": 0.657203733921051,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.6980220675468445,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.44730663299560547,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_50",
+          "mse": 0.44730663299560547,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_200",
+          "mse": 1.0681025981903076,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_150",
+          "mse": 1.201592206954956,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_100",
+          "mse": 1.2008618116378784,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_100",
+          "mse": 1.2585206031799316,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_50",
+          "mse": 1.0748987197875977,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_50",
+          "mse": 1.0748987197875977,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 1.594322681427002,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:SanUmSrisuchinwong",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/san_um_srisuchinwong_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/san_um_srisuchinwong_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.4472672868967056,
+        2.9355614341497427,
+        -2.7628843478679657,
+        3.153183842134476
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-205328",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-205328/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:SanUmSrisuchinwong/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-223332",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-223332/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:SanUmSrisuchinwong/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-180349",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-180349/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:SanUmSrisuchinwong/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260501-010232",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260501-010232/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:SanUmSrisuchinwong/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-213228",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-213228/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:SanUmSrisuchinwong/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-232844",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-232844/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:SanUmSrisuchinwong/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0061024259775877,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.004554813727736473,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.011437753215432167,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.006993948016315699,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.008210389874875546,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.015174535103142262,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.022800741717219353,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.01156354509294033,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.0348479300737381,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.025556335225701332,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.028133831918239594,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.03523017838597298,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.1196056678891182,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.027210738509893417,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.15801973640918732,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.0662514939904213,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.0676693320274353,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_150",
+          "mse": 0.06541891396045685,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.5111280679702759,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.08041759580373764,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.630424976348877,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.19548265635967255,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.20581382513046265,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.26088061928749084,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.8545978665351868,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.15484519302845,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 1.1055846214294434,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_100",
+          "mse": 0.3735927641391754,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.45277222990989685,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_100",
+          "mse": 0.6099665760993958,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:ShimizuMorioka",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/shimizu_morioka_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/shimizu_morioka_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.2878535346865654,
+        2.1234283457875254,
+        -2.5549011748790744,
+        2.688021036958695
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-180644",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-180644/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-201631",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-201631/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-221635",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-221635/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-235917",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-235917/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-181919",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-181919/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-194722",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-194722/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:ShimizuMorioka/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_150",
+          "mse": 0.0021764396224170923,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.0033893135841935873,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.04309197887778282,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0029543056152760983,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.0029543056152760983,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_100",
+          "mse": 0.024520378559827805,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.006615679711103439,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_150",
+          "mse": 0.011823228560388088,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.19754339754581451,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.009917832911014557,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_200",
+          "mse": 0.009917832911014557,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.10778949409723282,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.022541658952832222,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.037837788462638855,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.6001987457275391,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.027487048879265785,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_200",
+          "mse": 0.027487048879265785,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_50",
+          "mse": 0.4724045693874359,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_150",
+          "mse": 0.0662771537899971,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.1334185153245926,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_200",
+          "mse": 1.0818641185760498,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.11472433805465698,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_200",
+          "mse": 0.11472433805465698,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_50",
+          "mse": 1.0511107444763184,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.1309279352426529,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_200",
+          "mse": 0.3620154559612274,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_200",
+          "mse": 1.559057593345642,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.35554438829421997,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_150",
+          "mse": 0.35554438829421997,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_100",
+          "mse": 1.4375282526016235,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    },
+    {
+      "system": "dysts:WangSun",
+      "seed": 0,
+      "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/wang_sun_seed0_h1000_h5000_all_models_dt30.png",
+      "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/wang_sun_seed0_h1000_h5000_all_models_dt30.pdf",
+      "axis_bounds": [
+        -2.6587308647871017,
+        2.8719809499025355,
+        -4.894851248574257,
+        3.3089116445302973
+      ],
+      "roots": {
+        "lista": {
+          "display": "LISTA",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-210702",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-210702/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_bd": {
+          "display": "LISTA-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-233431",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-233431/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "lista_sb": {
+          "display": "LISTA-SB",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-182840",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-182840/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp": {
+          "display": "Sparse MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-203302",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-203302/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "sparse_mlp_bd": {
+          "display": "Sparse MLP-BD",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-212124",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-212124/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+          "status": "complete"
+        },
+        "dense_mlp_tanh": {
+          "display": "Dense MLP",
+          "run_dir": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-222913",
+          "selected_rollout_artifacts": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-222913/reeval_dysts_dt30_h100_to_h5000_p17periods/evaluation_checkpoint/dysts:WangSun/selected_rollout_artifacts.pt",
+          "status": "complete"
+        }
+      },
+      "panels": {
+        "lista:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.11372464895248413,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.046558819711208344,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H1000": {
+          "mode": "periodic_50",
+          "mse": 0.09992831945419312,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.05657929554581642,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.05657929554581642,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H1000": {
+          "mode": "periodic_200",
+          "mse": 0.7719824314117432,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H2000": {
+          "mode": "periodic_100",
+          "mse": 0.8158982992172241,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H2000": {
+          "mode": "periodic_50",
+          "mse": 1.1024487018585205,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H2000": {
+          "mode": "periodic_50",
+          "mse": 0.5342164635658264,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H2000": {
+          "mode": "periodic_25",
+          "mse": 0.5233644843101501,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H2000": {
+          "mode": "periodic_25",
+          "mse": 0.5233644843101501,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H2000": {
+          "mode": "periodic_150",
+          "mse": 1.3189491033554077,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H3000": {
+          "mode": "periodic_100",
+          "mse": 1.7094509601593018,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H3000": {
+          "mode": "periodic_50",
+          "mse": 1.1756772994995117,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H3000": {
+          "mode": "periodic_100",
+          "mse": 1.088132381439209,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H3000": {
+          "mode": "periodic_25",
+          "mse": 0.9313822388648987,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H3000": {
+          "mode": "periodic_25",
+          "mse": 0.9313822388648987,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H3000": {
+          "mode": "periodic_150",
+          "mse": 1.8986310958862305,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H4000": {
+          "mode": "periodic_25",
+          "mse": 2.6363115310668945,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H4000": {
+          "mode": "periodic_50",
+          "mse": 1.5980349779129028,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H4000": {
+          "mode": "periodic_100",
+          "mse": 1.9767192602157593,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H4000": {
+          "mode": "periodic_25",
+          "mse": 1.4583512544631958,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H4000": {
+          "mode": "periodic_25",
+          "mse": 1.4583512544631958,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H4000": {
+          "mode": "periodic_150",
+          "mse": 2.5132198333740234,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista:H5000": {
+          "mode": "periodic_25",
+          "mse": 3.3504559993743896,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_bd:H5000": {
+          "mode": "periodic_50",
+          "mse": 2.250978708267212,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "lista_sb:H5000": {
+          "mode": "periodic_100",
+          "mse": 2.704949378967285,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp:H5000": {
+          "mode": "periodic_25",
+          "mse": 2.07289981842041,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "sparse_mlp_bd:H5000": {
+          "mode": "periodic_25",
+          "mse": 2.07289981842041,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        },
+        "dense_mlp_tanh:H5000": {
+          "mode": "periodic_200",
+          "mse": 3.127026081085205,
+          "trace_count_plotted": 45,
+          "full_trace_fraction": 1.0
+        }
+      }
+    }
+  ]
+}
