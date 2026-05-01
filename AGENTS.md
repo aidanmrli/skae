@@ -2,14 +2,14 @@
 
 ## Documentation Updates
 - Keep `docs/EXPERIMENTS.md` with a short **Current Status Summary** at the very top that states the problem(s) being solved, the solution if found (or the current approach if not), and clearly labels the **outstanding problem**.
-- Keep `docs/PAPER_TRACK_STATUS.md` as the high-level paper-track source of truth for paper claims, wrap-up priorities, and remaining blockers. Use `docs/EXPERIMENTS.md` as the detailed experiment log, and keep the two documents aligned.
+- Keep `docs/PAPER_TRACK_STATUS.md` as the high-level paper-track source of truth for paper claims, wrap-up priorities, and remaining blockers. Use `docs/EXPERIMENTS.md` as the detailed experiment log, and use `docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md` as the paper-facing evidence order, display plan, and drafting map. Keep all three documents aligned.
 - When new experiment results are produced, document them in this order:
   1. Report the concrete result(s).
   2. Explain the result(s) in the context of the experiment.
   3. Explain how to interpret the result(s).
   4. Explain project implications.
   5. Suggest next steps.
-- After reporting results, update project state in `docs/EXPERIMENTS.md` (at minimum: **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the relevant experiment log entry). If the results affect paper positioning, narrative, or priorities, update `docs/PAPER_TRACK_STATUS.md` in the same pass.
+- After reporting results, update project state in `docs/EXPERIMENTS.md` (at minimum: **Current Status Summary**, **Outstanding problems**, **Queue Status**, and the relevant experiment log entry). If the results affect paper positioning, narrative, display planning, or priorities, update `docs/PAPER_TRACK_STATUS.md` and `docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md` in the same pass.
 - Project phase: we are actively trying to wrap up this project and convert the evidence into a publishable top-tier machine learning conference paper, with NeurIPS as the default target venue. Prioritize work that directly strengthens that paper.
 - Current research focus: Handing over the documents to senior coauthors with emphasis on clear descriptions of all experimental protocol that isolates causal effects and does not include code names. The aim is to make the choices and current experimental results clear to senior coauthors so they can decide how to position the paper.
 - Note: In our intended **training/deployment** setting, we **do not** know the number of basins in advance or which trajectories belong to which basin. Avoid relying on ground-truth basin labels or fixed basin counts when proposing methods or interpreting results for training-time method design.

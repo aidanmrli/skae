@@ -1,0 +1,324 @@
+\section{Background}
+\label{appendix:background}
+
+\subsection{Koopman operator theory}
+\label{appendix:koopman-background}
+
+This subsection largely follows the review of \citet{brunton_modern_2022} with some changes in notation. 
+% \note{It's meant to be a bit more accessible; I haven't taken measure theory. Sorry.}
+
+\paragraph{Koopman operator and observables.}
+Consider a discrete-time nonlinear dynamical system
+\begin{equation}
+x_{t+1} = f(x_t), \qquad x_t \in \mathcal{X} \subset \mathbb{R}^{d_x},
+\end{equation}
+where $x_t$ is the state and $f : \mathcal{X} \to \mathcal{X}$ describes the dynamics.
+Koopman operator theory studies the evolution of \emph{observables}, which are measurement functions $h : \mathcal{X} \to \mathbb{R}$.
+The Koopman operator $\mathcal{K}$ is defined by composition:
+\begin{equation}
+(\mathcal{K}h)(x) = h(f(x)).
+\end{equation}
+Although $f$ may be nonlinear, $\mathcal{K}$ is always linear on the (typically infinite-dimensional) function space of observables. Then, instead of evolving the state $x_t$ directly, we can evolve a vector of observables
+\begin{equation}
+\phi(x) = \big[h_1(x), \dots, h_{d_z}(x)\big]^\top.
+\end{equation}
+If the span of $\{h_1,\dots,h_{d_z}\}$ is invariant under $\mathcal{K}$, 
+then there exists a matrix
+$K \in \mathbb{R}^{d_z \times d_z}$ such that
+\begin{equation}
+\phi(x_{t+1}) = \phi(f(x_t)) = \mathcal{K}\phi(x_t) = K\, \phi(x_t),
+\end{equation}
+so that the nonlinear dynamics of $x_t$ are exactly represented by a linear dynamical system
+in the observable coordinates $z_t = \phi(x_t)$.
+To learn linear latent-state models of nonlinear dynamics, the goal is to find observables that approximately span such a Koopman-invariant subspace.
+
+\paragraph{Approximating the Koopman operator: DMD/eDMD.}
+In practice, we do not have access to the infinite-dimensional Koopman operator, and we must work with a finite family of observables.
+Given a feature map $\phi : \mathcal{X} \to \mathbb{R}^{d_z}$, one seeks a finite-dimensional approximation
+\begin{equation}
+\phi(x_{t+1}) \approx K\, \phi(x_t),
+\end{equation}
+where $K \in \mathbb{R}^{d_z \times d_z}$ is a learned linear model.
+Data-driven approximations such as dynamic mode decomposition (DMD) \citep{schmid_dmd_2010, rowley_2009_spectral, tu_dynamic_2014} and extended DMD (eDMD) \citep{williams_datadriven_2015, williams_kernel-based_2016} estimate $K$ from pairs $\{(x_t, x_{t+1})\}$ by solving
+\begin{equation}
+K = \arg\min_{\hat K} \sum_{t} \big\| \phi(x_{t+1}) - \hat K\, \phi(x_t) \big\|_2^2,
+\end{equation}
+with $\phi$ chosen from a (possibly large) dictionary of basis functions.
+If the chosen observables are approximately invariant under $\mathcal{K}$, then the learned $K$ captures a
+nearly linear evolution of the feature vector $z_t = \phi(x_t)$ while still allowing rich nonlinear behaviour
+in the original state $x_t$.
+
+DMD is a special case: we take $\phi(x)=x$ itself, so DMD directly fits a linear map
+\begin{equation}
+K^{\mathrm{DMD}} = \arg\min_{\hat K} \sum_{t} \big\| x_{t+1} - \hat K x_t \big\|_2^2
+\end{equation}
+to the state.
+This can be viewed as learning a representation in which the transition model is as close as possible to linear while still capturing important nonlinearity in the observed trajectories.
+
+
+% \paragraph{Dynamical systems definitions.}
+% Recall the key notions from nonlinear dynamics that will be important for our multi-basin problem.
+
+
+
+% A \emph{non-wandering set} $S$ is a set of points with the property that for every neighborhood $U$ of any $x \in S$ and every $T > 0$, there exists a time $t \ge T$ and an initial condition $x_0 \in U$ such that the trajectory returns to $U$ at time $t$.
+% Informally, trajectories starting in $S$ keep returning arbitrarily close to $S$.
+
+% An \emph{attractor} $A$ is a non-wandering set that has the property of asymptotic stability: trajectories that start near the set approach it asymptotically as $t \to \infty$. The attractor has an open \emph{basin of attraction}
+% \begin{equation}
+% \mathcal{B}(A) = \big\{ x : \operatorname{dist}(\phi_t(x), A) \to 0 \text{ as } t \to \infty \big\},
+% \end{equation}
+% where $\phi_t(x)$ denotes the trajectory at time $t$ starting from $x$.
+% The basin of attraction is just the set of initial conditions whose trajectories approach the attractor $A$ in the long-time limit.
+
+\paragraph{Problems with multiple basins of attraction.}
+
+While Koopman representations are powerful, they face theoretical limitations in systems with complex global topology. A key concept here is the \emph{basin of attraction}. First, an \emph{attractor} $A$ is a set of points that has the property of asymptotic stability: trajectories that start near the set approach it asymptotically as $t \to \infty$ 
+(e.g. a \emph{fixed point} $x^\ast$ that satisfies $f(x^\ast) = x^\ast$). Then, the basin of attraction $\mathcal{B}(A)$ is the set of initial conditions whose trajectories approach the attractor $A$ in the long-time limit:
+\begin{equation} 
+\mathcal{B}(A) = \{ x \in \mathcal{X} : \lim_{t \to \infty} \text{dist}(f^t(x), A) = 0 \}.
+\end{equation}
+
+For many nonlinear systems, especially those with multiple basins of attraction, no finite-dimensional Koopman-invariant subspace exists that both (1) contains the original state coordinates $x$, and (2) is globally invariant under $\mathcal{K}$ in a way that yields exact dynamics on all basins simultaneously.
+
+\citet{lan_linearization_2013}, also summarized in \citet{brunton_koopman_2016}, show that such finite-dimensional invariant subspaces containing the state can exist only for systems with a single isolated fixed point whose basin covers the state space.
+% If a nonlinear system has more than one isolated fixed point, it cannot admit a finite-dimensional Koopman-invariant subspace that both spans the state and yields exact global dynamics.
+% However, for each \emph{single} basin of attraction, we can linearize the dynamics within that basin nicely.
+% Near a hyperbolic fixed point, classical linearization theory guarantees the existence of local coordinates in which the dynamics are well-approximated by a linear system, and Koopman eigenfunctions provide one way to construct such local coordinates.
+% The only struggle is: how do we glue these separate basins, where we can linearize the dynamics separately, into one finite-dimensional global system that covers all basins and still keeps the dynamics linear and the map from latent $z$ to state $x$?
+Any kind of finite-dimensional Koopman-learned latent for a multi-basin system must either:
+\begin{itemize}
+    \item be effectively \emph{piecewise linear}, where the latent includes some implicit ``which basin am I in?'' variable, or
+    \item be \emph{approximate}, in the sense that it smooths over the boundaries between regions with different dynamics and is not exact anywhere.
+\end{itemize}
+This observation motivates our use of sparse coding to make explicit which local model is active, and periodic re-encoding to switch between locally valid linearizations as trajectories move across basin boundaries.
+
+
+
+\paragraph{Koopman predictors for controlled systems (optional).}
+For controlled systems
+\begin{equation}
+x_{t+1} = f(x_t, u_t),
+\end{equation}
+Koopman-based approaches often add controls to the higher-dimensional latent where the dynamics are linear:
+\begin{equation}
+z_{t+1} = A z_t + B u_t, \qquad x_t \approx C z_t,
+\end{equation}
+where $z_t = \psi(x_t)$ is a vector of learned observables, and $A,B,C$ are learned from data \citep{korda_linear_2018}.
+This predictor has linear dynamics in the lifted space, but the feedback law $u_t = \kappa_{\mathrm{lift}}(z_t)$ induces a nonlinear controller $\kappa(x_t) = \kappa_{\mathrm{lift}}(\psi(x_t))$ in the original state.
+Such linear predictors can be plugged into standard tools such as LQR and MPC while the nonlinearity is hidden in the fixed lifting map $x \mapsto z$ and decoder.
+
+There are many benefits to having linear dynamics in the latent space.
+Firstly, linear dynamics allow for LQR solvers to be applied to derive closed-form solutions to optimal control problems \citep{kalman_general_1960}.
+Linear dynamics also significantly simplify system identification and interpretability, and can be efficiently unrolled with parallelism (e.g., in modern state-space models \citep{gu2022efficiently, gu_2023_mamba, smith2023simplified, dao_2024_mamba2}), which is attractive for long-horizon prediction and planning.
+
+
+
+\subsection{Koopman autoencoders and periodic re-encoding}
+\label{sec:background-reencoding}
+
+Recent work \citep{lusch_deep_2018, azencot_forecasting_2020, shi_deep_2022, frion_leveraging_2023} has combined Koopman operator theory with deep autoencoders to learn nonlinear observables and linear latent dynamics directly from data, similar to DMD and eDMD.
+In a typical Koopman autoencoder, an encoder $\phi : \R^{d_x} \to \R^{d_z}$ and decoder $\psi : \R^{d_z} \to \R^{d_x}$ are trained together with a linear latent Koopman transition $K$ so that
+\begin{equation}
+z_t \approx \phi(x_t), \qquad z_{t+1} \approx K z_t, \qquad x_t \approx \psi(z_t).
+\end{equation}
+We might do this by minimizing the following objective:
+\begin{equation}
+\label{eq:KAE-standard-objective}
+\min_{K, \phi, \psi} \sum_\mathcal{D} ||x_t - \psi(\phi(x_t)) ||_2 + \lambda \cdot || \phi(x_{t+1}) - K \phi(x_t)||_2
+\end{equation} 
+where $\lambda > 0$ is a scalar.
+Once trained, one can simulate forward in time by iterating the linear latent dynamics and decoding:
+\begin{equation}
+z_{t+k} \approx K^k z_t, \qquad \hat x_{t+k} = \psi(z_{t+k}).
+\end{equation}
+
+\citet{fathi2024course} observed that unrolling the linear dynamics in latent space in this way leads to long-term drift in trajectories when mapped back to the state space.
+Because the encoder and decoder are not exact inverses and the Koopman-invariance of the learned features is only approximate, latent trajectories $z_t$ can slowly drift away from the region where the local linear approximation is valid, resulting in trajectories that cross or develop spurious attractors when decoded to $x$.
+
+To address this, they introduced \emph{periodic re-encoding}.
+Rather than letting the latent state evolve indefinitely under $K$, one intermittently decodes and re-encodes:
+\begin{equation}
+z_{t+k} = \phi\!\left(\psi\!\left(K^k z_t\right)\right),
+\end{equation}
+for some re-encoding period $k$.
+More concretely, the trajectory is evolved linearly in the latent space for several steps, decoded back to the original state, and then this decoded state is re-encoded to obtain a fresh latent representation.
+This contrasts with a one-shot encoding at the initial time, where the same linear approximation is used regardless of how far the trajectory has moved in state space.
+
+In the context of the result by \citet{lan_linearization_2013}, periodic re-encoding can be understood as a mechanism for switching between locally-valid linearizations as the dynamics traverse different regions or cross basin boundaries.
+Within a single basin away from the boundaries, the encoder–decoder pair should behave approximately linearly along trajectories, but near basin boundaries, the geometry of invariant sets and eigenfunctions changes rapidly: observables that were approximately Koopman-invariant in one region may no longer span an invariant subspace in the new region.
+By re-encoding at these times (or at a fixed period that is short compared to the time spent near boundaries), the model effectively refreshes the latent embedding so that the latent linear dynamics are again centered on the current part of the attractor or basin. This should help the system switch to a new linearized representation of the new basin.
+
+\subsection{Sparse coding}
+\label{sec:background-sparse}
+
+Sparse coding seeks a representation $z$ such that $x \approx Dz$ for a learned dictionary $D : \R^{d_z} \to \R^{d_x}$, via the optimization
+\begin{equation}
+\min_z \;\; \frac{1}{2} \|x - D z\|_2^2 + \lambda \|z\|_1,
+\end{equation}
+where $\lambda > 0$ controls the sparsity of $z$ \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003}.
+The $\ell_1$ penalty induces a mapping $x \mapsto z(x)$ that is piecewise linear and piecewise constant in its support: on each region of input space, the same small set of dictionary atoms is active, and within that region, $z(x)$ depends linearly on $x$.
+Geometrically, this models the latent space as a union of lower-dimensional linear subspaces, with each subspace indexed by the support (active set) of the sparse code.
+
+At a high level, this union-of-subspaces structure is exactly the kind of structure we would like to impose on a multi-basin nonlinear control problem.
+Each support pattern corresponds to a locally linear regime; moving between regimes corresponds to changing which atoms are active.
+
+In our setting, we want to treat the Koopman features as a sparse combination of dictionary atoms.
+The dictionary $D$ is global, and the support pattern of the sparse code $z$ acts like a mode label indicating which basin or local region we are currently in.
+Inside a region (basin of attraction) where the dynamics look locally linear, that region uses the same dictionary atoms and therefore has its own local Koopman-like dynamics.
+Crossing a basin boundary is equivalent to changing the sparse code support to another region with a different local linear model. I felt that this was also explained nicely in Appendix D of \citet{fathi2024course}.
+
+This gives a natural way to build an adjacency matrix for a graph that encapsulates the nonlinear problem: nodes correspond to local regions of constant support, and edges correspond to observed transitions between supports along trajectories.
+On each node, one can learn a local Koopman linear operator and solve the associated LQR-style control problem in closed form.
+Planning trajectories from one side of the field to the other then becomes a graph traversal problem over these sparse-code regions.
+
+\paragraph{LISTA as a fast sparse encoder.}
+Classical sparse coding solves the above optimization with an iterative algorithm (e.g., ISTA/FISTA, coordinate descent), which is often too slow to use inside a learned dynamical model.
+LISTA (Learned ISTA) \citep{gregor_learning_2010} replaces the iterative solver with a trainable, finite-depth network that approximates the sparse solution.
+
+In LISTA, one learns a non-linear encoder $z = f_\theta(x)$ whose architecture mimics a truncated iterative shrinkage/thresholding algorithm.
+The key nonlinearity is a component-wise shrinkage function with learned thresholds; by construction, the mapping $x \mapsto z(x)$ is explicitly piecewise affine, with regions defined by which coordinates survive thresholding.
+This builds a strong inductive bias for \emph{mode selection} into the encoder: for each $x$, only a few coordinates of $z$ are active, picking a small subset of dictionary atoms that explain the input.
+Compared to a generic nonlinear encoder where all latent coordinates can participate everywhere, LISTA-style encoders encourage a sparse, structured partition of state space into locally linear regimes, which is exactly what we will leverage in our Koopman control architecture.
+
+
+\begin{algorithm}[ht]
+\caption{LISTA Encoder (Forward Pass)}
+\label{alg:lista}
+\begin{algorithmic}[1]
+\REQUIRE $x \in \mathbb{R}^{d_x}$; depth $T \in \mathbb{N}$; encoder $\phi$ with learnable parameters $W_e \in \mathbb{R}^{d_z \times d_x}$, $S \in \mathbb{R}^{d_z \times d_z}$, $\theta \in \mathbb{R}^{d_z}_{\ge 0}$
+\ENSURE Output $z \in \mathbb{R}^{d_z}$ ($z$ is latent code $\phi(x)$)
+\STATE $z^{(0)} \gets h_\theta (W_e x)$
+\FOR{$t = 1$ \TO $T$}
+    \STATE $c^{(t)} \gets W_e x + Sz^{(t-1)}$ 
+    \STATE $z^{(t)} \gets \operatorname{h}_{\theta} \big(c^{(t)}\big)$
+\ENDFOR
+\RETURN $z^{(T)} = \phi(x)$
+\end{algorithmic}
+\end{algorithm}
+
+We represent the decoder as a linear dictionary $D \in \mathbb{R}^{d_x \times d_z}$, so that $\hat{x} = D z$. The encoder $\phi(x)$ is implemented as a LISTA network (Alg. \ref{alg:lista}) with parameters $W_e \in \mathbb{R}^{d_z \times d_x}, S \in \mathbb{R}^{d_z \times d_z}$, and thresholds $\theta \in \mathbb{R}^{d_z}_{\ge 0}$; here $W_e$ plays the role of a learned operator analogous to $D^\top$, while $D$ is the dictionary used in reconstruction.
+
+\section{Experimental Protocol}
+\label{appendix:experimental-protocol}
+
+\subsection{Data Generation and Training Protocol}
+
+
+\begin{table*}[ht]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.22\textwidth}p{0.08\textwidth}p{0.20\textwidth}p{0.20\textwidth}}
+\toprule
+System & Dim. & Native Dysts interval & Benchmark interval \\
+\midrule
+Dadras & 3 & 0.0006578296382730287 & 0.0006578296382730287 \\
+Duffing & 3 & 0.0014901683613936711 & 0.0003725420903484178 \\
+QiChen & 3 & $7.837106184364728 \times 10^{-5}$ & $7.837106184364728 \times 10^{-5}$ \\
+Sakarya & 3 & 0.0009970461743625946 & 0.0009970461743625946 \\
+SprottTorus & 3 & 0.0027218536422742544 & 0.0027218536422742544 \\
+Chua & 3 & 0.0002847474579095888 & 0.0002847474579095888 \\
+MultiChua & 3 & 0.00045179529921654196 & 0.00022589764960827098 \\
+DequanLi & 3 & $1.6763993998996084 \times 10^{-5}$ & $4.190998499749021 \times 10^{-6}$ \\
+LuChenCheng & 3 & 0.00018469678279714685 & 0.00018469678279714685 \\
+SanUmSrisuchinwong & 3 & 0.0014933288881479711 & 0.0014933288881479711 \\
+WangSun & 3 & 0.005392498749791912 & 0.001348124687447978 \\
+Shimizu--Morioka & 3 & 0.002408001333556058 & 0.0006020003333890145 \\
+LorenzCoupled & 6 & 0.0003241940323387382 & $8.104850808468456 \times 10^{-5}$ \\
+RikitakeDynamo & 3 & 0.0011796966161026034 & 0.00029492415402565086 \\
+Hadley & 3 & 0.00029086847807974437 & 0.00029086847807974437 \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Selected Dysts systems.} The table records the native Dysts observation interval for each system together with the benchmark interval associated with the selected subset. Horizons are reported in benchmark steps rather than equal physical time across systems.}
+\label{tab:dysts-systems}
+\end{table*}
+
+For each Dysts system, we use the default parameterization and default initial condition provided by the library \citep{gilpin_chaos_2021, gilpin_model_2023}. Each state coordinate is standardized with the Dysts mean and standard deviation. Initial conditions for rollouts are sampled by perturbing the default initial condition with Gaussian noise whose standard deviation is $0.2$ times the coordinate-wise Dysts standard deviation.
+
+\todo{Keep or remove these paragraphs depending on the systems for experiments we keep in main paper. (do we keep built-in systems and high dim systems?)}
+\paragraph{Hard (high-dim) system-generation details for reproducibility.}
+For Hopfield, the stored patterns are random $\pm 1$ patterns, and unless a
+system seed is explicitly fixed in a targeted study, the stored patterns change
+with the training seed, using generator seed $s + 29$. For competitive
+Lotka-Volterra, unless a fixed interaction seed is explicitly stated, the
+interaction matrix changes with the training seed; in the benchmark setting,
+off-diagonal interaction coefficients are sampled uniformly on $[0,0.70]$,
+symmetrized, and then the diagonal is set to 1.0. Without a fixed system seed,
+the growth-rate generator uses seed $s + 44$ and the interaction-matrix
+generator uses seed $s + 45$. The benchmark Kuramoto system uses identical
+natural frequencies and therefore does not vary across seeds; random-frequency
+variants use generator seed $s + 13$. The five canonical multiwell attractor
+centers are fixed rather than resampled.
+
+
+\paragraph{Shared forecasting evaluation.}
+Each selected checkpoint is evaluated on 100 initial conditions. Rollout modes
+are no re-encoding, every-step re-encoding, and periodic re-encoding. Periodic
+cadences are \{10, 25, 50, 100\} for built-in systems.
+
+Training uses deterministic trajectory caches with 200 trajectories per split, 30,000 stored states per trajectory, and a 2,000-step warmup. Cache-build seeds are fixed separately for train, validation, and test. The trajectories are generated without period-based resampling and are used as uniformly spaced observation sequences. 
+
+Every training run uses model latent dimension $d_z = 256$, batch size 256, and 200,000 optimization steps. For block-diagonal variants, we use a $256 \times 256$ Koopman matrix composed of sixteen $16 \times 16$ diagonal blocks, with zeros everywhere else and no remainder block. 
+
+
+Training windows contain 9 consecutive stored states, so the optimization horizon is $L=8$ adjacent observation transitions per training example. 
+Each step optimizes a weighted sum of latent alignment loss, reconstruction loss, multi-step prediction loss, and an L1 sparsity penalty on the predicted latent states. 
+AdamW is used with one learning rate for all non-transition parameters, and a 10x smaller learning rate for the latent Koopman linear transition.  
+Zero weight decay is used on the latent transition.
+
+The standard MLP and MLP with $\ell_1$ sparsity penalty on $z$ use learning rate $10^{-4}$ for non-transition parameters, $10^{-5}$ for the latent transition matrix, weight decay $10^{-4}$, reconstruction weight $0.03$, prediction weight $1.0$, alignment weight $1.0$, and sparsity weight $0.0$ or $0.0025$. 
+LISTA setups use learning rate $5\times 10^{-5}$, latent-transition learning rate $5\times 10^{-6}$, weight decay $10^{-4}$, reconstruction weight $0.03$, prediction weight $1.0$, alignment weight $1.0$, LISTA threshold parameter $\alpha=0.15$, one refinement step, and sparsity weight $0.003$.
+MLP and LISTA setups with block-diagonal Koopman matrices used the same hyperparameters as the originals.
+
+\subsection{Evaluation Protocol}
+
+We train 10 seeds per system and report robust seed aggregations rather than best-seed results. Checkpoints are selected by the lowest final-step validation error on a 200-step every-step-reencoded rollout from 16 held-out initial conditions. Every-step-reencoding is a simpler proxy for validation-based checkpoint selection because we select the best reencoding period at inference time and do not have access to what the best reencoding period is at training. The ``best'' reencoding period also varies significantly between different systems, so keeping this proxy consistent is fair to all systems.
+
+Validation-based checkpoint selection is run every 500 training steps plus the final step.
+For forecasting evaluation, each selected checkpoint is tested on 100 initial conditions. All forecast horizons and re-encoding cadences are reported in units of observed benchmark steps, that is, transitions between adjacent stored states.
+
+The primary evaluation uses \emph{best periodic re-encoding}: for each horizon, we evaluate the fixed cadence set $\{1, 5, 10, 20, 40, 60, 80, 100, 200, 300, 400, 500, 1000\}$
+and report the smallest state-space mean squared error (MSE) among these cadences.
+Because this is an oracle over a fixed grid, we also include a deployment-like diagnostic in which all systems and models must use the same cadence of 100 steps. 
+Throughout the results section, each system-model entry is summarized by the interquartile mean (IQM) across the 10 training seeds. 
+The interquartile mean was chosen because the seed-to-seed error distribution in the long-horizon forecasts was not well-behaved: some training seeds were bad runs and produced very large rollout errors, skewing the mean, but a median would throw away too much information with only 10 seeds.
+
+\subsection{Hyperparameter Tuning}
+
+We first performed a depth sweep over the number of unrolled LISTA iterations, \(n_{\mathrm{loops}} \in \{1,2,3,5,7\}\), while holding the sparsity coefficient and LISTA threshold parameter fixed at \(\lambda_{\mathrm{sp}}=0.10\) and \(\alpha=0.15\). After selecting a depth, we performed a sparsity sweep with \(n_{\mathrm{loops}}=1 \) fixed and \(\alpha=0.15\), searching \(\lambda_{\mathrm{sp}} \in \{0.05,0.10,0.20,0.40,0.80\}\). 
+We then performed an \(\alpha\)-sweep around the selected sparsity value, fixing \(n_{\mathrm{loops}}=1\) and \(\lambda_{\mathrm{sp}}=\lambda_{\mathrm{sp}}^\star\) and searching \(\alpha \in \{0.10,0.15,0.25,0.35\}\). All search cells used the same
+  training protocol: latent dimension \(256\), batch size \(256\), \(10{,}000\) optimization steps, \(\lambda_{\mathrm{rec}}=0.5\), \(\lambda_{\mathrm{pred}}
+  =1.0\), sequence length \(1\), ReLU as the final LISTA operation, native cached dysts trajectories with initial-condition noise scale \(0.2\), and
+  three seeds per system. 
+  
+  Model selection was based on long-horizon forecasting robustness, looking at median \(H1000\) best-periodic error, the number of
+  systems with \(H1000<10\), catastrophic failures with \(H1000 \ge 1000\), and seed stability. A similar hyperparameter tuning process was done for MLP encoders with the exclusion of the LISTA-specific $\alpha$ hyperparameter.
+
+  \begin{table}[ht]
+  \centering
+  \small
+  \begin{tabular}{lll}
+  \hline
+  Stage & Hyperparameter(s) searched & Values \\
+  \hline
+  Depth sweep & \(n_{\mathrm{loops}}\) & \(\{1,2,3,5,7\}\) \\
+   & \(\lambda_{\mathrm{sp}}\) & \(0.10\) (fixed) \\
+   & \(\alpha\) & \(0.15\) (fixed) \\
+  \hline
+  Sparsity sweep & \(\lambda_{\mathrm{sp}}\) & \(\{0.05,0.10,0.20,0.40,0.80\}\) \\
+   & \(n_{\mathrm{loops}}\) & \(n_{\mathrm{loops}}^\star = 1\) (fixed) \\
+   & \(\alpha\) & \(0.15\) (fixed) \\
+  \hline
+  \(\alpha\)-sweep & \(\alpha\) & \(\{0.10,0.15,0.25,0.35\}\) \\
+   & \(n_{\mathrm{loops}}\) & \(n_{\mathrm{loops}}^\star = 1\) (fixed) \\
+   & \(\lambda_{\mathrm{sp}}\) & \(\lambda_{\mathrm{sp}}^\star\) (fixed) \\
+  \hline
+
+  Fixed protocol & \(d_z\), batch size, steps, \(\lambda_{\mathrm{rec}}\), \(\lambda_{\mathrm{pred}}\), seeds & \(256\), \(256\), \(10{,}000\), \(0.5\), \(1.0\),
+  \(3\) \\
+  \hline
+  \end{tabular}
+  \caption{Staged hyperparameter search.}
+  \label{tab:dysts_forecasting_tuning_grid}
+  \end{table}

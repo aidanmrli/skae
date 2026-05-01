@@ -1,4 +1,4 @@
-\begin{thebibliography}{32}
+\begin{thebibliography}{34}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -188,6 +188,12 @@ Shaowu Pan and Karthik Duraisamy.
 \newblock \doi{10.1007/s11071-024-09581-0}.
 \newblock URL \url{https://doi.org/10.1007/s11071-024-09581-0}.
 
+\bibitem[Rowley et~al.(2009)Rowley, Mezić, Bagheri, Schlatter, and Henningson]{rowley_2009_spectral}
+Clarence~W. Rowley, Igor Mezić, Shervin Bagheri, Philipp Schlatter, and Dan~S. Henningson.
+\newblock Spectral analysis of nonlinear flows.
+\newblock \emph{Journal of Fluid Mechanics}, 641:\penalty0 115–127, 2009.
+\newblock \doi{10.1017/S0022112009992059}.
+
 \bibitem[Schmid(2010)]{schmid_dmd_2010}
 Peter~J. Schmid.
 \newblock Dynamic mode decomposition of numerical and experimental data.
@@ -213,6 +219,14 @@ F.D. Torrisi and A.~Bemporad.
 \newblock Hysdel-a tool for generating computational hybrid models for analysis and synthesis problems.
 \newblock \emph{IEEE Transactions on Control Systems Technology}, 12\penalty0 (2):\penalty0 235--249, 2004.
 \newblock \doi{10.1109/TCST.2004.824309}.
+
+\bibitem[Tu et~al.(2014)Tu, Rowley, Luchtenburg, Brunton, and Kutz]{tu_dynamic_2014}
+Jonathan~H. Tu, Clarence~W. Rowley, Dirk~M. Luchtenburg, Steven~L. Brunton, and J.~Nathan Kutz.
+\newblock On dynamic mode decomposition: {Theory} and applications.
+\newblock \emph{Journal of Computational Dynamics}, 1\penalty0 (2):\penalty0 391--421, December 2014.
+\newblock ISSN 2158-2491.
+\newblock \doi{10.3934/jcd.2014.1.391}.
+\newblock URL \url{https://www.aimsciences.org/en/article/doi/10.3934/jcd.2014.1.391}.
 
 \bibitem[Williams et~al.(2015)Williams, Kevrekidis, and Rowley]{williams_datadriven_2015}
 Matthew~O. Williams, Ioannis~G. Kevrekidis, and Clarence~W. Rowley.
