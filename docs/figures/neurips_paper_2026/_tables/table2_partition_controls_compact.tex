@@ -1,39 +1,39 @@
 \begin{table}[ht]
 \centering
-\caption{Partition-control local forecasting for the top-$8$ support-family comparison. Entries are routed/global MSE-ratio IQMs with within-system Wilcoxon/Holm counts in brackets; lower is better. The LISTA-SB row in this auxiliary control table uses the p64 diagnostic artifact, while the main routing table uses the matched $d_z{=}256$ LISTA-SB row.}
+\caption{Partition-control local forecasting for the top-$8$ support-family comparison. Entries are routed/global MSE-ratio IQMs with within-system Wilcoxon/Holm counts in brackets; lower is better. The LISTA-SB row uses the matched $d_z{=}256$ control artifact.}
 \label{tab:self_routing_partition_controls}
 \setlength{\tabcolsep}{2.5pt}
 \resizebox{\textwidth}{!}{
-\begin{tabular}{@{}ll cccc@{}}
+\begin{tabular}{@{}ll cc@{}}
 \toprule
-& & \multicolumn{2}{c}{$H100$} & \multicolumn{2}{c}{$H1000$} \\
-\cmidrule(lr){3-4}\cmidrule(l){5-6}
-Model & Selector & All & Deep & All & Deep \\
+& & \multicolumn{2}{c}{$H100$} \\
+\cmidrule(lr){3-4}
+Model & Selector & All & Deep \\
 \midrule
-LISTA-SB (p64) & Support family & $0.212\,[10/17]$ & $0.0644\,[13/17]$ & $20.9\,[13/17]$ & $1.46\,[14/17]$ \\
- & Basin labels & $0.127\,[11/17]$ & $0.117\,[11/17]$ & $7.7{\times}10^{11}\,[11/17]$ & $1.2{\times}10^{14}\,[10/17]$ \\
- & Latent clusters & $1.3\,[3/17]$ & $0.308\,[3/17]$ & $1.51\,[16/17]$ & $0.00335\,[16/17]$ \\
- & Random matched & $0.47\,[16/17]$ & $0.45\,[14/17]$ & $3.9{\times}10^{-6}\,[17/17]$ & $6.2{\times}10^{-7}\,[16/17]$ \\
+LISTA-SB & Oracle basin labels & $0.0176\,[15/17]$ & $0.00679\,[14/17]$ \\
+ & Support family & $0.168\,[13/17]$ & $0.0374\,[14/17]$ \\
+ & Latent clusters & $0.179\,[11/17]$ & $0.0471\,[13/17]$ \\
+ & Random matched & $0.857\,[13/17]$ & $0.869\,[13/17]$ \\
 \addlinespace
-LISTA-BD & Support family & $0.156\,[12/17]$ & $0.0378\,[13/17]$ & $0.0131\,[15/17]$ & $9.3{\times}10^{-5}\,[15/17]$ \\
- & Basin labels & $0.00696\,[16/17]$ & $0.00347\,[14/17]$ & $0.371\,[15/17]$ & $1.67\,[14/17]$ \\
- & Latent clusters & $0.206\,[11/17]$ & $0.0559\,[13/17]$ & $5.6{\times}10^{-12}\,[16/17]$ & $3.8{\times}10^{-14}\,[16/17]$ \\
- & Random matched & $0.866\,[15/17]$ & $0.899\,[14/17]$ & $0.00839\,[16/17]$ & $0.00595\,[15/17]$ \\
+LISTA-BD & Oracle basin labels & $0.00696\,[16/17]$ & $0.00347\,[14/17]$ \\
+ & Support family & $0.156\,[12/17]$ & $0.0378\,[13/17]$ \\
+ & Latent clusters & $0.206\,[11/17]$ & $0.0559\,[13/17]$ \\
+ & Random matched & $0.866\,[15/17]$ & $0.899\,[14/17]$ \\
 \addlinespace
-Sparse MLP, BD & Support family & $0.222\,[7/17]$ & $0.101\,[8/17]$ & $200\,[17/17]$ & $0.228\,[16/17]$ \\
- & Basin labels & $0.00391\,[8/17]$ & $0.00426\,[7/17]$ & $0.0359\,[13/17]$ & $0.0336\,[11/17]$ \\
- & Latent clusters & $0.0139\,[13/17]$ & $0.00882\,[14/17]$ & $9.5{\times}10^{-9}\,[17/17]$ & $7.9{\times}10^{-10}\,[16/17]$ \\
- & Random matched & $0.951\,[12/17]$ & $0.978\,[10/17]$ & $0.428\,[8/17]$ & $0.023\,[6/17]$ \\
+Sparse MLP, BD & Oracle basin labels & $0.00391\,[8/17]$ & $0.00426\,[7/17]$ \\
+ & Support family & $0.222\,[7/17]$ & $0.101\,[8/17]$ \\
+ & Latent clusters & $0.0139\,[13/17]$ & $0.00882\,[14/17]$ \\
+ & Random matched & $0.951\,[12/17]$ & $0.978\,[10/17]$ \\
 \addlinespace
-Sparse MLP & Support family & $0.13\,[6/17]$ & $0.0605\,[5/17]$ & $0.375\,[17/17]$ & $0.28\,[16/17]$ \\
- & Basin labels & $0.00369\,[10/17]$ & $0.00366\,[10/17]$ & $0.084\,[13/17]$ & $9.8{\times}10^{-4}\,[12/17]$ \\
- & Latent clusters & $0.0133\,[14/17]$ & $0.0114\,[13/17]$ & $2{\times}10^{-14}\,[17/17]$ & $2.3{\times}10^{-13}\,[16/17]$ \\
- & Random matched & $0.966\,[14/17]$ & $0.982\,[13/17]$ & $8.8{\times}10^{10}\,[6/17]$ & $0.189\,[4/17]$ \\
+Sparse MLP & Oracle basin labels & $0.00369\,[10/17]$ & $0.00366\,[10/17]$ \\
+ & Support family & $0.13\,[6/17]$ & $0.0605\,[5/17]$ \\
+ & Latent clusters & $0.0133\,[14/17]$ & $0.0114\,[13/17]$ \\
+ & Random matched & $0.966\,[14/17]$ & $0.982\,[13/17]$ \\
 \addlinespace
-Dense MLP & Support family & $1{\times}10^{3}\,[0/17]$ & $662\,[0/17]$ & $675\,[1/17]$ & $533\,[1/17]$ \\
- & Basin labels & $10.6\,[5/17]$ & $9.32\,[4/17]$ & $1.6{\times}10^{16}\,[3/17]$ & $1.8{\times}10^{12}\,[2/17]$ \\
- & Latent clusters & $1.6{\times}10^{6}\,[1/17]$ & $1.3{\times}10^{5}\,[3/17]$ & $9.8{\times}10^{11}\,[3/17]$ & $7.6{\times}10^{6}\,[3/17]$ \\
- & Random matched & $1.09\,[1/17]$ & $1\,[1/17]$ & $0.752\,[2/17]$ & $0.728\,[1/17]$ \\
+Dense MLP & Oracle basin labels & $10.6\,[5/17]$ & $9.32\,[4/17]$ \\
+ & Support family & $1{\times}10^{3}\,[0/17]$ & $662\,[0/17]$ \\
+ & Latent clusters & $1.6{\times}10^{6}\,[1/17]$ & $1.3{\times}10^{5}\,[3/17]$ \\
+ & Random matched & $1.09\,[1/17]$ & $1\,[1/17]$ \\
 \bottomrule
 \end{tabular}}
 \end{table}

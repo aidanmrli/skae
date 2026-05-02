@@ -1648,10 +1648,10 @@
       "png": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/qi_chen_seed0_h1000_h5000_all_models_dt30.png",
       "pdf": "docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/qi_chen_seed0_h1000_h5000_all_models_dt30.pdf",
       "axis_bounds": [
-        -1706.3393382113236,
-        30091.662509710528,
-        -57000.97618451966,
-        3231.9014473475454
+        -3.1170560000896455,
+        2.656480612611771,
+        -3.5513983937740328,
+        2.976742691659928
       ],
       "roots": {
         "lista": {

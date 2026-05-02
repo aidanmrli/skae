@@ -49,13 +49,13 @@ plt.rcParams.update(
 # Colorblind-friendly palette
 PALETTE = {
     "blockdiag_lista": "#0072B2",  # blue
-    "softblock_lista": "#D55E00",  # vermilion
+    "softblock_lista": "#56B4E9",  # sky blue
     "sparse_mlp": "#009E73",        # green
-    "zero_mlp": "#000000",          # black
-    "blockdiag_mlp": "#56B4E9",     # cyan
+    "zero_mlp": "#D55E00",          # vermilion
+    "blockdiag_mlp": "#44AA99",     # teal
     "blockdiag_lista_sc6em3": "#882255",
     "blockdiag_lista_sc3em3": "#AA4499",
-    "dense_lista": "#0072B2",
+    "dense_lista": "#785EF0",
 }
 
 # --------------------------------------------------------------------------------------
@@ -260,7 +260,7 @@ ROOT_LABELS_HARDINIT = {
         "sparse_mlp",
     ),
     "mlp_zero_sparse_hardinit_basin_partition_control": (
-        "Dense MLP, no shrink",
+        "Dense MLP",
         "dense",
         "MLP",
         "boundary-emphasized",
@@ -502,36 +502,38 @@ def build_horizon_curve(fc_df: pd.DataFrame, label_map: dict, ax, title: str):
         ls = "-" if encoder == "LISTA" else "--"
         ax.plot(horizons, iqms, marker="o", color=c, lw=1.6, ms=4, label=display, linestyle=ls)
         ax.fill_between(horizons, lo_arr, hi_arr, color=c, alpha=0.18, lw=0)
-    ax.set_xlabel(r"Rollout horizon $H$ (observation steps)")
-    ax.set_ylabel("Raw MSE (IQM)")
+    ax.set_xlabel(r"Rollout horizon $H$ (observation steps)", fontsize=13)
+    ax.set_ylabel("Raw MSE (IQM)", fontsize=13)
     ax.set_yscale("log")
-    ax.set_title(title)
+    ax.set_ylim(bottom=1e-4)
+    ax.set_title(title, fontsize=11, pad=4)
+    ax.tick_params(axis="both", labelsize=10.5)
     ax.grid(True, which="both", lw=0.4, alpha=0.4)
-    ax.legend(frameon=False, loc="lower right", fontsize=7)
+    ax.legend(frameon=False, loc="lower right", fontsize=9.5, ncol=2)
 
 
 fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8), sharey=True)
 build_horizon_curve(fc_main, ROOT_LABELS_MAIN, axes[0], "Locked finalists vs. standard-sampling controls")
 build_horizon_curve(fc_hardinit, ROOT_LABELS_HARDINIT, axes[1], "Boundary-emphasized matched controls")
 fig.tight_layout()
-fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves.pdf", bbox_inches="tight")
-fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves.png", bbox_inches="tight")
+fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves.pdf")
+fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves.png")
 plt.close(fig)
 
 # Boundary-only single-panel horizon curve (all 5 rows trained under the same
 # boundary-emphasized regime). Used as the main-text figure now that we drop
 # the sampling column.
 fc_boundary_only = pd.concat([fc_main, fc_hardinit], ignore_index=True)
-fig, ax = plt.subplots(1, 1, figsize=(4.5, 3.0))
+fig, ax = plt.subplots(1, 1, figsize=(4.2, 3.2))
 build_horizon_curve(
     fc_boundary_only,
     ROOT_LABELS_BOUNDARY_ONLY,
     ax,
-    "17-system multibasin forecasting performance",
+    "17-system multibasin forecasting\nperformance",
 )
 fig.tight_layout()
-fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves_boundary_only.pdf", bbox_inches="tight")
-fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves_boundary_only.png", bbox_inches="tight")
+fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves_boundary_only.pdf")
+fig.savefig(FIG_DIR / "fig_fixed17_horizon_curves_boundary_only.png")
 plt.close(fig)
 
 
@@ -629,6 +631,7 @@ print("Building Figure: support entropy distributions...")
 def plot_entropy_strip(
     itp_df: pd.DataFrame, label_map: dict, ax, metric: str, title: str,
     yscale: str = "linear",
+    summary: str = "iqm",
 ):
     keys = []
     distros = []
@@ -645,15 +648,23 @@ def plot_entropy_strip(
         keys.append(display)
         distros.append(vals)
         colors.append(PALETTE[color])
-        iqm_pts.append(iqm(vals))
+        if summary == "iqm":
+            iqm_pts.append(iqm(vals))
+        elif summary == "mean":
+            iqm_pts.append(float(np.mean(vals)) if vals.size else float("nan"))
+        else:
+            raise ValueError(f"Unknown summary statistic: {summary}")
 
     rng = np.random.default_rng(11)
     for idx, (vals, c) in enumerate(zip(distros, colors)):
         if vals.size == 0:
             continue
+        q1, q3 = np.percentile(vals, [25, 75])
+        ax.vlines(idx, q1, q3, color="0.25", alpha=0.9, lw=1.5, zorder=2.5)
+        ax.hlines([q1, q3], idx - 0.16, idx + 0.16, color="0.25", alpha=0.9, lw=1.5, zorder=2.6)
         x_jitter = idx + (rng.random(vals.size) - 0.5) * 0.18
-        ax.scatter(x_jitter, vals, color=c, alpha=0.45, s=11, edgecolor="none")
-        ax.hlines(iqm_pts[idx], idx - 0.25, idx + 0.25, color="black", lw=2.0)
+        ax.scatter(x_jitter, vals, color=c, alpha=0.45, s=11, edgecolor="none", zorder=2)
+        ax.hlines(iqm_pts[idx], idx - 0.25, idx + 0.25, color="black", lw=2.0, zorder=3)
     ax.set_xticks(range(len(keys)))
     ax.set_xticklabels(keys, rotation=30, ha="right")
     ax.set_title(title, fontsize=8)
@@ -683,16 +694,89 @@ fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_boundary_only.pdf", bbox_inche
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_boundary_only.png", bbox_inches="tight")
 plt.close(fig)
 
-# Replacement for the original entropy-strip figure (Table 1-aligned panels):
-# H(B|S_abs), wrong-support ablation ratio at h=1 (log scale), and H(B|F_abs). All
-# evaluated on the deep-state subset (S_abs, top quartile by basin-depth
-# margin). Higher is better for the wrong-support panel: a large ratio means
-# swapping to a wrong-basin canonical support breaks prediction, i.e. the
-# model genuinely uses the support.
+# Replacement for the original entropy-strip figure (Table 1-aligned panels).
+# Use the same six-row packet as scripts/build_per_system_stats_and_forest.py,
+# not the older five-row split loaded above, so this figure cannot regress if
+# the all-figures builder is rerun.
+table1_current_interp_csvs = [
+    ROOT
+    / "results"
+    / "transition_rich_table2_5model_seed15_backfill_20260428"
+    / "interpretability_pass0"
+    / "interpretability_rows.csv",
+    ROOT
+    / "results"
+    / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
+    / "interpretability_pass0"
+    / "interpretability_rows.csv",
+    ROOT
+    / "results"
+    / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
+    / "interpretability_pass0"
+    / "interpretability_rows.csv",
+]
+root_labels_table1_current = {
+    "lista_dense_signsplit_p256_hardinit_basin_partition": (
+        "LISTA",
+        "dense",
+        "LISTA",
+        "boundary-emphasized",
+        "dense_lista",
+    ),
+    "lista_blockdiag_signsplit_hardinit_basin_partition": (
+        "LISTA-BD",
+        "block-diagonal",
+        "LISTA",
+        "boundary-emphasized",
+        "blockdiag_lista",
+    ),
+    "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": (
+        "LISTA-SB",
+        "soft-block",
+        "LISTA",
+        "boundary-emphasized",
+        "softblock_lista",
+    ),
+    "mlp_sparse_blockdiag_hardinit_basin_partition_control": (
+        "Sparse MLP, BD",
+        "block-diagonal",
+        "MLP",
+        "boundary-emphasized",
+        "blockdiag_mlp",
+    ),
+    "mlp_sparse_hardinit_basin_partition_control": (
+        "Sparse MLP",
+        "dense",
+        "MLP",
+        "boundary-emphasized",
+        "sparse_mlp",
+    ),
+    "mlp_zero_sparse_hardinit_basin_partition_control": (
+        "Dense MLP",
+        "dense",
+        "MLP",
+        "boundary-emphasized",
+        "zero_mlp",
+    ),
+}
+deep_table1_current = pd.concat(
+    [pd.read_csv(path, low_memory=False) for path in table1_current_interp_csvs],
+    ignore_index=True,
+)
+deep_table1_current = deep_table1_current[
+    deep_table1_current["root_label"].isin(root_labels_table1_current.keys())
+    & (deep_table1_current["support_scheme"] == "absolute:0.001")
+    & (deep_table1_current["subset"] == "deep")
+].copy()
+
+# H(B|F_abs), |F_abs|, and the h=1 wrong-support/base ratio. The count panel
+# uses a mean summary because family count is interpreted against basin counts;
+# the wrong-support panel is log-scaled because the functional ablation spans
+# orders of magnitude.
 fig, axes = plt.subplots(1, 3, figsize=(8.0, 2.6))
-plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[0], "h_basin_given_support", r"$H(B\,|\,S_{\rm abs})$")
-plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[1], "support_freeze_wrong_over_base_h1", r"wrong-support $h{=}1$ ($\uparrow$)", yscale="log")
-plot_entropy_strip(deep_boundary, ROOT_LABELS_BOUNDARY_ONLY, axes[2], "family_h_basin_given_family", r"$H(B\,|\,F_{\rm abs})$")
+plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[0], "family_h_basin_given_family", r"$H(B\,|\,F_{\rm abs})$")
+plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[1], "family_unique_count", r"$|F_{\rm abs}|$", summary="mean")
+plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[2], "support_freeze_wrong_over_base_h1", r"wrong-support ratio $h{=}1$", yscale="log")
 fig.tight_layout()
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.pdf", bbox_inches="tight")
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.png", bbox_inches="tight")

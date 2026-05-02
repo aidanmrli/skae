@@ -30,12 +30,12 @@ DEFAULT_TABLE_DIR = DEFAULT_FIG_DIR / "_tables"
 
 ROOTS = OrderedDict(
     [
-        ("lista", {"display": "LISTA", "color": "#0072B2", "linestyle": "-"}),
-        ("lista_bd", {"display": "LISTA-BD", "color": "#CC79A7", "linestyle": "-"}),
-        ("lista_sb", {"display": "LISTA-SB", "color": "#D55E00", "linestyle": "-"}),
+        ("lista", {"display": "LISTA", "color": "#7B3294", "linestyle": "-"}),
+        ("lista_bd", {"display": "LISTA-BD", "color": "#0072B2", "linestyle": "-"}),
+        ("lista_sb", {"display": "LISTA-SB", "color": "#56B4E9", "linestyle": "-"}),
         ("sparse_mlp", {"display": "Sparse MLP", "color": "#009E73", "linestyle": "--"}),
-        ("sparse_mlp_bd", {"display": "Sparse MLP-BD", "color": "#56B4E9", "linestyle": "--"}),
-        ("dense_mlp_tanh", {"display": "Dense MLP", "color": "#000000", "linestyle": ":"}),
+        ("sparse_mlp_bd", {"display": "Sparse MLP-BD", "color": "#44AA99", "linestyle": "--"}),
+        ("dense_mlp_tanh", {"display": "Dense MLP", "color": "#D55E00", "linestyle": "--"}),
     ]
 )
 BASELINE_ROOT = "dense_mlp_tanh"
@@ -519,46 +519,27 @@ def aggregate_tests_vs_dense(ratio_df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def write_aggregate_latex_table(aggregate: pd.DataFrame, table_dir: Path, horizons: list[int]) -> None:
-    """Write a compact ratio/p-value table for aggregate model-vs-Dense tests."""
-    lookup = {
-        (row["root_label"], int(row["horizon"])): row
-        for row in aggregate.to_dict(orient="records")
-    }
-    lines = [
-        r"\begin{tabular}{@{}l " + " ".join(["c"] * len(horizons)) + r"@{}}",
-        r"\toprule",
-        "Model & " + " & ".join([f"H{h}" for h in horizons]) + r" \\",
-        r"\midrule",
-    ]
-    for root_label, meta in ROOTS.items():
-        if root_label == BASELINE_ROOT:
-            continue
-        cells = []
-        for h in horizons:
-            row = lookup[(root_label, h)]
-            ratio = tex_number(float(row["ratio_iqm"]))
-            p_holm = float(row["p_system_wilcoxon_holm_all"])
-            if math.isfinite(p_holm) and p_holm < 0.05:
-                ratio = rf"\mathbf{{{ratio}}}"
-            p_tex = tex_number(p_holm)
-            cells.append(rf"${ratio}\;(p_{{\rm Holm}}={p_tex})$")
-        lines.append(f"{meta['display']} & " + " & ".join(cells) + r" \\")
-    lines.extend([r"\bottomrule", r"\end{tabular}"])
-    (table_dir / "table4_dysts_dt30_ratio_aggregate_tests.tex").write_text(
-        "\n".join(lines) + "\n",
-        encoding="utf-8",
-    )
+def significance_suffix(p_value: float) -> str:
+    if math.isfinite(p_value) and p_value < 0.01:
+        return r"^{\ast\ast}"
+    if math.isfinite(p_value) and p_value < 0.05:
+        return r"^{\ast}"
+    return ""
 
 
-def write_latex_table(summary: pd.DataFrame, tests: pd.DataFrame, table_dir: Path, horizons: list[int]) -> None:
+def write_latex_table(
+    summary: pd.DataFrame,
+    aggregate_tests: pd.DataFrame,
+    table_dir: Path,
+    horizons: list[int],
+) -> None:
     best_by_horizon = {
         h: summary[summary["horizon"] == h].sort_values("cross_system_iqm").iloc[0]["root_label"]
         for h in horizons
     }
-    test_lookup = {
+    aggregate_lookup = {
         (row["root_label"], int(row["horizon"])): row
-        for row in tests.to_dict(orient="records")
+        for row in aggregate_tests.to_dict(orient="records")
     }
 
     lines = [
@@ -576,10 +557,13 @@ def write_latex_table(summary: pd.DataFrame, tests: pd.DataFrame, table_dir: Pat
             if root_label == best_by_horizon[h]:
                 value_tex = rf"\mathbf{{{value}}}"
             if root_label != BASELINE_ROOT:
-                test_row = test_lookup[(root_label, h)]
-                k = int(test_row["K"])
-                n = int(test_row["N"])
-                cell = rf"${value_tex}\,[{k}/{n}]$"
+                aggregate_row = aggregate_lookup.get((root_label, h))
+                if aggregate_row is not None:
+                    p_holm = float(aggregate_row["p_system_wilcoxon_holm_all"])
+                    suffix = significance_suffix(p_holm)
+                    if suffix:
+                        value_tex = rf"{{{value_tex}}}{suffix}"
+                cell = rf"${value_tex}$"
             else:
                 cell = rf"${value_tex}$"
             cells.append(cell)
@@ -619,17 +603,25 @@ def plot_iqm_horizon(summary: pd.DataFrame, fig_dir: Path, horizons: list[int]) 
     plt.close(fig)
 
 
-def _draw_forecasting_performance_panel(ax, summary: pd.DataFrame, horizons: list[int], *, log_scale: bool) -> None:
+def _draw_forecasting_performance_panel(
+    ax,
+    summary: pd.DataFrame,
+    horizons: list[int],
+    *,
+    log_scale: bool,
+    root_order: list[str] | None = None,
+) -> None:
     style = {
         "lista": {"color": "#7B3294", "linestyle": "-", "label": "LISTA"},
         "lista_bd": {"color": "#0072B2", "linestyle": "-", "label": "LISTA-BD"},
-        "lista_sb": {"color": "#D55E00", "linestyle": "-", "label": "LISTA-SB"},
-        "sparse_mlp_bd": {"color": "#56B4E9", "linestyle": "--", "label": "Sparse MLP, BD"},
+        "lista_sb": {"color": "#56B4E9", "linestyle": "-", "label": "LISTA-SB"},
+        "sparse_mlp_bd": {"color": "#44AA99", "linestyle": "--", "label": "Sparse MLP, BD"},
         "sparse_mlp": {"color": "#009E73", "linestyle": "--", "label": "Sparse MLP"},
-        "dense_mlp_tanh": {"color": "#000000", "linestyle": "--", "label": "Dense MLP"},
+        "dense_mlp_tanh": {"color": "#D55E00", "linestyle": "--", "label": "Dense MLP"},
     }
 
-    for root_label, cfg in style.items():
+    for root_label in root_order or list(style.keys()):
+        cfg = style[root_label]
         sub = summary[summary["root_label"] == root_label].sort_values("horizon")
         x = sub["horizon"].to_numpy(dtype=float)
         y = sub["cross_system_iqm"].to_numpy(dtype=float)
@@ -647,33 +639,48 @@ def _draw_forecasting_performance_panel(ax, summary: pd.DataFrame, horizons: lis
             label=cfg["label"],
         )
 
-    ax.set_xlabel(r"Rollout horizon $H$ (observation steps)", fontsize=12)
-    ax.set_ylabel("Raw MSE (IQM)", fontsize=12)
+    ax.set_xlabel(r"Rollout horizon $H$ (observation steps)", fontsize=13)
+    ax.set_ylabel("MSE (cross-system IQM)", fontsize=13)
     if log_scale:
         ax.set_yscale("log")
-        ax.set_title("Log MSE scale", fontsize=11)
+        ax.set_title("Log MSE scale", fontsize=12)
     else:
         ax.set_ylim(bottom=0.0)
-        ax.set_title("Linear MSE scale", fontsize=11)
+        ax.set_title("Linear MSE scale", fontsize=12)
     ax.set_xlim(min(horizons) - 70, max(horizons) + 180)
     ax.set_xticks(horizons)
-    ax.set_xticklabels([str(h) for h in horizons], rotation=30, ha="right")
+    ax.set_xticklabels([str(h) for h in horizons], rotation=30, ha="right", fontsize=10.5)
+    ax.tick_params(axis="y", labelsize=10.5)
     ax.grid(True, which="both", linewidth=0.45, alpha=0.38)
-    ax.legend(frameon=False, loc="best", ncol=2)
+    ax.legend(frameon=False, loc="lower right", ncol=2, fontsize=9.5)
 
 
 def plot_forecasting_performance_style(summary: pd.DataFrame, fig_dir: Path, horizons: list[int]) -> None:
     """Dysts trend plots styled like the multibasin horizon curve."""
-    fig, ax = plt.subplots(figsize=(7.4, 4.7), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(4.2, 3.2), constrained_layout=True)
     _draw_forecasting_performance_panel(ax, summary, horizons, log_scale=True)
-    ax.set_title("12-system Dysts forecasting performance", fontsize=14, pad=8)
+    ax.set_title("12-system Dysts forecasting\nperformance", fontsize=11, pad=4)
     fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance.pdf", bbox_inches="tight")
     fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance.png", bbox_inches="tight")
     plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(7.4, 4.7), constrained_layout=True)
+    primary_roots = ["lista", "lista_bd", "sparse_mlp_bd", "sparse_mlp", "dense_mlp_tanh"]
+    fig, ax = plt.subplots(figsize=(4.2, 3.2), constrained_layout=True)
+    _draw_forecasting_performance_panel(
+        ax,
+        summary,
+        horizons,
+        log_scale=True,
+        root_order=primary_roots,
+    )
+    ax.set_title("12-system Dysts forecasting\nperformance", fontsize=11, pad=4)
+    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf")
+    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_no_lista_sb.png")
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.2), constrained_layout=True)
     _draw_forecasting_performance_panel(ax, summary, horizons, log_scale=False)
-    ax.set_title("12-system Dysts forecasting performance (linear scale)", fontsize=14, pad=8)
+    ax.set_title("12-system Dysts forecasting performance (linear scale)", fontsize=11, pad=6)
     fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_linear.pdf", bbox_inches="tight")
     fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_linear.png", bbox_inches="tight")
     plt.close(fig)
@@ -954,8 +961,7 @@ def main() -> None:
     plot_iqm_horizon(summary, args.fig_dir, horizons)
     plot_forecasting_performance_style(summary, args.fig_dir, horizons)
     plot_perseed_histograms(df, args.fig_dir, horizons)
-    write_latex_table(summary, tests_summary, args.table_dir, horizons)
-    write_aggregate_latex_table(aggregate_tests, args.table_dir, horizons)
+    write_latex_table(summary, aggregate_tests, args.table_dir, horizons)
 
     per_system.to_csv(args.table_dir / "dysts_dt30_per_system_iqm.csv", index=False)
     summary.to_csv(args.table_dir / "dysts_dt30_iqm_summary.csv", index=False)

@@ -22,6 +22,7 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -37,6 +38,11 @@ ROUTING_CSVS = [
     REPO_ROOT
     / "results"
     / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
+    / "self_routed_forecasting"
+    / "self_routed_forecasting_rows.csv",
+    REPO_ROOT
+    / "results"
+    / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
     / "self_routed_forecasting"
     / "self_routed_forecasting_rows.csv",
 ]
@@ -76,6 +82,7 @@ TBL_DIR = REPO_ROOT / "docs" / "figures" / "neurips_paper_2026" / "_tables"
 OUT_JSON = TBL_DIR / "per_system_paired_tests.json"
 
 ROUTING_MODELS = {
+    "lista_dense_signsplit_p256_hardinit_basin_partition": "LISTA",
     "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": "LISTA-SB",
     "lista_blockdiag_signsplit_hardinit_basin_partition": "LISTA-BD",
     "mlp_sparse_blockdiag_hardinit_basin_partition_control": "Sparse MLP, BD",
@@ -100,6 +107,31 @@ DYSTS_DISPLAY = {
     "generic_sparse_blockdiag_ns200k_sc6em3": "Sparse MLP, BD",
     "generic_sparse_sc0_ns200k_best": "Dense MLP",
 }
+
+PALETTE = {
+    "LISTA": "#785EF0",
+    "LISTA-SB": "#D55E00",
+    "LISTA-BD": "#0072B2",
+    "Sparse MLP, BD": "#56B4E9",
+    "Sparse MLP": "#009E73",
+    "Dense MLP": "#000000",
+}
+
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.size": 9,
+        "axes.titlesize": 9,
+        "axes.labelsize": 9,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "legend.fontsize": 7,
+        "figure.dpi": 150,
+        "savefig.dpi": 200,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+    }
+)
 
 
 def iqm(values) -> float:
@@ -445,6 +477,123 @@ def per_system_censored_routing_wilcoxon(
     }
 
 
+ROUTE_DISPLAY = {
+    "support_gated_k": "Gated",
+    "support_local_centered": "Support-local",
+    "family_local_centered": "Family-local",
+}
+
+
+def tex_number(value: float) -> str:
+    if value is None or not math.isfinite(float(value)):
+        return "--"
+    value = float(value)
+    abs_value = abs(value)
+    if abs_value == 0.0:
+        return "0"
+    if abs_value >= 1000.0 or abs_value < 1e-3:
+        mantissa, exponent = f"{value:.2e}".split("e")
+        mantissa = mantissa.rstrip("0").rstrip(".")
+        return rf"{mantissa}\times10^{{{int(exponent)}}}"
+    if abs_value < 0.1:
+        return f"{value:.3f}".rstrip("0").rstrip(".")
+    return f"{value:.3g}"
+
+
+def write_routing_main_table(summary_df: pd.DataFrame) -> None:
+    """Write the Table-2 fragment from finite-ratio IQMs, with censored K/N counts."""
+    if summary_df.empty:
+        return
+    main = summary_df[summary_df["subset"] == "all"].copy()
+    rows_by_cell = {
+        (str(row["horizon"]), str(row["model"]), str(row["route"])): row
+        for row in main.to_dict(orient="records")
+    }
+    routes = ["support_gated_k", "support_local_centered", "family_local_centered"]
+    horizons = ["H100", "H1000"]
+
+    best: dict[tuple[str, str], float] = {}
+    for horizon in horizons:
+        for route in routes:
+            vals = [
+                float(rows_by_cell[(horizon, display, route)]["finite_ratio_iqm"])
+                for display in ROUTING_MODELS.values()
+                if (horizon, display, route) in rows_by_cell
+                and math.isfinite(float(rows_by_cell[(horizon, display, route)]["finite_ratio_iqm"]))
+            ]
+            best[(horizon, route)] = min(vals) if vals else float("nan")
+
+    lines = [
+        r"\begin{tabular}{@{}l ccc ccc@{}}",
+        r"\toprule",
+        r"& \multicolumn{3}{c}{$H100$} & \multicolumn{3}{c}{$H1000$} \\",
+        r"\cmidrule(lr){2-4}\cmidrule(l){5-7}",
+        r"Model & Gated & Support-local & Family-local & Gated & Support-local & Family-local \\",
+        r"\midrule",
+    ]
+    for display in ROUTING_MODELS.values():
+        cells = []
+        has_data = False
+        for horizon in horizons:
+            for route in routes:
+                row = rows_by_cell.get((horizon, display, route))
+                if row is None:
+                    cells.append("--")
+                    continue
+                has_data = True
+                value = float(row["finite_ratio_iqm"])
+                body = tex_number(value)
+                if math.isfinite(value) and math.isclose(value, best[(horizon, route)], rel_tol=1e-12, abs_tol=1e-12):
+                    body = rf"\mathbf{{{body}}}"
+                cells.append(rf"${body}\,[{int(row['K'])}/{int(row['N'])}]$")
+        if has_data:
+            lines.append(f"{display} & {' & '.join(cells)} \\\\")
+    lines.extend([r"\bottomrule", r"\end{tabular}"])
+    (TBL_DIR / "table2_self_routing_h100_h1000.tex").write_text("\n".join(lines))
+
+
+def plot_routing_summary(summary_df: pd.DataFrame) -> None:
+    if summary_df.empty:
+        return
+    routes = ["support_gated_k", "support_local_centered", "family_local_centered"]
+    labels = [ROUTE_DISPLAY[route] for route in routes]
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.0), sharex=True)
+    for ax, subset, title in zip(axes, ["all", "deep"], ["All states", "Deep states"]):
+        sub = summary_df[(summary_df["horizon"] == "H1000") & (summary_df["subset"] == subset)]
+        y_base = np.arange(len(ROUTING_MODELS))
+        height = 0.22
+        for offset, route, route_label in zip([-height, 0.0, height], routes, labels):
+            vals = []
+            colors = []
+            for display in ROUTING_MODELS.values():
+                row = sub[(sub["model"] == display) & (sub["route"] == route)]
+                if row.empty:
+                    vals.append(float("nan"))
+                else:
+                    vals.append(float(row.iloc[0]["finite_ratio_iqm"]))
+                colors.append(PALETTE[display])
+            clipped = [min(v, 2.0) if math.isfinite(v) else np.nan for v in vals]
+            ax.barh(y_base + offset, clipped, height=height, color=colors, alpha=0.78, label=route_label)
+            for y, raw, shown in zip(y_base + offset, vals, clipped):
+                if not math.isfinite(raw):
+                    continue
+                text = f">{tex_number(raw)}" if raw > 2.0 else tex_number(raw)
+                ax.text(min(shown + 0.03, 2.05), y, text, va="center", fontsize=6)
+        ax.axvline(1.0, color="black", ls="--", lw=0.7)
+        ax.set_yticks(y_base)
+        ax.set_yticklabels(list(ROUTING_MODELS.values()))
+        ax.set_xlim(0, 2.25)
+        ax.set_xlabel("Routed/global MSE ratio at H1000")
+        ax.set_title(title)
+        ax.grid(axis="x", lw=0.3, alpha=0.35)
+        ax.invert_yaxis()
+    axes[1].legend(frameon=False, fontsize=7, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(TBL_DIR.parent / "fig_routing_ratios.pdf", bbox_inches="tight")
+    fig.savefig(TBL_DIR.parent / "fig_routing_ratios.png", bbox_inches="tight")
+    plt.close(fig)
+
+
 def analyze_routing() -> dict:
     frames = [pd.read_csv(path, low_memory=False) for path in ROUTING_CSVS if path.exists()]
     if not frames:
@@ -523,7 +672,10 @@ def analyze_routing() -> dict:
                         **{f"censor_{key}": value for key, value in res["censor_class_counts"].items()},
                     })
 
-    pd.DataFrame(summary_rows).to_csv(TBL_DIR / "table2_routing_h100_h1000_censored_seed15_summary.csv", index=False)
+    summary_df = pd.DataFrame(summary_rows)
+    summary_df.to_csv(TBL_DIR / "table2_routing_h100_h1000_censored_seed15_summary.csv", index=False)
+    write_routing_main_table(summary_df)
+    plot_routing_summary(summary_df)
     return out
 
 
@@ -596,6 +748,43 @@ def write_refresh_period_table(summary_df: pd.DataFrame) -> None:
     (TBL_DIR / "table3_support_refresh_period_grouped.tex").write_text("\n".join(lines))
 
 
+def plot_refresh_summary(summary_df: pd.DataFrame) -> None:
+    if summary_df.empty:
+        return
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.1))
+    for display in REFRESH_MODELS.values():
+        sub = summary_df[(summary_df["model"] == display) & (summary_df["n_rows"] > 0)].sort_values("period")
+        if sub.empty:
+            continue
+        color = PALETTE.get(display, "#666666")
+        x = sub["period"].to_numpy(dtype=float)
+        axes[0].plot(x, sub["route_target_iqm"], "-o", color=color, label=display, ms=4)
+        axes[1].plot(x, sub["mse_ratio_iqm"], "-o", color=color, label=display, ms=4)
+        axes[1].fill_between(
+            x,
+            sub["mse_ratio_q25_systems"].to_numpy(dtype=float),
+            sub["mse_ratio_q75_systems"].to_numpy(dtype=float),
+            color=color,
+            alpha=0.12,
+            lw=0,
+        )
+    axes[0].set_xlabel("Re-encode period (steps)")
+    axes[0].set_ylabel("Target-route fraction (IQM)")
+    axes[0].set_xscale("log")
+    axes[0].set_ylim(0, 1.05)
+    axes[0].grid(True, lw=0.35, alpha=0.35)
+    axes[1].set_xlabel("Re-encode period (steps)")
+    axes[1].set_ylabel("Refreshed/stale MSE ratio (IQM)")
+    axes[1].set_xscale("log")
+    axes[1].set_yscale("log")
+    axes[1].grid(True, which="both", lw=0.35, alpha=0.35)
+    axes[1].legend(frameon=False, fontsize=6, loc="best")
+    fig.tight_layout()
+    fig.savefig(TBL_DIR.parent / "fig_periodic_support_refresh.pdf", bbox_inches="tight")
+    fig.savefig(TBL_DIR.parent / "fig_periodic_support_refresh.png", bbox_inches="tight")
+    plt.close(fig)
+
+
 def analyze_refresh() -> dict:
     frames = [pd.read_csv(path, low_memory=False) for path in REFRESH_CSVS if path.exists()]
     if not frames:
@@ -657,6 +846,7 @@ def analyze_refresh() -> dict:
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(TBL_DIR / "table3_support_refresh_matched_summary.csv", index=False)
     write_refresh_period_table(summary_df)
+    plot_refresh_summary(summary_df)
     return out
 
 

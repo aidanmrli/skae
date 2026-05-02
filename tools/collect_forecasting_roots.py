@@ -98,10 +98,16 @@ def _discover_run_dirs(system_dir: Path) -> List[Tuple[Optional[str], Path]]:
 
 def _select_run_dirs(system_dir: Path, select: str) -> List[Tuple[Optional[str], Path]]:
     run_dirs = _discover_run_dirs(system_dir)
+    return _select_run_dirs_from_candidates(run_dirs, select)
+
+
+def _select_run_dirs_from_candidates(
+    run_dirs: Sequence[Tuple[Optional[str], Path]], select: str
+) -> List[Tuple[Optional[str], Path]]:
     if not run_dirs:
         return []
     if select == "all":
-        return run_dirs
+        return list(run_dirs)
 
     grouped: Dict[str, List[Tuple[Optional[str], Path]]] = defaultdict(list)
     for seed_name, run_dir in run_dirs:
@@ -112,6 +118,33 @@ def _select_run_dirs(system_dir: Path, select: str) -> List[Tuple[Optional[str],
     for _, items in sorted(grouped.items()):
         selected.append(sorted(items, key=lambda t: (t[1].name, str(t[1])))[-1])
     return selected
+
+
+def _infer_system_dir_for_run(root_dir: Path, run_dir: Path) -> Path:
+    """Infer the system directory for a run discovered under ``root_dir``.
+
+    Paper benchmark roots sometimes contain a dimension wrapper such as
+    ``n_16/hopfield_n16_p16/dt_0p00625/seed_0/<run_id>``.  Selection must keep
+    the latest run per system and seed, not per dimension wrapper and seed.
+    """
+    try:
+        rel_parts = run_dir.relative_to(root_dir).parts
+    except ValueError:
+        rel_parts = run_dir.parts
+
+    seed_index = next(
+        (idx for idx, part in enumerate(rel_parts) if part.startswith("seed_")),
+        None,
+    )
+    if seed_index is None:
+        return run_dir.parent
+
+    system_index = seed_index - 1
+    if system_index >= 0 and rel_parts[system_index].startswith("dt_"):
+        system_index -= 1
+    if system_index < 0:
+        return root_dir
+    return root_dir.joinpath(*rel_parts[: system_index + 1])
 
 
 def _infer_seed_name(seed_name: Optional[str], run_dir: Path) -> Optional[str]:
@@ -328,8 +361,15 @@ def _collect_rows(
     for root_label, root_dir in root_specs:
         if not root_dir.exists():
             continue
-        for system_dir in sorted([p for p in root_dir.iterdir() if p.is_dir()]):
-            for seed_name, run_dir in _select_run_dirs(system_dir, select):
+        candidates_by_system: Dict[Path, List[Tuple[Optional[str], Path]]] = defaultdict(list)
+        for seed_name, run_dir in _discover_run_dirs(root_dir):
+            system_dir = _infer_system_dir_for_run(root_dir=root_dir, run_dir=run_dir)
+            candidates_by_system[system_dir].append((seed_name, run_dir))
+
+        for system_dir, candidates in sorted(
+            candidates_by_system.items(), key=lambda item: str(item[0])
+        ):
+            for seed_name, run_dir in _select_run_dirs_from_candidates(candidates, select):
                 row = _extract_row(
                     root_label=root_label,
                     system_dir=system_dir,

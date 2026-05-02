@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1777650369.21368 "docs/neurips_sparse_koopman_multibasin.tex" "neurips_sparse_koopman_multibasin.pdf" "neurips_sparse_koopman_multibasin" 1777650371.62074 2
+["pdflatex"] 1777752128.88685 "docs/neurips_sparse_koopman_multibasin.tex" "neurips_sparse_koopman_multibasin.pdf" "neurips_sparse_koopman_multibasin" 1777752130.33767 2
   "/home/mila/l/lia/.TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
   "/home/mila/l/lia/.TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1246382020 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
   "/home/mila/l/lia/.TinyTeX/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm" 1246382020 916 f87d7c45f9c908e672703b83b72241a3 ""
@@ -98,17 +98,18 @@
   "/home/mila/l/lia/.TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt" 1776960092 2241608 8fd91abef8f455dd76518a5d7f39df45 ""
   "/home/mila/l/lia/.TinyTeX/texmf.cnf" 1776960037 637 edd806fb06a89761a6034e1968af9017 ""
   "claude_catalog_validation/true_basin_maps/composite_true_basins_6panel.png" 0 -1 0 ""
-  "docs/neurips_sparse_koopman_multibasin.tex" 1777650126 130205 3871d16e78d9b541aa9652016d7e1921 ""
+  "docs/neurips_sparse_koopman_multibasin.tex" 1777752016 124087 7a8ab6640db924d3d97eeb55856be869 ""
   "dysts_phase_portraits/dysts_dadras_qichen_shimizumorioka_h20000_triptych.png" 0 -1 0 ""
   "figs/appfig_dysts_perseed_histograms" 0 -1 0 ""
   "figs/appfig_fixed17_perseed_histograms" 0 -1 0 ""
   "figs/fig_fixed17_forest" 0 -1 0 ""
   "figs/fig_fixed17_seed_strips_boundary_only" 0 -1 0 ""
+  "neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf" 0 -1 0 ""
   "neurips_paper_2026/fig_dysts_long_horizon.pdf" 0 -1 0 ""
   "neurips_paper_2026/fig_fixed17_entropy_strips_alt2.pdf" 0 -1 0 ""
   "neurips_paper_2026/fig_fixed17_horizon_curves_boundary_only.pdf" 0 -1 0 ""
-  "neurips_sparse_koopman_multibasin.aux" 1777650371 1129 9946d69a8b932fb0793cbaeafe88015e "pdflatex"
-  "neurips_sparse_koopman_multibasin.out" 1777650371 103 9814c2d956916adb9290eca4e25c967a "pdflatex"
+  "neurips_sparse_koopman_multibasin.aux" 1777752130 1129 9946d69a8b932fb0793cbaeafe88015e "pdflatex"
+  "neurips_sparse_koopman_multibasin.out" 1777752130 103 9814c2d956916adb9290eca4e25c967a "pdflatex"
   "tables/table_persystem_h100.tex" 0 -1 0 ""
   (generated)
   "neurips_sparse_koopman_multibasin.aux"

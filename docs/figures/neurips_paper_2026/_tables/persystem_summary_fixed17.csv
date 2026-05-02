@@ -1,4 +1,7 @@
 root_label,label,horizon,K_systems_better,K_systems_better_ttest,N_systems_tested,median_diff_log10,iqm_raw,log10_iqr_systems
+lista_dense_signsplit_p256_hardinit_basin_partition,LISTA,100,15,15,17,-1.8226548185206297,0.015273982865018873,1.095581441637108
+lista_dense_signsplit_p256_hardinit_basin_partition,LISTA,500,15,14,17,-1.793981270217929,0.04889481499539831,1.4246488544783342
+lista_dense_signsplit_p256_hardinit_basin_partition,LISTA,1000,17,14,17,-1.9193025901283218,0.061435094217322565,1.8360245331700173
 lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,100,15,15,17,-1.682645149860732,0.0170485948430492,0.9695363338828513
 lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,500,15,14,17,-1.8053177588639728,0.06505940847065562,1.2971160360477856
 lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,1000,15,15,17,-1.8715850982697664,0.05935375448334809,1.0285528709385674

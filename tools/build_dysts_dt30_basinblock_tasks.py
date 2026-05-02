@@ -289,8 +289,6 @@ def _recipes(args: argparse.Namespace, basin_count: int) -> Dict[str, Dict[str, 
     lista_sb = dict(lista)
     lista_sb.update(
         {
-            "lista_num_loops": 2,
-            "lista_final_op": "sign_split",
             "soft_block": 1,
             "soft_block_num_blocks": basin_count,
             "soft_block_weight": args.soft_block_weight,
@@ -452,7 +450,7 @@ def main() -> None:
                 "Block-diagonal K and soft-block recipes set the number of blocks to the listed basin/scroll/lobe count.",
                 "Dysts training-time basin labels are not used; the basin/scroll count only determines model capacity for K block structure.",
                 "dense_mlp_tanh uses generic_no_shrink: tanh hidden activation, no final ReLU, sparsity_coeff=0.",
-                "LISTA+SB follows the current soft-block convention: 2 LISTA loops and sign_split final op.",
+                "LISTA-SB matches LISTA-BD's encoder settings and differs only by using dense K with a soft off-block penalty instead of hard block-diagonal K.",
             ],
         }
         Path(args.output_manifest_json).write_text(json.dumps(payload, indent=2) + "\n")

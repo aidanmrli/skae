@@ -44,14 +44,21 @@ MODEL_DISPLAY = {
 }
 
 SELECTOR_DISPLAY = {
+    "oracle_basin_local_centered": "Oracle basin labels",
     "family_local_centered": "Support family",
-    "oracle_basin_local_centered": "Basin labels",
     "latent_kmeans_local_centered": "Latent clusters",
     "random_count_matched_local_centered": "Random matched",
 }
 
-HORIZONS = [100, 1000]
+HORIZONS = [100]
 SLICES = {"all": "all", "deep": "deep"}
+CENSOR_CLASS_KEYS = [
+    "finite_finite",
+    "missing_row_neutral",
+    "routed_invalid_global_finite_loss",
+    "routed_finite_global_invalid_win",
+    "both_invalid_neutral",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,11 +72,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--csv_name",
-        default="table2_partition_controls_h100_h1000_censored_seed15_summary.csv",
+        default="table2_partition_controls_h100_censored_seed15_summary.csv",
     )
     parser.add_argument(
         "--json_name",
-        default="table2_partition_controls_h100_h1000_censored_seed15_summary.json",
+        default="table2_partition_controls_h100_censored_seed15_summary.json",
     )
     parser.add_argument(
         "--tex_name",
@@ -112,6 +119,15 @@ def _write_compact_tex(summary: pd.DataFrame, path: Path) -> None:
         (row.model, row.selector, row.subset, int(row.horizon)): row
         for row in summary.itertuples(index=False)
     }
+    horizon_header = " & ".join(
+        rf"\multicolumn{{2}}{{c}}{{$H{horizon}$}}" for horizon in HORIZONS
+    )
+    cmidrules = "".join(
+        rf"\cmidrule(lr){{{3 + 2 * index}-{4 + 2 * index}}}"
+        for index, _ in enumerate(HORIZONS)
+    )
+    subset_header = " & ".join(["All & Deep" for _ in HORIZONS])
+    tabular_spec = "@{}ll " + " ".join("cc" for _ in HORIZONS) + "@{}"
 
     lines = [
         r"\begin{table}[ht]",
@@ -119,18 +135,17 @@ def _write_compact_tex(summary: pd.DataFrame, path: Path) -> None:
         (
             r"\caption{Partition-control local forecasting for the top-$8$ support-family comparison. "
             r"Entries are routed/global MSE-ratio IQMs with within-system Wilcoxon/Holm "
-            r"counts in brackets; lower is better. The LISTA-SB row in this auxiliary "
-            r"control table uses the p64 diagnostic artifact, while the main routing "
-            r"table uses the matched $d_z{=}256$ LISTA-SB row.}"
+            r"counts in brackets; lower is better. The LISTA-SB row uses the matched "
+            r"$d_z{=}256$ control artifact.}"
         ),
         r"\label{tab:self_routing_partition_controls}",
         r"\setlength{\tabcolsep}{2.5pt}",
         r"\resizebox{\textwidth}{!}{",
-        r"\begin{tabular}{@{}ll cccc@{}}",
+        rf"\begin{{tabular}}{{{tabular_spec}}}",
         r"\toprule",
-        r"& & \multicolumn{2}{c}{$H100$} & \multicolumn{2}{c}{$H1000$} \\",
-        r"\cmidrule(lr){3-4}\cmidrule(l){5-6}",
-        r"Model & Selector & All & Deep & All & Deep \\",
+        rf"& & {horizon_header} \\",
+        cmidrules,
+        rf"Model & Selector & {subset_header} \\",
         r"\midrule",
     ]
 
@@ -232,8 +247,8 @@ def summarize(rows_csv: Path, output_dir: Path, support_definition: str) -> tupl
                         "sign_test_iqm_total": res["sign_test_iqm"]["n_total"],
                         "sign_test_iqm_p": res["sign_test_iqm"]["p_value"],
                         **{
-                            f"censor_{key}": value
-                            for key, value in res["censor_class_counts"].items()
+                            f"censor_{key}": res["censor_class_counts"].get(key, np.nan)
+                            for key in CENSOR_CLASS_KEYS
                         },
                     })
 

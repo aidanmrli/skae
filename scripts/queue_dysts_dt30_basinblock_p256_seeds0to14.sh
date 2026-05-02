@@ -12,6 +12,9 @@
 #   TRAIN_ARRAY_PARALLEL=90
 #   TRAIN_PACK_SIZE=12
 #   TRAIN_TIME_LIMIT=3-00:00:00
+#   SYSTEMS_CSV=dysts:Chua,dysts:Dadras
+#   MODEL_VARIANTS_CSV=lista_bd,lista_sb
+#   SEEDS_CSV=0,1,2
 #   MAX_EXISTING_JOBS_BEFORE_SUBMIT=10000
 #   ARRAY_PARALLEL=64
 #   EVAL_TIME_LIMIT=06:00:00
@@ -49,6 +52,9 @@ DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-full}"
 DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-30}"
 DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS:-10 25 50 100 150 200}"
 HORIZONS="${HORIZONS:-100 500 1000 1500 2000 3000 4000 5000}"
+SYSTEMS_CSV="${SYSTEMS_CSV:-}"
+MODEL_VARIANTS_CSV="${MODEL_VARIANTS_CSV:-}"
+SEEDS_CSV="${SEEDS_CSV:-}"
 TRAIN_ARRAY_PARALLEL="${TRAIN_ARRAY_PARALLEL:-90}"
 TRAIN_PACK_SIZE="${TRAIN_PACK_SIZE:-12}"
 TRAIN_TIME_LIMIT="${TRAIN_TIME_LIMIT:-3-00:00:00}"
@@ -92,15 +98,31 @@ echo "NUM_STEPS: ${NUM_STEPS}"
 echo "HORIZONS: ${HORIZONS}"
 echo "DYSTS_PERIODIC_REENCODE_PERIODS: ${DYSTS_PERIODIC_REENCODE_PERIODS}"
 echo "DYSTS_DT_MULTIPLIER: ${DYSTS_DT_MULTIPLIER}"
+echo "SYSTEMS_CSV: ${SYSTEMS_CSV:-<default>}"
+echo "MODEL_VARIANTS_CSV: ${MODEL_VARIANTS_CSV:-<default>}"
+echo "SEEDS_CSV: ${SEEDS_CSV:-<default>}"
 echo "TRAIN_PACK_SIZE: ${TRAIN_PACK_SIZE}"
 echo "MAX_EXISTING_JOBS_BEFORE_SUBMIT: ${MAX_EXISTING_JOBS_BEFORE_SUBMIT}"
 
-uv run python tools/build_dysts_dt30_basinblock_tasks.py \
-  --phase_label "${PHASE_LABEL}" \
-  --output_tsv "${TASK_TSV}" \
-  --output_manifest_json "${MANIFEST_JSON}" \
-  --num_steps "${NUM_STEPS}" \
+BUILD_ARGS=(
+  tools/build_dysts_dt30_basinblock_tasks.py
+  --phase_label "${PHASE_LABEL}"
+  --output_tsv "${TASK_TSV}"
+  --output_manifest_json "${MANIFEST_JSON}"
+  --num_steps "${NUM_STEPS}"
   --dt_multiplier "${DYSTS_DT_MULTIPLIER}"
+)
+if [[ -n "${SYSTEMS_CSV}" ]]; then
+  BUILD_ARGS+=(--systems_csv "${SYSTEMS_CSV}")
+fi
+if [[ -n "${MODEL_VARIANTS_CSV}" ]]; then
+  BUILD_ARGS+=(--model_variants_csv "${MODEL_VARIANTS_CSV}")
+fi
+if [[ -n "${SEEDS_CSV}" ]]; then
+  BUILD_ARGS+=(--seeds_csv "${SEEDS_CSV}")
+fi
+
+uv run python "${BUILD_ARGS[@]}"
 
 uv run python - "${TASK_TSV}" "${ROOT_SPECS_TSV}" "${SYSTEMS_FILE}" "${BASE_OUT}" "${PHASE_LABEL}" <<'PY'
 import csv
@@ -159,6 +181,8 @@ PY
 
 TASK_COUNT=$(( $(wc -l < "${TASK_TSV}") - 1 ))
 SYSTEM_COUNT=$(wc -l < "${SYSTEMS_FILE}")
+MODEL_COUNT=$(tail -n +2 "${TASK_TSV}" | cut -f3 | sort -u | wc -l)
+SEED_COUNT=$(tail -n +2 "${TASK_TSV}" | cut -f9 | sort -u | wc -l)
 if (( TASK_COUNT <= 0 )); then
   echo "No training tasks were built."
   exit 1
@@ -228,11 +252,14 @@ payload = {
     "systems_file": "${SYSTEMS_FILE}",
     "task_count": ${TASK_COUNT},
     "system_count": ${SYSTEM_COUNT},
-    "model_count": 6,
-    "seed_count": 15,
+    "model_count": ${MODEL_COUNT},
+    "seed_count": ${SEED_COUNT},
     "num_steps": ${NUM_STEPS},
     "target_size": 256,
     "sequence_length": 10,
+    "systems_csv": "${SYSTEMS_CSV}",
+    "model_variants_csv": "${MODEL_VARIANTS_CSV}",
+    "seeds_csv": "${SEEDS_CSV}",
     "train_pack_size": ${TRAIN_PACK_SIZE},
     "train_array_count": ${TRAIN_ARRAY_COUNT},
     "dysts_dt_multiplier": "${DYSTS_DT_MULTIPLIER}",

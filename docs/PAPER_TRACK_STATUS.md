@@ -1,8 +1,8 @@
 # Paper Track Status
 
-Date: May 1, 2026
-Evidence organization last refreshed: `2026-05-01`
-Paper-critical live queue status last refreshed: `2026-05-01`
+Date: May 2, 2026
+Evidence organization last refreshed: `2026-05-02`
+Paper-critical live queue status last refreshed: `2026-05-02`
 
 ## Paper-Track Summary
 
@@ -25,7 +25,23 @@ Current solution:
   4. supporting and falsification diagnostics.
 - Build the main displays in the same order: support maps, fixed-`17`
   alignment/forecasting table, non-oracle routing table, support
-  refresh/routing figure, and Dysts long-horizon table.
+  refresh/routing figure, and a Dysts long-horizon table restricted to the
+  primary forecasting rows. Treat LISTA-SB as a controlled soft-block ablation
+  for support formation/routing and as an appendix Dysts diagnostic, not as a
+  primary Dysts forecasting row.
+- Figure 1 has been replaced by the paper-facing composite
+  [fig_benchmark_support_dysts_composite.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf):
+  top row shows controlled multibasin vector fields, evaluation basin maps,
+  and LISTA `topk:8` support-family overlays; bottom row shows H5000 Dysts
+  `dt x30` phase portraits from the best seed-`0` primary model. The current
+  polished version is a 2-by-4 display: multibasin panels are
+  `gated_local_linear`, `claude:transition_routes_4`, `claude:cal_square_4`,
+  and `claude:cal_high_cross_3`; Dysts panels are Chua, Dadras,
+  Shimizu-Morioka, and Lu-Chen-Cheng. It removes in-panel agreement
+  annotations, uses the concise row label `Support-basin alignment`, adds an
+  external support/basin match cue with a slightly larger legend font, and
+  slightly zooms Dadras. The added `claude:cal_high_cross_3` panel is the
+  highest visual grid-agreement candidate from the screen (`0.902`).
 - Keep active supports, not pre-specified latent blocks, as the primary
   interpretability object. Do not reframe the paper around basin-block
   alignment or around training-time access to basin counts.
@@ -34,9 +50,10 @@ Current solution:
   carried by different latent coordinates, continuous coefficient values, or
   cross-coordinate couplings in the learned Koopman transition.
 - Tables 2-4 now use paired nonparametric tests matched to each claim. Table 4
-  Dysts model-vs-Dense inference uses an aggregate system-level Wilcoxon/Holm
-  test over per-system seed-IQM ratios, while the bracketed `[K/12]` values
-  remain within-system seed-paired reproducibility counts. Table 2 routing
+  Dysts reports actual MSEs and marks cells passing a system-level
+  Wilcoxon/Holm test over per-system seed-IQM log-MSE differences with
+  `*`/`**`; the older `[K/12]` within-system seed-paired reproducibility
+  counts remain diagnostic artifacts rather than the main display. Table 2 routing
   uses seed-paired Wilcoxon/Holm, and Table 3 support refresh uses
   transfer-pair Wilcoxon/Holm. The completed jobs `9388212-9388218` are
   per-basin deep-slice interpretability outputs for Table 1 appendix
@@ -61,38 +78,60 @@ Current solution:
   IQMs of within-system finite-ratio IQMs, and its `[K/17]` counts use
   within-system Wilcoxon/Holm tests over all seed slots with censored handling
   for invalid H-step routed/global comparisons.
+- On May 2, the main Table 1 count diagnostic was changed from `|S_abs|` to
+  arithmetic-mean `|F_abs|` because the family count is the paper-facing
+  basin-scale compression diagnostic; `|S_abs|` remains an appendix
+  active-coordinate-size diagnostic. The current mean family counts are `3.9`
+  for LISTA, `3.8` for LISTA-BD, `3.6` for LISTA-SB, `2.8` for both sparse MLP
+  rows, and `1.0` for the dense no-shrink baseline. The manuscript now also
+  reports the relevant reference counts: full-catalog mean/median basin count
+  `4.53/4`, and mean represented basin count `3.18` on the global deep slice.
+  The main support-diagnostic figure was updated in the same direction: its
+  middle panel now shows the per-seed `|F_abs|` distribution, with mean bars for
+  that count panel rather than IQM support-size bars, and faint
+  first-to-third-quartile I-bars to show distribution spread.
 - The same-protocol Table 2 partition-control inference pass completed under
   [results/transition_rich_table2_controls_20260430/self_routed_controls](/home/mila/l/lia/skae/results/transition_rich_table2_controls_20260430/self_routed_controls).
   Jobs `9425249`--`9425263 -> 9425264` completed with exit `0:0`; the merged
-  artifact has `12,245` rows and `0` failures. A robust summary and compact
-  TeX fragment were generated under
+  artifact has `12,245` rows and `0` failures. A matched LISTA-SB p256
+  follow-up also completed under
+  [results/transition_rich_table2_controls_lista_sb_p256_20260501/self_routed_controls](/home/mila/l/lia/skae/results/transition_rich_table2_controls_lista_sb_p256_20260501/self_routed_controls)
+  as shards `9429041`--`9429043`, with merge `9429044`, yielding `2,475`
+  rows and `0` failures. The robust summary and compact TeX fragment were
+  rebuilt on `2026-05-02` from a combined input that replaces the original p64
+  LISTA-SB row with the matched p256 row, and the paper-facing appendix
+  display now reports `H100` only:
   [docs/figures/neurips_paper_2026/_tables](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables).
   The controls should remain appendix/audit evidence for now: support-family
-  local predictors help, but oracle basin labels, latent clusters, and even
-  some count-matched random partitions can also help, and the LISTA-SB control
-  row is the older p64 diagnostic rather than the matched `d_z=256` row. A
-  matched LISTA-SB control pass is now queued under
-  [results/transition_rich_table2_controls_lista_sb_p256_20260501/self_routed_controls](/home/mila/l/lia/skae/results/transition_rich_table2_controls_lista_sb_p256_20260501/self_routed_controls)
-  as shards `9429041`--`9429043`, with merge `9429044`.
-- A plain dense-K LISTA add-on is now queued for Tables 1--3 under
+  local predictors help, but Oracle basin labels, latent clusters, and
+  count-matched random partitions are diagnostic comparators rather than
+  deployment-time selectors. The compact control table now uses the matched
+  `d_z=256` LISTA-SB row.
+- A plain dense-K LISTA add-on is complete for Tables 1--3 under
   [results/transition_rich_lista_dense_p256_hardinit_table123_20260430](/home/mila/l/lia/skae/results/transition_rich_lista_dense_p256_hardinit_table123_20260430).
   The new `lista_dense_signsplit_p256_hardinit_basin_partition` row matches
   the current Table 1--3 LISTA protocol (`d_z=256`, `sequence_length=8`,
   `200000` steps, sparsity coefficient `0.003`, hard-init sampling) but removes
-  K-structure regularization (`k_structure=dense`, `soft_block=0`). Launcher
-  `9423747` submitted training array `9423749`, collector `9423750`,
-  interpretability jobs `9423751 -> 9423752`, self-routed jobs
-  `9423753`--`9423755 -> 9423756`, and support-refresh jobs
-  `9423757`--`9423759 -> 9423760`.
-- Table 3 is now being rebuilt around period-grouped support refresh rather
+  K-structure regularization (`k_structure=dense`, `soft_block=0`). Training
+  array `9423749` completed `255/255` tasks, and collector/evaluation jobs
+  `9423750`--`9423760` completed with exit `0:0`. The regenerated manuscript
+  artifacts now include the plain LISTA row in Tables 1--3 and in the
+  fixed-`17` figures.
+- Table 3 has been rebuilt around period-grouped support refresh rather
   than the old `Fallback` column. The period is the number of rollout steps
   between decode/re-encode support refreshes. The missing MLP-control refresh
-  rows are queued under
+  rows completed under
   [results/periodic_support_refresh_mlp_controls_seed0to14_20260430](/home/mila/l/lia/skae/results/periodic_support_refresh_mlp_controls_seed0to14_20260430)
-  as shards `9423980`--`9423988`, with merge `9423991`; dependent stats/table
-  rebuild `9423996` waits for `9423991` and dense-K LISTA refresh merge
-  `9423760`. Do not add the expanded Table 3 rows to the manuscript until the
-  rebuild completes.
+  as shards `9423980`--`9423988` with exit `0:0` and shard-level
+  `failure_count=0`. The first SLURM merge `9423991` ran out of memory and
+  dependent table job `9423996` was cancelled; clean merge job `9432117` was
+  rerun with `64G`, completed with exit `0:0`, and wrote `572,654` data rows
+  with `0` failures. The current manuscript Table 3 includes LISTA, LISTA-SB,
+  LISTA-BD, Sparse MLP-BD, Sparse MLP, and Dense MLP. The Table 3 prose now
+  frames periodic re-encoding as a representation-agnostic stale-route repair
+  on the controlled transfer benchmark: refreshing the state-dependent support
+  or route helps after the trajectory moves to a new region, independent of
+  which displayed Koopman representation produced that local description.
 - The statistical testing procedure is now documented as a repeatable
   protocol in the manuscript appendix and in
   [EXPERIMENTS.md](/home/mila/l/lia/skae/docs/EXPERIMENTS.md). The fixed rule
@@ -122,21 +161,28 @@ Current solution:
   finite coverage of `1` for every root at every reported horizon. The
   paper-facing rebuild now uses IQMs rather than medians:
   [table4_dysts_dt30_iqm.tex](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/table4_dysts_dt30_iqm.tex)
-  reports cross-system IQMs of per-system seed-IQMs with within-system
-  Wilcoxon/Holm reproducibility counts against Dense MLP. The aggregate
-  model-vs-Dense test over per-system seed-IQM ratios is now in
+  reports cross-system IQMs of per-system seed-IQM MSEs and marks actual-MSE
+  cells with `*`/`**` when the system-level paired log-MSE Wilcoxon/Holm test
+  against Dense MLP passes after correction across all model-horizon
+  comparisons: LISTA is significant at every horizon and LISTA-BD is
+  significant from `H1000` through `H5000`. The main manuscript now omits
+  LISTA-SB from the Dysts figure/table and reports it as an appendix
+  diagnostic because it improves on Dense MLP only weakly and is not
+  competitive with the primary sparse forecasting rows. The supporting
+  ratio/log-ratio diagnostics remain in
   [dysts_dt30_aggregate_tests_vs_dense.csv](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/dysts_dt30_aggregate_tests_vs_dense.csv)
-  and
-  [table4_dysts_dt30_ratio_aggregate_tests.tex](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/table4_dysts_dt30_ratio_aggregate_tests.tex):
-  LISTA is significant at every horizon after Holm correction across all
-  model-horizon comparisons, and LISTA-BD is significant from `H1000` through
-  `H5000`. LISTA is best at `H500`--`H1500`; LISTA-BD is best from `H2000`
-  through `H5000`; Sparse MLP-BD is best at `H100`. Dense MLP is worst at
-  every horizon. The paper-facing raw-MSE trend
+  for appendix/audit use rather than as a main-text table.
+  LISTA is best at `H500`--`H1500`; LISTA-BD is best from `H2000` through
+  `H5000`; Sparse MLP-BD is best at `H100`. Dense MLP is worst at every
+  horizon. Ratio summaries include hierarchical system+seed bootstrap
+  intervals and system-level/log-ratio SDs for uncertainty auditing, but raw
+  MSE SDs should not be foregrounded because the Dysts errors are heavy-tailed
+  and span orders of magnitude. The paper-facing raw-MSE trend
   uses log scale because the displayed IQM MSEs span about `5.6e3x`; linear and
   side-by-side scale-check versions remain as diagnostics. The trend bands now
   show fixed-system seed-bootstrap `95%` intervals around the cross-system IQM,
   not cross-system `25`--`75` percentile heterogeneity. New plots
+  `fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf`,
   `fig_dysts_dt30_forecasting_performance.pdf`,
   `fig_dysts_dt30_forecasting_performance_linear.pdf`,
   `fig_dysts_dt30_forecasting_performance_scale_check.pdf`,
@@ -147,13 +193,45 @@ Current solution:
   [docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501](/home/mila/l/lia/skae/docs/figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501).
   Treat this as a benchmark-discretization sensitivity result, not as a silent
   replacement for the old `H<=60000` Dysts stress-test table.
-- A focused higher-dimensional hard-system redo is now in flight to reassess
-  sparse Koopman autoencoder forecasting against a clean tanh dense MLP
-  baseline. Launcher `9412191` completed and submitted training array
-  `9412218`, collector `9412219`, and comparisons `9412220`--`9412222`.
-  This covers fixed 8-basin CLV, Hopfield `N=16/P=16`, and Kuramoto identical
-  `N=16` with `d_z=1024`, `sequence_length=8`, `100k` steps, half learning
-  rates, and `15` seeds for each of six recipes.
+- A clean Dysts LISTA-SB diagnostic smoke is complete. The
+  `dt x30` builder now makes LISTA-SB match LISTA-BD's encoder
+  (`1` LISTA loop, ReLU final operator) and changes only the `K` structure:
+  hard block-diagonal for LISTA-BD versus dense `K` with a soft off-block
+  penalty for LISTA-SB. Launcher `9430988` completed the small `dysts:Chua`,
+  seed-`0`, `50000`-step smoke; the collected rows are `2/2` complete with
+  full-horizon finite coverage through `H2000`. LISTA-SB/LISTA-BD
+  best-periodic MSE ratios are `0.859/0.938/1.191/1.436/1.507` at
+  `H100/H500/H1000/H1500/H2000`: cleaned LISTA-SB is slightly better at the
+  two shortest horizons and worse from `H1000` onward on this one Chua seed.
+  Do not change Table 4 claims from this one-system smoke alone.
+- A one-seed all-`12`-system clean LISTA-SB run is now complete under the
+  paper-facing Dysts protocol. Launcher `9432830`, cache array `9432834`,
+  training array `9432835`, evaluation queue launcher `9432836`, long-horizon
+  eval jobs `9433586`--`9433588`, and collector `9433589` completed with exit
+  `0:0`, producing `12/12` complete rows under
+  [results/dysts_dt30_clean_lista_sb_seed0_12sys_100k_20260501](/home/mila/l/lia/skae/results/dysts_dt30_clean_lista_sb_seed0_12sys_100k_20260501),
+  with horizons `H100/H500/H1000/H1500/H2000/H3000/H4000/H5000`.
+  The generated task table verifies the fix across all rows: `bad_rows=0`,
+  `lista_num_loops=1`, `lista_final_op=relu`, dense `K`, soft-block enabled,
+  and `soft_block_num_blocks` equal to the documented basin/scroll/lobe count.
+  The row is finite across the full horizon grid. Median best-periodic MSEs
+  are
+  `0.000299/0.005165/0.024618/0.057127/0.087170/0.233537/0.513065/0.943133`;
+  seed-`0` cross-system IQMs are
+  `0.000657/0.013247/0.046570/0.132622/0.274048/0.605152/0.991347/1.37441`.
+  These IQMs are worse than the old seed-`0` LISTA-SB row at every horizon,
+  though the clean recipe improves the median system and wins `7/12` systems
+  at the longest horizons. The superseded `50000`-step/`H<=2000` all-system
+  chain from launcher `9432796` was canceled before training started.
+- The focused higher-dimensional hard-system redo is collected and corrected.
+  Launcher `9412191`, training array `9412218`, collector `9412219`, and
+  comparisons `9412220`--`9412222` all completed with exit `0:0`. The first
+  collector artifact under-counted Hopfield because it selected latest runs
+  per `n_16/seed` wrapper; after fixing the collector and refreshing on
+  allocation `9432839`, the run has the expected `270` rows. Dense MLP beats
+  every sparse/LISTA candidate on fixed 8-basin CLV, Hopfield `N=16/P=16`,
+  and Kuramoto identical `N=16` at `H100`, `H500`, and `H1000` system
+  medians.
 
 Outstanding problem:
 - The remaining paper work is now presentation and claim calibration. Tables
@@ -174,6 +252,15 @@ Outstanding problem:
   supports the rescale diagnosis, but it changes the discrete-time benchmark
   and reduces `H60000` from `60000` learned-map compositions to `2000`; keep
   the old tiny-step packet as a separate stress-test diagnostic.
+- Separately, the LISTA-SB recipe comparison on Dysts is under diagnostic
+  review. The existing Table 4 LISTA-SB row came from the older two-loop,
+  sign-split soft-block setup; the completed Chua smoke tests the cleaner
+  hard-vs-soft `K` comparison on one system. The smoke is finite and mixed,
+  with cleaned LISTA-SB better than LISTA-BD at `H100/H500` but worse at
+  `H1000/H1500/H2000`. The completed seed-`0` all-system clean LISTA-SB run
+  with the correct `100000`-step, `H100`--`H5000` Dysts protocol fixes the
+  setup bug but does not improve the paper-facing IQM summary. This is not a
+  paper blocker and does not justify changing Table 4.
 - The within-system testing procedure is now fixed for the manuscript. Table 2
   reports `H100` and `H1000` routed/global ratios with seed-slot Wilcoxon/Holm
   `[K/17]` counts, and now uses within-system finite-ratio IQMs for the point
@@ -182,12 +269,13 @@ Outstanding problem:
   `H1000`, matched LISTA-SB exact routes clear `7/17`--`8/17`, while
   family-local clears `15/17`; exact support identity should be treated as
   dimension-sensitive. Table 3 uses transfer pairs within system and clears
-  `12/12` systems for matched LISTA-SB and LISTA-BD at both periods. Table 4
-  now separates aggregate model-vs-Dense inference from per-system
-  reproducibility: the aggregate test uses the `12` per-system seed-IQM ratios,
-  while the bracketed `[K/12]` values keep the seed-paired within-system
-  Wilcoxon/Holm counts. It should be presented as a mixed external forecasting
-  stress test rather than as an interpretability claim.
+  `12/12` systems for every displayed row (LISTA, LISTA-SB, LISTA-BD, Sparse
+  MLP-BD, Sparse MLP, and Dense MLP) at both periods. Table 4
+  now uses the `12` per-system seed-IQM log-MSE differences for system-level
+  model-vs-Dense inference, shown as `*`/`**` on the actual-MSE cells. The
+  older `[K/12]` seed-paired within-system Wilcoxon/Holm counts should stay in
+  diagnostics rather than the main table. It should be presented as a mixed
+  external forecasting stress test rather than as an interpretability claim.
 - The Table 2 censoring rule should be described as an evaluation convention,
   not as proof of a specific learning failure. A finite routed H-step forecast
   with an invalid same-model global H-step forecast is counted as a censored
@@ -196,13 +284,14 @@ Outstanding problem:
   table's displayed IQM ratios remain finite-ratio summaries; censoring affects
   only the within-system significance counts.
 - The completed Table 2 partition-control audit supports the intended
-  evidence chain for support routing: oracle basin partitions ask whether
-  useful local predictors exist when the benchmark partition is supplied,
-  support families ask whether the learned sparse representation supplies a
-  label-free substitute, and random/cluster partitions test the
-  generic-subdivision alternative. Keep the compact control table in the
-  appendix until the queued matched `d_z=256` LISTA-SB follow-up
-  (`9429041`--`9429043 -> 9429044`) completes and the control table is rebuilt.
+  evidence chain for support routing: Oracle basin labels ask whether useful
+  local predictors exist when the benchmark partition is supplied, support
+  families ask whether the learned sparse representation supplies a label-free
+  substitute, and random/cluster partitions test the generic-subdivision
+  alternative. The compact control table has been rebuilt with the matched
+  `d_z=256` LISTA-SB follow-up (`9429041`--`9429043 -> 9429044`) and now
+  reports `H100` only; keep it in the appendix as audit evidence rather than
+  as a main routing-table replacement.
 - The per-basin deep-slice interpretability rerun is complete, not queued:
   jobs `9388212-9388218` all completed with exit `0:0`. Use it as an appendix
   robustness check for Table 1 coverage, while keeping the global deep-slice
@@ -214,16 +303,23 @@ Outstanding problem:
   Tables 1--3 were recomputed on allocation `9420481` and the PDF was rebuilt.
   The Dysts add-on produced `180/180` rows but only through `H30000`, so Table
   4 replacement is deferred to a later full-horizon matched run.
-- The plain dense-K LISTA add-on is pending execution and should be treated as
-  execution-only until jobs `9423749`--`9423760` finish. If it completes, rerun
-  the Table 1--3 builders before deciding whether it becomes a main table row
-  or an appendix ablation.
+- The plain dense-K LISTA add-on has finished and is now a main controlled
+  benchmark row in the regenerated Table 1--3 artifacts. The fixed-`17`
+  horizon curves use all currently recorded fixed-`17` horizons
+  (`H100/H500/H1000`) with the same fixed-system seed-bootstrap `95%` bands as
+  the Dysts horizon trend; no current Table 1--3 collected fixed-`17` row
+  exposes an `H3000` horizon.
+- Table 3 should be interpreted as a broad periodic-re-encoding effect rather
+  than a LISTA-only support mechanism. All displayed LISTA, sparse MLP, and
+  Dense MLP rows benefit from refreshing their state-dependent local
+  description after transfer; representation-specific Koopman-structure claims
+  remain grounded in the alignment, ablation, and routing tests.
 - The paper-facing prose should always explain why the next
   experiment follows: label agreement asks whether the support says where the
   state is; routing asks whether the support helps predict where it goes next.
-- The new higher-dimensional hard-system redo is not yet evidence. Do not
-  change hard-system claims until the collector and dense-tanh comparisons are
-  available.
+- The higher-dimensional hard-system redo is no longer a queue blocker. Use
+  it as a negative stress-test result: once the collector bug was fixed, tanh
+  Dense MLP was best on CLV, Hopfield, and Kuramoto at all evaluated horizons.
 
 ## Goal
 
@@ -299,13 +395,14 @@ The paper target is now explicit:
 - the MLP `+ block_diagonal K` fairness controls were rerun on March 17/19; full audit: [docs/mlp_block_k_audit_20260317.md](/home/mila/l/lia/skae/docs/mlp_block_k_audit_20260317.md)
 
 Active execution note:
-- Higher-dimensional hard-system forecasting redo: queue launcher `9412191`
-  completed and created training array `9412218`, collector `9412219`, and
-  comparison jobs `9412220`--`9412222` under
+- Completed higher-dimensional hard-system forecasting redo: queue launcher
+  `9412191`, training array `9412218`, collector `9412219`, and comparison
+  jobs `9412220`--`9412222` completed with exit `0:0` under
   [results/hard_system_sparse_kae_redo_p1024_seq8_100k_halflr_sc6em3_tanh_dense_20260429](/home/mila/l/lia/skae/results/hard_system_sparse_kae_redo_p1024_seq8_100k_halflr_sc6em3_tanh_dense_20260429).
-  The experiment is designed to answer whether sparse MLP/LISTA sparse KAE
-  recipes outperform a tanh Dense MLP on CLV, Hopfield, and Kuramoto once the
-  baseline no longer has ReLU-induced sparsity.
+  The corrected collector artifact has `270` rows after fixing the `n_16`
+  wrapper grouping bug. The answer is negative for the sparse/LISTA recipes:
+  tanh Dense MLP is best on CLV, Hopfield, and Kuramoto at `H100`, `H500`,
+  and `H1000` system medians.
 - The forecasting packet is now decision-grade, and the raw-source seed-statistics companion report is in [docs/PAPER_SEED_STATISTICS_20260331.md](/home/mila/l/lia/skae/docs/PAPER_SEED_STATISTICS_20260331.md). It verifies raw-vs-collector agreement and records the remaining raw finite-value coverage gaps explicitly.
 - The true-Jacobian/eigendirection and controlled-transfer support-switching
   branches are now scaffolded, revised, smoke-tested, audited, corrected, and
@@ -1140,7 +1237,7 @@ For drafting, compress the completed evidence into the family map below rather t
 |---|---|---|---|
 | **Transition-rich basin partitioning** | tests-first toy-system calibration; fixed `17`-system shortlist; dense / block-diagonal LISTA live sweep; matched standard-MLP control; transition diagnostics; deterministic flow-consistency / flow-branching read; recurring-support local-linearity reuse metrics | Do LISTA encoders define reusable basin-aligned sparse supports on the fixed `17` systems, and is that basin separation stronger than for a matched standard MLP encoder? | This is the lead live family. Write it around basin separation first: count the systems where LISTA support views are basin-pure and reusable, use `gated_local_linear` as the clean positive anchor, treat `gated_transfer_linear` and the Claude subset as stress tests, and report the standard MLP control as the main contrast. |
 | **Cross-system forecasting** | fair `200k` benchmark checkpoint family; matched zero-sparsity MLP benchmark extension; full-benchmark block-diagonal dense-opt transfer | What is the benchmark headline versus the MLP anchor once the dense comparator is fixed, and does explicit sparsity help beyond the same MLP with `lambda_sparse=0`? | Cite the fair `200k` benchmark as the supporting quantitative anchor. Do not let it crowd out the new transition-rich branch. |
-| **Hard-system forecasting** | `dt`-rescue audit; focused smaller-`dt` Kuramoto/Hopfield follow-ups; long-horizon reevaluation of those same checkpoints; Kuramoto robustness/dimension sweeps; matched hard-system parity; matched block-diagonal fairness controls; higher-basin Hopfield / CLV robustness probes; matched zero-sparsity MLP hard-system extension; new `d_z=1024` tanh-dense-baseline redo queued as `9412218` | Where do step size, structure, and the sparsity penalty help, and where do LISTA families still fail? | Write this as one connected limitation/support family, not as a separate live execution branch. Treat the new higher-dimensional redo as pending until collected. |
+| **Hard-system forecasting** | `dt`-rescue audit; focused smaller-`dt` Kuramoto/Hopfield follow-ups; long-horizon reevaluation of those same checkpoints; Kuramoto robustness/dimension sweeps; matched hard-system parity; matched block-diagonal fairness controls; higher-basin Hopfield / CLV robustness probes; matched zero-sparsity MLP hard-system extension; corrected `d_z=1024` tanh-dense-baseline redo from `9412218`--`9412222` | Where do step size, structure, and the sparsity penalty help, and where do LISTA families still fail? | Write this as one connected limitation/support family, not as a separate live execution branch. Treat the higher-dimensional redo as negative dense-baseline stress-test evidence, not a positive mechanism result. |
 | **Appendix-only provenance** | dense LISTA recipe-selection/tuning sweeps; matched `50k` `v4` four-model audit | What tuning/provenance material justifies the fixed comparator choices and historical benchmark context? | Keep appendix-only. Do not present hyperparameter selection as a main result family. |
 
 ## Current Best Evidence
@@ -1452,13 +1549,21 @@ This is supporting provenance for the dense comparator used in Section 1. It sho
 
 - A matched zero-sparsity MLP extension of every paper-facing hard-system setting cited in this section is now collected under [results/zero_sparse_hard_systems_20260321](/home/mila/l/lia/skae/results/zero_sparse_hard_systems_20260321). It covers Kuramoto (`N=16` identical, `N=16` uniform-spread, and the dimension sweep), Hopfield (`N=16` and quarter-step `N=64`), corrected 4-basin competitive LV, and fixed 8-basin competitive LV at both cited step sizes. The recovery chain cleared on March 22 when requeued task `9007966_4` completed and refreshed collectors/comparisons `9016645-9016660` all finished `0:0`.
 
-- A focused higher-dimensional redo is queued under
+- The focused higher-dimensional redo is collected and corrected under
   [results/hard_system_sparse_kae_redo_p1024_seq8_100k_halflr_sc6em3_tanh_dense_20260429](/home/mila/l/lia/skae/results/hard_system_sparse_kae_redo_p1024_seq8_100k_halflr_sc6em3_tanh_dense_20260429)
-  to replace the old ReLU zero-sparsity control with a tanh dense MLP
-  baseline and to compare Dense MLP, Sparse MLP, Sparse MLP-BD, LISTA,
-  LISTA-BD, and LISTA-SB on CLV, Hopfield, and Kuramoto. The submitted chain
-  is `9412218 -> 9412219 -> 9412220/9412221/9412222`; no results are
-  available yet.
+  and replaces the old ReLU zero-sparsity control with a tanh dense MLP
+  baseline. The chain `9412218 -> 9412219 -> 9412220/9412221/9412222`
+  completed with exit `0:0`; the collector was then fixed and refreshed on
+  allocation `9432839` after the first artifact selected latest runs per
+  `n_16/seed` wrapper and dropped most Hopfield rows. The corrected artifact
+  has `270` rows for Dense MLP, Sparse MLP, Sparse MLP-BD, LISTA, LISTA-BD,
+  and LISTA-SB on CLV, Hopfield, and Kuramoto. Dense MLP wins every
+  candidate-vs-Dense system-median comparison at `H100`, `H500`, and `H1000`.
+  At `H1000`, CLV/Hopfield/Kuramoto medians are Dense MLP
+  `0.2999/2.8034/7.7872`, LISTA-SB `0.3210/8.3277/15.5167`, Sparse MLP
+  `0.4383/18.8994/56.4700`, Sparse MLP-BD `0.4336/18.8998/56.4689`, LISTA
+  `0.8004/1.704e+06/3569.6968`, and LISTA-BD
+  `3.0786/20.8668/1326.8682`.
 
 - The repaired `dt` resolution completed through pass `2`:
   - `15/29` systems accept default `dt`

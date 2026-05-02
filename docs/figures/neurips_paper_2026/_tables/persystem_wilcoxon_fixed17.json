@@ -1,4 +1,30 @@
 {
+  "lista_dense_signsplit_p256_hardinit_basin_partition": {
+    "H100": {
+      "K_systems_better": 15,
+      "K_systems_better_ttest": 15,
+      "N_systems_tested": 17,
+      "median_diff_log10": -1.8226548185206297,
+      "iqm_raw": 0.015273982865018873,
+      "log10_iqr_systems": 1.095581441637108
+    },
+    "H500": {
+      "K_systems_better": 15,
+      "K_systems_better_ttest": 14,
+      "N_systems_tested": 17,
+      "median_diff_log10": -1.793981270217929,
+      "iqm_raw": 0.04889481499539831,
+      "log10_iqr_systems": 1.4246488544783342
+    },
+    "H1000": {
+      "K_systems_better": 17,
+      "K_systems_better_ttest": 14,
+      "N_systems_tested": 17,
+      "median_diff_log10": -1.9193025901283218,
+      "iqm_raw": 0.061435094217322565,
+      "log10_iqr_systems": 1.8360245331700173
+    }
+  },
   "lista_blockdiag_signsplit_hardinit_basin_partition": {
     "H100": {
       "K_systems_better": 15,

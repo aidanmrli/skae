@@ -9,6 +9,7 @@
 #   - sequence_length=10
 #   - target_size=256
 #   - sparsity_coeff=0.006
+#   - LISTA-BD-compatible encoder (1 loop, ReLU final op)
 #   - dense LISTA transition with soft block penalty over 16 fixed blocks
 #
 # Submit with:
@@ -123,8 +124,8 @@ for row in rows:
     row["sparsity_coeff"] = "0.006"
     row["k_structure"] = "dense"
     row["lista_alpha"] = "0.15"
-    row["lista_num_loops"] = "2"
-    row["lista_final_op"] = "sign_split"
+    row["lista_num_loops"] = "1"
+    row["lista_final_op"] = "relu"
     row["soft_block"] = "1"
     row["soft_block_num_blocks"] = soft_block_num_blocks
     row["soft_block_weight"] = soft_block_weight
@@ -144,8 +145,8 @@ payload["soft_block"] = {
 }
 payload["lista"] = {
     "alpha": 0.15,
-    "num_loops": 2,
-    "final_op": "sign_split",
+    "num_loops": 1,
+    "final_op": "relu",
 }
 payload["target_size"] = 256
 payload["sequence_length"] = 10

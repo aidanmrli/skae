@@ -68,15 +68,18 @@ plt.rcParams.update(
 )
 
 PALETTE = {
+    "dense_lista": "#785EF0",
     "blockdiag_lista": "#0072B2",
-    "softblock_lista": "#D55E00",
+    "softblock_lista": "#56B4E9",
     "sparse_mlp": "#009E73",
-    "blockdiag_mlp": "#56B4E9",
-    "zero_mlp": "#000000",
+    "blockdiag_mlp": "#44AA99",
+    "zero_mlp": "#D55E00",
 }
 
 HORIZONS = (100, 500, 1000)
 ALPHA = 0.05  # significance level for Holm-corrected per-system tests
+BOOTSTRAP_REPS = 10000
+BOOTSTRAP_SEED = 20260501
 
 FC_CSVS = [
     ROOT
@@ -87,6 +90,11 @@ FC_CSVS = [
     ROOT
     / "results"
     / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
+    / "collect_pass0"
+    / "forecasting_rows.csv",
+    ROOT
+    / "results"
+    / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
     / "collect_pass0"
     / "forecasting_rows.csv",
 ]
@@ -101,12 +109,23 @@ INTERP_CSVS = [
     / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
     / "interpretability_pass0"
     / "interpretability_rows.csv",
+    ROOT
+    / "results"
+    / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
+    / "interpretability_pass0"
+    / "interpretability_rows.csv",
 ]
 
 # Boundary-only roster: LISTA-BD; matched-dimension LISTA-SB d_z=256; Sparse
 # MLP, Sparse MLP BD, Dense MLP no-shrink. The control for the paired Wilcoxon
 # is the boundary Dense MLP no-shrink (`zero_mlp`).
 ROOTS = {
+    "lista_dense_signsplit_p256_hardinit_basin_partition": {
+        "label": "LISTA",
+        "long": "Sparse Latent Koopman, dense-transition LISTA",
+        "color": "dense_lista",
+        "source": "main",
+    },
     "lista_blockdiag_signsplit_hardinit_basin_partition": {
         "label": "LISTA-BD",
         "long": "Sparse Latent Koopman, block-diagonal LISTA",
@@ -132,7 +151,7 @@ ROOTS = {
         "source": "hardinit",
     },
     "mlp_zero_sparse_hardinit_basin_partition_control": {
-        "label": "Dense MLP, no shrink",
+        "label": "Dense MLP",
         "long": "Dense MLP control with no $\\ell_1$ shrinkage",
         "color": "zero_mlp",
         "source": "hardinit",
@@ -156,6 +175,17 @@ itp_deep = itp[deep_mask].copy()
 systems = sorted(fc["system_name"].unique())
 print(f"Found {len(systems)} systems: {systems[:3]}... ({len(ROOTS)} roots)")
 
+ALL_FORECAST_HORIZONS = tuple(
+    sorted(
+        {
+            int(col[1 : -len("_best_periodic_mean")])
+            for col in fc.columns
+            if col.startswith("h") and col.endswith("_best_periodic_mean") and col[1 : -len("_best_periodic_mean")].isdigit()
+        }
+    )
+)
+print(f"Available fixed-17 forecast horizons: {ALL_FORECAST_HORIZONS}")
+
 # --------------------------------------------------------------------------------------
 # IQM helpers
 # --------------------------------------------------------------------------------------
@@ -173,6 +203,54 @@ def iqm(v: np.ndarray) -> float:
     if sel.size == 0:
         return float(np.median(v))
     return float(np.mean(sel))
+
+
+def row_iqm(values: np.ndarray) -> np.ndarray:
+    """Compute the same percentile-trimmed IQM for each row of a 2D array."""
+    arr = np.asarray(values, dtype=float)
+    if arr.ndim != 2:
+        raise ValueError("row_iqm expects a 2D array")
+    if arr.shape[1] == 0:
+        return np.full(arr.shape[0], np.nan)
+    if arr.shape[1] < 4:
+        return np.mean(arr, axis=1)
+    lo = np.percentile(arr, 25, axis=1)
+    hi = np.percentile(arr, 75, axis=1)
+    keep = (arr >= lo[:, None]) & (arr <= hi[:, None])
+    counts = keep.sum(axis=1)
+    sums = np.where(keep, arr, 0.0).sum(axis=1)
+    means = np.mean(arr, axis=1)
+    return np.divide(sums, counts, out=means, where=counts > 0)
+
+
+def finite_positive(values: pd.Series) -> np.ndarray:
+    arr = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+    return arr[np.isfinite(arr) & (arr > 0.0)]
+
+
+def fixed_system_seed_bootstrap_iqm(
+    system_seed_values: list[np.ndarray],
+    *,
+    rng: np.random.Generator,
+    n_reps: int,
+) -> tuple[float, float, float]:
+    """Bootstrap cross-system IQM uncertainty by resampling seeds within systems."""
+    if n_reps <= 0:
+        return float("nan"), float("nan"), float("nan")
+    valid = [np.asarray(values, dtype=float) for values in system_seed_values if len(values) > 0]
+    if not valid:
+        return float("nan"), float("nan"), float("nan")
+
+    per_system_draws = []
+    for values in valid:
+        indices = rng.integers(0, values.size, size=(n_reps, values.size))
+        per_system_draws.append(row_iqm(values[indices]))
+    draws = row_iqm(np.column_stack(per_system_draws))
+    return (
+        float(np.percentile(draws, 2.5)),
+        float(np.percentile(draws, 97.5)),
+        float(np.std(draws, ddof=1)),
+    )
 
 
 def std_log10(v: np.ndarray) -> float:
@@ -646,8 +724,12 @@ def collect_row(root_label: str, label: str) -> dict:
             row[metric] = float("nan")
             row[f"{metric}_std"] = float("nan")
             continue
-        per_sys = sub_itp.groupby("system_name")[src].apply(lambda v: iqm(v.to_numpy()))
-        row[metric] = iqm(per_sys.to_numpy())
+        if metric == "FamilyUniqueCount":
+            per_sys = sub_itp.groupby("system_name")[src].mean()
+            row[metric] = float(np.mean(per_sys.to_numpy()))
+        else:
+            per_sys = sub_itp.groupby("system_name")[src].apply(lambda v: iqm(v.to_numpy()))
+            row[metric] = iqm(per_sys.to_numpy())
         row[f"{metric}_std"] = float(np.std(per_sys.to_numpy(), ddof=1))
     return row
 
@@ -944,6 +1026,281 @@ for i, row in enumerate(main_table_rows):
 linesB.append(r"\bottomrule")
 linesB.append(r"\end{tabular}")
 (TBL_DIR / "table1_optionB.tex").write_text("\n".join(linesB))
+
+
+# --------------------------------------------------------------------------------------
+# Main-text Table 1 fragment: current layout with dense-K LISTA included.
+# --------------------------------------------------------------------------------------
+
+def metric_cell(
+    row: dict,
+    metric: str,
+    best_set: set[int],
+    row_index: int,
+    *,
+    sig_key: str | None = None,
+    is_ratio: bool = False,
+    sig: int = 3,
+) -> str:
+    v = row[metric]
+    if not np.isfinite(v):
+        return "--"
+    if is_ratio:
+        primary = fmt_ratio(v)
+    else:
+        body = fmt_num(v, sig=sig)
+        if row_index in best_set:
+            body = rf"\mathbf{{{body}}}"
+        primary = f"${body}$"
+    if row["root"] == BASELINE:
+        return primary + r"\,\emph{[baseline]}"
+    if sig_key is None:
+        return primary
+    es = entropy_summary.get((row["root"], sig_key))
+    if es is None:
+        return primary
+    return primary + rf"\,[{es['K_systems_better']}/{es['N_systems_tested']}]"
+
+
+table1_lines: list[str] = [
+    r"\begin{tabular}{@{}l r rr r rr@{}}",
+    r"\toprule",
+    r"Model & $H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ & wr.\,$h{=}1$\,$\uparrow$ & wr.\,$h{=}20$\,$\uparrow$ & $\overline{|F_{\rm abs}|}$ & H100\,$\downarrow$ & H1000\,$\downarrow$ \\",
+    r"\midrule",
+]
+
+for i, row in enumerate(main_table_rows):
+    label = row["label"]
+    is_baseline = row["root"] == BASELINE
+    hbf_cell = metric_cell(
+        row,
+        "HBgivenF",
+        best_HBgivenF,
+        i,
+        sig_key="HBgivenF",
+        sig=2,
+    )
+    fw1_cell = metric_cell(
+        row,
+        "FreezeWrongH1",
+        best_FreezeWrongH1,
+        i,
+        sig_key="FreezeWrongH1",
+        is_ratio=True,
+    )
+    fw20_cell = metric_cell(
+        row,
+        "FreezeWrongH20",
+        best_FreezeWrongH20,
+        i,
+        sig_key="FreezeWrongH20",
+        is_ratio=True,
+    )
+    family_count = row["FamilyUniqueCount"]
+    if np.isfinite(family_count):
+        family_count_cell = f"${family_count:.1f}$"
+        if is_baseline:
+            family_count_cell += r"\,\emph{[baseline]}"
+    else:
+        family_count_cell = "--"
+    forecast_cells = []
+    for h, best_set in ((100, best_h100), (1000, best_h1000)):
+        v = row[f"H{h}_iqm"]
+        if not np.isfinite(v):
+            forecast_cells.append("--")
+            continue
+        body = fmt_num(v)
+        if i in best_set and not is_baseline:
+            body = rf"\mathbf{{{body}}}"
+        cell = f"${body}$"
+        if is_baseline:
+            cell += r"\,\emph{[baseline]}"
+        else:
+            sig_row = sig_lookup[(row["root"], h)]
+            cell += rf"\,[{sig_row['K_systems_better']}/{sig_row['N_systems_tested']}]"
+        forecast_cells.append(cell)
+    table1_lines.append(
+        f"{label} & {hbf_cell} & {fw1_cell} & {fw20_cell} & "
+        f"{family_count_cell} & {' & '.join(forecast_cells)} \\\\"
+    )
+
+table1_lines.extend([r"\bottomrule", r"\end{tabular}"])
+(TBL_DIR / "table1_fixed17_alignment.tex").write_text("\n".join(table1_lines))
+
+
+# --------------------------------------------------------------------------------------
+# Regenerate fixed-17 figures from the current Table 1 packet.
+# --------------------------------------------------------------------------------------
+
+print("Building fixed-17 horizon and diagnostic figures...")
+
+DIAGNOSTIC_METRICS = [
+    ("family_h_basin_given_family", r"$H(B\mid F_{\rm abs})$", "strip"),
+    ("family_unique_count", r"$|F_{\rm abs}|$", "strip_mean"),
+    ("support_freeze_wrong_over_base_h1", r"wrong-support ratio $h{=}1$", "strip_log"),
+]
+
+
+def plot_current_horizon_curve() -> None:
+    horizons = ALL_FORECAST_HORIZONS or HORIZONS
+    fig, ax = plt.subplots(1, 1, figsize=(4.2, 3.2), constrained_layout=True)
+    rng = np.random.default_rng(BOOTSTRAP_SEED)
+    for root_label, meta in ROOTS.items():
+        sub = fc[fc["root_label"] == root_label]
+        if sub.empty:
+            continue
+        ys, ylo, yhi = [], [], []
+        for h in horizons:
+            col = f"h{h}_best_periodic_mean"
+            system_seed_values = [
+                finite_positive(group[col])
+                for _, group in sub.groupby("system_name", sort=True)
+            ]
+            system_seed_values = [values for values in system_seed_values if values.size > 0]
+            per_system_iqms = np.asarray([iqm(values) for values in system_seed_values], dtype=float)
+            ys.append(iqm(per_system_iqms))
+            ci_low, ci_high, _ = fixed_system_seed_bootstrap_iqm(
+                system_seed_values,
+                rng=rng,
+                n_reps=BOOTSTRAP_REPS,
+            )
+            ylo.append(ci_low)
+            yhi.append(ci_high)
+        color = PALETTE[meta["color"]]
+        linestyle = "-" if "LISTA" in meta["label"] else "--"
+        ax.fill_between(horizons, ylo, yhi, color=color, alpha=0.17, lw=0)
+        ax.plot(
+            horizons,
+            ys,
+            marker="o",
+            lw=2.1,
+            ms=5.5,
+            color=color,
+            linestyle=linestyle,
+            label=meta["label"],
+        )
+    ax.set_title("17-system multibasin forecasting\nperformance", fontsize=11, pad=4)
+    ax.set_xlabel(r"Rollout horizon $H$ (observation steps)", fontsize=13)
+    ax.set_ylabel("MSE (cross-system IQM)", fontsize=13)
+    ax.set_yscale("log")
+    ax.set_ylim(bottom=1e-4)
+    ax.set_xlim(min(horizons) - 70, max(horizons) + 180)
+    ax.set_xticks(horizons)
+    ax.set_xticklabels([str(h) for h in horizons], rotation=30, ha="right", fontsize=10.5)
+    ax.tick_params(axis="y", labelsize=10.5)
+    ax.grid(True, which="both", lw=0.45, alpha=0.38)
+    ax.legend(frameon=False, loc="lower right", fontsize=9.5, ncol=2)
+    for stem in ("fig_fixed17_horizon_curves", "fig_fixed17_horizon_curves_boundary_only"):
+        fig.savefig(FIG_DIR / f"{stem}.pdf")
+        fig.savefig(FIG_DIR / f"{stem}.png")
+    plt.close(fig)
+
+
+def plot_seed_strips() -> None:
+    horizon = 1000
+    col = f"h{horizon}_best_periodic_per_dim_mean"
+    if col not in fc.columns:
+        col = f"h{horizon}_best_periodic_mean"
+    labels, values, colors, iqm_points = [], [], [], []
+    for root_label, meta in ROOTS.items():
+        sub = fc[fc["root_label"] == root_label]
+        vals = pd.to_numeric(sub[col], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna().to_numpy()
+        vals = vals[vals > 0]
+        labels.append(meta["label"])
+        values.append(vals)
+        colors.append(PALETTE[meta["color"]])
+        iqm_points.append(iqm(vals))
+    fig, ax = plt.subplots(1, 1, figsize=(6.2, 3.2))
+    rng = np.random.default_rng(7)
+    for i, vals in enumerate(values):
+        if vals.size == 0:
+            continue
+        x = i + rng.uniform(-0.18, 0.18, size=vals.size)
+        ax.scatter(x, vals, s=8, color=colors[i], alpha=0.32, linewidths=0)
+        ax.hlines(iqm_points[i], i - 0.28, i + 0.28, color="black", lw=1.8)
+    ax.set_xticks(np.arange(len(labels)))
+    ax.set_xticklabels(labels, rotation=25, ha="right")
+    ax.set_ylabel(rf"H{horizon} MSE per dimension")
+    ax.set_yscale("log")
+    ax.grid(axis="y", which="both", lw=0.35, alpha=0.35)
+    fig.tight_layout()
+    for stem in ("fig_fixed17_seed_strips", "fig_fixed17_seed_strips_boundary_only"):
+        fig.savefig(FIG_DIR / f"{stem}.pdf", bbox_inches="tight")
+        fig.savefig(FIG_DIR / f"{stem}.png", bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_entropy_strips() -> None:
+    fig, axes = plt.subplots(1, 3, figsize=(8.2, 3.0), constrained_layout=True)
+    rng = np.random.default_rng(11)
+    for ax, (metric, label, kind) in zip(axes, DIAGNOSTIC_METRICS):
+        xlabels = []
+        for i, (root_label, meta) in enumerate(ROOTS.items()):
+            sub = itp_deep[itp_deep["root_label"] == root_label]
+            vals = pd.to_numeric(sub[metric], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna().to_numpy()
+            color = PALETTE[meta["color"]]
+            if kind == "strip_log":
+                vals = vals[vals > 0]
+            x = i + rng.uniform(-0.18, 0.18, size=vals.size)
+            if vals.size:
+                q1, q3 = np.percentile(vals, [25, 75])
+                ax.vlines(i, q1, q3, color="0.25", alpha=0.9, lw=1.5, zorder=2.5)
+                ax.hlines([q1, q3], i - 0.16, i + 0.16, color="0.25", alpha=0.9, lw=1.5, zorder=2.6)
+                ax.scatter(x, vals, s=8, color=color, alpha=0.32, linewidths=0, zorder=2)
+                summary = float(np.mean(vals)) if kind == "strip_mean" else iqm(vals)
+                ax.hlines(summary, i - 0.25, i + 0.25, color="black", lw=1.6, zorder=3)
+            xlabels.append(meta["label"])
+        if kind == "strip_log":
+            ax.set_yscale("log")
+        ax.set_title(label)
+        ax.set_xticks(np.arange(len(xlabels)))
+        ax.set_xticklabels(xlabels, rotation=35, ha="right")
+        ax.grid(axis="y", lw=0.35, alpha=0.35)
+    for stem in ("fig_fixed17_entropy_strips", "fig_fixed17_entropy_strips_boundary_only", "fig_fixed17_entropy_strips_alt2"):
+        fig.savefig(FIG_DIR / f"{stem}.pdf", bbox_inches="tight")
+        fig.savefig(FIG_DIR / f"{stem}.png", bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_appendix_histograms() -> None:
+    horizons = HORIZONS
+    fig, axes = plt.subplots(1, len(horizons), figsize=(9.2, 2.8), constrained_layout=True)
+    for ax, h in zip(np.ravel(axes), horizons):
+        col = f"h{h}_best_periodic_mean"
+        for root_label, meta in ROOTS.items():
+            vals = pd.to_numeric(fc.loc[fc["root_label"] == root_label, col], errors="coerce").to_numpy()
+            vals = vals[np.isfinite(vals) & (vals > 0)]
+            if vals.size:
+                ax.hist(np.log10(vals), bins=32, color=PALETTE[meta["color"]], alpha=0.35, label=meta["label"])
+        ax.set_title(f"H{h}")
+        ax.set_xlabel(r"$\log_{10}$ MSE")
+        ax.grid(axis="y", lw=0.3, alpha=0.25)
+    axes[0].set_ylabel("# system-seed pairs")
+    axes[-1].legend(frameon=False, fontsize=6, loc="upper left", bbox_to_anchor=(1.02, 1.0))
+    fig.savefig(FIG_DIR / "appfig_fixed17_perseed_histograms.pdf", bbox_inches="tight")
+    fig.savefig(FIG_DIR / "appfig_fixed17_perseed_histograms.png", bbox_inches="tight")
+    plt.close(fig)
+
+    fig, axes = plt.subplots(1, 3, figsize=(9.2, 2.8), constrained_layout=True)
+    for ax, (metric, label, _) in zip(axes, DIAGNOSTIC_METRICS):
+        for root_label, meta in ROOTS.items():
+            vals = pd.to_numeric(itp_deep.loc[itp_deep["root_label"] == root_label, metric], errors="coerce").to_numpy()
+            vals = vals[np.isfinite(vals)]
+            if vals.size:
+                ax.hist(vals, bins=30, color=PALETTE[meta["color"]], alpha=0.35, label=meta["label"])
+        ax.set_title(label)
+        ax.grid(axis="y", lw=0.3, alpha=0.25)
+    axes[0].set_ylabel("# system-seed pairs")
+    axes[-1].legend(frameon=False, fontsize=6, loc="upper left", bbox_to_anchor=(1.02, 1.0))
+    fig.savefig(FIG_DIR / "appfig_fixed17_entropy_histograms.pdf", bbox_inches="tight")
+    fig.savefig(FIG_DIR / "appfig_fixed17_entropy_histograms.png", bbox_inches="tight")
+    plt.close(fig)
+
+
+plot_current_horizon_curve()
+plot_seed_strips()
+plot_entropy_strips()
+plot_appendix_histograms()
 
 
 # --------------------------------------------------------------------------------------
