@@ -3,130 +3,130 @@
     "H100": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.8226548185206297,
-      "iqm_raw": 0.015273982865018873,
-      "log10_iqr_systems": 1.095581441637108
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.8254030753182753,
+      "iqm_raw": 0.04070701002243104,
+      "log10_iqr_systems": 0.7263369989185944
     },
     "H500": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 14,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.793981270217929,
-      "iqm_raw": 0.04889481499539831,
-      "log10_iqr_systems": 1.4246488544783342
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.8918080297262567,
+      "iqm_raw": 0.14448121488620966,
+      "log10_iqr_systems": 1.333217381472986
     },
     "H1000": {
-      "K_systems_better": 17,
+      "K_systems_better": 15,
       "K_systems_better_ttest": 14,
-      "N_systems_tested": 17,
+      "N_systems_tested": 15,
       "median_diff_log10": -1.9193025901283218,
-      "iqm_raw": 0.061435094217322565,
-      "log10_iqr_systems": 1.8360245331700173
+      "iqm_raw": 0.16614236385489453,
+      "log10_iqr_systems": 1.5276151034722276
     }
   },
   "lista_blockdiag_signsplit_hardinit_basin_partition": {
     "H100": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.682645149860732,
-      "iqm_raw": 0.0170485948430492,
-      "log10_iqr_systems": 0.9695363338828513
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.6972883894984236,
+      "iqm_raw": 0.041064799392257684,
+      "log10_iqr_systems": 0.6579205624681319
     },
     "H500": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 14,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.8053177588639728,
-      "iqm_raw": 0.06505940847065562,
-      "log10_iqr_systems": 1.2971160360477856
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.8280092853681011,
+      "iqm_raw": 0.11841379146679257,
+      "log10_iqr_systems": 0.9886769504115547
     },
     "H1000": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
+      "N_systems_tested": 15,
       "median_diff_log10": -1.8715850982697664,
-      "iqm_raw": 0.05935375448334809,
-      "log10_iqr_systems": 1.0285528709385674
+      "iqm_raw": 0.13466424480152667,
+      "log10_iqr_systems": 1.152837984103079
     }
   },
   "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": {
     "H100": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.6703766486850535,
-      "iqm_raw": 0.019828976386980595,
-      "log10_iqr_systems": 0.9183363168548817
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.739524357513875,
+      "iqm_raw": 0.03870329164728029,
+      "log10_iqr_systems": 0.6967765857398851
     },
     "H500": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.7078748954442067,
-      "iqm_raw": 0.06404961871411943,
-      "log10_iqr_systems": 1.273503928609867
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.7414050405924535,
+      "iqm_raw": 0.1137248610930761,
+      "log10_iqr_systems": 1.005335022579252
     },
     "H1000": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.7847613851103887,
-      "iqm_raw": 0.07573655700968901,
-      "log10_iqr_systems": 1.3705866805245792
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.7567051478250435,
+      "iqm_raw": 0.12997841420749734,
+      "log10_iqr_systems": 1.1615072815697276
     }
   },
   "mlp_sparse_blockdiag_hardinit_basin_partition_control": {
     "H100": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.6276960394502644,
-      "iqm_raw": 0.020258482723932894,
-      "log10_iqr_systems": 1.5194095705272679
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.8328061899154502,
+      "iqm_raw": 0.03974911229874811,
+      "log10_iqr_systems": 1.0316211524148167
     },
     "H500": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.9660874820604775,
-      "iqm_raw": 0.052129952272735286,
-      "log10_iqr_systems": 1.2238900722823671
+      "N_systems_tested": 15,
+      "median_diff_log10": -2.100294124987985,
+      "iqm_raw": 0.10236387777508099,
+      "log10_iqr_systems": 1.3947644325974617
     },
     "H1000": {
-      "K_systems_better": 17,
+      "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
+      "N_systems_tested": 15,
       "median_diff_log10": -2.137501523416191,
-      "iqm_raw": 0.055277618444056535,
-      "log10_iqr_systems": 1.3260259418654594
+      "iqm_raw": 0.11687018383199176,
+      "log10_iqr_systems": 1.573116666251579
     }
   },
   "mlp_sparse_hardinit_basin_partition_control": {
     "H100": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.5948081961728446,
-      "iqm_raw": 0.021794507804784934,
-      "log10_iqr_systems": 1.544732746385343
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.6633610279607398,
+      "iqm_raw": 0.03968628918630111,
+      "log10_iqr_systems": 1.1165527512904014
     },
     "H500": {
       "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
+      "N_systems_tested": 15,
       "median_diff_log10": -1.9036025977222453,
-      "iqm_raw": 0.049410250889773,
-      "log10_iqr_systems": 1.5897159210131506
+      "iqm_raw": 0.09404628922237034,
+      "log10_iqr_systems": 1.6125466819512773
     },
     "H1000": {
-      "K_systems_better": 17,
+      "K_systems_better": 15,
       "K_systems_better_ttest": 15,
-      "N_systems_tested": 17,
-      "median_diff_log10": -1.8276423758858233,
-      "iqm_raw": 0.05368340595455333,
-      "log10_iqr_systems": 1.832772955940891
+      "N_systems_tested": 15,
+      "median_diff_log10": -1.6890406028123657,
+      "iqm_raw": 0.10668837668878643,
+      "log10_iqr_systems": 1.9147113551898176
     }
   }
 }

@@ -1,10 +1,13 @@
 """
 Per-system significance checks for paper Tables 2, 3, and 4.
 
-The confirmatory pattern mirrors Table 1 where seeds are the replicate unit:
-within each system, run a one-sided paired Wilcoxon signed-rank test and
-Holm-correct across systems inside the table cell. Table 3 is the exception:
-the within-system paired unit is the controlled transfer instance
+Table 2 uses the benchmark system as the independent inferential unit for the
+main paper display: seed-level routed/global log-ratios are summarized within
+each system, then the system effects are tested against zero with an exact
+one-sided sign-flip test. The older within-system seed-paired Wilcoxon/Holm
+counts are still produced as diagnostics in the JSON/CSV artifacts. Tables 1
+diagnostics and Table 3 keep their within-system paired reproducibility counts.
+For Table 3, the within-system paired unit is the controlled transfer instance
 (refreshed-support vs previous-support), with all completed seeds contributing
 transfer instances.
 
@@ -48,6 +51,12 @@ ROUTING_CSVS = [
 ]
 ROUTING_HORIZONS = [100, 1000]
 ROUTING_EXPECTED_SEEDS = list(range(15))
+ROUTING_MAIN_ROUTE = "family_local_centered"
+FIXED_BENCHMARK_EXCLUDED_SYSTEMS = {
+    "multiwell_strong_transition",
+    "claude_checkerboard_potential",
+    "claude:checkerboard_potential",
+}
 REFRESH_CSVS = [
     REPO_ROOT
     / "results"
@@ -117,6 +126,15 @@ PALETTE = {
     "Dense MLP": "#000000",
 }
 
+
+def filter_fixed_benchmark_systems(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop systems removed from the 15-system paper benchmark."""
+    filtered = df.copy()
+    for column in ("system_key", "system_name", "train_env_name"):
+        if column in filtered:
+            filtered = filtered[~filtered[column].isin(FIXED_BENCHMARK_EXCLUDED_SYSTEMS)]
+    return filtered.copy()
+
 plt.rcParams.update(
     {
         "font.family": "serif",
@@ -153,6 +171,14 @@ def iqm(values) -> float:
     return float(np.mean(arr[mask]))
 
 
+def mean_finite(values) -> float:
+    arr = np.asarray(list(values), dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if len(arr) == 0:
+        return float("nan")
+    return float(np.mean(arr))
+
+
 def cell_summary(values) -> dict:
     """Cross-rollout summary of a cell: IQM, median, IQR endpoints, n."""
     arr = np.asarray(list(values), dtype=float)
@@ -175,7 +201,7 @@ def system_iqm_summary(
     system_col: str = "system_key",
     positive_only: bool = False,
 ) -> dict:
-    """Summarize by per-system IQM, then cross-system IQM."""
+    """Summarize by per-system IQM, then arithmetic mean across systems."""
     rows = []
     for system, grp in df.groupby(system_col, sort=True):
         values = pd.to_numeric(grp[value_col], errors="coerce")
@@ -190,6 +216,7 @@ def system_iqm_summary(
     if len(arr) == 0:
         return {
             "n_systems": 0,
+            "mean": float("nan"),
             "iqm": float("nan"),
             "median": float("nan"),
             "q25": float("nan"),
@@ -197,9 +224,12 @@ def system_iqm_summary(
             "std": float("nan"),
             "per_system": rows,
         }
+    mean_value = mean_finite(arr)
     return {
         "n_systems": int(len(arr)),
-        "iqm": iqm(arr),
+        "mean": mean_value,
+        "iqm": mean_value,
+        "system_iqm_iqm": iqm(arr),
         "median": float(np.median(arr)),
         "q25": float(np.percentile(arr, 25)),
         "q75": float(np.percentile(arr, 75)),
@@ -220,6 +250,86 @@ def holm_corrected(p_values: list[float]) -> list[float]:
         running_max = max(running_max, scaled)
         adj[i] = min(running_max, 1.0)
     return adj
+
+
+def exact_signflip_mean_test(values, alternative: str = "less") -> dict:
+    """Exact one-sample sign-flip test on paired system effects.
+
+    The benchmark systems are the independent units. Under the paired null, the
+    sign of each system effect is exchangeable; the observed magnitudes are
+    retained and all sign assignments are enumerated. The p-value and reported
+    p-value uses the mean log-effect across systems. The returned dictionary
+    also includes the IQM log-effect used as the robust table point estimate.
+    """
+    arr = np.asarray(list(values), dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if len(arr) == 0:
+        return {
+            "n": 0,
+            "iqm_delta": float("nan"),
+            "mean_delta": float("nan"),
+            "ratio_from_iqm_delta": float("nan"),
+            "ratio_from_mean_delta": float("nan"),
+            "p_raw": float("nan"),
+            "n_in_direction": 0,
+        }
+
+    observed_iqm = iqm(arr)
+    observed_mean = float(np.mean(arr))
+    magnitudes = np.abs(arr)
+    n = len(magnitudes)
+    total = 1 << n
+    bits = ((np.arange(total, dtype=np.uint32)[:, None] >> np.arange(n, dtype=np.uint32)) & 1)
+    signs = np.where(bits == 1, -1.0, 1.0)
+    stats_mean = (signs * magnitudes).mean(axis=1)
+    if alternative == "less":
+        extreme = int(np.sum(stats_mean <= observed_mean + 1e-15))
+    elif alternative == "greater":
+        extreme = int(np.sum(stats_mean >= observed_mean - 1e-15))
+    else:
+        extreme = int(np.sum(np.abs(stats_mean) >= abs(observed_mean) - 1e-15))
+
+    if alternative == "less":
+        n_in_direction = int(np.sum(arr < 0.0))
+    elif alternative == "greater":
+        n_in_direction = int(np.sum(arr > 0.0))
+    else:
+        n_in_direction = int(np.sum(arr != 0.0))
+
+    return {
+        "n": int(n),
+        "iqm_delta": float(observed_iqm),
+        "mean_delta": float(observed_mean),
+        "ratio_from_iqm_delta": float(10.0 ** observed_iqm),
+        "ratio_from_mean_delta": float(10.0 ** observed_mean),
+        "p_raw": float(extreme / total),
+        "n_in_direction": n_in_direction,
+    }
+
+
+def bootstrap_iqm_ci(values, *, n_boot: int = 10000, seed: int = 0) -> dict:
+    """Cluster bootstrap CI for the system-level mean effect."""
+    arr = np.asarray(list(values), dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if len(arr) == 0 or n_boot <= 0:
+        return {
+            "log10_low": float("nan"),
+            "log10_high": float("nan"),
+            "ratio_low": float("nan"),
+            "ratio_high": float("nan"),
+        }
+    rng = np.random.default_rng(seed)
+    draws = np.empty(n_boot, dtype=float)
+    for i in range(n_boot):
+        sample = rng.choice(arr, size=len(arr), replace=True)
+        draws[i] = mean_finite(sample)
+    lo, hi = np.percentile(draws, [2.5, 97.5])
+    return {
+        "log10_low": float(lo),
+        "log10_high": float(hi),
+        "ratio_low": float(10.0 ** lo),
+        "ratio_high": float(10.0 ** hi),
+    }
 
 
 def is_finite_nonnegative(value) -> bool:
@@ -477,6 +587,55 @@ def per_system_censored_routing_wilcoxon(
     }
 
 
+def per_system_finite_routing_signflip(
+    df: pd.DataFrame,
+    horizon: int,
+    expected_systems: list[str],
+    n_boot_ci: int = 0,
+) -> dict:
+    """System-level Table 2 inference for mutually finite routed/global pairs."""
+    route_col = f"h{horizon}_mean"
+    global_col = f"global_h{horizon}_mean"
+    rows = []
+    system_deltas = []
+
+    for system in expected_systems:
+        grp = df[df["system_key"] == system]
+        deltas = []
+        for _, row in grp.iterrows():
+            route_mse = row[route_col]
+            global_mse = row[global_col]
+            if is_finite_positive(route_mse) and is_finite_positive(global_mse):
+                deltas.append(float(np.log10(route_mse) - np.log10(global_mse)))
+        if deltas:
+            system_delta = iqm(deltas)
+            system_deltas.append(system_delta)
+            rows.append({
+                "system": system,
+                "n_pairs": int(len(deltas)),
+                "iqm_delta": float(system_delta),
+                "ratio_from_iqm_delta": float(10.0 ** system_delta),
+                "median_delta": float(np.median(deltas)),
+            })
+        else:
+            rows.append({
+                "system": system,
+                "n_pairs": 0,
+                "iqm_delta": float("nan"),
+                "ratio_from_iqm_delta": float("nan"),
+                "median_delta": float("nan"),
+            })
+
+    test = exact_signflip_mean_test(system_deltas, alternative="less")
+    ci = bootstrap_iqm_ci(system_deltas, n_boot=n_boot_ci)
+    return {
+        **test,
+        "p_holm": float("nan"),
+        "ci95": ci,
+        "per_system": rows,
+    }
+
+
 ROUTE_DISPLAY = {
     "support_gated_k": "Gated",
     "support_local_centered": "Support-local",
@@ -500,52 +659,65 @@ def tex_number(value: float) -> str:
     return f"{value:.3g}"
 
 
+def p_stars(p_value: float) -> str:
+    if p_value is None or not math.isfinite(float(p_value)):
+        return ""
+    p_value = float(p_value)
+    if p_value < 0.01:
+        return r"^{\ast\ast}"
+    if p_value < 0.05:
+        return r"^{\ast}"
+    return ""
+
+
 def write_routing_main_table(summary_df: pd.DataFrame) -> None:
-    """Write the Table-2 fragment from finite-ratio IQMs, with censored K/N counts."""
+    """Write the main Table-2 fragment for support-family local routing."""
     if summary_df.empty:
         return
-    main = summary_df[summary_df["subset"] == "all"].copy()
+    main = summary_df[
+        (summary_df["subset"] == "all")
+        & (summary_df["route"] == ROUTING_MAIN_ROUTE)
+    ].copy()
     rows_by_cell = {
-        (str(row["horizon"]), str(row["model"]), str(row["route"])): row
+        (str(row["horizon"]), str(row["model"])): row
         for row in main.to_dict(orient="records")
     }
-    routes = ["support_gated_k", "support_local_centered", "family_local_centered"]
     horizons = ["H100", "H1000"]
 
-    best: dict[tuple[str, str], float] = {}
+    best: dict[str, float] = {}
     for horizon in horizons:
-        for route in routes:
-            vals = [
-                float(rows_by_cell[(horizon, display, route)]["finite_ratio_iqm"])
-                for display in ROUTING_MODELS.values()
-                if (horizon, display, route) in rows_by_cell
-                and math.isfinite(float(rows_by_cell[(horizon, display, route)]["finite_ratio_iqm"]))
-            ]
-            best[(horizon, route)] = min(vals) if vals else float("nan")
+        vals = [
+            float(rows_by_cell[(horizon, display)]["finite_system_ratio_iqm"])
+            for display in ROUTING_MODELS.values()
+            if (horizon, display) in rows_by_cell
+            and math.isfinite(float(rows_by_cell[(horizon, display)]["finite_system_ratio_iqm"]))
+        ]
+        best[horizon] = min(vals) if vals else float("nan")
 
     lines = [
-        r"\begin{tabular}{@{}l ccc ccc@{}}",
+        r"\begin{tabular}{@{}l cc cc@{}}",
         r"\toprule",
-        r"& \multicolumn{3}{c}{$H100$} & \multicolumn{3}{c}{$H1000$} \\",
-        r"\cmidrule(lr){2-4}\cmidrule(l){5-7}",
-        r"Model & Gated & Support-local & Family-local & Gated & Support-local & Family-local \\",
+        r"& \multicolumn{2}{c}{$H100$} & \multicolumn{2}{c}{$H1000$} \\",
+        r"\cmidrule(lr){2-3}\cmidrule(l){4-5}",
+        r"Model & \(F_{\rm top8}\) ratio & system wins & \(F_{\rm top8}\) ratio & system wins \\",
         r"\midrule",
     ]
     for display in ROUTING_MODELS.values():
         cells = []
         has_data = False
         for horizon in horizons:
-            for route in routes:
-                row = rows_by_cell.get((horizon, display, route))
-                if row is None:
-                    cells.append("--")
-                    continue
-                has_data = True
-                value = float(row["finite_ratio_iqm"])
-                body = tex_number(value)
-                if math.isfinite(value) and math.isclose(value, best[(horizon, route)], rel_tol=1e-12, abs_tol=1e-12):
-                    body = rf"\mathbf{{{body}}}"
-                cells.append(rf"${body}\,[{int(row['K'])}/{int(row['N'])}]$")
+            row = rows_by_cell.get((horizon, display))
+            if row is None:
+                cells.extend(["--", "--"])
+                continue
+            has_data = True
+            value = float(row["finite_system_ratio_iqm"])
+            body = tex_number(value)
+            if math.isfinite(value) and math.isclose(value, best[horizon], rel_tol=1e-12, abs_tol=1e-12):
+                body = rf"\mathbf{{{body}}}"
+            stars = p_stars(float(row["finite_system_p_holm"]))
+            cells.append(rf"${{{body}}}{stars}$")
+            cells.append(rf"${int(row['censored_system_n_in_direction'])}/{int(row['censored_system_n'])}$")
         if has_data:
             lines.append(f"{display} & {' & '.join(cells)} \\\\")
     lines.extend([r"\bottomrule", r"\end{tabular}"])
@@ -601,6 +773,7 @@ def analyze_routing() -> dict:
     df = pd.concat(frames, ignore_index=True, sort=False)
     df = df[df["support_definition"] == "topk:8"].copy()
     df = df[df["root_label"].isin(ROUTING_MODELS)]
+    df = filter_fixed_benchmark_systems(df)
 
     expected_systems = sorted(df["system_key"].dropna().unique().tolist())
     routes = ["support_gated_k", "support_local_centered", "family_local_centered"]
@@ -644,6 +817,11 @@ def analyze_routing() -> dict:
                         expected_seeds=ROUTING_EXPECTED_SEEDS,
                         cap=cap,
                     )
+                    finite_system = per_system_finite_routing_signflip(
+                        sub,
+                        horizon=horizon,
+                        expected_systems=expected_systems,
+                    )
                     finite_ratios = pd.to_numeric(sub[ratio_col], errors="coerce")
                     finite_ratio_mask = np.isfinite(finite_ratios) & (finite_ratios > 0.0)
                     finite_ratios = finite_ratios[finite_ratio_mask]
@@ -655,6 +833,7 @@ def analyze_routing() -> dict:
                         "_finite_ratio",
                         positive_only=True,
                     )
+                    res["finite_system_signflip"] = finite_system
                     res["horizon"] = horizon
                     out[horizon_key][display][slice_name][route] = res
                     summary_rows.append({
@@ -662,17 +841,47 @@ def analyze_routing() -> dict:
                         "model": display,
                         "subset": slice_name,
                         "route": route,
-                        "finite_ratio_iqm": res["system_cell"]["iqm"],
+                        "finite_ratio_mean": res["system_cell"]["mean"],
+                        "finite_ratio_iqm": res["system_cell"]["mean"],
                         "finite_ratio_global_iqm": res["cell"]["iqm"],
                         "finite_ratio_n": res["cell"]["n"],
                         "finite_ratio_n_systems": res["system_cell"]["n_systems"],
+                        "finite_system_log10_mean": finite_system["mean_delta"],
+                        "finite_system_log10_iqm": finite_system["iqm_delta"],
+                        "finite_system_ratio_mean": finite_system["ratio_from_mean_delta"],
+                        "finite_system_ratio_iqm": finite_system["ratio_from_mean_delta"],
+                        "finite_system_n": finite_system["n"],
+                        "finite_system_n_in_direction": finite_system["n_in_direction"],
+                        "finite_system_p_raw": finite_system["p_raw"],
+                        "finite_system_ci95_low": finite_system["ci95"]["ratio_low"],
+                        "finite_system_ci95_high": finite_system["ci95"]["ratio_high"],
+                        "finite_system_p_holm": float("nan"),
                         "censored_log10_iqm_ratio": res["censored_log10_cell"]["ratio_from_iqm_delta"],
+                        "censored_system_n_in_direction": res["sign_test_iqm"]["n_in_direction"],
+                        "censored_system_n": res["sign_test_iqm"]["n_total"],
+                        "censored_system_p_raw": res["sign_test_iqm"]["p_value"],
                         "K": res["K"],
                         "N": res["N"],
                         **{f"censor_{key}": value for key, value in res["censor_class_counts"].items()},
                     })
 
     summary_df = pd.DataFrame(summary_rows)
+    main_mask = (
+        (summary_df["subset"] == "all")
+        & (summary_df["route"] == ROUTING_MAIN_ROUTE)
+        & np.isfinite(pd.to_numeric(summary_df["finite_system_p_raw"], errors="coerce"))
+    )
+    main_indices = list(summary_df.index[main_mask])
+    if main_indices:
+        adjusted = holm_corrected(
+            [float(summary_df.loc[idx, "finite_system_p_raw"]) for idx in main_indices]
+        )
+        for idx, p_holm in zip(main_indices, adjusted):
+            summary_df.loc[idx, "finite_system_p_holm"] = p_holm
+            horizon = str(summary_df.loc[idx, "horizon"])
+            model = str(summary_df.loc[idx, "model"])
+            route = str(summary_df.loc[idx, "route"])
+            out[horizon][model]["all"][route]["finite_system_signflip"]["p_holm"] = float(p_holm)
     summary_df.to_csv(TBL_DIR / "table2_routing_h100_h1000_censored_seed15_summary.csv", index=False)
     write_routing_main_table(summary_df)
     plot_routing_summary(summary_df)
@@ -791,6 +1000,7 @@ def analyze_refresh() -> dict:
         raise FileNotFoundError("No refresh CSVs found")
     df = pd.concat(frames, ignore_index=True, sort=False)
     df = df[df["root_label"].isin(REFRESH_MODELS)].copy()
+    df = filter_fixed_benchmark_systems(df)
     df = df[df["status"] == "ok"]
     df = df[df["support_definition"] == "topk:8"]
     df = df[df["object_kind"] == "support"]  # exact-support refresh; family is reported separately
@@ -832,9 +1042,12 @@ def analyze_refresh() -> dict:
                 "model": display,
                 "period": int(period),
                 "route_target_iqm": res["route_target_cell"]["iqm"],
+                "route_target_mean": res["route_target_cell"]["mean"],
                 "route_target_std_systems": res["route_target_cell"]["std"],
-                "fallback_iqm": res["fallback_cell"]["iqm"],
-                "mse_ratio_iqm": res["system_cell"]["iqm"],
+                "fallback_iqm": res["fallback_cell"]["mean"],
+                "fallback_mean": res["fallback_cell"]["mean"],
+                "mse_ratio_iqm": res["system_cell"]["mean"],
+                "mse_ratio_mean": res["system_cell"]["mean"],
                 "mse_ratio_q25_systems": res["system_cell"]["q25"],
                 "mse_ratio_q75_systems": res["system_cell"]["q75"],
                 "mse_ratio_global_iqm": res["cell"]["iqm"],
@@ -938,9 +1151,17 @@ def main():
         s = res["sign_test_iqm"]
         cell = res.get("cell")
         system_cell = res.get("system_cell")
+        finite_system = res.get("finite_system_signflip")
         cell_str = ""
-        if system_cell:
-            cell_str = f" sys_iqm={system_cell['iqm']:.3g} (systems={system_cell['n_systems']})"
+        if finite_system:
+            p_holm = finite_system.get("p_holm", float("nan"))
+            cell_str = (
+                f" finite-system mean ratio={finite_system['ratio_from_mean_delta']:.3g} "
+                f"(n={finite_system['n']}, p={finite_system['p_raw']:.2e}, "
+                f"pHolm={p_holm:.2e})"
+            )
+        elif system_cell:
+            cell_str = f" sys_mean={system_cell['mean']:.3g} (systems={system_cell['n_systems']})"
         elif cell:
             cell_str = f" iqm={cell['iqm']:.3g} (n={cell['n']})"
         return (f"K/N = {res['K']}/{res['N']}  "
@@ -948,7 +1169,7 @@ def main():
                 f"{cell_str}")
 
     # Print human-readable summary
-    print("\n=== TABLE 2 (Routing) — finite-ratio IQM; K/N uses censored seed-15 Wilcoxon/Holm ===")
+    print("\n=== TABLE 2 (Routing) — main display uses system-level finite log-ratio sign-flip/Holm; K/N is diagnostic ===")
     for horizon, models in routing.items():
         print(f"  {horizon}")
         for model, slices in models.items():
@@ -961,7 +1182,7 @@ def main():
         for period_label, res in periods.items():
             print(f"  {model:10s}  {period_label:10s}  {fmt(res)}")
 
-    print("\n=== TABLE 4 (Dysts vs Dense MLP) — sign-iqm on per-system IQM-deltas ===")
+    print("\n=== TABLE 4 (Dysts vs Dense MLP) — system-level tests on per-system seed-IQMs ===")
     for model, horizons in dysts.items():
         for h_label, res in horizons.items():
             print(f"  {model:30s}  {h_label:6s}  {fmt(res)}")

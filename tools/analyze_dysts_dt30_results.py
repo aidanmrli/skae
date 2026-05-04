@@ -42,6 +42,9 @@ BASELINE_ROOT = "dense_mlp_tanh"
 DEFAULT_HORIZONS = [100, 500, 1000, 1500, 2000, 3000, 4000, 5000]
 DEFAULT_BOOTSTRAP_REPS = 10000
 DEFAULT_BOOTSTRAP_SEED = 20260501
+DEFAULT_EXCLUDED_SYSTEMS = ("dysts:LorenzCoupled", "dysts:MultiChua")
+FORECAST_YLABEL_FONTSIZE = 11.5
+FORECAST_YTICK_LABELSIZE = 9.5
 
 plt.rcParams.update(
     {
@@ -60,6 +63,17 @@ plt.rcParams.update(
 )
 
 
+def forecasting_performance_title(n_systems: int) -> str:
+    return f"{n_systems}-system Dysts forecasting performance"
+
+
+def title_with_note(title: str, title_note: str) -> str:
+    note = title_note.strip()
+    if not note:
+        return title
+    return f"{title} {note}"
+
+
 def iqm(values: Iterable[float]) -> float:
     arr = np.asarray(list(values), dtype=float)
     arr = arr[np.isfinite(arr)]
@@ -72,6 +86,14 @@ def iqm(values: Iterable[float]) -> float:
     if keep.size == 0:
         return float(np.mean(arr))
     return float(np.mean(keep))
+
+
+def mean_finite(values: Iterable[float]) -> float:
+    arr = np.asarray(list(values), dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return float("nan")
+    return float(np.mean(arr))
 
 
 def row_iqm(values: np.ndarray) -> np.ndarray:
@@ -97,13 +119,13 @@ def finite_positive(values: pd.Series) -> np.ndarray:
     return arr[np.isfinite(arr) & (arr > 0.0)]
 
 
-def fixed_system_seed_bootstrap_iqm(
+def fixed_system_seed_bootstrap_mean(
     system_seed_values: list[np.ndarray],
     *,
     rng: np.random.Generator,
     n_reps: int,
 ) -> tuple[float, float, float]:
-    """Bootstrap uncertainty in the cross-system IQM from finite training seeds only."""
+    """Bootstrap uncertainty in the cross-system mean from finite training seeds only."""
     if n_reps <= 0:
         return float("nan"), float("nan"), float("nan")
     valid = [np.asarray(values, dtype=float) for values in system_seed_values if len(values) > 0]
@@ -114,12 +136,64 @@ def fixed_system_seed_bootstrap_iqm(
     for values in valid:
         indices = rng.integers(0, values.size, size=(n_reps, values.size))
         per_system_draws.append(row_iqm(values[indices]))
-    draws = row_iqm(np.column_stack(per_system_draws))
+    draws = np.mean(np.column_stack(per_system_draws), axis=1)
 
     return (
         float(np.percentile(draws, 2.5)),
         float(np.percentile(draws, 97.5)),
         float(np.std(draws, ddof=1)),
+    )
+
+
+def system_bootstrap_mean(
+    system_values: np.ndarray,
+    *,
+    rng: np.random.Generator,
+    n_reps: int,
+) -> tuple[float, float, float]:
+    """Bootstrap the mean by resampling fixed per-system estimates."""
+    if n_reps <= 0:
+        return float("nan"), float("nan"), float("nan")
+    valid = np.asarray(system_values, dtype=float)
+    valid = valid[np.isfinite(valid)]
+    if valid.size == 0:
+        return float("nan"), float("nan"), float("nan")
+    indices = rng.integers(0, valid.size, size=(n_reps, valid.size))
+    draws = np.mean(valid[indices], axis=1)
+    return (
+        float(np.percentile(draws, 2.5)),
+        float(np.percentile(draws, 97.5)),
+        float(np.std(draws, ddof=1)),
+    )
+
+
+def fixed_system_seed_bootstrap_log_mean(
+    system_seed_values: list[np.ndarray],
+    *,
+    rng: np.random.Generator,
+    n_reps: int,
+) -> tuple[float, float, float]:
+    """Bootstrap seed uncertainty after summarizing each system in log-MSE space."""
+    if n_reps <= 0:
+        return float("nan"), float("nan"), float("nan")
+    valid = [
+        np.log10(np.asarray(values, dtype=float))
+        for values in system_seed_values
+        if len(values) > 0 and np.all(np.asarray(values, dtype=float) > 0.0)
+    ]
+    if not valid:
+        return float("nan"), float("nan"), float("nan")
+
+    per_system_draws = []
+    for values in valid:
+        indices = rng.integers(0, values.size, size=(n_reps, values.size))
+        per_system_draws.append(row_iqm(values[indices]))
+    draws_log10 = np.mean(np.column_stack(per_system_draws), axis=1)
+
+    return (
+        float(10.0 ** np.percentile(draws_log10, 2.5)),
+        float(10.0 ** np.percentile(draws_log10, 97.5)),
+        float(np.std(draws_log10, ddof=1)),
     )
 
 
@@ -142,24 +216,40 @@ def tex_number(value: float) -> str:
     if abs_value == 0.0:
         return "0"
     if abs_value >= 1000.0 or abs_value < 1e-3:
-        mantissa, exponent = f"{value:.2e}".split("e")
-        mantissa = mantissa.rstrip("0").rstrip(".")
-        return rf"{mantissa}\times 10^{{{int(exponent)}}}"
-    if abs_value < 0.01:
-        return f"{value:.4f}".rstrip("0").rstrip(".")
-    if abs_value < 0.1:
-        return f"{value:.3f}".rstrip("0").rstrip(".")
-    return f"{value:.3g}"
+        exponent = math.floor(math.log10(abs_value))
+        mantissa = value / (10.0**exponent)
+        return rf"{mantissa:.2f}{{\times}}10^{{{exponent}}}"
+    decimals = max(2 - math.floor(math.log10(abs_value)), 0)
+    return f"{value:.{decimals}f}"
 
 
-def load_rows(path: Path) -> pd.DataFrame:
+def normalize_system_key(system: str) -> str:
+    system = system.strip()
+    if not system:
+        return system
+    if system.startswith("dysts:"):
+        return system
+    return f"dysts:{system}"
+
+
+def load_rows(path: Path, *, excluded_systems: set[str]) -> pd.DataFrame:
     df = pd.read_csv(path, low_memory=False)
     df = df[df["status"] == "complete"].copy()
     df = df[df["root_label"].isin(ROOTS)].copy()
+    if excluded_systems:
+        df = df[~df["system_key"].isin(excluded_systems)].copy()
     if df.empty:
         raise RuntimeError(f"No complete Dysts dt30 rows found in {path}")
     df["seed"] = pd.to_numeric(df["seed"], errors="raise").astype(int)
     return df
+
+
+def infer_system_count(summary: pd.DataFrame) -> int:
+    counts = pd.to_numeric(summary["n_systems"], errors="coerce")
+    counts = counts[np.isfinite(counts)]
+    if counts.empty:
+        return 0
+    return int(counts.max())
 
 
 def per_system_summary(
@@ -171,7 +261,9 @@ def per_system_summary(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     per_system_rows = []
     summary_rows = []
-    rng = np.random.default_rng(bootstrap_seed)
+    seed_rng = np.random.default_rng(bootstrap_seed)
+    system_rng = np.random.default_rng(bootstrap_seed + 104729)
+    log_seed_rng = np.random.default_rng(bootstrap_seed + 130363)
     for root_label, meta in ROOTS.items():
         root_df = df[df["root_label"] == root_label]
         for h in horizons:
@@ -193,6 +285,7 @@ def per_system_summary(
                         "horizon": h,
                         "n_seeds": int(mse_values.size),
                         "mse_iqm": iqm(mse_values),
+                        "mse_log10_iqm": iqm(np.log10(mse_values)),
                         "mse_median": float(np.median(mse_values)),
                         "mse_q25": float(np.percentile(mse_values, 25)),
                         "mse_q75": float(np.percentile(mse_values, 75)),
@@ -203,27 +296,52 @@ def per_system_summary(
 
             horizon_rows = [r for r in per_system_rows if r["root_label"] == root_label and r["horizon"] == h]
             system_iqms = np.asarray([r["mse_iqm"] for r in horizon_rows], dtype=float)
+            system_log10_iqms = np.asarray([r["mse_log10_iqm"] for r in horizon_rows], dtype=float)
             finite_coverages = np.asarray([r["full_finite_iqm"] for r in horizon_rows], dtype=float)
-            ci_low, ci_high, boot_se = fixed_system_seed_bootstrap_iqm(
+            ci_low, ci_high, boot_se = fixed_system_seed_bootstrap_mean(
                 system_seed_values,
-                rng=rng,
+                rng=seed_rng,
                 n_reps=bootstrap_reps,
             )
+            system_ci_low, system_ci_high, system_boot_se = system_bootstrap_mean(
+                system_iqms,
+                rng=system_rng,
+                n_reps=bootstrap_reps,
+            )
+            log_ci_low, log_ci_high, log_boot_se = fixed_system_seed_bootstrap_log_mean(
+                system_seed_values,
+                rng=log_seed_rng,
+                n_reps=bootstrap_reps,
+            )
+            system_mean = mean_finite(system_iqms)
+            log10_system_mean = mean_finite(system_log10_iqms)
+            log_space_center = 10.0**log10_system_mean if math.isfinite(log10_system_mean) else float("nan")
             summary_rows.append(
                 {
                     "root_label": root_label,
                     "display": meta["display"],
                     "horizon": h,
                     "n_systems": int(np.isfinite(system_iqms).sum()),
-                    "cross_system_iqm": iqm(system_iqms),
+                    "cross_system_mean": system_mean,
+                    "cross_system_iqm": system_mean,
+                    "cross_system_iqm_legacy": iqm(system_iqms),
+                    "cross_system_log10_iqm_mean": log10_system_mean,
+                    "cross_system_log_iqm_geomean": log_space_center,
                     "system_q25": float(np.nanpercentile(system_iqms, 25)) if system_iqms.size else float("nan"),
                     "system_q75": float(np.nanpercentile(system_iqms, 75)) if system_iqms.size else float("nan"),
                     "system_median": float(np.nanmedian(system_iqms)) if system_iqms.size else float("nan"),
                     "seed_bootstrap_ci95_low": ci_low,
                     "seed_bootstrap_ci95_high": ci_high,
                     "seed_bootstrap_se": boot_se,
+                    "system_bootstrap_ci95_low": system_ci_low,
+                    "system_bootstrap_ci95_high": system_ci_high,
+                    "system_bootstrap_se": system_boot_se,
+                    "log_seed_bootstrap_ci95_low": log_ci_low,
+                    "log_seed_bootstrap_ci95_high": log_ci_high,
+                    "log_seed_bootstrap_se_log10": log_boot_se,
                     "seed_bootstrap_reps": int(bootstrap_reps),
-                    "full_finite_iqm": iqm(finite_coverages),
+                    "full_finite_mean": mean_finite(finite_coverages),
+                    "full_finite_iqm": mean_finite(finite_coverages),
                 }
             )
     return pd.DataFrame(per_system_rows), pd.DataFrame(summary_rows)
@@ -368,7 +486,7 @@ def fixed_system_seed_bootstrap_ratio(
             where=np.isfinite(baseline_iqm) & (baseline_iqm > 0.0),
         )
         system_ratio_draws.append(ratio)
-    draws = row_iqm(np.column_stack(system_ratio_draws))
+    draws = np.mean(np.column_stack(system_ratio_draws), axis=1)
     draws = draws[np.isfinite(draws)]
     if draws.size == 0:
         return float("nan"), float("nan"), float("nan")
@@ -386,10 +504,10 @@ def hierarchical_system_seed_bootstrap_ratio(
     rng: np.random.Generator,
     n_reps: int,
 ) -> tuple[float, float, float]:
-    """Bootstrap the cross-system ratio while resampling systems and seeds.
+    """Bootstrap the cross-system mean ratio while resampling systems and seeds.
 
     The fixed-system bootstrap used for the trend bands quantifies uncertainty
-    from finite training seeds conditional on the 12 Dysts systems. This
+    from finite training seeds conditional on the selected Dysts systems. This
     hierarchical variant also resamples systems, so it is the more relevant
     interval when the question is whether a row is better than Dense MLP across
     the benchmark family rather than only within each fixed system.
@@ -422,7 +540,7 @@ def hierarchical_system_seed_bootstrap_ratio(
     ratio_draws = np.column_stack(per_system_ratio_draws)
     system_idx = rng.integers(0, n_systems, size=(n_reps, n_systems))
     sampled = ratio_draws[np.arange(n_reps)[:, None], system_idx]
-    draws = row_iqm(sampled)
+    draws = np.mean(sampled, axis=1)
     draws = draws[np.isfinite(draws)]
     if draws.size == 0:
         return float("nan"), float("nan"), float("nan")
@@ -475,13 +593,13 @@ def aggregate_tests_vs_dense(ratio_df: pd.DataFrame) -> pd.DataFrame:
                     "horizon": int(h),
                     "n_systems": n_systems,
                     "systems_with_ratio_lt_1": n_better,
-                    "ratio_iqm": iqm(ratios),
+                    "ratio_iqm": mean_finite(ratios),
                     "ratio_median": float(np.median(ratios)) if ratios.size else float("nan"),
                     "ratio_mean": float(np.mean(ratios)) if ratios.size else float("nan"),
                     "ratio_sd_systems": float(np.std(ratios, ddof=1)) if ratios.size > 1 else float("nan"),
                     "ratio_q25": float(np.percentile(ratios, 25)) if ratios.size else float("nan"),
                     "ratio_q75": float(np.percentile(ratios, 75)) if ratios.size else float("nan"),
-                    "log10_ratio_iqm": iqm(log_ratios),
+                    "log10_ratio_iqm": mean_finite(log_ratios),
                     "log10_ratio_median": float(np.median(log_ratios)) if log_ratios.size else float("nan"),
                     "log10_ratio_mean": float(np.mean(log_ratios)) if log_ratios.size else float("nan"),
                     "log10_ratio_sd_systems": (
@@ -572,14 +690,24 @@ def write_latex_table(
     (table_dir / "table4_dysts_dt30_iqm.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def plot_iqm_horizon(summary: pd.DataFrame, fig_dir: Path, horizons: list[int]) -> None:
+def plot_iqm_horizon(
+    summary: pd.DataFrame,
+    fig_dir: Path,
+    horizons: list[int],
+    *,
+    y_col: str = "cross_system_iqm",
+    ci_low_col: str = "seed_bootstrap_ci95_low",
+    ci_high_col: str = "seed_bootstrap_ci95_high",
+    suffix: str = "",
+    ylabel: str = "Best-periodic MSE (mean over system seed-IQMs)",
+) -> None:
     fig, ax = plt.subplots(figsize=(6.6, 3.4), constrained_layout=True)
     for root_label, meta in ROOTS.items():
         sub = summary[summary["root_label"] == root_label].sort_values("horizon")
         x = sub["horizon"].to_numpy(dtype=float)
-        y = sub["cross_system_iqm"].to_numpy(dtype=float)
-        ylo = sub["seed_bootstrap_ci95_low"].to_numpy(dtype=float)
-        yhi = sub["seed_bootstrap_ci95_high"].to_numpy(dtype=float)
+        y = sub[y_col].to_numpy(dtype=float)
+        ylo = sub[ci_low_col].to_numpy(dtype=float)
+        yhi = sub[ci_high_col].to_numpy(dtype=float)
         ax.plot(
             x,
             y,
@@ -593,13 +721,18 @@ def plot_iqm_horizon(summary: pd.DataFrame, fig_dir: Path, horizons: list[int]) 
         ax.fill_between(x, ylo, yhi, color=meta["color"], alpha=0.13, linewidth=0)
     ax.set_yscale("log")
     ax.set_xlabel(r"Rollout horizon $H$")
-    ax.set_ylabel("Best-periodic MSE (cross-system IQM)")
+    ax.set_ylabel(ylabel)
     ax.set_xticks(horizons)
     ax.set_xticklabels([str(h) for h in horizons], rotation=35, ha="right")
     ax.grid(True, linewidth=0.35, alpha=0.35)
     ax.legend(frameon=False, ncol=2)
-    fig.savefig(fig_dir / "fig_dysts_dt30_iqm_horizon.pdf", bbox_inches="tight")
-    fig.savefig(fig_dir / "fig_dysts_dt30_iqm_horizon.png", bbox_inches="tight")
+    ax.set_title(
+        forecasting_performance_title(infer_system_count(summary)),
+        fontsize=11,
+        pad=6,
+    )
+    fig.savefig(fig_dir / f"fig_dysts_dt30_iqm_horizon{suffix}.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / f"fig_dysts_dt30_iqm_horizon{suffix}.png", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -610,6 +743,10 @@ def _draw_forecasting_performance_panel(
     *,
     log_scale: bool,
     root_order: list[str] | None = None,
+    y_col: str = "cross_system_iqm",
+    ci_low_col: str = "seed_bootstrap_ci95_low",
+    ci_high_col: str = "seed_bootstrap_ci95_high",
+    ylabel: str = "MSE (mean over system seed-IQMs)",
 ) -> None:
     style = {
         "lista": {"color": "#7B3294", "linestyle": "-", "label": "LISTA"},
@@ -624,9 +761,9 @@ def _draw_forecasting_performance_panel(
         cfg = style[root_label]
         sub = summary[summary["root_label"] == root_label].sort_values("horizon")
         x = sub["horizon"].to_numpy(dtype=float)
-        y = sub["cross_system_iqm"].to_numpy(dtype=float)
-        ylo = sub["seed_bootstrap_ci95_low"].to_numpy(dtype=float)
-        yhi = sub["seed_bootstrap_ci95_high"].to_numpy(dtype=float)
+        y = sub[y_col].to_numpy(dtype=float)
+        ylo = sub[ci_low_col].to_numpy(dtype=float)
+        yhi = sub[ci_high_col].to_numpy(dtype=float)
         ax.fill_between(x, ylo, yhi, color=cfg["color"], alpha=0.17, linewidth=0)
         ax.plot(
             x,
@@ -640,7 +777,7 @@ def _draw_forecasting_performance_panel(
         )
 
     ax.set_xlabel(r"Rollout horizon $H$ (observation steps)", fontsize=13)
-    ax.set_ylabel("MSE (cross-system IQM)", fontsize=13)
+    ax.set_ylabel(ylabel, fontsize=FORECAST_YLABEL_FONTSIZE)
     if log_scale:
         ax.set_yscale("log")
         ax.set_title("Log MSE scale", fontsize=12)
@@ -650,18 +787,40 @@ def _draw_forecasting_performance_panel(
     ax.set_xlim(min(horizons) - 70, max(horizons) + 180)
     ax.set_xticks(horizons)
     ax.set_xticklabels([str(h) for h in horizons], rotation=30, ha="right", fontsize=10.5)
-    ax.tick_params(axis="y", labelsize=10.5)
+    ax.tick_params(axis="y", labelsize=FORECAST_YTICK_LABELSIZE)
     ax.grid(True, which="both", linewidth=0.45, alpha=0.38)
     ax.legend(frameon=False, loc="lower right", ncol=2, fontsize=9.5)
 
 
-def plot_forecasting_performance_style(summary: pd.DataFrame, fig_dir: Path, horizons: list[int]) -> None:
+def plot_forecasting_performance_style(
+    summary: pd.DataFrame,
+    fig_dir: Path,
+    horizons: list[int],
+    *,
+    y_col: str = "cross_system_iqm",
+    ci_low_col: str = "seed_bootstrap_ci95_low",
+    ci_high_col: str = "seed_bootstrap_ci95_high",
+    suffix: str = "",
+    title_note: str = "",
+    ylabel: str = "MSE (mean over system seed-IQMs)",
+) -> None:
     """Dysts trend plots styled like the multibasin horizon curve."""
+    n_systems = infer_system_count(summary)
+    title = forecasting_performance_title(n_systems)
     fig, ax = plt.subplots(figsize=(4.2, 3.2), constrained_layout=True)
-    _draw_forecasting_performance_panel(ax, summary, horizons, log_scale=True)
-    ax.set_title("12-system Dysts forecasting\nperformance", fontsize=11, pad=4)
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance.pdf", bbox_inches="tight")
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance.png", bbox_inches="tight")
+    _draw_forecasting_performance_panel(
+        ax,
+        summary,
+        horizons,
+        log_scale=True,
+        y_col=y_col,
+        ci_low_col=ci_low_col,
+        ci_high_col=ci_high_col,
+        ylabel=ylabel,
+    )
+    ax.set_title(title_with_note(title, title_note), fontsize=11, pad=4)
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance{suffix}.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance{suffix}.png", bbox_inches="tight")
     plt.close(fig)
 
     primary_roots = ["lista", "lista_bd", "sparse_mlp_bd", "sparse_mlp", "dense_mlp_tanh"]
@@ -672,27 +831,58 @@ def plot_forecasting_performance_style(summary: pd.DataFrame, fig_dir: Path, hor
         horizons,
         log_scale=True,
         root_order=primary_roots,
+        y_col=y_col,
+        ci_low_col=ci_low_col,
+        ci_high_col=ci_high_col,
+        ylabel=ylabel,
     )
-    ax.set_title("12-system Dysts forecasting\nperformance", fontsize=11, pad=4)
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf")
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_no_lista_sb.png")
+    ax.set_title(title_with_note(title, title_note), fontsize=11, pad=4)
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance_no_lista_sb{suffix}.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance_no_lista_sb{suffix}.png", bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(4.2, 3.2), constrained_layout=True)
-    _draw_forecasting_performance_panel(ax, summary, horizons, log_scale=False)
-    ax.set_title("12-system Dysts forecasting performance (linear scale)", fontsize=11, pad=6)
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_linear.pdf", bbox_inches="tight")
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_linear.png", bbox_inches="tight")
+    _draw_forecasting_performance_panel(
+        ax,
+        summary,
+        horizons,
+        log_scale=False,
+        y_col=y_col,
+        ci_low_col=ci_low_col,
+        ci_high_col=ci_high_col,
+        ylabel=ylabel,
+    )
+    ax.set_title(f"{n_systems}-system Dysts forecasting performance (linear scale)", fontsize=11, pad=6)
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance_linear{suffix}.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance_linear{suffix}.png", bbox_inches="tight")
     plt.close(fig)
 
     fig, axes = plt.subplots(1, 2, figsize=(12.0, 4.4), constrained_layout=True)
-    _draw_forecasting_performance_panel(axes[0], summary, horizons, log_scale=False)
-    _draw_forecasting_performance_panel(axes[1], summary, horizons, log_scale=True)
+    _draw_forecasting_performance_panel(
+        axes[0],
+        summary,
+        horizons,
+        log_scale=False,
+        y_col=y_col,
+        ci_low_col=ci_low_col,
+        ci_high_col=ci_high_col,
+        ylabel=ylabel,
+    )
+    _draw_forecasting_performance_panel(
+        axes[1],
+        summary,
+        horizons,
+        log_scale=True,
+        y_col=y_col,
+        ci_low_col=ci_low_col,
+        ci_high_col=ci_high_col,
+        ylabel=ylabel,
+    )
     axes[0].legend().remove()
     axes[1].legend(frameon=False, loc="lower right", ncol=1)
-    fig.suptitle("12-system Dysts forecasting performance: scale check", fontsize=14)
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_scale_check.pdf", bbox_inches="tight")
-    fig.savefig(fig_dir / "fig_dysts_dt30_forecasting_performance_scale_check.png", bbox_inches="tight")
+    fig.suptitle(f"{n_systems}-system Dysts forecasting performance: scale check", fontsize=14)
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance_scale_check{suffix}.pdf", bbox_inches="tight")
+    fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance_scale_check{suffix}.png", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -705,6 +895,7 @@ def plot_ratio_to_dense(
     bootstrap_reps: int,
     bootstrap_seed: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    n_systems = int(df["system_key"].nunique())
     base = per_system[per_system["root_label"] == BASELINE_ROOT][
         ["system_key", "horizon", "mse_iqm"]
     ].rename(columns={"mse_iqm": "dense_system_iqm"})
@@ -731,7 +922,7 @@ def plot_ratio_to_dense(
                         "ratio_hierarchical_bootstrap_ci95_high": 1.0,
                         "ratio_hierarchical_bootstrap_se": 0.0,
                         "ratio_seed_bootstrap_reps": int(bootstrap_reps),
-                        "n_systems": 12,
+                        "n_systems": n_systems,
                     }
                 )
             continue
@@ -795,7 +986,8 @@ def plot_ratio_to_dense(
                     "root_label": root_label,
                     "display": meta["display"],
                     "horizon": int(h),
-                    "ratio_iqm": iqm(values),
+                    "ratio_mean": mean_finite(values),
+                    "ratio_iqm": mean_finite(values),
                     "ratio_q25": float(np.percentile(values, 25)) if values.size else float("nan"),
                     "ratio_q75": float(np.percentile(values, 75)) if values.size else float("nan"),
                     "ratio_seed_bootstrap_ci95_low": ci_low,
@@ -835,7 +1027,7 @@ def plot_ratio_to_dense(
     ax.axhline(1.0, color="black", linewidth=0.8, linestyle="--")
     ax.set_yscale("log")
     ax.set_xlabel(r"Rollout horizon $H$")
-    ax.set_ylabel("Ratio to Dense MLP (per-system IQM, then cross-system IQM)")
+    ax.set_ylabel("Ratio to Dense MLP (mean over system seed-IQMs)")
     ax.set_xticks(horizons)
     ax.set_xticklabels([str(h) for h in horizons], rotation=35, ha="right")
     ax.grid(True, linewidth=0.35, alpha=0.35)
@@ -881,7 +1073,8 @@ def plot_winner_counts(per_system: pd.DataFrame, fig_dir: Path, horizons: list[i
     ax.set_xticks(x)
     ax.set_xticklabels([f"H{h}" for h in horizons], rotation=35, ha="right")
     ax.set_ylabel("# systems with lowest seed-IQM MSE")
-    ax.set_ylim(0, 12)
+    n_systems = int(per_system["system_key"].nunique())
+    ax.set_ylim(0, n_systems)
     ax.legend(frameon=False, ncol=2)
     fig.savefig(fig_dir / "fig_dysts_dt30_winner_counts.pdf", bbox_inches="tight")
     fig.savefig(fig_dir / "fig_dysts_dt30_winner_counts.png", bbox_inches="tight")
@@ -931,6 +1124,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--horizons", nargs="+", type=int, default=DEFAULT_HORIZONS)
     parser.add_argument("--bootstrap-reps", type=int, default=DEFAULT_BOOTSTRAP_REPS)
     parser.add_argument("--bootstrap-seed", type=int, default=DEFAULT_BOOTSTRAP_SEED)
+    parser.add_argument(
+        "--exclude-systems",
+        nargs="*",
+        default=list(DEFAULT_EXCLUDED_SYSTEMS),
+        help="Dysts systems to exclude from the paper-facing aggregation. "
+        "Bare names are interpreted as dysts:<name>. Pass the flag with no values to include all systems.",
+    )
     return parser.parse_args()
 
 
@@ -939,8 +1139,14 @@ def main() -> None:
     args.fig_dir.mkdir(parents=True, exist_ok=True)
     args.table_dir.mkdir(parents=True, exist_ok=True)
     horizons = list(dict.fromkeys(int(h) for h in args.horizons))
+    excluded_systems = {
+        normalize_system_key(system)
+        for system in args.exclude_systems
+        if normalize_system_key(system)
+    }
 
-    df = load_rows(args.forecasting_csv)
+    df = load_rows(args.forecasting_csv, excluded_systems=excluded_systems)
+    included_systems = sorted(df["system_key"].dropna().unique().tolist())
     per_system, summary = per_system_summary(
         df,
         horizons,
@@ -959,7 +1165,47 @@ def main() -> None:
     aggregate_tests = aggregate_tests_vs_dense(per_system_ratio_df)
     winners = plot_winner_counts(per_system, args.fig_dir, horizons)
     plot_iqm_horizon(summary, args.fig_dir, horizons)
+    plot_iqm_horizon(
+        summary,
+        args.fig_dir,
+        horizons,
+        ci_low_col="system_bootstrap_ci95_low",
+        ci_high_col="system_bootstrap_ci95_high",
+        suffix="_system_ci",
+        ylabel="Best-periodic MSE (system-bootstrap CI)",
+    )
+    plot_iqm_horizon(
+        summary,
+        args.fig_dir,
+        horizons,
+        y_col="cross_system_log_iqm_geomean",
+        ci_low_col="log_seed_bootstrap_ci95_low",
+        ci_high_col="log_seed_bootstrap_ci95_high",
+        suffix="_log_seed_bootstrap",
+        ylabel="Best-periodic MSE (log-space seed bootstrap)",
+    )
     plot_forecasting_performance_style(summary, args.fig_dir, horizons)
+    plot_forecasting_performance_style(
+        summary,
+        args.fig_dir,
+        horizons,
+        ci_low_col="system_bootstrap_ci95_low",
+        ci_high_col="system_bootstrap_ci95_high",
+        suffix="_system_ci",
+        title_note="\n(system CI)",
+        ylabel="MSE (system-bootstrap CI)",
+    )
+    plot_forecasting_performance_style(
+        summary,
+        args.fig_dir,
+        horizons,
+        y_col="cross_system_log_iqm_geomean",
+        ci_low_col="log_seed_bootstrap_ci95_low",
+        ci_high_col="log_seed_bootstrap_ci95_high",
+        suffix="_log_seed_bootstrap",
+        title_note="\n(log seed bootstrap)",
+        ylabel="MSE (log-space seed bootstrap)",
+    )
     plot_perseed_histograms(df, args.fig_dir, horizons)
     write_latex_table(summary, aggregate_tests, args.table_dir, horizons)
 
@@ -975,11 +1221,18 @@ def main() -> None:
     payload = {
         "forecasting_csv": str(args.forecasting_csv),
         "horizons": horizons,
+        "included_systems": included_systems,
+        "excluded_systems": sorted(excluded_systems),
+        "n_systems": len(included_systems),
         "baseline_root": BASELINE_ROOT,
         "bootstrap": {
-            "scheme": "fixed_system_seed_resampling",
+            "scheme": "fixed_system_seed_resampling_raw_mse",
             "reps": int(args.bootstrap_reps),
             "seed": int(args.bootstrap_seed),
+            "additional_schemes": [
+                "system_resampling_over_fixed_per_system_seed_iqms",
+                "fixed_system_seed_resampling_log_mse",
+            ],
         },
         "roots": ROOTS,
         "summary": summary.to_dict(orient="records"),
@@ -993,7 +1246,10 @@ def main() -> None:
 
     print(f"Wrote tables to {args.table_dir}")
     print(f"Wrote figures to {args.fig_dir}")
-    print("\nDysts dt30 cross-system IQM and Holm K/N vs Dense MLP")
+    print(f"Included systems ({len(included_systems)}): {', '.join(included_systems)}")
+    if excluded_systems:
+        print(f"Excluded systems: {', '.join(sorted(excluded_systems))}")
+    print("\nDysts dt30 mean over system seed-IQMs and Holm tests vs Dense MLP")
     merged = summary.merge(tests_summary, on=["root_label", "display", "horizon"], how="left")
     for root_label, meta in ROOTS.items():
         print(f"  {meta['display']}")
@@ -1002,7 +1258,7 @@ def main() -> None:
                 sig = "baseline"
             else:
                 sig = f"K/N={int(row['K'])}/{int(row['N'])}, better-systems={int(row['systems_with_iqm_ratio_lt_1'])}/{int(row['systems_with_iqm_ratio_n'])}"
-            print(f"    H{int(row['horizon'])}: IQM={row['cross_system_iqm']:.6g}; {sig}")
+            print(f"    H{int(row['horizon'])}: mean={row['cross_system_mean']:.6g}; {sig}")
     print("\nAggregate system-level tests vs Dense MLP (per-system IQM ratios)")
     for root_label, meta in ROOTS.items():
         if root_label == BASELINE_ROOT:
@@ -1011,7 +1267,7 @@ def main() -> None:
         sub = aggregate_tests[aggregate_tests["root_label"] == root_label].sort_values("horizon")
         for _, row in sub.iterrows():
             print(
-                f"    H{int(row['horizon'])}: ratio-IQM={row['ratio_iqm']:.3g}; "
+                f"    H{int(row['horizon'])}: ratio-mean={row['ratio_mean']:.3g}; "
                 f"systems={int(row['systems_with_ratio_lt_1'])}/{int(row['n_systems'])}; "
                 f"p_w={row['p_system_wilcoxon_raw']:.4g}; "
                 f"p_w_holm40={row['p_system_wilcoxon_holm_all']:.4g}"

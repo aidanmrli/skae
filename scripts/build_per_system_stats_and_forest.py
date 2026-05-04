@@ -1,5 +1,5 @@
 """Per-system paired Wilcoxon, Holm correction, forest plots, and merged
-boundary-only Fixed-17 table.
+boundary-only 15-system table.
 
 Outputs
 -------
@@ -10,7 +10,7 @@ docs/figures/neurips_paper_2026/_tables/table1_boundary_only.tex
 
 Per-system paired testing design
 --------------------------------
-For each system (17 of them) and each (candidate, control) pair, we use the
+For each retained system and each (candidate, control) pair, we use the
 common completed paired seeds, up to 15 per system in the current paper-facing
 packet. The manuscript-facing confirmatory test is a one-sided paired Wilcoxon
 signed-rank test on per-seed deltas. Forecasting uses paired
@@ -22,7 +22,7 @@ combination at alpha=0.05, and we report:
 
 - K: number of systems where Holm-corrected p < 0.05 (candidate < control).
 - median_diff_log10: per-system median paired log-MSE difference, then median
-  across the 17 systems. This is in log10 raw-MSE units.
+  across the retained systems. This is in log10 raw-MSE units.
 - per_system effect sizes (paired log-MSE diff with 95% bootstrap CI over the
   common completed seeds) for the forest plot.
 
@@ -37,6 +37,7 @@ analysis, so all rows live in the same sampling regime.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Iterable
 
@@ -80,6 +81,13 @@ HORIZONS = (100, 500, 1000)
 ALPHA = 0.05  # significance level for Holm-corrected per-system tests
 BOOTSTRAP_REPS = 10000
 BOOTSTRAP_SEED = 20260501
+HORIZON_YLABEL_FONTSIZE = 11.5
+HORIZON_YTICK_LABELSIZE = 9.5
+EXCLUDED_SYSTEMS = {
+    "multiwell_strong_transition",
+    "claude_checkerboard_potential",
+    "claude:checkerboard_potential",
+}
 
 FC_CSVS = [
     ROOT
@@ -169,11 +177,21 @@ fc = fc[fc["root_label"].isin(ROOTS.keys())].copy()
 
 itp = pd.concat([pd.read_csv(path, low_memory=False) for path in INTERP_CSVS], ignore_index=True)
 itp = itp[itp["root_label"].isin(ROOTS.keys())].copy()
+
+for column in ("system_name", "system_key", "train_env_name"):
+    if column in fc:
+        fc = fc[~fc[column].isin(EXCLUDED_SYSTEMS)].copy()
+    if column in itp:
+        itp = itp[~itp[column].isin(EXCLUDED_SYSTEMS)].copy()
 deep_mask = (itp["support_scheme"] == "absolute:0.001") & (itp["subset"] == "deep")
 itp_deep = itp[deep_mask].copy()
 
 systems = sorted(fc["system_name"].unique())
-print(f"Found {len(systems)} systems: {systems[:3]}... ({len(ROOTS)} roots)")
+BENCHMARK_N = len(systems)
+print(
+    f"Found {BENCHMARK_N} retained systems after excluding "
+    f"{sorted(EXCLUDED_SYSTEMS)}: {systems[:3]}... ({len(ROOTS)} roots)"
+)
 
 ALL_FORECAST_HORIZONS = tuple(
     sorted(
@@ -184,7 +202,7 @@ ALL_FORECAST_HORIZONS = tuple(
         }
     )
 )
-print(f"Available fixed-17 forecast horizons: {ALL_FORECAST_HORIZONS}")
+print(f"Available retained-benchmark forecast horizons: {ALL_FORECAST_HORIZONS}")
 
 # --------------------------------------------------------------------------------------
 # IQM helpers
@@ -203,6 +221,14 @@ def iqm(v: np.ndarray) -> float:
     if sel.size == 0:
         return float(np.median(v))
     return float(np.mean(sel))
+
+
+def mean_finite(v: np.ndarray) -> float:
+    v = np.asarray(v, dtype=float)
+    v = v[np.isfinite(v)]
+    if v.size == 0:
+        return float("nan")
+    return float(np.mean(v))
 
 
 def row_iqm(values: np.ndarray) -> np.ndarray:
@@ -228,13 +254,13 @@ def finite_positive(values: pd.Series) -> np.ndarray:
     return arr[np.isfinite(arr) & (arr > 0.0)]
 
 
-def fixed_system_seed_bootstrap_iqm(
+def fixed_system_seed_bootstrap_mean(
     system_seed_values: list[np.ndarray],
     *,
     rng: np.random.Generator,
     n_reps: int,
 ) -> tuple[float, float, float]:
-    """Bootstrap cross-system IQM uncertainty by resampling seeds within systems."""
+    """Bootstrap mean-over-systems uncertainty by resampling seeds within systems."""
     if n_reps <= 0:
         return float("nan"), float("nan"), float("nan")
     valid = [np.asarray(values, dtype=float) for values in system_seed_values if len(values) > 0]
@@ -245,7 +271,7 @@ def fixed_system_seed_bootstrap_iqm(
     for values in valid:
         indices = rng.integers(0, values.size, size=(n_reps, values.size))
         per_system_draws.append(row_iqm(values[indices]))
-    draws = row_iqm(np.column_stack(per_system_draws))
+    draws = np.mean(np.column_stack(per_system_draws), axis=1)
     return (
         float(np.percentile(draws, 2.5)),
         float(np.percentile(draws, 97.5)),
@@ -505,7 +531,7 @@ for k, v in entropy_summary.items():
     print(f"  {k}: K={v['K_systems_better']}/{v['N_systems_tested']} median Δ={v['median_diff']:+.3f}")
 
 # --------------------------------------------------------------------------------------
-# Aggregate "K of 17" summary table per (root, horizon)
+# Aggregate "K of N" summary table per (root, horizon)
 # --------------------------------------------------------------------------------------
 
 summary_rows: list[dict] = []
@@ -524,13 +550,14 @@ for root_label, meta in ROOTS.items():
         # Headline cross-system effect: median across systems of the per-system
         # median paired log10 difference (consistent with Wilcoxon-rank logic).
         med_diff = float(sub["median_diff_log10"].median())
-        # IQM over systems of per-system IQM-over-seeds for table presentation
+        # Main table estimate: seed-IQM within each system, arithmetic mean
+        # across systems so every benchmark system contributes.
         cand_per_sys_iqm = (
             fc[fc["root_label"] == root_label]
             .groupby("system_name")[f"h{h}_best_periodic_mean"]
             .apply(lambda v: iqm(v.to_numpy()))
         )
-        iqm_cell = iqm(cand_per_sys_iqm.to_numpy())
+        mean_cell = mean_finite(cand_per_sys_iqm.to_numpy())
         std_cell = iqr_log10(cand_per_sys_iqm.to_numpy())
         summary_rows.append(
             {
@@ -541,7 +568,8 @@ for root_label, meta in ROOTS.items():
                 "K_systems_better_ttest": k_better_t,
                 "N_systems_tested": n_total,
                 "median_diff_log10": med_diff,
-                "iqm_raw": iqm_cell,
+                "mean_raw": mean_cell,
+                "iqm_raw": mean_cell,
                 "log10_iqr_systems": std_cell,
             }
         )
@@ -669,7 +697,7 @@ fig.supxlabel(
     fontsize=8,
 )
 fig.suptitle(
-    f"Per-system paired Wilcoxon effect sizes (10 seeds/system, Holm-corrected at $\\alpha={ALPHA}$ across 17 systems)",
+    f"Per-system paired Wilcoxon effect sizes (10 seeds/system, Holm-corrected at $\\alpha={ALPHA}$ across {BENCHMARK_N} systems)",
     fontsize=8.5,
     y=1.0,
 )
@@ -697,7 +725,7 @@ plt.close(fig)
 # Boundary-only main table: 5 rows, no sampling column
 # --------------------------------------------------------------------------------------
 
-print("Building boundary-only Fixed-17 table...")
+print("Building boundary-only 15-system table...")
 
 
 def collect_row(root_label: str, label: str) -> dict:
@@ -706,7 +734,8 @@ def collect_row(root_label: str, label: str) -> dict:
     for h in HORIZONS:
         col = f"h{h}_best_periodic_mean"
         per_sys = sub_fc.groupby("system_name")[col].apply(lambda v: iqm(v.to_numpy()))
-        row[f"H{h}_iqm"] = iqm(per_sys.to_numpy())
+        row[f"H{h}_mean"] = mean_finite(per_sys.to_numpy())
+        row[f"H{h}_iqm"] = row[f"H{h}_mean"]
         row[f"H{h}_log10iqr"] = iqr_log10(per_sys.to_numpy())
     sub_itp = itp_deep[itp_deep["root_label"] == root_label]
     for metric, src in (
@@ -729,7 +758,7 @@ def collect_row(root_label: str, label: str) -> dict:
             row[metric] = float(np.mean(per_sys.to_numpy()))
         else:
             per_sys = sub_itp.groupby("system_name")[src].apply(lambda v: iqm(v.to_numpy()))
-            row[metric] = iqm(per_sys.to_numpy())
+            row[metric] = mean_finite(per_sys.to_numpy())
         row[f"{metric}_std"] = float(np.std(per_sys.to_numpy(), ddof=1))
     return row
 
@@ -749,7 +778,15 @@ for row in summary_rows:
 def fmt_num(v: float, sig: int = 3) -> str:
     if not np.isfinite(v):
         return "--"
-    return f"{v:.{sig}g}"
+    if v == 0:
+        return "0"
+    abs_v = abs(v)
+    if abs_v >= 1000.0 or abs_v < 1e-3:
+        exponent = math.floor(math.log10(abs_v))
+        mantissa = v / (10.0**exponent)
+        return rf"{mantissa:.{sig - 1}f}{{\times}}10^{{{exponent}}}"
+    decimals = max(sig - 1 - math.floor(math.log10(abs_v)), 0)
+    return f"{v:.{decimals}f}"
 
 
 def fmt_kn(K: int, N: int) -> str:
@@ -813,7 +850,7 @@ linesA: list[str] = []
 linesA.append(r"\begin{tabular}{@{}l rrr rrr@{}}")
 linesA.append(r"\toprule")
 linesA.append(
-    r"Model & H100 $K/17$ & H500 $K/17$ & H1000 $K/17$ & $H(B\!\mid\!S)$ & $H(S\!\mid\!B)$ & $U_{\rm exact}$ \\"
+    rf"Model & H100 $K/{BENCHMARK_N}$ & H500 $K/{BENCHMARK_N}$ & H1000 $K/{BENCHMARK_N}$ & $H(B\!\mid\!S)$ & $H(S\!\mid\!B)$ & $U_{{\rm exact}}$ \\"
 )
 linesA.append(r"\midrule")
 for row in main_table_rows:
@@ -922,13 +959,7 @@ def fmt_ratio(v: float) -> str:
     """Compact display for the wrong-over-base ratio (can span 0.5 to 10^4)."""
     if not np.isfinite(v):
         return "--"
-    if v >= 1000:
-        return f"${v / 1000:.1f}\\!\\times\\!10^3$"
-    if v >= 100:
-        return f"${v:.0f}$"
-    if v >= 10:
-        return f"${v:.1f}$"
-    return f"${v:.2f}$"
+    return f"${fmt_num(v)}$"
 
 
 # Cell layout: metric value first, then [K/N] in brackets to the right.
@@ -1078,7 +1109,7 @@ for i, row in enumerate(main_table_rows):
         best_HBgivenF,
         i,
         sig_key="HBgivenF",
-        sig=2,
+        sig=3,
     )
     fw1_cell = metric_cell(
         row,
@@ -1129,10 +1160,10 @@ table1_lines.extend([r"\bottomrule", r"\end{tabular}"])
 
 
 # --------------------------------------------------------------------------------------
-# Regenerate fixed-17 figures from the current Table 1 packet.
+# Regenerate retained-benchmark figures from the current Table 1 packet.
 # --------------------------------------------------------------------------------------
 
-print("Building fixed-17 horizon and diagnostic figures...")
+print("Building 15-system horizon and diagnostic figures...")
 
 DIAGNOSTIC_METRICS = [
     ("family_h_basin_given_family", r"$H(B\mid F_{\rm abs})$", "strip"),
@@ -1158,8 +1189,8 @@ def plot_current_horizon_curve() -> None:
             ]
             system_seed_values = [values for values in system_seed_values if values.size > 0]
             per_system_iqms = np.asarray([iqm(values) for values in system_seed_values], dtype=float)
-            ys.append(iqm(per_system_iqms))
-            ci_low, ci_high, _ = fixed_system_seed_bootstrap_iqm(
+            ys.append(mean_finite(per_system_iqms))
+            ci_low, ci_high, _ = fixed_system_seed_bootstrap_mean(
                 system_seed_values,
                 rng=rng,
                 n_reps=BOOTSTRAP_REPS,
@@ -1179,20 +1210,20 @@ def plot_current_horizon_curve() -> None:
             linestyle=linestyle,
             label=meta["label"],
         )
-    ax.set_title("17-system multibasin forecasting\nperformance", fontsize=11, pad=4)
+    ax.set_title(f"{BENCHMARK_N}-system multibasin forecasting\nperformance", fontsize=11, pad=4)
     ax.set_xlabel(r"Rollout horizon $H$ (observation steps)", fontsize=13)
-    ax.set_ylabel("MSE (cross-system IQM)", fontsize=13)
+    ax.set_ylabel("MSE (mean over system seed-IQMs)", fontsize=HORIZON_YLABEL_FONTSIZE)
     ax.set_yscale("log")
     ax.set_ylim(bottom=1e-4)
     ax.set_xlim(min(horizons) - 70, max(horizons) + 180)
     ax.set_xticks(horizons)
     ax.set_xticklabels([str(h) for h in horizons], rotation=30, ha="right", fontsize=10.5)
-    ax.tick_params(axis="y", labelsize=10.5)
+    ax.tick_params(axis="y", labelsize=HORIZON_YTICK_LABELSIZE)
     ax.grid(True, which="both", lw=0.45, alpha=0.38)
     ax.legend(frameon=False, loc="lower right", fontsize=9.5, ncol=2)
     for stem in ("fig_fixed17_horizon_curves", "fig_fixed17_horizon_curves_boundary_only"):
-        fig.savefig(FIG_DIR / f"{stem}.pdf")
-        fig.savefig(FIG_DIR / f"{stem}.png")
+        fig.savefig(FIG_DIR / f"{stem}.pdf", bbox_inches="tight")
+        fig.savefig(FIG_DIR / f"{stem}.png", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1304,7 +1335,7 @@ plot_appendix_histograms()
 
 
 # --------------------------------------------------------------------------------------
-# Per-system appendix table at H=1000: 17 rows × 4 candidates × (effect, p_Holm)
+# Per-system appendix table at H=1000: retained systems × candidates × (effect, p_Holm)
 # --------------------------------------------------------------------------------------
 
 print("Building per-system appendix table at H=1000...")
@@ -1332,6 +1363,15 @@ def fmt_eff(d: float, sig: bool) -> str:
         val = "\\mathbf{" + val.strip("$") + "}"
         val = f"$\\mathbf{{{d:+.2f}}}$"
     return val
+
+
+def fmt_signed_sig(d: float) -> str:
+    if not np.isfinite(d):
+        return "--"
+    if d == 0:
+        return "+0.00"
+    sign = "+" if d > 0 else "-"
+    return sign + fmt_num(abs(d))
 
 
 # Build column header (4 candidates × 2 sub-cols)
@@ -1401,7 +1441,7 @@ for sysname in sys_order_table:
 
 # K/N summary row
 lines.append("\\midrule")
-summary_cells = [r"\emph{$K/17$ Holm $p<0.05$}"]
+summary_cells = [rf"\emph{{$K/{BENCHMARK_N}$ Holm $p<0.05$}}"]
 for root_label in candidate_roots_for_table:
     sub = per_system_df[
         (per_system_df["root_label"] == root_label)
@@ -1452,7 +1492,7 @@ for H_VAL in (100, 500):
             cells.append(fmt_p(p_h if p_h is not None else float("nan")))
         lines2.append(" & ".join(cells) + " \\\\")
     lines2.append("\\midrule")
-    summary_cells = [r"\emph{$K/17$ Holm $p<0.05$}"]
+    summary_cells = [rf"\emph{{$K/{BENCHMARK_N}$ Holm $p<0.05$}}"]
     for root_label in candidate_roots_for_table:
         sub = per_system_df[
             (per_system_df["root_label"] == root_label)
@@ -1476,7 +1516,7 @@ for H_VAL in (100, 500):
 #  - family_h_basin_given_family (H(B|F_abs))
 #  - support_freeze_wrong_over_base_h1
 #  - support_freeze_wrong_over_base_h20
-# Each table: 17 rows × 4 candidates, per-system median paired diff +
+# Each table: retained systems × candidates, per-system median paired diff +
 # Holm-corrected Wilcoxon p-value vs. the Dense MLP no-shrink baseline.
 # We re-run the per-system Wilcoxon here so we have per-system records (the
 # earlier entropy block only kept aggregate K/N, not per-system rows).
@@ -1575,11 +1615,15 @@ def write_persys_appendix_table(metric_label: str, alpha: float = ALPHA) -> Path
             d = rec["median_diff"].iloc[0]
             p = rec["p_holm"].iloc[0]
             sig = (p is not None) and np.isfinite(p) and (p < alpha)
-            cells.append(f"$\\mathbf{{{d:+.2f}}}$" if sig else fmt_eff(d, False))
+            if metric_label.startswith("FreezeWrong"):
+                body = fmt_signed_sig(d)
+                cells.append(f"$\\mathbf{{{body}}}$" if sig else f"${body}$")
+            else:
+                cells.append(f"$\\mathbf{{{d:+.2f}}}$" if sig else fmt_eff(d, False))
             cells.append(fmt_p(p if p is not None else float("nan")))
         lines.append(" & ".join(cells) + " \\\\")
     lines.append("\\midrule")
-    summary_cells = [r"\emph{$K/17$ Holm $p<0.05$}"]
+    summary_cells = [rf"\emph{{$K/{BENCHMARK_N}$ Holm $p<0.05$}}"]
     for r in candidate_roots_local:
         sub = df[df["root_label"] == r]
         K = int((sub["p_holm"] < alpha).sum())

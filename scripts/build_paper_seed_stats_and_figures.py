@@ -79,6 +79,14 @@ def iqm(values: np.ndarray) -> float:
     return float(np.mean(selected))
 
 
+def mean_finite(values: np.ndarray) -> float:
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        return float("nan")
+    return float(np.mean(values))
+
+
 def iqm_std(values: np.ndarray) -> float:
     """Sample standard deviation of values used in the IQM (within IQR)."""
     values = np.asarray(values, dtype=float)
@@ -100,23 +108,23 @@ def std(values: np.ndarray) -> float:
     return float(np.std(values, ddof=1))
 
 
-def stratified_bootstrap_iqm(
+def stratified_bootstrap_mean(
     df: pd.DataFrame, value_col: str, n_resamples: int = 2000, rng_seed: int = 0
 ) -> tuple[float, float, float]:
-    """Bootstrap IQM with confidence interval over (system, seed) pairs.
+    """Bootstrap arithmetic mean with confidence interval over supplied rows.
 
-    Returns (iqm, lower 2.5%, upper 97.5%).
+    Returns (mean, lower 2.5%, upper 97.5%).
     """
     rng = np.random.default_rng(rng_seed)
     values = df[value_col].dropna().to_numpy(dtype=float)
     values = values[np.isfinite(values)]
     if values.size == 0:
         return float("nan"), float("nan"), float("nan")
-    point = iqm(values)
+    point = mean_finite(values)
     bs = np.empty(n_resamples)
     for i in range(n_resamples):
         sample = rng.choice(values, size=values.size, replace=True)
-        bs[i] = iqm(sample)
+        bs[i] = mean_finite(sample)
     lo, hi = np.percentile(bs, [2.5, 97.5])
     return float(point), float(lo), float(hi)
 
@@ -366,11 +374,12 @@ def collect_fixed17_table(
             )
             sys_iqm = sys_iqm.replace([np.inf, -np.inf], np.nan).dropna()
 
-            # Cross-system IQM (point estimate over per-system summaries)
-            iqm_pt = iqm(sys_iqm.to_numpy())
+            # Main point estimate: seed-IQM within each system, arithmetic
+            # mean across systems so every benchmark system contributes.
+            mean_pt = mean_finite(sys_iqm.to_numpy())
             sd_sys = std(sys_iqm.to_numpy())
-            # Bootstrap CI on per-system IQM aggregation (resample systems)
-            point, lo, hi = stratified_bootstrap_iqm(
+            # Bootstrap CI on the mean over per-system seed-IQMs.
+            point, lo, hi = stratified_bootstrap_mean(
                 pd.DataFrame({"v": sys_iqm.to_numpy()}),
                 "v",
                 n_resamples=2000,
@@ -379,7 +388,8 @@ def collect_fixed17_table(
 
             # Per-cell std across (system, seed): exclude any non-finite values
             cell_vals = sub_fc[col].replace([np.inf, -np.inf], np.nan).dropna().to_numpy()
-            row[f"H{h}_iqm"] = iqm_pt
+            row[f"H{h}_mean"] = mean_pt
+            row[f"H{h}_iqm"] = mean_pt
             row[f"H{h}_iqm_ci_lo"] = lo
             row[f"H{h}_iqm_ci_hi"] = hi
             row[f"H{h}_std_systems"] = sd_sys
@@ -394,15 +404,16 @@ def collect_fixed17_table(
                 lambda v: iqm(v.to_numpy())
             )
             sys_iqm = sys_iqm.replace([np.inf, -np.inf], np.nan).dropna()
-            iqm_pt = iqm(sys_iqm.to_numpy())
+            mean_pt = mean_finite(sys_iqm.to_numpy())
             sd_sys = std(sys_iqm.to_numpy())
-            point, lo, hi = stratified_bootstrap_iqm(
+            point, lo, hi = stratified_bootstrap_mean(
                 pd.DataFrame({"v": sys_iqm.to_numpy()}),
                 "v",
                 n_resamples=2000,
                 rng_seed=hash(root_label + col) & 0xFFFF,
             )
-            row[f"{col}_iqm"] = iqm_pt
+            row[f"{col}_mean"] = mean_pt
+            row[f"{col}_iqm"] = mean_pt
             row[f"{col}_iqm_ci_lo"] = lo
             row[f"{col}_iqm_ci_hi"] = hi
             row[f"{col}_std_systems"] = sd_sys
@@ -488,7 +499,7 @@ def build_horizon_curve(fc_df: pd.DataFrame, label_map: dict, ax, title: str):
             col = f"h{h}_best_periodic_mean"
             sys_iqm = sub.groupby("system_key")[col].apply(lambda v: iqm(v.to_numpy()))
             sys_iqm = sys_iqm.replace([np.inf, -np.inf], np.nan).dropna()
-            iqms.append(iqm(sys_iqm.to_numpy()))
+            iqms.append(mean_finite(sys_iqm.to_numpy()))
             # Use 25-75 percentile band on the system-level distribution (robust to a few catastrophic systems).
             v = sys_iqm.to_numpy()
             v = v[np.isfinite(v) & (v > 0)]
@@ -562,7 +573,8 @@ def plot_per_seed_strip(
         keys.append(display)
         distros.append(vals)
         colors.append(PALETTE[color])
-        iqm_pts.append(iqm(vals))
+        per_system = sub.groupby("system_key")[col].apply(lambda v: iqm(v.to_numpy()))
+        iqm_pts.append(mean_finite(per_system.to_numpy()))
         n_seeds.append(len(vals))
 
     rng = np.random.default_rng(7)
@@ -648,10 +660,13 @@ def plot_entropy_strip(
         keys.append(display)
         distros.append(vals)
         colors.append(PALETTE[color])
+        per_system = sub.groupby("system_key")[metric].apply(
+            lambda v: iqm(v.to_numpy()) if summary == "iqm" else mean_finite(v.to_numpy())
+        )
         if summary == "iqm":
-            iqm_pts.append(iqm(vals))
+            iqm_pts.append(mean_finite(per_system.to_numpy()))
         elif summary == "mean":
-            iqm_pts.append(float(np.mean(vals)) if vals.size else float("nan"))
+            iqm_pts.append(mean_finite(per_system.to_numpy()))
         else:
             raise ValueError(f"Unknown summary statistic: {summary}")
 
@@ -961,15 +976,16 @@ def build_dysts_table(main_df: pd.DataFrame, mlp_df: pd.DataFrame) -> pd.DataFra
             col = f"h{h}_best_periodic_mean"
             sys_iqm = sub.groupby("system_key")[col].apply(lambda v: iqm(v.to_numpy()))
             sys_iqm = sys_iqm.replace([np.inf, -np.inf], np.nan).dropna()
-            iqm_pt = iqm(sys_iqm.to_numpy())
+            mean_pt = mean_finite(sys_iqm.to_numpy())
             sd_sys = std(sys_iqm.to_numpy())
-            point, lo, hi = stratified_bootstrap_iqm(
+            point, lo, hi = stratified_bootstrap_mean(
                 pd.DataFrame({"v": sys_iqm.to_numpy()}),
                 "v",
                 n_resamples=2000,
                 rng_seed=hash(root_label + str(h)) & 0xFFFF,
             )
-            row[f"H{h}_iqm"] = iqm_pt
+            row[f"H{h}_mean"] = mean_pt
+            row[f"H{h}_iqm"] = mean_pt
             row[f"H{h}_iqm_ci_lo"] = lo
             row[f"H{h}_iqm_ci_hi"] = hi
             row[f"H{h}_std_systems"] = sd_sys
@@ -998,7 +1014,7 @@ def plot_dysts_horizon_curve(df_main, df_mlp, ax):
             col = f"h{h}_best_periodic_mean"
             sys_iqm = sub.groupby("system_key")[col].apply(lambda v: iqm(v.to_numpy()))
             sys_iqm = sys_iqm.replace([np.inf, -np.inf], np.nan).dropna()
-            ys.append(iqm(sys_iqm.to_numpy()))
+            ys.append(mean_finite(sys_iqm.to_numpy()))
             v = sys_iqm.to_numpy()
             v = v[np.isfinite(v) & (v > 0)]
             if v.size == 0:
@@ -1012,7 +1028,7 @@ def plot_dysts_horizon_curve(df_main, df_mlp, ax):
         ax.plot(horizons, ys, marker="o", color=c, lw=1.6, ms=4, label=display, linestyle=ls)
         ax.fill_between(horizons, ylo, yhi, color=c, alpha=0.15, lw=0)
     ax.set_xlabel(r"Rollout horizon $H$")
-    ax.set_ylabel("MSE (IQM across 15 systems)")
+    ax.set_ylabel("MSE (mean over system seed-IQMs)")
     ax.set_yscale("log")
     ax.grid(True, lw=0.4, alpha=0.4)
     ax.legend(frameon=False, fontsize=7, loc="upper left", ncol=2)
@@ -1054,7 +1070,7 @@ def plot_dysts_winner_bars(df_main, df_mlp, ax):
 
 fig, axes = plt.subplots(1, 2, figsize=(11.0, 3.4), gridspec_kw={"width_ratios": [1.4, 1.0]})
 plot_dysts_horizon_curve(d_main, d_blockdiag_mlp, axes[0])
-axes[0].set_title("Dysts long-horizon IQM (15 systems, IQR shaded)", fontsize=9)
+axes[0].set_title("Dysts long-horizon mean over system seed-IQMs", fontsize=9)
 axes[0].legend(frameon=False, fontsize=7, loc="upper left", ncol=1, bbox_to_anchor=(1.02, 1.0))
 plot_dysts_winner_bars(d_main, d_blockdiag_mlp, axes[1])
 axes[1].legend().remove()

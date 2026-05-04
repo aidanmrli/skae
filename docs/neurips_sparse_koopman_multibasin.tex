@@ -59,7 +59,7 @@
 \maketitle
 
 \begin{abstract}
-Koopman autoencoders learn coordinates in which nonlinear dynamics are advanced by a linear latent transition. Multibasin systems make this goal structurally difficult: local linearizations, and sometimes linearizations valid across individual basins, can exist around individual attracting sets, but different basins generally require incompatible finite-dimensional, state-reconstructing linear descriptions. We study sparse-latent Koopman autoencoders, where the encoder is biased toward thresholded active sets that are smaller than those of dense controls. The central hypothesis is that this active support can make the relevant basin or local linear law inspectable for the current state. We test this hypothesis by separating forecasting from interpretability, asking whether supports agree with basin labels in controlled benchmarks, whether they can route local predictors without oracle basin labels, and whether sparse-latent models remain competitive at long horizons. The evidence supports a qualified view. On states far from basin boundaries, sparse representations often form stable supports whose members come from a single basin, suggesting that the encoder recovers part of the attractor organization. However, exact support identity is not a reliable global invariant; it is sensitive to thresholds, basin boundaries, and equivalent latent coordinate choices. For deployment, fixed-size support routing is more robust than thresholded exact matching, and support-conditioned local predictors often improve on applying one global latent transition everywhere. Long-horizon forecasting results show that sparse-latent models remain competitive beyond controlled multibasin benchmarks, with stronger transition structure becoming most useful at the longest horizons. The main conclusion is therefore not that each basin has one exact support, but that induced latent sparsity can reveal support families that help identify the relevant basin or local predictor.
+Koopman autoencoders promise linear latent dynamics for nonlinear systems, but multibasin dynamics violate the premise of a single finite-dimensional, state-reconstructing linear description: different basins can require incompatible local laws. We ask whether sparsity can turn this obstruction into an inspectable representation. We train sparse-latent Koopman autoencoders without basin labels, basin counts, or regime annotations, and use their learned active supports only after training as model-produced regime variables. Across \(15\) procedurally generated multibasin systems, sparse support families recover basin-scale structure on held-out basin-interior states, while dense controls collapse basins into mixed supports. Wrong-support interventions increase one-step error by orders of magnitude, showing that support identity is not merely descriptive but functionally tied to prediction. Without oracle labels, support-family routing selects local linear predictors that improve long-horizon rollouts, and periodic re-encoding refreshes supports after basin transfer. On \(12\) chaotic-flow benchmarks, sparse-latent models also outperform dense-latent controls. These results show that learned sparse supports provide label-free, interpretable regime variables for multibasin Koopman learning.
 \end{abstract}
 
 \section{Introduction}
@@ -80,14 +80,14 @@ Given the theoretical argument, multibasin forecasting with a single global fini
 If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation of a Koopman autoencoder should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes. Our hypothesis is that sparse coding offers an appealing inductive bias for this purpose. Classical sparse coding and LISTA-style encoders produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}.
 If the latent representation of state produced by a LISTA encoder is sparse, then each state activates only a small subset of latent coordinates. That active subset, which we call a support, is a discrete object that can be inspected and used for routing to correct locally linear dynamics. Then, periodically decoding and re-encoding the state can refresh the quality of the latent embedding over time by re-selecting the correct local dynamics as trajectories move across the state space \citep{fathi2024course}.
 
-This paper tests that hypothesis in a deliberately label-free learning setting. During training and deployment, the model is not told the number of basins, the basin assignment of any trajectory, or which local linear law should be used. Basin labels, when available in controlled benchmarks, are reserved for evaluation. The contribution is an empirical and mechanistic study of whether induced latent sparsity produces support objects that agree with basin labels in evaluation, whether those support objects can route local predictors without oracle labels, and whether the resulting sparse-latent Koopman models remain competitive on long-horizon forecasting tasks.
+This paper tests that hypothesis in a deliberately label-free learning setting. During training and deployment, the model is not told the number of basins, the basin assignment of any trajectory, or which local linear law should be used. Basin labels, when available in controlled benchmarks, are reserved for evaluation. The contribution is an empirical and mechanistic study of whether induced latent sparsity produces \(F_{\rm abs}\) families that align with basin labels in evaluation, whether \(S_{\rm top8}\) and \(F_{\rm top8}\) can route local predictors without oracle labels, and whether the resulting sparse-latent Koopman models remain competitive on long-horizon forecasting tasks.
 
-The paper follows this chain directly. \Cref{sec:problem} formulates multibasin Koopman learning, \cref{sec:sparse-supports} explains why sparse supports can identify local dynamical regimes, and \cref{sec:method} defines the sparse-latent model, support objects, re-encoding rule, and training objective. \Cref{sec:experiments} then states the evaluation protocol, including the support-routed prediction diagnostics, and \cref{sec:results} presents the evidence in the same order as the claim: agreement between supports and basin labels, non-oracle support-routed prediction, support refresh after transfer into a new basin, and long-horizon forecasting.
+The paper follows this chain directly. \Cref{sec:problem} formulates multibasin Koopman learning, \cref{sec:sparse-supports} explains why sparse supports can identify local dynamical regimes, and \cref{sec:method} defines the sparse-latent model, support objects, re-encoding rule, and training objective. \Cref{sec:experiments} then states the evaluation protocol, including the support-routed prediction tests, and \cref{sec:results} presents the evidence in the same order as the claim: \(F_{\rm abs}\)-basin alignment, non-oracle \(S_{\rm top8}\) and \(F_{\rm top8}\) routing, \(S_{\rm top8}\) refresh after transfer into a new basin, and long-horizon forecasting.
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\linewidth]{neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf}
-\caption{Benchmark visual diagnostics. Top: controlled multibasin systems where the pale background is the evaluation basin map, gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA top-$8$ support families are mapped post hoc to each family's dominant evaluation basin. Basin labels and counts are evaluation-only, and the catalog panels use the attractor-center basin convention from the validation figures. Bottom: Dysts $dt{\times}30$ $H5000$ phase portraits with held-out truth in gray and forecasts from the best seed-$0$ primary model. Dysts is used only for forecasting and has no basin labels.}
+\caption{Benchmark visual diagnostics. Top: controlled multibasin systems where the pale background is the evaluation basin map, gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm top8}\) families are mapped post hoc to each family's dominant evaluation basin. Basin labels and counts are evaluation-only, and the catalog panels use the attractor-center basin convention from the validation figures. Bottom: Dysts $dt{\times}30$ $H5000$ phase portraits with held-out truth in gray and forecasts from the best seed-$0$ primary model. Dysts is used only for forecasting and has no basin labels.}
 \label{fig:benchmarks}
 \end{figure}
 
@@ -206,28 +206,33 @@ Formal definitions, detailed statements, and proofs of
 Theorem~\ref{thm:support-local-affine} and
 Corollaries~\ref{cor:lasso-pwa-short}--\ref{cor:lista-pwa-short} are deferred to
 Appendix~\ref{app:pwa-supports}.
-Now that we have established the motivation for studying supports, we proceed to an empirical study of (1) whether supports agree with
-withheld basin labels, and (2) whether those same supports select useful local
+Now that we have established the motivation for studying supports, we proceed to an empirical study of (1) whether \(F_{\rm abs}\) aligns with
+withheld basin labels, and (2) whether \(S_{\rm top8}\) and \(F_{\rm top8}\) select useful local
 predictors in practice.
 
 \section{Method}
 \label{sec:method}
 
+
 \subsection{Model class}
 \label{sec:method_model}
 
-Can a Koopman autoencoder trained without basin supervision learn a discrete, inspectable object that identifies the relevant basin or local predictive regime? We investigate the following chain
+Can a Koopman autoencoder trained without basin supervision expose the current basin or local predictive regime? We evaluate the following chain:
 \begin{equation}
-  \text{sparse latent code}\;\Longrightarrow\;\text{support agrees with basin labels}\;\Longrightarrow\;\text{support selects local prediction}.
+  \begin{aligned}
+  \text{sparse latent code}
+  \Longrightarrow\;\text{support family-basin alignment}
+  \Longrightarrow\;\text{support-conditioned prediction}.
+  \end{aligned}
   \label{eq:claim_chain}
 \end{equation}
-The model and objective induce the sparse code. The two arrows are evaluated after training: first, by asking whether the support agrees with basin labels that are withheld during training; second, by asking whether the same support can select useful local predictors without receiving a basin label at test time.
+The model and objective induce the sparse code. Basin labels are withheld during training and deployment. They enter only after training, to score alignment and to define evaluation interventions.
 
 The underlying predictor is a Koopman autoencoder with encoder $\Enc$, decoder $\Dec$, and latent transition $K$. Using a linear decoder, the maps are
 \begin{equation}
   z_t=\Enc(x_t)\in\R^{d_z},\qquad \Dec(z)=Dz,\qquad \hat z_{t+1}=Kz_t,\qquad \hat x_{t+1}=\Dec(\hat z_{t+1}).
 \end{equation}
-An active coordinate can therefore be read as selecting a learned reconstruction direction, while the latent state is advanced by the same linear transition between re-encoding events. Sparsity is a property of the learned representation; it is not an assumption that the physical state or the underlying dynamical system is sparse.
+An active coordinate selects a learned reconstruction direction, while the latent state evolves through the same linear transition between re-encoding events. Sparsity is a property of the learned representation, not an assumption about the physical state.
 
 \paragraph{Sparse encoder.}
 Our main sparse encoder uses LISTA-style amortized sparse inference \citep{gregor_learning_2010}. The encoder first computes a dense pre-code $c_t=f_\theta(x_t)$ and then applies learned shrinkage refinements, for $q=0,\ldots,Q-1$:
@@ -235,66 +240,71 @@ Our main sparse encoder uses LISTA-style amortized sparse inference \citep{grego
   u_t^{(0)}=\shrink(c_t,\tau),\qquad u_t^{(q+1)}=\shrink(Su_t^{(q)}+c_t,\tau),\qquad z_t=u_t^{(Q)}.
   \label{eq:lista}
 \end{equation}
-Here $\shrink(a,\tau)=\sign(a)\max(|a|-\tau,0)$ is the standard elementwise soft-thresholding map, $S$ is learned, and $\tau$ sets the shrinkage scale. The thresholding operation gives the encoder an explicit mechanism for selecting active coordinates, while the learned pre-code and refinement weights allow the selection rule to adapt to the prediction objective.
+Here $\shrink(a,\tau)=\operatorname{sign}(a)\max(|a|-\tau,0)$ is the standard elementwise soft-thresholding map, $S$ is learned, and $\tau$ sets the shrinkage scale. The thresholding operation gives the encoder an explicit mechanism for selecting active coordinates, while the learned pre-code and refinement weights allow the selection rule to adapt to the prediction objective.
 
 \paragraph{Transition families.}
-We vary the structure of $K$ separately from the encoder, which separates the effect of induced sparsity from the effect of the latent transition. The primary forecasting families are dense and block-diagonal transitions. The dense transition leaves $K$ unrestricted. The block-diagonal transition partitions the latent coordinates into $M$ groups and constrains
+We vary the structure of the latent transition $K$ separately from the encoder to isolate induced sparsity effects from structured $K$ effects. The dense transition leaves $K$ unrestricted. The block-diagonal transition partitions the latent coordinates into $M$ groups and constrains
 \begin{equation}
   K_{\rm block}=\blkdiag(K_1,\ldots,K_M),
 \end{equation}
-so each group evolves internally. We also evaluate a soft-block LISTA ablation in the controlled multibasin analyses. This ablation keeps $K$ dense but penalizes entries that couple different groups,
+so each group evolves internally. We also evaluate a soft-block LISTA ablation, which keeps \(K\) dense but penalizes entries that couple different groups,
 \begin{equation}
   \mathcal{L}_{\rm offblock}=\sum_{i,j:\,g(i)\ne g(j)} |K_{ij}|,
 \end{equation}
-where $g(i)$ denotes the group containing coordinate $i$. Its role is to test whether support alignment and support-routed prediction require a hard block-diagonal transition. These groups are architectural coordinates, not basin labels. All basin comparisons are performed only after training.
+where $g(i)$ denotes the group containing coordinate $i$. These groups are architectural coordinates, not basin labels. All basin comparisons are performed only after training.
 
 \subsection{Support objects}
 \label{sec:method_supports}
 
-The central object in the paper is the active set induced by an encoded state. Given $z=\Enc(x)$, a support rule converts $z$ into a set of active coordinates. The main displays use two exact-support rules, and the alignment display also uses the support-family object derived from $S_{\rm abs}$:
+The central object in the paper is the active set induced by an encoded state. 
+Given \(z=\Enc(x)\), a support rule maps the latent state to an active coordinate set. Exact supports are useful raw masks, but a basin can be split across many exact support threshold variants. We therefore use \textit{support families}, which merge nearby exact masks without basin labels and test whether they form basin-scale groups.
+We use three support constructions:
 \begin{itemize}
-  \item \textbf{Absolute-threshold support.} $S_{\rm abs}(x)=\{i:\ |z_i|>10^{-3}\}$. This is the strictest test of whether a single active set dominates far from basin boundaries.
-  \item \textbf{Absolute-threshold support family.} $F_{\rm abs}$ is the family label obtained by greedy Jaccard merging of the exact masks produced by $S_{\rm abs}$. On a collection of encoded states $\mathcal X$, unique masks are visited in decreasing empirical frequency. A mask $s$ is assigned to the existing family whose prototype $p_f$ maximizes
+  \item \textbf{Absolute-threshold support.} \(S_{\rm abs}(x)=\{i:\ |z_i|>10^{-3}\}\). This strict mask is the input to \(F_{\rm abs}\) and to canonical wrong-support interventions. Its entropy, fragmentation, and active-coordinate count are appendix checks.
+  \item \textbf{Absolute-threshold support family.} \(F_{\rm abs}\) is the family label obtained by greedy Jaccard merging of the exact masks produced by \(S_{\rm abs}\). On a collection of encoded states \(\mathcal X\), unique masks are visited in decreasing empirical frequency. A mask \(s\) is assigned to the existing family whose prototype \(p_f\) maximizes
   \[
     J(s,p_f)=\frac{|s\cap p_f|}{|s\cup p_f|},
   \]
-  with $J(\emptyset,\emptyset)=1$, if the maximum similarity is at least $0.5$; otherwise $s$ starts a new family with prototype $p_f=s$. We write $F_{\rm abs}(x)$ for the resulting family assigned to $S_{\rm abs}(x)$ and $|F_{\rm abs}|$ for the number of occupied families on the evaluated collection. This is the main basin-support alignment object: it is constructed without basin labels, and basin labels are used only afterward to compute quantities such as $H(B\mid F_{\rm abs})$.
-  \item \textbf{Fixed-size top-$8$ support.} $S_{\rm top8}(x)=\operatorname{top}_8(|z|)$, the indices of the eight largest-magnitude coordinates. This is the most deployment-like support because every state receives a route key of the same size.
+  with \(J(\emptyset,\emptyset)=1\), if the maximum similarity is at least \(0.5\); otherwise \(s\) starts a new family with prototype \(p_f=s\). We write \(F_{\rm abs}(x)\) for the family assigned to \(S_{\rm abs}(x)\), and \(|F_{\rm abs}|\) for the number of occupied families. Families are built without basin labels; labels are used only afterward to compute \(H(B\mid F_{\rm abs})\).
+  \item \textbf{Fixed-size top-\(8\) support and family.} \(S_{\rm top8}(x)=\operatorname{top}_8(|z|)\) is the set of the eight largest-magnitude coordinates. Unlike \(S_{\rm abs}\), it gives every state the same number of active indices and does not depend on a magnitude threshold. \(F_{\rm top8}(x)\) is obtained by applying the same Jaccard merge to exact \(S_{\rm top8}\) masks. Each state still begins with exactly eight active indices; \(F_{\rm top8}\) is a family label for nearby eight-index masks, not a new fixed-size mask.
 \end{itemize}
-A third scale-relative rule, $S_{\rm rel}(x)=\{i:\ |z_i|>0.1\max_j |z_j|\}$, is used only in appendix sensitivity diagnostics for centered local laws. 
-% It is not used for the main routing table because thresholded exact supports fragment the route space, while $S_{\rm top8}$ assigns every state a fixed-size route key.
+A third scale-relative rule, $S_{\rm rel}(x)=\{i:\ |z_i|>0.1\max_j |z_j|\}$, is used only in appendix sensitivity checks for centered local laws.
+% It is not used for the main routing table because thresholded exact supports fragment the label space, while $S_{\rm top8}$ assigns every state a fixed-size label.
 
-More generally, we distinguish exact supports from support families. An \emph{exact support} is the set returned by a support rule. It is a stringent object: if one exact support identifies one basin, the claim is easy to inspect. However, exact-mask purity is not sufficient evidence of basin-scale organization, because a representation can make \(H(B\mid S_{\rm abs})\) small by fragmenting the state space into many closely related masks. A \emph{support family} groups nearby exact supports so one basin or local regime may be represented by several closely related masks, which is expected near basin boundaries or when a weak coordinate crosses an activity threshold. We therefore use \(F_{\rm abs}\), not the exact-mask entropy \(H(B\mid S_{\rm abs})\), as the main basin-support alignment object. Exact-support diagnostics remain useful for sensitivity and fragmentation checks, and are reported in the appendix. The same family idea can be applied to other support rules for routing diagnostics. Family-routed prediction assigns a test-time exact support to a previously fitted family only if it matches closely enough; otherwise the prediction falls back to the global transition.
+This separation keeps the main alignment test at basin scale. One basin or local regime may contain several nearby exact masks, especially near boundaries or when weak coordinates cross threshold. In the main text, \(F_{\rm abs}\) is the support--basin alignment object. The top-\(8\) objects are used for support-conditioned prediction, where a fixed-size support gives every state a comparable discrete label.
+
 
 \subsection{Periodic re-encoding}
-If a support indicates the currently relevant local dynamics, then a long forecast should be allowed to update the support as the predicted state moves. We therefore evaluate periodic re-encoding, following \citet{fathi2024course}. Starting from $z_k=\Enc(x_k)$ and a re-encoding period $m$, the model advances for $m$ Koopman steps, decodes the predicted state, and encodes that prediction again:
+If a support indicates the currently relevant local dynamics, a long rollout should be able to update that support. We therefore evaluate periodic re-encoding, following \citet{fathi2024course}. Starting from $z_k=\Enc(x_k)$ and a re-encoding period $m$, the model advances for $m$ Koopman steps, decodes the predicted state, and encodes that prediction again:
 \begin{equation}
   \tilde z_{k+m}=K^m z_k,\qquad
   \tilde x_{k+m}=\Dec(\tilde z_{k+m}),\qquad
   z_{k+m}=\Enc(\tilde x_{k+m}).
   \label{eq:reencode}
 \end{equation}
-The same procedure is repeated over the rollout horizon. Each rollout uses only its own predicted state; it does not use the true future state, a basin label, or an oracle for transitions between basins.
+The same procedure is repeated over the rollout horizon. Each rollout uses only the model's predicted state; it does not use the true future state, a basin label, or an oracle for transitions between basins.
 
 \subsection{Support-conditioned rollouts}
 \label{sec:method_rollouts}
+\todo{Rewrite this based on the new Table 2 that focuses on families.}
+We also define rules to test whether learned supports can select local predictors without supplied regime labels. Support-conditioned rollouts use a support object as a label \(c\) that selects how the current latent state is advanced. This is the sense in which a support \emph{\textbf{routes}} prediction: the model receives no basin label, but its own encoded state supplies a discrete support label. We use the top-\(8\) scale here because every state receives exactly eight active indices.
 
-We also define two support-conditioned one-step rules used in the routing diagnostics. Let $c$ be the support object inferred from the current predicted latent state, let $m_c$ be its binary mask, and let $\bar z_c$ be the mean latent state associated with that support object on a disjoint fitting set. The first rule masks the centered input before applying the learned global transition:
+We evaluate two prediction forms. For \textit{gated routing}, \(c=S_{\rm top8}(x)\), \(m_c\) is its eight-coordinate mask, and \(\bar z_c\) is the mean latent state on a disjoint fitting set. The gated rule masks the centered input before applying the learned global transition:
 \begin{equation}
   \hat z_{t+1}=\bar z_c+K\bigl(m_c\odot (z_t-\bar z_c)\bigr).
   \label{eq:gated_k}
 \end{equation}
-The second rule fits a centered local linear predictor for each support object:
+For \textit{local routing}, \(c\) is either the exact top-\(8\) support \(S_{\rm top8}(x)\) or the merged top-\(8\) family \(F_{\rm top8}(x)\). The same centered local linear predictor is then fit for each value of \(c\):
 \begin{equation}
   A_c=\argmin_A\sum_{t\in\mathcal{I}_c}\norm{(z_{t+1}-\bar z_c)-A(z_t-\bar z_c)}_2^2+\eta\norm{A}_F^2,
   \label{eq:local_fit}
 \end{equation}
-and predicts $\bar z_c+A_c(z_t-\bar z_c)$. These rules test whether the learned support can replace a supplied regime label when selecting a local predictor.
+and predicts \(\bar z_c+A_c(z_t-\bar z_c)\). Thus support-local and family-local use the same fitting equation but different labels \(c\): exact eight-index masks for \(S_{\rm top8}\), merged families of such masks for \(F_{\rm top8}\). 
 
 \subsection{Training objective}
 \label{sec:method_training}
 
-Training uses only adjacent observation windows. For a batch of $B$ windows with prediction horizon $L$, the model produces reconstructed future states $x_{b,k+\ell}^{\rm rec}$, latent rollouts $z_{b,k+\ell}^{\rm roll}$, encoded future latents $z_{b,k+\ell}^{\rm enc}$, and decoded rollout predictions $\hat x_{b,k+\ell}$ as defined in \cref{eq:window_rollout}. The rollout is seeded by the initial state, and the following sums are over offsets $\ell=1,\ldots,L$:
+Training uses adjacent observation windows. For a batch of $B$ windows with prediction horizon $L$, the model produces reconstructed future states $x_{b,k+\ell}^{\rm rec}$, latent rollouts $z_{b,k+\ell}^{\rm roll}$, encoded future latents $z_{b,k+\ell}^{\rm enc}$, and decoded rollout predictions $\hat x_{b,k+\ell}$ as defined in \cref{eq:window_rollout}. The rollout is seeded by the initial state, and the following sums are over offsets $\ell=1,\ldots,L$:
 \begin{align}
   \bar{\mathcal{L}}_{\rm pred}
   &=\frac{1}{BL\sqrt{d_x}}\sum_{b,\ell}\norm{\hat{x}_{b,k+\ell}-x_{b,k+\ell}}_2,
@@ -325,97 +335,105 @@ The total objective is
   +\mathcal{L}_{\rm struct}.
   \label{eq:training_objective}
 \end{equation}
-Here $\mathcal{L}_{\rm struct}=0$ for the dense and block-diagonal transition variants. For the soft-block ablation, $\mathcal{L}_{\rm struct}=\lambda_{\rm off}\mathcal{L}_{\rm offblock}$, which probes whether a soft transition grouping is sufficient to induce useful support structure. The prediction and latent-linearity terms make the representation useful for Koopman rollout, the reconstruction term keeps the code tied to the observed state, and the sparsity term encourages selective activation. No loss term uses basin labels, basin counts, or trajectory-to-basin assignments.
+Here $\mathcal{L}_{\rm struct}=0$ for the dense and block-diagonal transition variants. 
+For the soft-block transition, $\mathcal{L}_{\rm struct}=\lambda_{\rm off}\mathcal{L}_{\rm offblock}$, which probes whether a soft transition grouping is sufficient to induce useful support structure. 
+The prediction and latent-linearity terms make the representation useful for Koopman rollout, the reconstruction term keeps the code tied to the observed state, and the sparsity term encourages selective activation. No loss term uses basin labels, basin counts, or trajectory-to-basin assignments.
 
-Compared with the minimal Koopman autoencoder objective in \cref{eq:KAE-standard-objective}, this rollout objective adds decoded multi-step prediction, latent consistency over stored observation windows, explicit sparsity pressure, and any transition-structure penalty. These additions are needed because the paper is not only asking whether one-step latent features can be made approximately linear; it is asking whether the learned support remains useful for finite-horizon prediction and can be inspected as a label-free local-regime object.
+% Compared with the minimal Koopman autoencoder objective in \cref{eq:KAE-standard-objective}, this rollout objective adds decoded multi-step prediction, latent consistency over stored observation windows, explicit sparsity pressure, and any transition-structure penalty. These additions are needed because the paper is not only asking whether one-step latent features can be made approximately linear; it is asking whether the learned support remains useful for finite-horizon prediction and can be inspected as a label-free local-regime object.
 
 \section{Experimental procedure}
 \label{sec:experiments}
 
-The experiments follow the chain in \cref{eq:claim_chain}. We first ask whether sparse supports agree with basin labels that were withheld during training. We then ask whether those supports are functionally used by the predictor, whether they can route local forecasts without an oracle label, whether periodic re-encoding keeps the selected support current after basin transfer, and finally whether the same sparse-latent models remain competitive in a longer-horizon forecasting regime without basin labels.
+The experiments follow the chain \cref{eq:claim_chain}. We test alignment of support families \(F_{\rm abs}\) with withheld basin labels. We then test whether supports are functionally used in prediction and route local forecasts without oracle labels (\(S_{\rm abs}\) masks, \(S_{\rm top8}\), and \(F_{\rm top8}\) routing), whether periodic re-encoding refreshes \(S_{\rm top8}\) support after basin transfer, and finally examine long-horizon forecasting of sparse-latent models in procedurally generated multibasin systems and chaotic flows without basin labels.
 
 \paragraph{Benchmarks and training.} 
-The controlled benchmark contains $17$ procedurally generated two-dimensional multibasin systems, spanning multiwell potentials, gated local-linear systems, polygonal arrangements with $3$--$10$ attractors, checkerboard potentials, depth-cascade variants, and transition-rich layouts. Basin labels are available only for evaluation: they are not used for training, model selection, support extraction, or routing. All multibasin models are trained from a distribution that deliberately includes many initial conditions near basin boundaries, so the learned representation must handle both unambiguous basin interiors and boundary-adjacent states. The controlled tables compare the primary sparse and dense rows together with a soft-block LISTA ablation, denoted LISTA-SB. This ablation tests whether the support-alignment and routing effects persist when hard block-diagonal transition structure is relaxed. All models except the Dense MLP use ReLU activations. The Dense MLP baseline uses tanh activations since ReLU activations naturally induce sparsity in the network. Each model--system cell is trained for 15 random seeds; paired analyses use the common completed seeds. All rows for Tables $1$--$3$ use length-$8$ training windows and $200{,}000$ optimization steps under the objective in \cref{eq:training_objective}. We use a subset of 12 chaotic systems from the Dysts benchmark \citep{gilpin_chaos_2021,gilpin_model_2023} for forecasting only, since it does not supply basin labels, with length-$10$ training windows and $100{,}000$ optimization steps. The main Dysts display focuses on the primary forecasting rows; the soft-block LISTA Dysts result is retained as an appendix diagnostic.
+The controlled benchmark contains 15 procedurally generated two-dimensional multibasin systems, including multiwell potentials, gated local-linear systems, polygonal layouts, depth cascades, and transition-rich layouts. Basin labels are available only for evaluation: they are not used for training, model selection, support extraction, or routing. Multibasin training samples include many boundary-adjacent initial conditions, so models must handle both basin interiors and ambiguous regions. 
+
+We compare the six model rows shown in \cref{tab:fixed17_alignment}: three LISTA sparse encoders (two of which have structured latent transitions), two sparse MLP controls with dense or block-diagonal transitions, and a Dense MLP control with no sparsity penalty. All models except the Dense MLP use ReLU activations; Dense MLP uses tanh to avoid activation-induced sparsity. Each model--system cell is trained for 15 random seeds. All rows for Tables 1--3 use length-8 training windows and 200,000 optimization steps under the objective in \cref{eq:training_objective}. We use a subset of 10 chaotic systems from the Dysts repository \citep{gilpin_chaos_2021,gilpin_model_2023} as an additional external forecasting test, with length-10 training windows and 100,000 optimization steps. The step size $dt$ of Dysts systems is multiplied by a factor of 30.
 
 \paragraph{Forecasting and statistics.} 
 \label{sec:experiments_forecasting}
 \label{sec:stats_protocol}
-Forecasting is evaluated on held-out trajectories at the stored observation cadence. On the multibasin benchmark we report raw mean squared error at $H\in\{100,500,1000\}$. On Dysts, the main table reports the completed $dt{\times}30$ sensitivity packet at $H\in\{100,500,1000,1500,2000,3000,4000,5000\}$; the older $H{\leq}60000$ packet is retained as a tiny-step stress-test diagnostic rather than pooled with this coarser-step benchmark. The reported forecasting performance is the best value over a fixed periodic re-encoding grid.
-% This procedure uses the model's own predicted state for every re-encoding event and never uses the true future state or a basin label. 
-Point estimates reported are interquartile means over seeds within each system, followed by an interquartile mean across systems; system-by-system performance is reported in \todo{cite the section of the appendix}. For the horizon-trend figures, uncertainty bands are fixed-system seed-bootstrap $95\%$ intervals on the same MSE estimand: the benchmark systems are held fixed, seeds are resampled with replacement within each system, per-system seed-IQMs are recomputed, and the cross-system IQM is recomputed for each bootstrap replicate.
-For the main Dysts model-vs-Dense claim, the test unit is the benchmark system: for each candidate row and horizon, we compare the candidate and Dense MLP per-system seed-IQM MSEs through paired $\log_{10}$ differences, test the resulting $12$ differences with a one-sided Wilcoxon signed-rank test, and Holm-correct across all Dysts model--horizon comparisons at $\alpha=0.05$. These tests are marked directly on the actual-MSE table.
+Forecasting is evaluated on held-out trajectories at the stored observation cadence. On the multibasin benchmark we report raw mean squared error at horizons 100, 500, and 1000. On Dysts systems, the main table reports mean squared error (MSE) at horizons 100, 500, 1000, 1500, 2000, 3000, 4000, and 5000. The reported forecasting performance is the best value over a fixed periodic re-encoding grid. 
 
-\paragraph{Support diagnostics.}
-Support--basin agreement is evaluated on held-out states. The main alignment table uses support families \(F_{\rm abs}\) built from the absolute-threshold support \(S_{\rm abs}\) on the deep-state subset, defined as the top quartile of states by distance from a basin boundary. This focuses the identifiability test on states well inside basins, where a basin-local description should be most stable. We report basin uncertainty given the support family, \(H(B\mid F_{\rm abs})\), and the arithmetic mean number of support families \(\overline{|F_{\rm abs}|}\), computed from per-system seed means. Exact-mask entropy \(H(B\mid S_{\rm abs})\) saturates on this slice and is retained only as an appendix diagnostic; it is less informative because exact masks can become basin-pure by fragmenting the state space into many masks. The family count is not a directional loss: it is a compression diagnostic that should be read with \(H(B\mid F_{\rm abs})\). Its reference scale is the number of basin labels available on the evaluated slice, not the latent dimension. Across the full $17$-system catalog, the mean evaluation basin count is \(4.53\) and the median is \(4\); on the global deep slice used in \cref{tab:fixed17_alignment}, the mean number of represented basins is \(3.18\), because several systems have one basin that dominates the deepest quartile. Thus a family count near \(3\)--\(4\) with low \(H(B\mid F_{\rm abs})\) indicates basin-scale rather than coordinate-scale support structure. Active-coordinate counts for \(S_{\rm abs}\) remain an appendix diagnostic and should not be confused with the fixed route size used in the top-\(8\) routing experiments.
+Point estimates are interquartile means (IQM) over seeds within each system, then arithmetic means across systems. We use seed IQMs within each system rather than the arithmetic mean because few-run deep-learning evaluations are sensitive to outlier runs, and IQM is a robust aggregate that reduces uncertainty in benchmark comparisons \citep{agarwal2021deep}.
+System-by-system performance is reported in the appendix. \todo{Report system-by-system in the appendix.} Horizon-trend bands are fixed-system seed-bootstrap 95\% intervals on the same mean-over-systems forecasting MSE estimand.
+For each candidate row and horizon, we compare against the Dense MLP baseline within each system using paired $\log_{10}$ errors over seeds, apply a one-sided paired Wilcoxon signed-rank test, and Holm-correct the resulting $p$-values. 
 
-We test functional use of the support with a wrong-support ablation. For a held-out deep-state example, the model's inferred support is replaced by a canonical support from another basin and then held fixed for the rollout. The reported ratio is the wrong-support error divided by the ordinary forecast error. Ratios near one indicate that the swap did not matter; large ratios indicate that the predictor depends on the selected support. This ablation is undefined when the deep-state subset contains only one basin, so those systems are excluded from that denominator.
+\paragraph{Support alignment.}
+Support--basin alignment is evaluated on held-out deep states. For each system, a state's basin-depth margin is the distance to the second-nearest basin center minus the distance to the nearest basin center. The deep slice is the global top quartile of this margin within the system, so it selects states far from basin boundaries. Because this cut is global rather than per basin, some basins with smaller absolute margins may not appear in the selected slice. We therefore compare the family count with the \emph{represented} basin count, the number of basin labels actually present in the evaluated slice. the evaluation basin-count mean/median is 4.20/4, while the global deep slice represents 3.00/3 basins on average/median. The main table reports \(H(B\mid F_{\rm abs})\) and \(\overline{|F_{\rm abs}|}\), computed from per-system seed summaries. Exact-mask entropy, support fragmentation, and active-coordinate counts are listed in the appendix. \todo{reference the appendix}
 
-\paragraph{Routing and refresh.}
-The non-oracle routing experiment freezes the trained representation and fits the support-conditioned predictors in \cref{eq:gated_k,eq:local_fit} on a disjoint fitting set. During evaluation, the route at each step is the model's own predicted top-$8$ support; if the route has too few fitted transitions, the rollout falls back to the global latent transition. The metric is the routed/global error ratio for the same trained model, so values below one measure the benefit of routing without changing the representation or using a basin label. The routing controls in the appendix replace learned supports with oracle basin partitions, random partitions of matched count, or latent clusters.
+Functional use is tested by a wrong-support ablation. For each testable system, we construct a canonical deep-slice \(S_{\rm abs}\) mask per basin. Systems whose deep slice contains only one basin are excluded. Then, a held-out rollout replaces the inferred mask with a canonical mask from another basin and holds it fixed. The reported value is the wrong-support/base error ratio. 
 
-The refresh experiment evaluates support selection after controlled transfer from one basin into another. It compares a rollout that keeps using the source-basin support after entry into the target basin with a rollout that periodically decodes, re-encodes, and re-selects its support. Basin labels are used only to construct and score these transfers. The reported quantities are the fraction of post-entry steps routed through the target class and the refreshed/previous forecast-error ratio; because this packet uses one training seed, the paired test unit is the controlled transfer pair rather than the training seed.
-Additional procedural details are collected in \cref{app:experimental_details}.
+\paragraph{Support-based routing.}
+The routing experiment freezes the trained representation and fits the predictors in \cref{eq:gated_k,eq:local_fit} on a disjoint set. Table~\ref{tab:self_routing} reports the support-family router, and unseen or under-supported routes fall back to the global transition. The reported ratio compares routed and global rollouts for the same trained model after first summarizing finite seed-level log-ratios within each system. Exact \(S_{\rm top8}\) gated and local routes are retained as appendix  ablations, and appendix controls replace learned supports with oracle basin partitions, latent clusters, or random matched partitions.
+
+\paragraph{Periodic re-encoding for support refresh.} The periodic re-encoding support refresh experiment evaluates exact \(S_{\rm top8}\) selection after controlled transfer into a new basin. It compares a rollout that keeps the source-basin \(S_{\rm top8}\) mask with one that periodically decodes, re-encodes, and re-selects \(S_{\rm top8}\). Basin labels are used only to construct and score these transfers. The reported quantities are fraction of post-entry steps routed through the target class and the refreshed/previous support forecast-MSE ratio.
+Additional procedural details are collected in appendix \todo{add in the appendix}.
 
 \section{Results}
 \label{sec:results}
-
-The results support four main conclusions. Sparse encoders expose basin-scale support families on deep multibasin states; those active coordinates are functionally tied to prediction; support families can select useful local predictors for LISTA-style encoders; and sparse-latent models remain competitive forecasters beyond the controlled multibasin benchmark.
+The results support four main conclusions. Sparse-latent encoders expose basin-scale support families \(F_{\rm abs}\); those active coordinates (\(S_{\rm abs}\) masks) affect prediction; support families \(F_{\rm top8}\) can select useful local predictors for LISTA-style encoders; and sparse-latent models can improve long-horizon forecasting over dense-latent models.
 
 \begin{table}[tbp]
 \centering
-\caption{Support--basin alignment, support-use ablations, and forecasting on the multibasin 17-system benchmark. Values are cross-system IQMs except \(\overline{|F_{\rm abs}|}\), which is an arithmetic mean over per-system seed means; brackets give within-system Wilcoxon/Holm counts. Arrows denote the metric's better direction. \(\overline{|F_{\rm abs}|}\) should ideally be the average basin count of the 17 systems, which is 4.53.}
+\caption{Support--basin alignment, wrong-support ablations, and forecasting on the retained \(15\)-system multibasin benchmark. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline{|F_{\rm abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. Arrows denote the better direction. \(\overline{|F_{\rm abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice.}
 \label{tab:fixed17_alignment}
 \resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table1_fixed17_alignment.tex}}
 \end{table}
 
-\paragraph{Support families identify basin membership on deep states (\cref{tab:fixed17_alignment}).}
-LISTA-family supports have zero basin uncertainty on the deep-state slice, the sparse MLP rows are near zero, and the dense baseline remains high. The family counts are basin-scale: the full benchmark has \(4.53\) basins on average and median \(4\), and the global deep slice represented in this table contains \(3.18\) basins on average. LISTA-family rows expose about \(3.6\)--\(3.9\) support families, close to this reference, while the dense baseline collapses to one family and therefore mixes basins. The takeaway is that sparse encoders expose a small number of support families that identify basin membership on states far from basin boundaries.
-The per-(system, seed) distributions in \cref{fig:fixed17_entropy_strips} confirm that the gap is consistent rather than driven by outliers.
+\paragraph{\(F_{\rm abs}\) identify basin membership (\cref{tab:fixed17_alignment}).}
+LISTA \(F_{\rm abs}\) support families have low basin uncertainty on the deep-state slice and sparse-latent MLP rows remain far below the dense-latent MLP baseline. LISTA rows expose about three support families on average, matching the retained benchmark's represented deep-slice basin-count mean/median \(3.00/3\), whereas the dense-latent MLP collapses the representation to one support family and mixes basins. Sparse-latent encoders therefore expose compact \(F_{\rm abs}\) families that identify basin membership. The per-(system, seed) distributions in \cref{fig:fixed17_entropy_strips} show that the gap is not driven by outliers.
 
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_entropy_strips_alt2.pdf}
-\caption{Per-seed support diagnostics on the deep-state slice. Dots show system--seed pairs, and gray I-bars mark the first-to-third quartile range. Black bars mark IQM summaries for entropy and wrong-support ratios, and arithmetic means for \(|F_{\rm abs}|\). Lower is better for \(H(B\mid F_{\rm abs})\); \(|F_{\rm abs}|\) is a non-directional support-family count to compare with the represented basin count. The wrong-support panel shows wrong-support/base ratios at \(h{=}1\) on a log scale; higher means that using a wrong-basin support is more damaging.}
+\caption{Per-seed support results on the deep-state slice. Dots show system--seed pairs, and gray I-bars mark first-to-third quartile ranges. Black bars mark the paper-facing summary: seed-IQM within each system followed by an arithmetic mean across systems for entropy and wrong-support ratios, and arithmetic means for \(|F_{\rm abs}|\). Lower is better for \(H(B\mid F_{\rm abs})\); \(|F_{\rm abs}|\) is a non-directional support-family count to compare with the represented basin count. The wrong-support panel shows wrong-support/base ratios at \(h{=}1\) on a log scale; higher means that using a wrong-basin support is more damaging.}
 \label{fig:fixed17_entropy_strips}
 \end{figure}
 
 \paragraph{Accurate forecasts require same-basin supports (\cref{tab:fixed17_alignment}).}
-The wrong-support ratios are several orders of magnitude larger for sparse rows than for the dense baseline at \(h{=}1\): \(6.5{\times}10^3\)--\(1.1{\times}10^4\) for sparse models, compared with \(8.25\) for Dense MLP. The effect remains substantial at \(h{=}20\), where sparse-row ratios are \(14.0\)--\(30.3\) compared with \(1.37\) for Dense MLP.
+The wrong-support ratios are orders of magnitude larger for sparse-latent models than for the dense-latent baseline at horizon \(h{=}1\): 2.10${\times}$10$^4$--7.08${\times}$10$^4$ for sparse-latent models, compared with 20.0 for the dense-latent MLP, and the effect persists at \(h{=}20\).
 % Per-system testing rejects on every testable system at the one-step horizon and on the majority at twenty steps; the result is statistically significant. 
-The active coordinates are therefore functionally coupled to prediction on the testable deep-state systems.
+The active coordinates are therefore functionally coupled to prediction.
 
-\paragraph{Support families select local predictors without basin labels (\cref{tab:self_routing}).}
-Family-local routing gives the strongest routing gains for LISTA-style encoders. At \(H100\), LISTA-family rows reduce error to \(0.148\)--\(0.339\) of the global rollout; at \(H1000\), they reduce error to \(7.31{\times}10^{-4}\)--\(0.013\). Exact top-\(8\) and gated routes give smaller gains. The MLP rows are less stable at long horizon, so the routing claim is strongest for LISTA-family encoders. The partition controls in \cref{tab:self_routing_partition_controls} show that random matched partitions do not explain the LISTA gains, while latent clusters can be competitive for the MLP controls.
+\paragraph{\(F_{\rm top8}\) selects local predictors without basin labels (\cref{tab:self_routing}).}
+\(F_{\rm top8}\)-local routing gives strong system-level gains for LISTA-style encoders. At horizon \(H100\), the three LISTA rows reduce error to 0.011--0.239 of the global rollout, improve 13 of 15 systems, and pass the system-level sign-flip/Holm test. At \(H1000\), their ratios are 1.41\({\times}\)10\(^{-11}\)--6.96\({\times}\)10\(^{-5}\), again passing after correction and improving 14--15 of 15 systems under the censored system-win count. Sparse MLP rows also route well at \(H100\), but are weaker after finite-pair correction at \(H1000\), and Dense MLP fails under family-local routing. Exact \(S_{\rm top8}\) and gated \(S_{\rm top8}\) route forms are therefore treated as appendix diagnostics; the main evidence is that merged support families can select local predictors without basin labels. Random matched partitions do not explain the LISTA gains, while latent clusters can be competitive for MLP controls.
 
-\begin{table}[tbp]
-\centering
-\caption{All-state support-routed forecasting with top-$8$ routes. Entries are routed/global MSE-ratio IQMs with within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the soft-block LISTA ablation; lower is better.}
-\label{tab:self_routing}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table2_self_routing_h100_h1000.tex}}
-\end{table}
-
-\paragraph{Refreshing the support with periodic re-encoding tracks basin transfer (\cref{tab:support_refresh}).}
-After controlled basin transfer, refreshed rollouts route most post-entry steps through the target basin. Target-route fractions are \(0.862\)--\(0.964\), and refreshed/stale MSE ratios are below \(0.175\) for every displayed row and period. All rows clear the within-system test on all \(12\) transfer-covered systems. Because the dense control benefits as well, this result supports refreshing state-dependent local descriptions rather than a sparse-only mechanism.
+\paragraph{Refreshing \(S_{\rm top8}\) with periodic re-encoding tracks basin transfer (\cref{tab:support_refresh}).}
+After controlled basin transfer, \(S_{\rm top8}\)-refreshed rollouts route most post-entry steps to the target-basin class under the evaluation-only support-to-basin mapping. Target-route fractions are 0.743--0.847, and refreshed/stale support MSE ratios are below 0.229 for every displayed row and period. Refreshing therefore helps select the appropriate current local description.
 
 \begin{table}[tbp]
 \centering
-\caption{Support refresh after controlled basin transfer. Target-route is the fraction of post-entry steps routed to the target basin; the MSE ratio compares refreshed support with stale source support; brackets give Wilcoxon/Holm counts. LISTA-SB is the soft-block LISTA ablation.}
-\label{tab:support_refresh}
-\setlength{\tabcolsep}{3pt}
-\input{figures/neurips_paper_2026/_tables/table3_support_refresh_period_grouped.tex}
+\caption{Support-conditioned prediction diagnostics. Left: all-state support-family routing. \(F_{\rm top8}\)-local uses merged families of exact top-\(8\) supports to fit and select local predictors without basin labels. Ratios are \(10^{\operatorname{mean}_s D_s}\), where \(D_s\) is the within-system IQM of finite seed-level \(\log_{10}\) routed/global MSE ratios. System wins count systems whose censored per-system IQM log comparison favors routing; a finite routed rollout with an invalid same-model global rollout counts as a routed win, and the reverse counts as a loss. Superscripts mark a one-sided exact sign-flip test on system-level finite log effects, Holm-corrected across displayed model--horizon cells. Right: exact \(S_{\rm top8}\) refresh after controlled basin transfer. Target-route is the fraction of post-entry steps routed to the target basin; the MSE ratio compares refreshed \(S_{\rm top8}\) with stale source \(S_{\rm top8}\); brackets give Wilcoxon/Holm counts. Lower MSE ratios are better, and LISTA-SB is the soft-block LISTA ablation.}
+\label{tab:routing_refresh}
+\begin{subtable}[t]{0.49\textwidth}
+  \centering
+  \caption{\(F_{\rm top8}\)-local routing.}
+  \label{tab:self_routing}
+  \setlength{\tabcolsep}{2pt}
+  \resizebox{\linewidth}{!}{\input{figures/neurips_paper_2026/_tables/table2_self_routing_h100_h1000.tex}}
+\end{subtable}
+\hfill
+\begin{subtable}[t]{0.49\textwidth}
+  \centering
+  \caption{\(S_{\rm top8}\) refresh.}
+  \label{tab:support_refresh}
+  \setlength{\tabcolsep}{2pt}
+  \resizebox{\linewidth}{!}{\input{figures/neurips_paper_2026/_tables/table3_support_refresh_period_grouped.tex}}
+\end{subtable}
 \end{table}
 
-\paragraph{Sparse models improve long-horizon forecasting of multibasin systems and chaotic flows.}
-On the controlled $17$-system benchmark, every sparse row improves over the Dense MLP by more than an order of magnitude and wins on nearly all systems through \(H1000\) (\cref{tab:fixed17_alignment}, \cref{fig:fixed17_horizon_curves,fig:fixed17_seed_strips}). On the $12$ chaotic Dysts systems (\cref{tab:dysts_long,fig:dysts_long_horizon}), all primary sparse-latent rows have lower aggregate MSE than the Dense MLP across the reported horizons. From this, we conclude that sparse encoding improves forecasting in both benchmark families, while stronger transition structure becomes most useful at the longest chaotic horizons.
+\paragraph{Sparse-latent models improve long-horizon forecasting of multibasin systems and chaotic flows.}
+On the retained 15-system multibasin benchmark, every sparse-latent row has lower arithmetic-mean MSE than the dense-latent MLP at \(H100\), \(H500\), and \(H1000\) (\cref{tab:fixed17_alignment}, \cref{fig:fixed17_horizon_curves,fig:fixed17_seed_strips}). On the retained 10-system Dysts benchmark (\cref{tab:dysts_long,fig:dysts_long_horizon}), all primary sparse-latent rows have lower aggregate MSE than the dense-latent MLP across the reported horizons; the best row is Sparse MLP at \(H100\), Sparse MLP-BD at \(H500\)--\(H1000\), and LISTA from \(H1500\) through \(H5000\). We conclude that sparse-latent encoding improves long-horizon forecasting on both the controlled multibasin benchmark and the Dysts chaotic-flow benchmark.
 
 \begin{figure}[tbp]
 \centering
 \begin{subfigure}[t]{0.49\linewidth}
   \vspace{0pt}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_horizon_curves_boundary_only.pdf}
-  \caption{$17$-system multibasin benchmark.}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_horizon_curves.pdf}
+  \caption{15-system multibasin benchmark.}
   \label{fig:fixed17_horizon_curves}
 \end{subfigure}
 \hfill
@@ -423,16 +441,16 @@ On the controlled $17$-system benchmark, every sparse row improves over the Dens
   \vspace{0pt}
   \centering
   \includegraphics[width=\linewidth]{neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf}
-  \caption{$12$-system Dysts $dt{\times}30$ benchmark.}
+  \caption{10-system Dysts $dt{\times}30$ benchmark.}
   \label{fig:dysts_long_horizon}
 \end{subfigure}
-\caption{Forecasting horizon trends. Lines show cross-system IQMs of per-system seed-IQM MSEs on a log scale, and bands show fixed-system seed-bootstrap $95\%$ intervals.}
+\caption{Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale, and bands show fixed-system seed-bootstrap $95\%$ intervals for the same estimand.}
 \label{fig:forecasting_horizon_curves}
 \end{figure}
 
 \begin{table}[tbp]
 \centering
-\caption{Dysts forecasting on the $12$-system shortlist. Each cell is the cross-system IQM of per-system seed-IQM MSEs. Superscripts mark the system-level paired Wilcoxon signed-rank test on per-system log-MSE differences against Dense MLP, Holm-corrected across all Dysts model--horizon comparisons: $\ast$ indicates $p_{\rm Holm}<0.05$ and $\ast\ast$ indicates $p_{\rm Holm}<0.01$. Dense MLP is the baseline.}
+\caption{Dysts forecasting on the retained $10$-system shortlist, excluding the six-dimensional \texttt{LorenzCoupled} system and the Chua-family duplicate \texttt{MultiChua}. Each cell is the arithmetic mean across systems of per-system seed-IQM MSEs. Superscripts mark the system-level paired Wilcoxon signed-rank test on per-system log-MSE differences against dense-latent MLP, Holm-corrected across all Dysts model--horizon comparisons: $\ast$ indicates $p_{\rm Holm}<0.05$ and $\ast\ast$ indicates $p_{\rm Holm}<0.01$. Dense MLP is the baseline.}
 \label{tab:dysts_long}
 \resizebox{\textwidth}{!}{
 \input{figures/neurips_paper_2026/_tables/table4_dysts_dt30_iqm.tex}
@@ -447,10 +465,10 @@ On the controlled $17$-system benchmark, every sparse row improves over the Dens
 Koopman operator theory represents nonlinear dynamics through a linear operator on observables \citep{koopman_hamiltonian_1931,mezic2005spectral}. EDMD approximates this operator with a chosen dictionary \citep{williams_datadriven_2015}. Neural Koopman methods learn the dictionary or invariant subspace from data \citep{takeishi2017learning,lusch_deep_2018,otto2019linearly}. Consistent and course-corrected Koopman autoencoders improve rollout behavior through additional losses and correction mechanisms \citep{azencot_forecasting_2020,fathi2024course}. Our contribution is not a new claim that neural Koopman autoencoders can forecast. It is an empirical study of whether sparse latent supports carry information about the relevant basin or local dynamics.
 
 \paragraph{Multibasin Koopman structure.}
-Multiple invariant sets complicate naive interpretations of a single global finite-dimensional Koopman representation. Prior theory shows that global lifting and reconstruction depend on invariant-set structure, spectra, and symmetry \citep{lan_linearization_2013,pan_lifting_2024}. This motivates our use of support families and top-$k$ supports rather than a universal exact-support claim.
+Multiple invariant sets complicate naive interpretations of a single global finite-dimensional Koopman representation. Prior theory shows that global lifting and reconstruction depend on invariant-set structure, spectra, and symmetry \citep{lan_linearization_2013,pan_lifting_2024}. This motivates our use of \(F_{\rm abs}\) for basin alignment and \(S_{\rm top8},F_{\rm top8}\) for routing, rather than a universal exact-support claim.
 
 \paragraph{Sparse coding and LISTA.}
-Sparse coding is a classical representation principle in which signals are reconstructed from a small number of active atoms \citep{olshausen_emergence_1996}. LISTA learns fast amortized sparse inference \citep{gregor_learning_2010}. We use this sparse-inference bias inside a dynamical model and evaluate whether the resulting active atoms form support objects that agree with benchmark basin labels.
+Sparse coding is a classical representation principle in which signals are reconstructed from a small number of active atoms \citep{olshausen_emergence_1996}. LISTA learns fast amortized sparse inference \citep{gregor_learning_2010}. We use this sparse-inference bias inside a dynamical model and evaluate whether the resulting active atoms form \(F_{\rm abs}\) families that align with benchmark basin labels.
 
 \paragraph{Switching and local linear models.}
 Switching state-space models, hybrid systems, and local Koopman methods explicitly introduce modes or local operators \citep{linderman_bayesian_2017,torrisi-bemporad-itcst04,mamakoukas_local_2019}. Our model differs because it does not train with known basin labels or a known basin count. The switching behavior, when it appears, is implicit in the learned sparse support.
@@ -557,9 +575,9 @@ Classical sparse coding seeks a code $z$ that reconstructs a signal from a small
 \end{equation}
 where $D$ is a dictionary and $\lambda>0$ controls sparsity \citep{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003}. The active set of the solution is piecewise constant over regions of the input space, while the coefficient values vary continuously within a fixed active set. This gives a union-of-subspaces geometry: each support indexes a lower-dimensional chart, and nearby supports can be grouped into a support family when threshold noise or boundary effects fragment the exact masks.
 
-LISTA replaces an iterative sparse-coding solver with a learned finite-depth shrinkage network \citep{gregor_learning_2010}. In the notation of \cref{eq:lista}, the encoder forms a pre-code from the input and repeatedly applies learned affine refinement followed by soft thresholding. The thresholding operation is the important ingredient for this paper: it turns the latent code into both continuous coefficients and an explicit support. The experiments then ask whether that support agrees with benchmark basin labels, whether it is functionally used by the predictor, and whether it can route local linear laws without a supplied basin label.
+LISTA replaces an iterative sparse-coding solver with a learned finite-depth shrinkage network \citep{gregor_learning_2010}. In the notation of \cref{eq:lista}, the encoder forms a pre-code from the input and repeatedly applies learned affine refinement followed by soft thresholding. The thresholding operation is the important ingredient for this paper: it turns the latent code into both continuous coefficients and an explicit support. The experiments then ask whether \(F_{\rm abs}\) aligns with benchmark basin labels, whether \(S_{\rm abs}\) is functionally used by the predictor, and whether \(S_{\rm top8}\) or \(F_{\rm top8}\) can route local linear laws without a supplied basin label.
 
-Observed supports also define a simple label-free graph: nodes are exact supports or merged support families, and edges are support transitions seen along rollouts. This graph view is not used as a training signal in the reported experiments, but it explains why supports are useful objects to expose. A support node can index a local predictor, a support-family node can absorb small threshold perturbations, and an observed edge can record when the representation moves from one local chart to another. The routing experiments in \cref{tab:self_routing} test the one-step predictive version of this idea without assuming a known number of basins or known basin membership during training or deployment.
+Observed supports also define a simple label-free graph: nodes are exact supports or merged support families, and edges are support transitions seen along rollouts. This graph view is not used as a training signal in the reported experiments, but it explains why supports are useful objects to expose. A support node can index a local predictor, a support-family node can absorb small threshold perturbations, and an observed edge can record when the representation moves from one local chart to another. The routing experiments in \cref{tab:self_routing} instantiate this idea with \(S_{\rm top8}\) and \(F_{\rm top8}\), without assuming a known number of basins or known basin membership during training or deployment.
 
 \section{Proofs}
 \subsection{Piecewise-affine encoders with sparse supports induce local affine Koopman predictors}
@@ -1440,7 +1458,7 @@ The fixed multibasin comparison uses the six model rows reported in \cref{tab:fi
 
 The saved best checkpoint is chosen by a fixed validation rule during training. Every $500$ optimization steps, and again at the final step, the current model is rolled out for $200$ steps from $16$ held-out initial states using every-step re-encoding. The checkpoint with the lowest final validation error is saved as \texttt{checkpoint.pt}; the latest checkpoint is kept separately as \texttt{last.pt}. This validation rule is a training-side proxy for rollout stability. It does not use basin labels, test trajectories, or the post-hoc best-periodic evaluation grid.
 
-The main Dysts comparison is used only as a forecasting stress test and reports LISTA, LISTA-BD, Sparse MLP, Sparse MLP-BD, and Dense MLP rows. The soft-block LISTA row is retained as an appendix diagnostic rather than a primary forecasting row. Dysts training trajectories are drawn from native trajectory caches with standardized coordinates, $200$ cached trajectories, $30{,}000$ stored observations per trajectory, and a $2{,}000$-step warm-up; training samples length-$10$ windows from the cache training split. The current table reports the $dt{\times}30$ version of this benchmark: the stored Dysts observation interval is set to $30$ times the intrinsic Dysts timestep for the corresponding system, and evaluation uses reduced horizon indices through $H5000$ rather than the older tiny-step $H{\leq}60000$ extrapolation packet. Initial conditions are based on each Dysts system's default initial condition; the remaining cached trajectories perturb that state with Gaussian noise at scale $0.2$ times the coordinate-wise Dysts standard deviation. Train, validation, and test caches use deterministic split-specific namespaces so that held-out trajectories are disjoint from training windows and reusable across model seeds. Long-horizon evaluation uses the disjoint held-out test cache, with $100$ held-out trajectories for each system and seed. LISTA rows use the same learning rates as the multibasin runs, while MLP rows use learning rates $10^{-4}$ for encoder/decoder parameters and $10^{-5}$ for the latent transition. The paper-facing Dysts shortlist contains the $12$ systems in \cref{tab:dysts_inventory}.
+The main Dysts comparison is used only as a forecasting stress test and focuses on LISTA, LISTA-BD, Sparse MLP, Sparse MLP-BD, and Dense MLP as the primary rows. The soft-block LISTA row is retained in the table as a diagnostic rather than a primary forecasting row and is omitted from the main Dysts trend figure. Dysts training trajectories are drawn from native trajectory caches with standardized coordinates, $200$ cached trajectories, $30{,}000$ stored observations per trajectory, and a $2{,}000$-step warm-up; training samples length-$10$ windows from the cache training split. The current table reports the $dt{\times}30$ version of this benchmark: the stored Dysts observation interval is set to $30$ times the intrinsic Dysts timestep for the corresponding system, and evaluation uses reduced horizon indices through $H5000$ rather than the older tiny-step $H{\leq}60000$ extrapolation packet. Initial conditions are based on each Dysts system's default initial condition; the remaining cached trajectories perturb that state with Gaussian noise at scale $0.2$ times the coordinate-wise Dysts standard deviation. Train, validation, and test caches use deterministic split-specific namespaces so that held-out trajectories are disjoint from training windows and reusable across model seeds. Long-horizon evaluation uses the disjoint held-out test cache, with $100$ held-out trajectories for each system and seed. LISTA rows use the same learning rates as the multibasin runs, while MLP rows use learning rates $10^{-4}$ for encoder/decoder parameters and $10^{-5}$ for the latent transition. The paper-facing Dysts shortlist contains the \(10\) three-dimensional systems in \cref{tab:dysts_inventory}; the originally collected six-dimensional \texttt{LorenzCoupled} rows and Chua-family \texttt{MultiChua} rows are excluded from aggregation.
 
 \begin{table}[tbp]
 \centering
@@ -1454,9 +1472,7 @@ System & State dimension \\
 \texttt{Dadras} & 3 \\
 \texttt{DequanLi} & 3 \\
 \texttt{Hadley} & 3 \\
-\texttt{LorenzCoupled} & 6 \\
 \texttt{LuChenCheng} & 3 \\
-\texttt{MultiChua} & 3 \\
 \texttt{QiChen} & 3 \\
 \texttt{Sakarya} & 3 \\
 \texttt{SanUmSrisuchinwong} & 3 \\
@@ -1481,19 +1497,19 @@ All horizons and re-encoding periods are reported in stored observation steps, n
 The fixed re-encoding grid is used only at evaluation time. Checkpoint selection uses the validation proxy described above, not a search over the final test-period grid, and the reported point estimates aggregate all completed seeds rather than selecting the best seed. The best-periodic score should therefore be read as a controlled diagnostic of whether a model benefits from regular support refresh at deployment, not as teacher forcing or basin-label access.
 
 \paragraph{Support diagnostics.}
-The wrong-support ablation first constructs, for each basin in a testable system, a canonical deep-slice support from the most common exact support observed in that basin. The ablated rollout replaces the inferred support with a canonical support from a different basin and holds that replacement fixed. \Cref{tab:fixed17_alignment} reports the wrong-support/base error ratio at horizons $h=1$ and $h=20$; larger ratios indicate stronger functional dependence on the selected support.
+The wrong-support ablation first constructs, for each basin in a testable system, a canonical deep-slice \(S_{\rm abs}\) mask from the most common exact mask observed in that basin. The ablated rollout replaces the inferred \(S_{\rm abs}\) mask with a canonical mask from a different basin and holds that replacement fixed. \Cref{tab:fixed17_alignment} reports the wrong-support/base error ratio at horizons $h=1$ and $h=20$; larger ratios indicate stronger functional dependence on the selected support.
 
 \paragraph{Routing details.}
-Support-routed forecasting uses fixed-size top-$8$ supports so every state receives a route key. The three routed predictors in \cref{tab:self_routing} are: a support-gated global transition, which masks the centered latent state by the current support before applying the learned transition; a centered support-local transition, which fits a separate ridge-regularized linear map for each fitted support; and a centered family-local transition, which uses the same local fitting procedure after merging nearby supports into support families. The ridge penalty is $10^{-4}$. At evaluation time, a local route is used only if it was observed in at least $128$ fitted transitions; otherwise the rollout falls back to the global latent transition. The reported routed/global ratio always compares the routed prediction with the same model's own global rollout, not with another model family.
+Support-routed forecasting uses fixed-size \(S_{\rm top8}\) masks so every state receives an eight-index route key. The main table reports \(F_{\rm top8}\)-local routing, which fits ridge-regularized local linear maps after merging nearby top-\(8\) masks into support families. The ridge penalty is $10^{-4}$. At evaluation time, a local route is used only if it was observed in at least $128$ fitted transitions; otherwise the rollout falls back to the global latent transition. The reported routed/global ratio always compares the routed prediction with the same model's own global rollout, not with another model family. Exact gated \(S_{\rm top8}\), which masks the centered latent state before applying the learned transition, and exact \(S_{\rm top8}\)-local, which fits one local map per exact top-\(8\) support, are retained in \cref{tab:self_routing_deep} as route-form diagnostics rather than as the main paper claim.
 
 \input{figures/neurips_paper_2026/_tables/table2_partition_controls_compact.tex}
 
 \paragraph{Support refresh.}
-The support-refresh experiment uses top-$8$ supports and the two re-encoding periods reported in \cref{tab:support_refresh}, $1$ and $10$ stored observation steps. Each comparison starts from a controlled source-to-target transfer. The frozen-source rollout keeps using the source support after target entry, while the refreshed-current rollout periodically decodes, re-encodes, and re-extracts the support from its own predicted state. Basin labels are used only to construct valid transfer pairs and score post-entry routing; they are not supplied to the rollout.
+The support-refresh experiment uses exact \(S_{\rm top8}\) supports and the two re-encoding periods reported in \cref{tab:support_refresh}, $1$ and $10$ stored observation steps. Each comparison starts from a controlled source-to-target transfer. The frozen-source rollout keeps using the source \(S_{\rm top8}\) mask after target entry, while the refreshed-current rollout periodically decodes, re-encodes, and re-extracts \(S_{\rm top8}\) from its own predicted state. Basin labels are used only to construct valid transfer pairs and score post-entry routing; they are not supplied to the rollout.
 
 \subsection{Statistical testing protocol}
 \label{app:statistical_testing}
-All bracketed $K/N$ counts are within-system reproducibility counts, not tests obtained by pooling all seeds or all systems together. For each table cell and each benchmark system, we first construct paired deltas over the appropriate replicate unit. For multibasin forecasting, \(S_{\rm abs}\)-size diagnostics, support-family entropy, and wrong-support ablations, the replicate unit is the training seed and the pairing is by the same system and seed. For the Dysts model-vs-Dense superscripts in \cref{tab:dysts_long}, the replicate unit is instead the benchmark system after seed aggregation: each system contributes one \(\log_{10}\) difference between the candidate seed-IQM MSE and the Dense MLP seed-IQM MSE. For non-oracle routing, the pairing is also by system and seed, but the comparator is the same trained model's own global latent rollout for the same evaluation subset and horizon. For support refresh, the replicate unit is the controlled source-to-target transfer instance within a system; when multiple training seeds are available, all completed seeds contribute transfer instances to the same within-system test.
+All bracketed \(K/N\) counts are within-system reproducibility counts, not tests obtained by pooling all seeds or all systems together. The main Table~\ref{tab:self_routing} routing stars are the exception: because the displayed routing effect is a cross-system statement, its confirmatory test uses the benchmark system as the independent unit. For each table cell and each benchmark system, we first construct paired deltas over the appropriate replicate unit. For multibasin forecasting, \(S_{\rm abs}\)-size diagnostics, \(F_{\rm abs}\) entropy, and wrong-support ablations, the replicate unit is the training seed and the pairing is by the same system and seed. For Table~\ref{tab:self_routing}, seed-level finite routed/global log-ratios are summarized within each system before testing across systems. For the Dysts model-vs-Dense superscripts in \cref{tab:dysts_long}, the replicate unit is also the benchmark system after seed aggregation: each system contributes one \(\log_{10}\) difference between the candidate seed-IQM MSE and the Dense MLP seed-IQM MSE. For support refresh, the replicate unit is the controlled source-to-target transfer instance within a system; when multiple training seeds are available, all completed seeds contribute transfer instances to the same within-system test.
 
 The tested delta is chosen so that the sign matches the scientific claim. Forecasting comparisons against the Dense MLP baseline use
 \begin{equation}
@@ -1507,10 +1523,14 @@ The tested delta is chosen so that the sign matches the scientific claim. Foreca
 \end{equation}
 where $s$ indexes the system and $u$ indexes the replicate unit; the one-sided alternative is $\Delta<0$. Routed/global and refreshed/previous comparisons use the same log-ratio convention, again with alternative $\Delta<0$. Mean \(S_{\rm abs}\) size and \(H(B\mid F_{\rm abs})\) use raw paired differences against the Dense MLP baseline with alternative candidate $<$ baseline. Exact-support uniqueness and wrong-support/base ratios use raw paired differences with alternative candidate $>$ baseline, because larger values mean that the representation assigns more unique basin-specific supports or depends more strongly on the selected support.
 
-Within each system, we apply a one-sided paired Wilcoxon signed-rank test to these deltas. Systems with too few finite pairs, all-zero deltas, or diagnostics that are undefined by construction are treated as non-significant for that cell. For each model--metric--horizon--subset cell, the resulting per-system $p$-values are Holm-corrected across the systems in that family at $\alpha=0.05$. The reported $K/N$ is the number of systems whose Holm-corrected $p$-value is below $0.05$ divided by the number of systems eligible for that diagnostic: $17$ for the controlled multibasin benchmark and $13$ for the global deep-slice wrong-support ablation because four systems have a single-basin deep subset. The Dysts actual-MSE table instead uses a row-level test: the $12$ per-system candidate-minus-Dense differences in \(\log_{10}\) seed-IQM MSE are tested with a one-sided Wilcoxon signed-rank test and Holm-corrected across all candidate-model and horizon comparisons; passing cells receive significance superscripts. Point estimates are kept separate from the tests: the tables report IQM summaries for robustness to heavy tails, the $K/N$ values report per-system paired significance, and the Dysts superscripts report model-vs-Dense inference at the same system-aggregated level as the displayed MSE point estimate.
+Within each system, we apply a one-sided paired Wilcoxon signed-rank test to the within-system reproducibility deltas. Systems with too few finite pairs, all-zero deltas, or diagnostics that are undefined by construction are treated as non-significant for that cell. For each model--metric--horizon--subset cell, the resulting per-system \(p\)-values are Holm-corrected across the systems in that family at \(\alpha=0.05\). The reported \(K/N\) is the number of systems whose Holm-corrected \(p\)-value is below \(0.05\) divided by the number of systems eligible for that diagnostic: \(15\) for the controlled multibasin benchmark and \(11\) for the global deep-slice wrong-support ablation because four retained systems have a single-basin deep subset.
+
+For the main routing table, each system contributes one effect \(D_s=\operatorname{IQM}_i\log_{10}(E^{\rm routed}_{s,i}/E^{\rm global}_{s,i})\) over mutually finite seed pairs. The table reports \(10^{\operatorname{mean}_s D_s}\). Significance is tested with a one-sided exact sign-flip test on the finite system-level log effects and Holm-corrected across the displayed model--horizon cells. This matches the displayed cross-system claim and avoids treating seeds nested inside the same dynamical system as independent benchmark systems. The Dysts actual-MSE table uses a related row-level test: the \(11\) per-system candidate-minus-Dense differences in \(\log_{10}\) seed-IQM MSE are tested with a one-sided Wilcoxon signed-rank test and Holm-corrected across all candidate-model and horizon comparisons; passing cells receive significance superscripts.
+
+Table display uses fixed precision by metric: MSEs, MSE ratios, and raw wrong-support ratio differences use three significant figures with scientific notation outside \([10^{-3},10^3)\); route fractions use three decimal places; support-family counts use one decimal place; per-system \(\log_{10}\)-MSE effects use two decimal places; and displayed \(p\)-values use three decimals or \(<10^{-3}\).
 
 \paragraph{Censored routing comparisons.}
-\Cref{tab:self_routing} has an additional issue: at long horizons, either the routed rollout or the same-model global rollout can be invalid because no finite H-step error remains available for that seed and subset. The displayed routed/global ratio uses only finite positive routed/global ratios. The significance test, however, must still account for all $15$ seed slots per system rather than silently dropping the hardest seeds. For each horizon, we choose a log-scale censoring cap
+Routing has an additional diagnostic issue: at long horizons, either the routed rollout or the same-model global rollout can be invalid because no finite H-step error remains available for that seed and subset. The main Table~\ref{tab:self_routing} ratio and sign-flip test use mutually finite routed/global pairs, while the system-wins column uses the censored all-seed-slot comparison so the table does not hide cases where routing remains finite but the same-model global rollout fails. For provenance and appendix diagnostics, we also keep the older all-seed-slot censored comparison for route-form ablations. For each horizon, we choose a log-scale censoring cap
 \begin{equation}
   C
   =
@@ -1518,7 +1538,7 @@ Within each system, we apply a one-sided paired Wilcoxon signed-rank test to the
 \end{equation}
 so the cap lies outside the observed finite log-ratio range. If both routed and global MSEs are finite and positive, the test uses the ordinary log ratio. If the routed MSE is finite but the same-model global MSE is invalid, the seed is encoded as a censored routed win, $\Delta=-C$. If the routed MSE is invalid but the global MSE is finite, the seed is encoded as a censored routed loss, $\Delta=+C$. If both sides are invalid or the expected seed row is missing, the seed is encoded as neutral, $\Delta=0$. The same convention treats zero routed error against positive global error as a censored win, positive routed error against zero global error as a censored loss, and both-zero as neutral.
 
-This censoring rule is an evaluation convention, not a causal diagnosis of why a rollout became invalid. It assumes only that, for an H-step forecasting benchmark, a finite evaluable forecast is better than an unevaluable forecast for the same model, system, seed, subset, and horizon. Finite catastrophic errors are retained as finite values; they are not discarded. Invalid global rollouts with finite routed rollouts therefore contribute directional evidence that routing produced an evaluable forecast where the same-model global rollout did not, but the statistic does not claim that the underlying cause was a particular learning failure. Encoding both-invalid and missing seed slots as neutral prevents the test from rewarding methods merely because both compared rollouts failed.
+This censoring rule is an evaluation convention, not a causal diagnosis of why a rollout became invalid. It assumes only that, for an H-step forecasting benchmark, a finite evaluable forecast is better than an unevaluable forecast for the same model, system, seed, subset, and horizon. Finite catastrophic errors are retained as finite values; they are not discarded. Invalid global rollouts with finite routed rollouts therefore contribute directional evidence that routing produced an evaluable forecast where the same-model global rollout did not, but the statistic does not claim that the underlying cause was a particular learning failure. Encoding both-invalid and missing seed slots as neutral prevents the diagnostic count from rewarding methods merely because both compared rollouts failed.
 
 \subsection{Compute resources}
 Reported multibasin and Dysts training jobs were launched as independent cluster array tasks requesting one GPU, four CPU cores, and $16$GB memory per run, with a $24$-hour wall-time cap. The routing and refresh diagnostics were run as CPU jobs requesting four CPU cores and $24$GB memory, with a $12$-hour wall-time cap. The Dysts long-horizon re-evaluation was run in $100$-trajectory batches, with evaluation tasks requesting four CPU cores and $24$GB memory. These values describe the requested resources for the reported packets; the wall-time caps are not measured runtimes.
@@ -1526,23 +1546,22 @@ Reported multibasin and Dysts training jobs were launched as independent cluster
 \section{Support definitions and sensitivity}
 \label{app:support_definitions}
 
-The absolute-threshold support \(S_{\rm abs}\) marks a latent coordinate active when its magnitude exceeds \(10^{-3}\). It is the strict identifiability object used on the deep-state slice. Its active-coordinate count \(|S_{\rm abs}|\) is a state-dependent threshold statistic, so it can differ substantially across basins and systems and should not be confused with a fixed sparsity budget. The top-\(k\) support \(S_{\rm top8}\) selects the eight largest-magnitude latent coordinates. It is the deployment-like object because every state receives a route key without a magnitude threshold. The relative-threshold support \(S_{\rm rel}\) marks a coordinate active when its magnitude is at least \(10\%\) of the largest latent magnitude for that state. It removes global scale effects and was useful for centered local-law diagnostics, but it is too fragmented as an exact support router and is therefore retained only as a sensitivity object. Support families are produced by greedy Jaccard merging at threshold \(0.5\). In our results, \(S_{\rm abs}\) saturates the conditional entropy \(H(B\mid S_{\rm abs})\) on the deep slice for all sparse rows and is therefore not a discriminator on its own; \(H(B\mid F_{\rm abs})\) and the non-directional family count \(\overline{|F_{\rm abs}|}\) are the main-table family-level diagnostics, while \(H(S_{\rm abs}\mid B)\), \(U_{\rm exact}\), and \(|S_{\rm abs}|\) remain appendix diagnostics for exact-support fragmentation and active-coordinate size. \(S_{\rm top8}\) is the only support definition for which the dense MLP control's failure on routing cannot be explained by route-availability artifacts.
+The absolute-threshold support \(S_{\rm abs}\) marks a latent coordinate active when its magnitude exceeds \(10^{-3}\). It is the strict identifiability object used on the deep-state slice. Its active-coordinate count \(|S_{\rm abs}|\) is a state-dependent threshold statistic, so it can differ substantially across basins and systems and should not be confused with a fixed sparsity budget. The fixed-size support \(S_{\rm top8}\) selects the eight largest-magnitude latent coordinates. It is the routing object because every state receives an eight-index key without a magnitude threshold. The relative-threshold support \(S_{\rm rel}\) marks a coordinate active when its magnitude is at least \(10\%\) of the largest latent magnitude for that state. It removes global scale effects and was useful for centered local-law diagnostics, but it is too fragmented as an exact support router and is therefore retained only as a sensitivity object. Support families are produced by greedy Jaccard merging at threshold \(0.5\): \(F_{\rm abs}\) merges exact \(S_{\rm abs}\) masks for support--basin alignment, and \(F_{\rm top8}\) merges exact \(S_{\rm top8}\) masks for family-local routing. In our results, \(S_{\rm abs}\) saturates the conditional entropy \(H(B\mid S_{\rm abs})\) on the deep slice for all sparse rows and is therefore not a discriminator on its own; \(H(B\mid F_{\rm abs})\) and the non-directional family count \(\overline{|F_{\rm abs}|}\) are the Table~\ref{tab:fixed17_alignment} family-level diagnostics, while \(H(S_{\rm abs}\mid B)\), \(U_{\rm exact}\), and \(|S_{\rm abs}|\) remain appendix diagnostics for exact-support fragmentation and active-coordinate size. \(S_{\rm top8}\) is the only support definition for which the dense MLP control's failure on routing cannot be explained by route-availability artifacts.
 
 \section{Multibasin benchmark inventory}
 \label{app:fixed17_inventory}
 
-\Cref{tab:fixed17_inventory} lists the $17$ multibasin systems used in this paper, their basin counts available at evaluation, and the main-text display item that uses each system.
+\Cref{tab:fixed17_inventory} lists the $15$ retained multibasin systems used in this paper, their basin counts available at evaluation, and the main-text display item that uses each system.
 
 \begin{table}[tbp]
 \centering
-\caption{The $17$ multibasin benchmark systems. Geometry types: \emph{multiwell} = multistable potential systems; \emph{gated} = gated local-linear systems with explicit transitions between regions; \emph{polygonal} = arrangement of point attractors at vertices of a polygon; \emph{checkerboard} = grid-based potential; \emph{cascade} = depth-cascade variants. Basin counts are revealed only at evaluation.}
+\caption{The $15$ retained multibasin benchmark systems. Geometry types: \emph{multiwell} = multistable potential systems; \emph{gated} = gated local-linear systems with explicit transitions between regions; \emph{polygonal} = arrangement of point attractors at vertices of a polygon; \emph{cascade} = depth-cascade variants. Basin counts are revealed only at evaluation.}
 \label{tab:fixed17_inventory}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}l l c c@{}}
 \toprule
 System & Geometry & Basins & Used in \\
 \midrule
-\texttt{multiwell\_strong\_transition}  & multiwell      & 4  & Tab.\,\ref{tab:fixed17_alignment}, Fig.\,\ref{fig:fixed17_seed_strips} \\
 \texttt{gated\_local\_linear}           & gated          & 4  & Tab.\,\ref{tab:fixed17_alignment}, Tab.\,\ref{tab:self_routing} \\
 \texttt{gated\_transfer\_linear}        & gated          & 4  & Tab.\,\ref{tab:fixed17_alignment}, Tab.\,\ref{tab:support_refresh} \\
 \texttt{arrested\_spiral}               & polygonal      & 4  & Tab.\,\ref{tab:self_routing} \\
@@ -1552,7 +1571,6 @@ System & Geometry & Basins & Used in \\
 \texttt{cal\_octagon\_8}                & polygonal      & 8  & Tab.\,\ref{tab:fixed17_alignment} \\
 \texttt{cal\_pentagon\_5}               & polygonal      & 5  & Tab.\,\ref{tab:fixed17_alignment} \\
 \texttt{cal\_square\_4}                 & polygonal      & 4  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{checkerboard\_potential}        & checkerboard   & 9  & Tab.\,\ref{tab:fixed17_alignment} \\
 \texttt{duffing\_triple\_well}          & multiwell      & 3  & Tab.\,\ref{tab:fixed17_alignment}, Fig.\,\ref{fig:fixed17_seed_strips} \\
 \texttt{snic\_multi}                    & polygonal      & 3  & Tab.\,\ref{tab:fixed17_alignment} \\
 \texttt{transition\_routes\_4}          & gated          & 4  & Tab.\,\ref{tab:fixed17_alignment} \\
@@ -1567,12 +1585,12 @@ System & Geometry & Basins & Used in \\
 \section{Per-seed distributions}
 \label{app:seed_distributions}
 
-\Cref{tab:fixed17_alignment} reports cross-system summaries of per-system IQM-over-seeds. The corresponding per-(system, seed) distributions are shown below. \Cref{fig:fixed17_seed_strips} shows the paper-facing strip plot for the matched boundary-emphasized rows. \Cref{fig:appfig_fixed17_perseed} plots per-(system, seed) histograms of forecasting MSE at every paper-facing horizon. \Cref{fig:appfig_fixed17_entropy} plots per-(system, seed) histograms of \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and \(U_{\rm exact}\) on the deep-state slice. \Cref{fig:appfig_dysts_perseed} plots the same per-seed distributions for the Dysts $dt{\times}30$ benchmark. The distributions are heavy-tailed in $\log$-MSE; we therefore report the cross-system $\log_{10}$-IQR alongside the IQM in \cref{tab:fixed17_alignment}. The cross-system $\log_{10}$-IQR is $\leq 1.97$ for every row at every horizon (the highest values come from the rows whose worst-system seeds blow up at $H1000$, dominated by \texttt{multiwell\_strong\_transition}), and the per-system rank ordering of rows is stable across horizons.
+\Cref{tab:fixed17_alignment} reports arithmetic means across retained systems after per-system seed-IQM summaries. The corresponding per-(system, seed) distributions are shown below. \Cref{fig:fixed17_seed_strips} shows the paper-facing strip plot for the matched boundary-emphasized rows. \Cref{fig:appfig_fixed17_perseed} plots per-(system, seed) histograms of forecasting MSE at every paper-facing horizon. \Cref{fig:appfig_fixed17_entropy} plots per-(system, seed) histograms of \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and \(U_{\rm exact}\) on the deep-state slice. \Cref{fig:appfig_dysts_perseed} plots the same per-seed distributions for the Dysts $dt{\times}30$ benchmark. The histograms show retained-system and seed-level dispersion around the paper-facing means.
 
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_seed_strips_boundary_only.pdf}
-\caption{Per-(system, seed) forecasting MSE at $H100$, $H500$, and $H1000$ on the multibasin benchmark. Black bars are IQM values. The Dense MLP has a much heavier upper tail at every horizon.}
+\caption{Per-(system, seed) forecasting MSE at $H100$, $H500$, and $H1000$ on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon.}
 \label{fig:fixed17_seed_strips}
 \end{figure}
 
@@ -1600,9 +1618,9 @@ System & Geometry & Basins & Used in \\
 \section{Full per-system tables}
 \label{app:fixed17_full}
 
-Tables \ref{tab:persystem_h100}--\ref{tab:persystem_h1000} render the per-(system, candidate) effect sizes and Holm-corrected Wilcoxon $p$-values that underlie the $K/N$ counts in \cref{tab:fixed17_alignment} and the forest plot in \cref{fig:fixed17_forest}. Each cell gives the per-system median paired $\log_{10}$-MSE difference (candidate minus matched-sampling Dense MLP, no-shrink baseline) over the common completed seeds, up to $15$ per system, and the corresponding Holm-corrected one-sided paired Wilcoxon $p$-value (Holm correction across the $17$ systems within each horizon-and-candidate column). Bold entries indicate Holm-corrected $p<0.05$ in favor of the candidate. Systems are sorted by the median across candidates of the per-system effect; the same ordering is used in all three tables for visual cross-reference.
+Tables \ref{tab:persystem_h100}--\ref{tab:persystem_h1000} render the per-(system, candidate) effect sizes and Holm-corrected Wilcoxon $p$-values that underlie the $K/N$ counts in \cref{tab:fixed17_alignment} and the forest plot in \cref{fig:fixed17_forest}. Each cell gives the per-system median paired $\log_{10}$-MSE difference (candidate minus matched-sampling Dense MLP, no-shrink baseline) over the common completed seeds, up to $15$ per system, and the corresponding Holm-corrected one-sided paired Wilcoxon $p$-value (Holm correction across the $15$ retained systems within each horizon-and-candidate column). Bold entries indicate Holm-corrected $p<0.05$ in favor of the candidate. Systems are sorted by the median across candidates of the per-system effect; the same ordering is used in all three tables for visual cross-reference.
 
-The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired median, and the corresponding paired $t$-test $p$-values are released in the supplementary materials. The supplementary CSVs include per-system records, the row-level $K/N$ summary, and the cross-system table used in the main text; the manifest lists the names and the source forecasting CSVs.
+The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired median, and the corresponding paired $t$-test $p$-values are released in the supplementary materials. The supplementary CSVs include per-system records, the row-level $K/N$ summary, and the all-system aggregate table used in the main text; the manifest lists the names and the source forecasting CSVs.
 
 \begin{figure}[tbp]
 \centering
@@ -1613,7 +1631,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 
 \begin{table}[tbp]
 \centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=100$ on the $17$-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. $\Delta$ is the per-system median paired $\log_{10}$-MSE difference (candidate $-$ baseline) over the common completed seeds, up to $15$ per system; $p_{\rm H}$ is the one-sided paired Wilcoxon signed-rank $p$-value, Holm-corrected across the $17$ systems within each candidate column. Bold $\Delta$: Holm-corrected $p<0.05$ in favor of the candidate.}
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=100$ on the $15$-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. $\Delta$ is the per-system median paired $\log_{10}$-MSE difference (candidate $-$ baseline) over the common completed seeds, up to $15$ per system; $p_{\rm H}$ is the one-sided paired Wilcoxon signed-rank $p$-value, Holm-corrected across the $15$ retained systems within each candidate column. Bold $\Delta$: Holm-corrected $p<0.05$ in favor of the candidate.}
 \label{tab:persystem_h100}
 \setlength{\tabcolsep}{3pt}
 \resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h100.tex}}
@@ -1621,7 +1639,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 
 \begin{table}[tbp]
 \centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=500$ on the $17$-system multibasin benchmark. Format identical to \cref{tab:persystem_h100}.}
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=500$ on the $15$-system multibasin benchmark. Format identical to \cref{tab:persystem_h100}.}
 \label{tab:persystem_h500}
 \setlength{\tabcolsep}{3pt}
 \resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h500.tex}}
@@ -1629,7 +1647,7 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 
 \begin{table}[tbp]
 \centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=1000$ on the $17$-system multibasin benchmark. This is the numerical version of the forest plot in \cref{fig:fixed17_forest}. Format identical to \cref{tab:persystem_h100}.}
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=1000$ on the $15$-system multibasin benchmark. This is the numerical version of the forest plot in \cref{fig:fixed17_forest}. Format identical to \cref{tab:persystem_h100}.}
 \label{tab:persystem_h1000}
 \setlength{\tabcolsep}{3pt}
 \resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h1000.tex}}
@@ -1637,13 +1655,13 @@ The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired
 
 \subsection*{Per-system audit of the interpretability columns}
 
-\paragraph{Why the wrong-support denominator is $13$ and not $17$.} The wrong-support ablation builds, for each system, a dictionary mapping each basin to its canonical support mask -- the most-common exact support among the deep-slice states of that basin. The ablated rollout draws a mask from a basin different from the state's own basin and holds that wrong mask fixed, so the test requires at least two distinct deep-slice canonical masks. Four of the $17$ benchmark systems -- \texttt{arrested\_spiral} ($5$ basins), \texttt{cal\_asymmetric\_3} ($3$), \texttt{duffing\_triple\_well} ($3$), \texttt{var\_l\_shape\_5} ($5$) -- have multiple basins by design but a deep slice (top quartile by basin-depth margin) concentrated in a single basin: one basin's attractor has a much larger margin to the second-nearest centroid than the others, so the global top-quartile filter selects only that basin's states. This holds across all $7$ trained model rows and all $9$ support-threshold definitions, confirming it is a property of the system's depth-margin geometry rather than of any encoder. The wrong-support ablation is undefined on those four systems by construction, and the corresponding $K/N$ denominator in \cref{tab:fixed17_alignment} and \cref{tab:persystem_freeze_h1,tab:persystem_freeze_h20} is $13$ instead of $17$. The four omitted systems still appear in the per-system tables with "$--$" entries. A queued robustness re-evaluation under a per-basin top-quartile depth criterion -- which admits each basin's relative-deep states and is expected to restore $17/17$ coverage on these four systems -- is documented in \texttt{docs/PER\_BASIN\_DEEP\_SLICE\_PLAN.md}; its results will appear here as a separate appendix table once the re-eval completes, and the global-slice numbers in \cref{tab:fixed17_alignment} and the per-system tables below are the source-of-truth in the meantime.
+\paragraph{Why the wrong-support denominator is $11$ and not $15$.} The wrong-support ablation builds, for each system, a dictionary mapping each basin to its canonical support mask -- the most-common exact support among the deep-slice states of that basin. The ablated rollout draws a mask from a basin different from the state's own basin and holds that wrong mask fixed, so the test requires at least two distinct deep-slice canonical masks. Four of the \(15\) retained benchmark systems -- \texttt{arrested\_spiral} ($5$ basins), \texttt{cal\_asymmetric\_3} ($3$), \texttt{duffing\_triple\_well} ($3$), \texttt{var\_l\_shape\_5} ($5$) -- have multiple basins by design but a deep slice (top quartile by basin-depth margin) concentrated in a single basin: one basin's attractor has a much larger margin to the second-nearest centroid than the others, so the global top-quartile filter selects only that basin's states. This holds across all trained model rows and support-threshold definitions, confirming it is a property of the system's depth-margin geometry rather than of any encoder. The wrong-support ablation is undefined on those four systems by construction, and the corresponding \(K/N\) denominator in \cref{tab:fixed17_alignment} and \cref{tab:persystem_freeze_h1,tab:persystem_freeze_h20} is \(11\) instead of \(15\). The four omitted systems still appear in the per-system tables with ``--'' entries. A queued robustness re-evaluation under a per-basin top-quartile depth criterion -- which admits each basin's relative-deep states and is expected to restore full retained-system coverage on these four systems -- is documented in \texttt{docs/PER\_BASIN\_DEEP\_SLICE\_PLAN.md}; its results will appear here as a separate appendix table once the re-eval completes, and the global-slice numbers in \cref{tab:fixed17_alignment} and the per-system tables below are the source-of-truth in the meantime.
 
-Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full per-(system, candidate) breakdown of the retained active-count diagnostic and the three directional interpretability columns of \cref{tab:fixed17_alignment}. Each cell gives the per-system median paired difference between the candidate and the matched-sampling Dense MLP no-shrink baseline (over the common completed seeds, up to $15$ per system), and the corresponding Holm-corrected one-sided paired Wilcoxon $p$-value (Holm correction across the $17$ systems within each candidate column). Bold entries indicate Holm-corrected $p<0.05$ in favor of the candidate. The alternative direction is "candidate $<$ baseline" for \(|S_{\rm abs}|\) and \(H(B\mid F_{\rm abs})\) (smaller is better) and "candidate $>$ baseline" for the wrong-support ablation ratios (larger is better because the support is more functionally meaningful when the wrong one hurts more). The main-text family-count column is intentionally not included in these one-sided tests because \(|F_{\rm abs}|\) is a non-directional count.
+Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full per-(system, candidate) breakdown of the retained active-count diagnostic and the three directional interpretability columns of \cref{tab:fixed17_alignment}. Each cell gives the per-system median paired difference between the candidate and the matched-sampling Dense MLP no-shrink baseline (over the common completed seeds, up to $15$ per system), and the corresponding Holm-corrected one-sided paired Wilcoxon $p$-value (Holm correction across the $15$ retained systems within each candidate column). Bold entries indicate Holm-corrected $p<0.05$ in favor of the candidate. The alternative direction is "candidate $<$ baseline" for \(|S_{\rm abs}|\) and \(H(B\mid F_{\rm abs})\) (smaller is better) and "candidate $>$ baseline" for the wrong-support ablation ratios (larger is better because the support is more functionally meaningful when the wrong one hurts more). The main-text family-count column is intentionally not included in these one-sided tests because \(|F_{\rm abs}|\) is a non-directional count.
 
 \begin{table}[tbp]
 \centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(|S_{\rm abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice, on the $17$-system multibasin benchmark. Alternative: candidate \(|S_{\rm abs}|<$ baseline \(|S_{\rm abs}|\). Lower (more negative) is better for the candidate. LISTA-SB denotes the matched $d_z{=}256$ soft-block LISTA ablation.}
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(|S_{\rm abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice, on the $15$-system multibasin benchmark. Alternative: candidate \(|S_{\rm abs}|<$ baseline \(|S_{\rm abs}|\). Lower (more negative) is better for the candidate. LISTA-SB denotes the matched $d_z{=}256$ soft-block LISTA ablation.}
 \label{tab:persystem_size}
 \setlength{\tabcolsep}{3pt}
 \resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_MeanSupportSize.tex}}
@@ -1676,11 +1694,11 @@ Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full 
 \section{Support-routing robustness}
 \label{app:routing_robustness}
 
-\Cref{tab:self_routing_deep} reports the deep-state counterpart to the all-state routing table in the main text. The deep slice removes boundary-adjacent states, so it is useful as a robustness check rather than the primary deployment setting.
+\Cref{tab:self_routing_deep} reports the deep-state route-form diagnostics that were removed from the main table. The deep slice removes boundary-adjacent states, so it is useful as a robustness check rather than the primary deployment setting, and the exact \(S_{\rm top8}\) columns should be read as ablations of the support-family router rather than as the headline routing object.
 
 \begin{table}[tbp]
 \centering
-\caption{Deep-state support-routed forecasting with top-$8$ routes. Entries are routed/global MSE-ratio IQMs with within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched $d_z{=}256$ soft-block LISTA ablation; lower is better.}
+\caption{Deep-state support-routed forecasting route-form diagnostics. \(S_{\rm top8}\) columns use exact eight-index supports; \(F_{\rm top8}\) columns use merged families of those exact supports. Entries are arithmetic means across systems after within-system seed-IQM summarization, with diagnostic within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched $d_z{=}256$ soft-block LISTA ablation; lower is better.}
 \label{tab:self_routing_deep}
 \begin{minipage}[t]{0.49\textwidth}
 \centering
@@ -1688,13 +1706,14 @@ Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full 
 \resizebox{\linewidth}{!}{
 \begin{tabular}{@{}l rrr@{}}
 \toprule
-Model & Gated & Support-local & Family-local \\
+Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:local_fit}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:local_fit}} \\
 \midrule
-LISTA-SB       & $0.883\,[1/17]$           & $0.875\,[2/17]$           & $0.0791\,[13/17]$ \\
-LISTA-BD       & $0.922\,[1/17]$           & $0.911\,[2/17]$           & $\mathbf{0.0324}\,[13/17]$ \\
-Sparse MLP, BD & $\mathbf{0.829}\,[0/17]$ & $0.803\,[0/17]$           & $0.0910\,[5/17]$ \\
-Sparse MLP     & $0.847\,[0/17]$           & $\mathbf{0.792}\,[1/17]$ & $0.661\,[4/17]$ \\
-Dense MLP      & $0.991\,[0/17]$           & $0.989\,[0/17]$           & $662\,[0/17]$ \\
+LISTA          & $0.783\,[4/15]$           & $0.771\,[5/15]$           & $0.165\,[9/15]$ \\
+LISTA-SB       & $0.861\,[1/15]$           & $0.861\,[1/15]$           & $0.00372\,[13/15]$ \\
+LISTA-BD       & $0.915\,[1/15]$           & $0.919\,[1/15]$           & $\mathbf{0.00207}\,[12/15]$ \\
+Sparse MLP, BD & $\mathbf{0.797}\,[0/15]$ & $0.770\,[0/15]$           & $0.00941\,[6/15]$ \\
+Sparse MLP     & $0.813\,[0/15]$           & $\mathbf{0.736}\,[0/15]$ & $0.0104\,[5/15]$ \\
+Dense MLP      & $0.991\,[0/15]$           & $0.990\,[0/15]$           & $102\,[0/15]$ \\
 \bottomrule
 \end{tabular}
 }
@@ -1705,13 +1724,14 @@ Dense MLP      & $0.991\,[0/17]$           & $0.989\,[0/17]$           & $662\,[
 \resizebox{\linewidth}{!}{
 \begin{tabular}{@{}l rrr@{}}
 \toprule
-Model & Gated & Support-local & Family-local \\
+Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:local_fit}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:local_fit}} \\
 \midrule
-LISTA-SB       & $0.850\,[8/17]$           & $0.838\,[7/17]$           & $0.00109\,[15/17]$ \\
-LISTA-BD       & $\mathbf{0.733}\,[7/17]$ & $\mathbf{0.756}\,[8/17]$ & $\mathbf{9.34{\times}10^{-5}}\,[15/17]$ \\
-Sparse MLP, BD & $0.991\,[1/17]$           & $0.962\,[1/17]$           & $0.233\,[16/17]$ \\
-Sparse MLP     & $0.871\,[1/17]$           & $0.810\,[1/17]$           & $119\,[16/17]$ \\
-Dense MLP      & $0.903\,[0/17]$           & $0.972\,[0/17]$           & $533\,[1/17]$ \\
+LISTA          & $0.681\,[8/15]$           & $0.676\,[7/15]$           & $\mathbf{8.03{\times}10^{-14}}\,[11/15]$ \\
+LISTA-SB       & $0.817\,[7/15]$           & $0.809\,[6/15]$           & $6.30{\times}10^{-11}\,[13/15]$ \\
+LISTA-BD       & $0.690\,[6/15]$           & $0.709\,[7/15]$           & $1.19{\times}10^{-7}\,[13/15]$ \\
+Sparse MLP, BD & $\mathbf{1.48{\times}10^{-5}}\,[1/15]$ & $\mathbf{2.99{\times}10^{-4}}\,[1/15]$ & $1.49{\times}10^{-6}\,[14/15]$ \\
+Sparse MLP     & $0.804\,[2/15]$           & $0.738\,[1/15]$           & $0.126\,[14/15]$ \\
+Dense MLP      & $0.849\,[0/15]$           & $0.965\,[0/15]$           & $78.6\,[0/15]$ \\
 \bottomrule
 \end{tabular}
 }
@@ -1721,7 +1741,7 @@ Dense MLP      & $0.903\,[0/17]$           & $0.972\,[0/17]$           & $533\,[
 \section{Full per-system Dysts tables}
 \label{app:dysts_full}
 
-The per-(system, seed) Dysts MSE values are released in the collected \texttt{forecasting\_rows.csv} artifacts. \Cref{tab:dysts_long} reports cross-system IQMs after first summarizing seeds within each system. The $dt{\times}30$ packet is fully finite in median coverage at every reported horizon, but the per-seed distributions remain heavy-tailed on several systems, so the main table and \cref{fig:dysts_long_horizon,fig:appfig_dysts_perseed} should be read together: the table gives actual-MSE point estimates and paired system-level significance markers, while the figures show horizon-scale uncertainty and per-seed dispersion. The soft-block LISTA diagnostic has cross-system IQMs \(3.78{\times}10^{-4}, 0.006, 0.026, 0.065, 0.125, 0.349, 0.639, 0.969\) from \(H100\) through \(H5000\). It improves on Dense MLP in aggregate but does not match the primary sparse forecasting rows and does not survive the main Dysts significance correction. The older tiny-step $H{\leq}60000$ packet is useful as a stress-test diagnostic because it exposed divergent block-diagonal LISTA rollouts, but it is not pooled with the coarser-step table.
+The per-(system, seed) Dysts MSE values are released in the collected \texttt{forecasting\_rows.csv} artifacts. \Cref{tab:dysts_long} reports arithmetic means across systems after first summarizing seeds within each system by IQM. The $dt{\times}30$ packet is fully finite in median coverage at every reported horizon, but the per-seed distributions remain heavy-tailed on several systems, so the main table and \cref{fig:dysts_long_horizon,fig:appfig_dysts_perseed} should be read together: the table gives actual-MSE point estimates and paired system-level significance markers, while the figures show horizon-scale uncertainty and per-seed dispersion. The soft-block LISTA diagnostic improves on Dense MLP in aggregate but does not match the primary sparse forecasting rows and does not survive the main Dysts significance correction. The older tiny-step $H{\leq}60000$ packet is useful as a stress-test diagnostic because it exposed divergent block-diagonal LISTA rollouts, but it is not pooled with the coarser-step table.
 
 \section{Falsification: oracle, random, and latent-cluster controls}
 \label{app:falsification}

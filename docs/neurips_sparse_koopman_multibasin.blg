@@ -3,44 +3,44 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: neurips_sparse_koopman_multibasin.aux
 The style file: plainnat.bst
 Database file #1: neurips_sparse_koopman_multibasin.bib
-You've used 34 entries,
+You've used 32 entries,
             2773 wiz_defined-function locations,
-            872 strings with 13257 characters,
-and the built_in function-call counts, 17369 in all, are:
-= -- 1698
-> -- 887
-< -- 24
-+ -- 301
-- -- 267
-* -- 1511
-:= -- 2690
-add.period$ -- 176
-call.type$ -- 34
-change.case$ -- 190
-chr.to.int$ -- 34
-cite$ -- 68
-duplicate$ -- 741
-empty$ -- 1390
-format.name$ -- 325
-if$ -- 3653
+            859 strings with 12797 characters,
+and the built_in function-call counts, 16628 in all, are:
+= -- 1630
+> -- 867
+< -- 22
++ -- 293
+- -- 261
+* -- 1460
+:= -- 2575
+add.period$ -- 167
+call.type$ -- 32
+change.case$ -- 182
+chr.to.int$ -- 32
+cite$ -- 64
+duplicate$ -- 698
+empty$ -- 1311
+format.name$ -- 317
+if$ -- 3494
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 35
-newline$ -- 247
-num.names$ -- 136
-pop$ -- 287
+missing$ -- 33
+newline$ -- 234
+num.names$ -- 128
+pop$ -- 270
 preamble$ -- 1
-purify$ -- 157
+purify$ -- 151
 quote$ -- 0
-skip$ -- 537
+skip$ -- 512
 stack$ -- 0
-substring$ -- 769
-swap$ -- 89
+substring$ -- 747
+swap$ -- 85
 text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 369
+type$ -- 347
 warning$ -- 0
-while$ -- 156
+while$ -- 149
 width$ -- 0
-write$ -- 591
+write$ -- 560

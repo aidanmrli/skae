@@ -2,8 +2,9 @@
 
 This script uses the same robust Table 2 conventions as
 ``tools/per_system_paired_tests.py``: finite routed/global ratios are
-summarized by per-system IQM and then cross-system IQM, while the bracketed
-K/N counts come from censored within-system seed-paired Wilcoxon/Holm tests.
+summarized by seed-IQM within each system and then arithmetic mean across
+systems, while the bracketed K/N counts come from censored within-system
+seed-paired Wilcoxon/Holm tests.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ import pandas as pd
 from tools.per_system_paired_tests import (
     ROUTING_EXPECTED_SEEDS,
     cell_summary,
+    filter_fixed_benchmark_systems,
     per_system_censored_routing_wilcoxon,
     routing_censor_cap,
     system_iqm_summary,
@@ -100,10 +102,12 @@ def _format_latex_number(value: float) -> str:
     abs_value = abs(value)
     if abs_value == 0.0:
         return "0"
-    if 1e-3 <= abs_value < 1e3:
-        return f"{value:.3g}"
-    mantissa, exponent = f"{value:.2e}".split("e")
-    return rf"{float(mantissa):.2g}{{\times}}10^{{{int(exponent)}}}"
+    if abs_value >= 1000.0 or abs_value < 1e-3:
+        exponent = math.floor(math.log10(abs_value))
+        mantissa = value / (10.0**exponent)
+        return rf"{mantissa:.2f}{{\times}}10^{{{exponent}}}"
+    decimals = max(2 - math.floor(math.log10(abs_value)), 0)
+    return f"{value:.{decimals}f}"
 
 
 def _format_cell(value: float, k: int, n: int) -> str:
@@ -134,7 +138,8 @@ def _write_compact_tex(summary: pd.DataFrame, path: Path) -> None:
         r"\centering",
         (
             r"\caption{Partition-control local forecasting for the top-$8$ support-family comparison. "
-            r"Entries are routed/global MSE-ratio IQMs with within-system Wilcoxon/Holm "
+            r"Entries are routed/global MSE ratios, summarized by seed-IQM within each "
+            r"system and arithmetic mean across systems, with within-system Wilcoxon/Holm "
             r"counts in brackets; lower is better. The LISTA-SB row uses the matched "
             r"$d_z{=}256$ control artifact.}"
         ),
@@ -180,6 +185,7 @@ def _write_compact_tex(summary: pd.DataFrame, path: Path) -> None:
 def summarize(rows_csv: Path, output_dir: Path, support_definition: str) -> tuple[pd.DataFrame, dict]:
     df = pd.read_csv(rows_csv, low_memory=False)
     df = df[df["support_definition"] == support_definition].copy()
+    df = filter_fixed_benchmark_systems(df)
     df = df[df["rollout_mode"].isin(["global_k", *SELECTOR_DISPLAY.keys()])].copy()
     df = df[df["root_label"].isin(MODEL_DISPLAY)].copy()
     expected_systems = sorted(df["system_key"].dropna().unique().tolist())
@@ -236,7 +242,8 @@ def summarize(rows_csv: Path, output_dir: Path, support_definition: str) -> tupl
                         "depth_stratum": depth_value,
                         "selector": selector,
                         "rollout_mode": mode,
-                        "finite_ratio_iqm": res["system_cell"]["iqm"],
+                        "finite_ratio_mean": res["system_cell"]["mean"],
+                        "finite_ratio_iqm": res["system_cell"]["mean"],
                         "finite_ratio_global_iqm": res["cell"]["iqm"],
                         "finite_ratio_n": res["cell"]["n"],
                         "finite_ratio_n_systems": res["system_cell"]["n_systems"],
