@@ -30,8 +30,6 @@
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
 \DeclareMathOperator{\supp}{supp}
 \DeclareMathOperator{\sign}{sign}
-\providecommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
-\providecommand{\note}[1]{\textcolor{magenta}{[NOTE: #1]}}
 
 \theoremstyle{plain}
 \newtheorem{proposition}{Proposition}
@@ -59,65 +57,94 @@
 \maketitle
 
 \begin{abstract}
-Koopman autoencoders promise linear latent dynamics for nonlinear systems, but multibasin dynamics violate the premise of a single finite-dimensional, state-reconstructing linear description: different basins can require incompatible local laws. We ask whether sparsity can turn this obstruction into an inspectable representation. We train sparse-latent Koopman autoencoders without basin labels, basin counts, or regime annotations, and use their learned active supports only after training as model-produced regime variables. Across \(15\) procedurally generated multibasin systems, sparse support families recover basin-scale structure on held-out basin-interior states, while dense controls collapse basins into mixed supports. Wrong-support interventions increase one-step error by orders of magnitude, showing that support identity is not merely descriptive but functionally tied to prediction. Without oracle labels, support-family routing selects local linear predictors that improve long-horizon rollouts, and periodic re-encoding refreshes supports after basin transfer. On \(12\) chaotic-flow benchmarks, sparse-latent models also outperform dense-latent controls. These results show that learned sparse supports provide label-free, interpretable regime variables for multibasin Koopman learning.
+    Koopman autoencoders seek latent coordinates in which nonlinear dynamics evolve linearly, but multibasin systems are challenging: different basins can require incompatible local linear descriptions, so a single finite-dimensional state-reconstructing linear model may hide or average over regime structure. We show that encoders inducing latent sparsity provide latent supports as an inspectable modeling principle. We train sparse Koopman autoencoders without basin labels or trajectory-to-basin assignments, and treat the learned active latent supports as model-produced regime variables only after training. Across a suite of procedurally generated multibasin systems, merged sparse-support families recover basin structure on held-out basin interior states, achieving near-zero conditional basin uncertainty while models without sparsity incentive collapse to mixed supports. We also show that supports are functionally used rather than merely correlated with labels with intervention-based experiments. The same support family variables can select local linear predictors without oracle labels, reducing long-horizon rollout error for LISTA-style sparse encoders, while periodically decoding and re-encoding the latent state can refresh support selection after controlled basin transfer. Sparse-latent models also improve long-horizon forecasting over dense-latent controls on the multibasin systems and on chaotic flows from an external repository. These results identify sparse supports as label-free, interpretable regime variables for Koopman learning in nonlinear systems with multiple local dynamical laws.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Learning accurate and interpretable models of nonlinear dynamical systems remains a central problem in machine learning, scientific computing, and control. One particularly attractive direction is to seek a representation in which the nonlinear dynamics can become locally linear, since linear models support efficient prediction, estimation, and control while remaining amenable to classical solving tools such as linear quadratic regulators (LQR) \citep{kalman_general_1960} and model predictive control (MPC) \citep{mayne_constrained_2000, grune_nonlinear_2017}. Classical linearization theory gives local topological conjugacies near hyperbolic equilibria \citep{grobman1959homeomorphism,hartman1960lemma}, and Koopman eigenfunction theory extends related linearizing coordinates to entire basins of attraction for stable equilibria and periodic orbits \citep{lan_linearization_2013,kvalheim_existence_2021}. So indeed, a bridge between nonlinear and linear dynamics can be found theoretically.
+Learning representations for nonlinear dynamical systems remains a central problem in
+machine learning, scientific computing, and control. 
+A particularly useful goal is to
+embed nonlinear dynamics into coordinates in which the evolution is linear, or at least locally linear, because linear models can be combined with mature tools for prediction,
+estimation, and control, including model predictive control and linear quadratic
+regulation~\citep{mayne_constrained_2000,grune_nonlinear_2017,korda_linear_2018, kalman_general_1960, mamakoukas_local_2019}. This goal is also well motivated
+theoretically. Classical dynamical-systems results provide local topological
+linearizations near hyperbolic fixed points~\citep{grobman1959homeomorphism,
+hartman1960lemma}, while Koopman eigenfunction constructions can yield linearizing
+coordinates on basins of attraction for stable equilibria and periodic
+orbits~\citep{lan_linearization_2013,kvalheim_existence_2021}. Thus, nonlinear systems
+may admit linear dynamics with a specific change of coordinates.
 
-Koopman operator theory provides a natural way to do this. Instead of evolving the state in the nonlinear dynamical system directly, Koopman theory studies the evolution of observables under a linear operator acting on a lifted function space \citep{koopman_hamiltonian_1931, koopman_dynamical_1932, mezic2005spectral, brunton_modern_2022}. This viewpoint has inspired a large line of literature on data-driven approximations of Koopman dynamics, such as DMD and eDMD \citep{schmid_dmd_2010, williams_datadriven_2015, williams_kernel-based_2016}, and applications of these linear predictors for nonlinear control via MPC \citep{korda_linear_2018} or LQR \citep{mamakoukas_local_2019}.
-More recently, Koopman autoencoders which learn this lift from data have emerged from integrating deep learning with Koopman theory \citep{takeishi2017learning,lusch_deep_2018,otto2019linearly, azencot_forecasting_2020, shi_deep_2022, fathi2024course}. Koopman autoencoders learn an encoder which maps a state to a latent representation, a matrix that advances that representation linearly, and a decoder that maps the latent state back to the original state space.
+The difficulty is that these results are primarily existential. 
+They establish when useful coordinates can exist, but they do not by themselves provide a finite-data procedure for constructing such coordinates.
+Koopman operator theory formalizes the linearization idea by lifting nonlinear
+state evolution to a linear operator acting on observables \citep{koopman_hamiltonian_1931, koopman_dynamical_1932, mezic2005spectral, brunton_modern_2022}. 
+This viewpoint has inspired data-driven approximations of Koopman dynamics, such as DMD and eDMD \citep{schmid_dmd_2010, williams_datadriven_2015, williams_kernel-based_2016},
+and more recently to Koopman autoencoders, which learn an encoder from state space to a latent representation, a linear latent transition matrix, and a decoder back to state space \citep{takeishi2017learning,lusch_deep_2018,otto2019linearly, azencot_forecasting_2020, shi_deep_2022, fathi2024course}. 
+These models provide an appealing route from existence results to practical learning: rather than hand-designing observables, they attempt to learn the embedding directly from trajectory data.
 
-A central challenge of Koopman approximations is that the most interesting nonlinear systems typically contain multiple equilibria or multiple basins of attraction, and theory shows that these systems cannot admit a single finite-dimensional global linearization \citep{lan_linearization_2013, brunton_koopman_2016, pan_lifting_2024}.
-For example, a damped mechanical system can settle into different wells; a biological or chemical model can approach different stable equilibria; a controlled system can move between regions with distinct local dynamics.
-In such multistable systems, it is possible to linearize the dynamics within basins, but the linearizations needed in different basins of attraction are incompatible with each other.
-% The problem goes beyond predicting trajectories within a single locally valid basin to representing dynamics that may move across qualitatively different regimes while preserving enough structure to support downstream reasoning and control.
-Given the theoretical argument, multibasin forecasting with a single global finite-dimensional linearization seems ill-posed; it is more naturally a problem of discovering which local linear description, or which description valid across a basin, applies at the current state.
+A central challenge for Koopman approximations is that many practically interesting nonlinear systems typically contain multiple equilibria or basins of attraction; for example, a damped mechanical system can settle into different wells, a biological or chemical model can approach different stable equilibria, and a controlled system can move between regions with distinct local dynamics. However, theory shows that these systems cannot admit a single finite-dimensional global linearization with a continuous encoder-decoder pair \citep{lan_linearization_2013, brunton_koopman_2016, pan_lifting_2024,liu_properties_2025}, and empirical evidence supports this in practice \citep{fathi2024course}. 
+In such multistable systems, it is possible to linearize the dynamics within basins, but the linearizations needed in different basins of attraction are generally incompatible with each other. 
+Therefore, for multi-attractor systems, the right objective is not to force all basins through one continuous global linearization, but to discover and use distinct local linearizations.
+% Given the theoretical argument, multibasin forecasting with a single global finite-dimensional linearization seems ill-posed; it is more naturally a problem of discovering which local or basin-wide linear description applies at the current state.
+
+This paper proposes inducing sparse latent structure as a practical and interpretable method for Koopman learning of multi-attractor systems. 
+By inducing the state to activate only a small subset of coordinates in lifted latent space, we can incentivize different regions of state to occupy different active coordinates, since nearby states should have similar latent embeddings, and thus enable local linearizations.
+In this sparse representation, nonzero coefficient values in a latent vector can provide continuous coordinates for prediction within a selected region, while the active indices provide a discrete support object that can be inspected across states and used to select local linearizations. 
+
+Sparse coding and LISTA-style encoders provide the right inductive bias for this purpose. They naturally induce piecewise-linear, union-of-subspaces structure~\citep{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003,gregor_learning_2010}, which is well-matched to this setting where different attractors or basins require different local linearizations in theory. 
+We hypothesize that sparse-latent Koopman autoencoders will assign local dynamical regimes to distinct latent support families, yielding a learned regime variable without basin supervision.
+Then, periodically decoding and re-encoding the state can refresh the quality of the latent embedding over time by re-selecting the correct local dynamics when trajectories move across the state space \citep{fathi2024course}. 
 
 
-If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation of a Koopman autoencoder should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes. Our hypothesis is that sparse coding offers an appealing inductive bias for this purpose. Classical sparse coding and LISTA-style encoders produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}.
-If the latent representation of state produced by a LISTA encoder is sparse, then each state activates only a small subset of latent coordinates. That active subset, which we call a support, is a discrete object that can be inspected and used for routing to correct locally linear dynamics. Then, periodically decoding and re-encoding the state can refresh the quality of the latent embedding over time by re-selecting the correct local dynamics as trajectories move across the state space \citep{fathi2024course}.
+% If Koopman models are to serve as a foundation for interpretable multi-regime modeling, then the latent representation of a Koopman autoencoder should do more than forecast well: ideally, it should organize the state space into meaningful local dynamical regimes.
+% We hypothesize that methods that induce sparse latents, such as sparse coding, offer an appealing inductive bias for this purpose. Classical sparse coding and LISTA-style encoders produce piecewise-linear mappings and union-of-subspaces structure in latent space \citep{olshausen_emergence_1996, chen_atomic_1998, donoho_optimally_2003, gregor_learning_2010}. 
+% If the latent representation of state produced by an encoder is sparse, then each state activates only a small subset of latent coordinates. 
+% That active subset, which we call a support, is a discrete object that can be inspected and used to select a support-conditioned local linear predictor.
 
-This paper tests that hypothesis in a deliberately label-free learning setting. During training and deployment, the model is not told the number of basins, the basin assignment of any trajectory, or which local linear law should be used. Basin labels, when available in controlled benchmarks, are reserved for evaluation. The contribution is an empirical and mechanistic study of whether induced latent sparsity produces \(F_{\rm abs}\) families that align with basin labels in evaluation, whether \(S_{\rm top8}\) and \(F_{\rm top8}\) can route local predictors without oracle labels, and whether the resulting sparse-latent Koopman models remain competitive on long-horizon forecasting tasks.
 
-The paper follows this chain directly. \Cref{sec:problem} formulates multibasin Koopman learning, \cref{sec:sparse-supports} explains why sparse supports can identify local dynamical regimes, and \cref{sec:method} defines the sparse-latent model, support objects, re-encoding rule, and training objective. \Cref{sec:experiments} then states the evaluation protocol, including the support-routed prediction tests, and \cref{sec:results} presents the evidence in the same order as the claim: \(F_{\rm abs}\)-basin alignment, non-oracle \(S_{\rm top8}\) and \(F_{\rm top8}\) routing, \(S_{\rm top8}\) refresh after transfer into a new basin, and long-horizon forecasting.
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf}
-\caption{Benchmark visual diagnostics. Top: controlled multibasin systems where the pale background is the evaluation basin map, gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm top8}\) families are mapped post hoc to each family's dominant evaluation basin. Basin labels and counts are evaluation-only, and the catalog panels use the attractor-center basin convention from the validation figures. Bottom: Dysts $dt{\times}30$ $H5000$ phase portraits with held-out truth in gray and forecasts from the best seed-$0$ primary model. Dysts is used only for forecasting and has no basin labels.}
-\label{fig:benchmarks}
-\end{figure}
+\paragraph{Contributions.} This paper contributes an empirical and mechanistic study showing (1) induced latent sparsity produces support objects that are basin-aligned, (2) support objects can identify and select appropriate local region predictors without oracle labels, (3) periodic re-encoding updates \citep{fathi2024course} can refresh the selected support after controlled basin transfer, and (4) sparse-latent Koopman autoencoders improve long-horizon forecasting performance. 
+% We do so in a label-free learning setting. During training and deployment, the model is not told the number of basins, the basin assignment of any trajectory, or which local linear law should be used;
+The results demonstrate basin identification is an \textit{emergent} property of sparse-latent Koopman autoencoders that is useful for prediction.
 
 \section{Problem formulation}
 \label{sec:problem}
 
-The introduction motivates a multibasin version of Koopman learning. Given sampled trajectories of a nonlinear system, the aim is to learn a state-reconstructing latent representation whose evolution is linear, without being told which basin or local dynamical regime generated each observation. The benchmarks may be defined by continuous-time dynamics, but the learner is only given stored observations. Thus, for each system, we work with the one-step observation map
+The introduction motivates a multibasin version of Koopman learning. Given sampled trajectories of a nonlinear system, the aim is to learn a state-reconstructing latent representation whose evolution is linear, without being told which basin or local dynamical regime generated each observation. 
+% The benchmarks may be defined by continuous-time dynamics, but the learner is only given stored observations. 
+We formulate the problem at the cadence of the stored benchmark observations.
+For each system, let \(\mathcal X\subseteq\R^{d_x}\) be the observed state space and let  
 \begin{equation}
-  x_{k+1}=F_{\Delta t}(x_k),
-  \label{eq:sampled_map}
+    x_{k+1}=F_{\Delta t}(x_k),\qquad x_k\in\mathcal X,
+    \label{eq:sampled_map}
 \end{equation}
-where $x_k\in\R^{d_x}$ is the state at the $k$th stored sample, $F_{\Delta t}$ denotes one benchmark observation step, and $\Delta t$ is the system-specific observation interval. The model does not observe the continuous flow, the vector field, or the internal integration steps used to generate the cached trajectories. Forecasting is therefore defined at the stored sampling cadence: a horizon of $H$ means $H$ applications of $F_{\Delta t}$. Because $\Delta t$ may differ across benchmark systems, equal values of $H$ need not correspond to equal physical time.
+where $x_k\in\R^{d_x}$ is the state at the $k$th stored sample, $F_{\Delta t}$ denotes the transformation to the next discrete observation step based on underlying dynamics, and $\Delta t$ is the system-specific observation interval. 
+% The model does not observe the continuous flow, the vector field, or the internal integration steps used to generate the cached trajectories. 
+Forecasting is therefore defined by repeatedly applying the map $F_{\Delta t}$; a horizon of $h$ means $h$ applications of $F_{\Delta t}$; we denote $k$ compositions as $F_{\Delta t}^{\,(k)}$. Because $\Delta t$ may differ across systems, equal values of $h$ may yield different physical time.
 
-\paragraph{Basins of attraction.} Many systems of interest are multistable: different initial conditions can approach different long-run behaviours.
-A fixed point is a state $x^\ast$ satisfying $F_{\Delta t}(x^\ast)=x^\ast$, equivalently $f(x^\ast)=0$ in continuous time.
-More generally, a trajectory may approach an attractor $A$, such as a stable equilibrium, limit cycle, torus, or chaotic invariant set.
+\paragraph{Basins of attraction.} Many systems of interest are multistable: different initial conditions can approach different long-run behaviors. 
+A fixed point is a state $x^\ast$ satisfying $F_{\Delta t}(x^\ast)=x^\ast$. 
+More generally, a trajectory may approach an attractor $A$, such as a stable equilibrium, limit cycle, countable finite set, or chaotic invariant set. 
 The basin of attraction of $A$ is the set of initial conditions whose trajectories converge to $A$:
 \begin{equation}
   \mathcal{B}(A)
   =
   \left\{
     x_0\in\R^{d_x}:
-    \operatorname{dist}\!\left(F_{\Delta t}^{\,k}(x_0), A\right)\to 0
+    \inf_{a\in A}\norm{F_{\Delta t}^{\,(k)}(x_0)-a}_2\!\to 0
     \text{ as } k\to\infty
   \right\}.
   \label{eq:basin}
 \end{equation}
-When multiple attractors coexist, their basins partition the state space up to basin boundaries. This creates the regime of interest for this paper. Within one basin, a useful linear description may exist locally or even basin-wide in appropriate coordinates, but another basin may require an incompatible description. Thus, the task is to learn a representation that can support linear prediction while the appropriate linear law may depend on where the current state lies in the multibasin geometry.
+When multiple attractors coexist, their basins partition the state space up to basin boundaries. This defines the setup for this paper. 
+% Within one basin, a useful linear description may exist locally or even basin-wide in appropriate coordinates, but another basin may require an incompatible description. Thus, 
+The task is to learn a representation that can support linear prediction where the appropriate linear law depends on where the state lies in the multibasin geometry.
 
-\paragraph{Koopman autoencoders.} We study this setting with Koopman autoencoders. The model learns an encoder $\Enc:\R^{d_x}\rightarrow\R^{d_z}$, a decoder $\Dec:\R^{d_z}\rightarrow\R^{d_x}$, and a latent linear transition matrix $K\in\R^{d_z\times d_z}$. Given an initial observation $x_k$, the corresponding open-loop $h$-step forecast is
+\paragraph{Koopman theory.} The stored-step map \(F_{\Delta t}\) induces a Koopman operator \(\mathcal K\) on scalar observables \(g:\mathcal X\to\R\) by composition, \((\mathcal K g)(x)=g(F_{\Delta t}(x))\). Although \(F_{\Delta t}\) may be nonlinear, \(\mathcal K\) is linear on the space of observables. A finite-dimensional Koopman approximation searches for a vector observable \(\Phi:\mathcal X\to\R^{d_z}\) and a matrix \(K\) such that \(\Phi(F_{\Delta t}(x))\approx K\Phi(x)\), while retaining enough information to reconstruct the state. Additional background is provided in \cref{app:background}.
+
+
+\paragraph{Koopman autoencoders.} We study this setting with Koopman autoencoders (KAEs). The model learns an encoder $\Enc:\R^{d_x}\rightarrow\R^{d_z}$, a decoder $\Dec:\R^{d_z}\rightarrow\R^{d_x}$, and a latent linear transition matrix $K\in\R^{d_z\times d_z}$. For observation $x_k$ at arbitrary timestep $k$, the corresponding open-loop $h$-step forecast is
 \begin{equation}
   \hat x_{k+h}=\Dec\!\left(K^h\Enc(x_k)\right).
   \label{eq:kae_forecast}
@@ -137,169 +164,69 @@ $\{x_{b,k},x_{b,k+1},\ldots,x_{b,k+L}\}_{b=1}^{B}$, where $b$ indexes windows an
 \end{equation}
 The training losses described later are built from these reconstructed and rolled-out quantities. Each application of $K$ is interpreted as one stored benchmark step, matching the observation map in \cref{eq:sampled_map}.
 
-\paragraph{Model discovers basins unsupervised.} In the intended training and deployment setting, the model is not given basin labels, the number of basins, or trajectory-to-basin assignments. When benchmark basin annotations are available, they are reserved for post-hoc evaluation; they are not used to choose the model, train the encoder or transition, or route predictions.
-
-\section{Sparse supports as local-regime indicators}
-\label{sec:sparse-supports}
-
-The problem formulation leaves a simple constraint: the Koopman autoencoder uses
-one latent transition \(K\), so any information about which local predictive
-description is appropriate must be carried by the representation \(z=E_\theta(x)\).
-A dense code may store this information implicitly, but a sparse code exposes this information through its active set \(S(x)=\{i:z_i\neq 0\}\). The coefficients
-\(z_{S(x)}\) can encode the continuous state within a local regime, while the
-support can serve as a discrete, label-free candidate for the current regime. The claim is mechanistic: sparsity gives the
-model a natural object whose geometric and predictive meaning can be tested.
-
-The following theorem and corollaries explain why supports are the right object to
-study. Here, ``support'' means exact zero support, but the thresholded and top-\(k\)
-supports used later are empirical heuristics and not exact algebraic identities. \todo{Need to review the proofs more thoroughly or get a specialist to do it. (maybe in exchange for authorship?) GPT-5.5 Pro produced the theorems, corollaries, and proofs.}
-
-\begin{theorem}[Support-stratified Koopman predictors]
-\label{thm:support-local-affine}
-Let \(E:\mathbb R^{d_x}\to\mathbb R^{d_z}\) be single-valued and piecewise
-affine on a finite polyhedral stratification. Let
-\(D_\phi(z)=D_{\rm dec}z+b_{\rm dec}\) be affine, let
-\(K\in\mathbb R^{d_z\times d_z}\), and define
-\(F_h(x)=D_{\rm dec}K^hE(x)+b_{\rm dec}\). Then \(F_h\) is piecewise affine for
-every \(h\ge1\). Moreover, after a finite refinement, the signed support of
-\(E(x)\) is constant on each stratum. On any refined stratum \(\mathcal S\), with
-exact support \(S_{\mathcal S}=\operatorname{supp}(E(x))\), we have
-\(F_h(x)=D_{\rm dec}(K^h)_{:,S_{\mathcal S}}E_{S_{\mathcal S}}(x)+b_{\rm dec}\)
-for all \(x\in\mathcal S\). For any fixed re-encoding period \(p\), every finite
-composition of \(G_p(x)=D_{\rm dec}K^pE(x)+b_{\rm dec}\) is also piecewise affine
-on a finite itinerary stratification.
-\end{theorem}
-
-This theorem states that exact supports select active latent
-coordinates, and hence active columns of \(K^h\), within a finite collection of
-local affine decoded predictors. The full state-space affine map may still
-depend on the encoder piece, so two regions with the same support need not have
-identical local dynamics.
-
-The assumptions of Theorem~\ref{thm:support-local-affine} hold for the sparse
-encoders used to motivate our model.
-
-\begin{corollary}[Exact sparse coding]
-\label{cor:lasso-pwa-short}
-Let \(D\in\mathbb R^{d_x\times d_z}\) be the linear decoder/dictionary and
-let \(\lambda>0\). Suppose that, for every \(x\), the objective
-\(\frac12\|x-Dz\|_2^2+\lambda\|z\|_1\) has a unique minimizer, and define
-\(E_{\rm sc}(x)\) to be that minimizer. Then \(E_{\rm sc}\) is continuous and
-piecewise affine on a finite polyhedral stratification. Hence the decoded
-Koopman predictor \(x\mapsto DK^hE_{\rm sc}(x)\) is support-stratified
-piecewise affine as in Theorem~\ref{thm:support-local-affine}.
-\end{corollary}
-
-\begin{corollary}[Finite-depth LISTA]
-\label{cor:lista-pwa-short}
-Let \(T_\tau(y)_i=\operatorname{sign}(y_i)\max\{|y_i|-\tau_i,0\}\) be
-coordinatewise soft-thresholding. If \(c:\mathbb R^{d_x}\to\mathbb R^{d_z}\) is
-piecewise affine and
-\(u^{(0)}(x)=T_\tau(c(x))\),
-\(u^{(q+1)}(x)=T_\tau(S_{\rm L}u^{(q)}(x)+c(x))\), then the finite-depth encoder
-\(E_{\rm LISTA}(x)=u^{(Q)}(x)\) is single-valued and piecewise affine on a finite
-polyhedral stratification. Hence, Theorem~\ref{thm:support-local-affine} applies.
-This includes affine, ReLU, and leaky-ReLU pre-codes \(c=f_\theta(x)\).
-\end{corollary}
-
-Formal definitions, detailed statements, and proofs of
-Theorem~\ref{thm:support-local-affine} and
-Corollaries~\ref{cor:lasso-pwa-short}--\ref{cor:lista-pwa-short} are deferred to
-Appendix~\ref{app:pwa-supports}.
-Now that we have established the motivation for studying supports, we proceed to an empirical study of (1) whether \(F_{\rm abs}\) aligns with
-withheld basin labels, and (2) whether \(S_{\rm top8}\) and \(F_{\rm top8}\) select useful local
-predictors in practice.
+\paragraph{Model discovers basins unsupervised.} In the intended training and deployment setting, the sparse-support mechanism is not given basin labels, the number of basins, or trajectory-to-basin assignments. When benchmark basin labels are available, they are reserved for post-hoc evaluation; they are not used to choose support families, train the encoder or transition, or select supports for support-conditioned predictions. The block-diagonal and soft-block transition rows are architecture diagnostics: for those ablations only, the fixed number of latent transition groups is set from benchmark generator metadata, as detailed in \cref{app:experimental_details}.
 
 \section{Method}
 \label{sec:method}
+\subsection{Sparse supports as local regime variables}
+\label{sec:method_regime_supports}
+
+ Finite dimensional Koopman representations of multi-basin systems described in \cref{sec:problem} should: (i) have continuous coordinates that linearize each basin of attraction, and (ii) represent each basin of attraction with a discrete indication of which local linearization is active. Specifically, if the Koopman representation of the original state $x$ is given by a sparse code $z$ then the support (non-zero elements) can serve to identify the attractor, and the continuous \emph{values} describe the coordinates of its corresponding linearized dynamics.
+ 
+ % We call such a discrete indication a \emph{local regime variable}: a quantity computed from the model state that can group states or route predictors without being supplied as a label. 
 
 
-\subsection{Model class}
-\label{sec:method_model}
-
-Can a Koopman autoencoder trained without basin supervision expose the current basin or local predictive regime? We evaluate the following chain:
+Given an overcomplete dictionary $D$, the Lasso loss \citep{beck2009fast} finds the fewest nonzero coefficients of $z$ to reconstruct the input $x$. In other words, it finds the sparsest solution to the underdetermined problem. 
 \begin{equation}
-  \begin{aligned}
+  z^\star(x)
+  =
+  \argmin_{z\in\R^{d_z}}
+  \frac{1}{2}\norm{x-Dz}_2^2+\lambda_{\rm sc}\norm{z}_1,
+  \qquad \lambda_{\rm sc}>0.
+  \label{eq:sparse_coding_objective}
+\end{equation}
+The classical solver to this problem (ISTA \citep{beck2009fast}) can be unrolled into a deep network of depth $L$, where each loop (layer) corresponds to a single iteration of ISTA. This is known as learned ISTA or LISTA \citep{gregor_learning_2010}, and the sparse code is given by the encoder \(z=\Enc(x)\) where the \emph{support} is the set of active latent coordinates. With a linear decoder (unit norm columns), the support selects which decoder columns participate in reconstructing the state, while the nonzero coefficients give coordinates within that selected reconstruction subspace. If both $D$ and $z$ are optimized jointly (Sparse Coding \citep{olshausen_emergence_1996}), this can be interpreted as partitioning the input space into distinct geometric regions, where each region is mapped to a specific subset of active dictionary atoms that provide a localized linear reconstruction of the signal. Thus, by combining the Koopman and Sparse Coding objectives if different basins require different local linear descriptions, a sparse Koopman Autoencoder can represent the current state by both a continuous code and a discrete active-coordinate pattern. We therefore posit that combining Koopman representations and sparse coding implicitly captures multi-basin attractor dynamics without explicit labels, where the discrete support set identifies the active basin of attraction and the continuous coefficient values provide its localized linear representation.
+
+
+We therefore evaluate the following chain:
+\begin{equation}
   \text{sparse latent code}
-  \Longrightarrow\;\text{support family-basin alignment}
-  \Longrightarrow\;\text{support-conditioned prediction}.
-  \end{aligned}
+  \Longrightarrow
+  \text{support family--basin alignment}
+  \Longrightarrow
+  \text{support-conditioned prediction}.
   \label{eq:claim_chain}
 \end{equation}
-The model and objective induce the sparse code. Basin labels are withheld during training and deployment. They enter only after training, to score alignment and to define evaluation interventions.
+The sparse latent code is induced by the architecture and objective. Basin labels, when available in benchmarks, are used only after training to evaluate alignment or define diagnostic interventions.
 
-The underlying predictor is a Koopman autoencoder with encoder $\Enc$, decoder $\Dec$, and latent transition $K$. Using a linear decoder, the maps are
-\begin{equation}
-  z_t=\Enc(x_t)\in\R^{d_z},\qquad \Dec(z)=Dz,\qquad \hat z_{t+1}=Kz_t,\qquad \hat x_{t+1}=\Dec(\hat z_{t+1}).
-\end{equation}
-An active coordinate selects a learned reconstruction direction, while the latent state evolves through the same linear transition between re-encoding events. Sparsity is a property of the learned representation, not an assumption about the physical state.
+\subsection{Koopman autoencoder and sparse encoder}
+\label{sec:method_model}
 
-\paragraph{Sparse encoder.}
-Our main sparse encoder uses LISTA-style amortized sparse inference \citep{gregor_learning_2010}. The encoder first computes a dense pre-code $c_t=f_\theta(x_t)$ and then applies learned shrinkage refinements, for $q=0,\ldots,Q-1$:
+The predictor follows the Koopman-autoencoder formulation in \cref{sec:problem}: an encoder \(\Enc\), a decoder \(\Dec\), and a latent transition \(K\) produce the rollout in \cref{eq:kae_forecast}. For the linear-decoder rows used here, the learned parameter tuple is \((\theta,D,K)\): encoder parameters \(\theta\), a decoder dictionary \(D\) with normalized columns, and the latent transition. Thus \(\Dec(z)=Dz\), sparsity is imposed on the learned latent representation \(z_t=\Enc(x_t)\), and we vary whether \(K\) is dense, block diagonal, or softly block-regularized. Sparsity is not an assumption about the physical state \(x_t\).
+
+\paragraph{Sparse encoding.} Our encoders implement the sparse-code bias through shrinkage and a training $\ell_1$ sparsity penalty rather than by solving \cref{eq:sparse_coding_objective} at evaluation time. Our main sparse encoder is a learned iterative shrinkage-thresholding architecture, or LISTA encoder \citep{gregor_learning_2010}. It first computes a dense pre-code \(c_t=f_\theta(x_t)\), then applies learned shrinkage refinements for $q=0,\ldots,Q-1$:
 \begin{equation}
-  u_t^{(0)}=\shrink(c_t,\tau),\qquad u_t^{(q+1)}=\shrink(Su_t^{(q)}+c_t,\tau),\qquad z_t=u_t^{(Q)}.
+  u_t^{(0)}=\shrink(c_t,\tau),\qquad
+  u_t^{(q+1)}=\shrink(Su_t^{(q)}+c_t,\tau),\qquad
+  z_t=u_t^{(Q)}.
   \label{eq:lista}
 \end{equation}
-Here $\shrink(a,\tau)=\operatorname{sign}(a)\max(|a|-\tau,0)$ is the standard elementwise soft-thresholding map, $S$ is learned, and $\tau$ sets the shrinkage scale. The thresholding operation gives the encoder an explicit mechanism for selecting active coordinates, while the learned pre-code and refinement weights allow the selection rule to adapt to the prediction objective.
+Here $\shrink(a,\tau)=\operatorname{sign}(a)\max(|a|-\tau,0)$
+is applied elementwise, \(S\) is learned, and \(\tau\) controls the threshold scale for shrinkage. The thresholding step creates exact zeros, so the encoder explicitly selects active latent coordinates while learning the selection rule from the prediction objective.
 
-\paragraph{Transition families.}
-We vary the structure of the latent transition $K$ separately from the encoder to isolate induced sparsity effects from structured $K$ effects. The dense transition leaves $K$ unrestricted. The block-diagonal transition partitions the latent coordinates into $M$ groups and constrains
+\paragraph{Transition families.} We vary the structure of \(K\) separately from the encoder. The dense transition leaves \(K\) unrestricted. The block-diagonal transition partitions latent coordinates into \(M\) fixed groups and constrains
 \begin{equation}
-  K_{\rm block}=\blkdiag(K_1,\ldots,K_M),
+  K_{\rm block}=\blkdiag(K_1,\ldots,K_M).
+  \label{eq:block_transition}
 \end{equation}
-so each group evolves internally. We also evaluate a soft-block LISTA ablation, which keeps \(K\) dense but penalizes entries that couple different groups,
+We also use a soft-block LISTA ablation that keeps \(K\) dense but penalizes cross-group entries,
 \begin{equation}
-  \mathcal{L}_{\rm offblock}=\sum_{i,j:\,g(i)\ne g(j)} |K_{ij}|,
+  \mathcal{L}_{\rm offblock}
+  =
+  \sum_{i,j:\,g(i)\ne g(j)} |K_{ij}|,
+  \label{eq:offblock_penalty}
 \end{equation}
-where $g(i)$ denotes the group containing coordinate $i$. These groups are architectural coordinates, not basin labels. All basin comparisons are performed only after training.
-
-\subsection{Support objects}
-\label{sec:method_supports}
-
-The central object in the paper is the active set induced by an encoded state. 
-Given \(z=\Enc(x)\), a support rule maps the latent state to an active coordinate set. Exact supports are useful raw masks, but a basin can be split across many exact support threshold variants. We therefore use \textit{support families}, which merge nearby exact masks without basin labels and test whether they form basin-scale groups.
-We use three support constructions:
-\begin{itemize}
-  \item \textbf{Absolute-threshold support.} \(S_{\rm abs}(x)=\{i:\ |z_i|>10^{-3}\}\). This strict mask is the input to \(F_{\rm abs}\) and to canonical wrong-support interventions. Its entropy, fragmentation, and active-coordinate count are appendix checks.
-  \item \textbf{Absolute-threshold support family.} \(F_{\rm abs}\) is the family label obtained by greedy Jaccard merging of the exact masks produced by \(S_{\rm abs}\). On a collection of encoded states \(\mathcal X\), unique masks are visited in decreasing empirical frequency. A mask \(s\) is assigned to the existing family whose prototype \(p_f\) maximizes
-  \[
-    J(s,p_f)=\frac{|s\cap p_f|}{|s\cup p_f|},
-  \]
-  with \(J(\emptyset,\emptyset)=1\), if the maximum similarity is at least \(0.5\); otherwise \(s\) starts a new family with prototype \(p_f=s\). We write \(F_{\rm abs}(x)\) for the family assigned to \(S_{\rm abs}(x)\), and \(|F_{\rm abs}|\) for the number of occupied families. Families are built without basin labels; labels are used only afterward to compute \(H(B\mid F_{\rm abs})\).
-  \item \textbf{Fixed-size top-\(8\) support and family.} \(S_{\rm top8}(x)=\operatorname{top}_8(|z|)\) is the set of the eight largest-magnitude coordinates. Unlike \(S_{\rm abs}\), it gives every state the same number of active indices and does not depend on a magnitude threshold. \(F_{\rm top8}(x)\) is obtained by applying the same Jaccard merge to exact \(S_{\rm top8}\) masks. Each state still begins with exactly eight active indices; \(F_{\rm top8}\) is a family label for nearby eight-index masks, not a new fixed-size mask.
-\end{itemize}
-A third scale-relative rule, $S_{\rm rel}(x)=\{i:\ |z_i|>0.1\max_j |z_j|\}$, is used only in appendix sensitivity checks for centered local laws.
-% It is not used for the main routing table because thresholded exact supports fragment the label space, while $S_{\rm top8}$ assigns every state a fixed-size label.
-
-This separation keeps the main alignment test at basin scale. One basin or local regime may contain several nearby exact masks, especially near boundaries or when weak coordinates cross threshold. In the main text, \(F_{\rm abs}\) is the support--basin alignment object. The top-\(8\) objects are used for support-conditioned prediction, where a fixed-size support gives every state a comparable discrete label.
-
-
-\subsection{Periodic re-encoding}
-If a support indicates the currently relevant local dynamics, a long rollout should be able to update that support. We therefore evaluate periodic re-encoding, following \citet{fathi2024course}. Starting from $z_k=\Enc(x_k)$ and a re-encoding period $m$, the model advances for $m$ Koopman steps, decodes the predicted state, and encodes that prediction again:
-\begin{equation}
-  \tilde z_{k+m}=K^m z_k,\qquad
-  \tilde x_{k+m}=\Dec(\tilde z_{k+m}),\qquad
-  z_{k+m}=\Enc(\tilde x_{k+m}).
-  \label{eq:reencode}
-\end{equation}
-The same procedure is repeated over the rollout horizon. Each rollout uses only the model's predicted state; it does not use the true future state, a basin label, or an oracle for transitions between basins.
-
-\subsection{Support-conditioned rollouts}
-\label{sec:method_rollouts}
-\todo{Rewrite this based on the new Table 2 that focuses on families.}
-We also define rules to test whether learned supports can select local predictors without supplied regime labels. Support-conditioned rollouts use a support object as a label \(c\) that selects how the current latent state is advanced. This is the sense in which a support \emph{\textbf{routes}} prediction: the model receives no basin label, but its own encoded state supplies a discrete support label. We use the top-\(8\) scale here because every state receives exactly eight active indices.
-
-We evaluate two prediction forms. For \textit{gated routing}, \(c=S_{\rm top8}(x)\), \(m_c\) is its eight-coordinate mask, and \(\bar z_c\) is the mean latent state on a disjoint fitting set. The gated rule masks the centered input before applying the learned global transition:
-\begin{equation}
-  \hat z_{t+1}=\bar z_c+K\bigl(m_c\odot (z_t-\bar z_c)\bigr).
-  \label{eq:gated_k}
-\end{equation}
-For \textit{local routing}, \(c\) is either the exact top-\(8\) support \(S_{\rm top8}(x)\) or the merged top-\(8\) family \(F_{\rm top8}(x)\). The same centered local linear predictor is then fit for each value of \(c\):
-\begin{equation}
-  A_c=\argmin_A\sum_{t\in\mathcal{I}_c}\norm{(z_{t+1}-\bar z_c)-A(z_t-\bar z_c)}_2^2+\eta\norm{A}_F^2,
-  \label{eq:local_fit}
-\end{equation}
-and predicts \(\bar z_c+A_c(z_t-\bar z_c)\). Thus support-local and family-local use the same fitting equation but different labels \(c\): exact eight-index masks for \(S_{\rm top8}\), merged families of such masks for \(F_{\rm top8}\). 
+where \(g(i)\) is the fixed architectural group containing coordinate \(i\). 
 
 \subsection{Training objective}
 \label{sec:method_training}
@@ -337,75 +264,188 @@ The total objective is
 \end{equation}
 Here $\mathcal{L}_{\rm struct}=0$ for the dense and block-diagonal transition variants. 
 For the soft-block transition, $\mathcal{L}_{\rm struct}=\lambda_{\rm off}\mathcal{L}_{\rm offblock}$, which probes whether a soft transition grouping is sufficient to induce useful support structure. 
-The prediction and latent-linearity terms make the representation useful for Koopman rollout, the reconstruction term keeps the code tied to the observed state, and the sparsity term encourages selective activation. No loss term uses basin labels, basin counts, or trajectory-to-basin assignments.
+The prediction and latent-linearity terms make the representation useful for Koopman rollout, the reconstruction term keeps the code tied to the observed state, and the sparsity term encourages selective activation. 
 
 % Compared with the minimal Koopman autoencoder objective in \cref{eq:KAE-standard-objective}, this rollout objective adds decoded multi-step prediction, latent consistency over stored observation windows, explicit sparsity pressure, and any transition-structure penalty. These additions are needed because the paper is not only asking whether one-step latent features can be made approximately linear; it is asking whether the learned support remains useful for finite-horizon prediction and can be inspected as a label-free local-regime object.
+
+\subsection{Support objects}
+\label{sec:method_supports}
+
+Given \(z=\Enc(x)\in\mathbb{R}^{d_z}\), a \textit{support rule} first converts the latent code into a Boolean active-coordinate vector \(m(x)\in\{0,1\}^{d_z}\), where \(m_i(x)=1\) means that latent coordinate \(i\) is active for state \(x\). Equivalently, the exact support is the index set \(S(x)=\{i:m_i(x)=1\}\). Exact supports defined by a threshold can be too fine-grained: weak coordinates may cross the threshold, and a single basin may be covered by several nearby or partially overlapping active-coordinate vectors. 
+
+We therefore distinguish exact supports from \emph{support families}, which group nearby Boolean support vectors and test whether these groups form basin-scale objects. 
+We use three support constructions:
+\begin{itemize}
+  \item \textbf{Absolute-threshold support.} The absolute support vector is the Boolean mask
+  \[
+    m_{\rm abs}(x)=\bigl(\mathbf{1}\{|z_i|>10^{-3}\}\bigr)_{i=1}^{d_z}\in\{0,1\}^{d_z},
+    \qquad
+    S_{\rm abs}(x)=\{i:m_{{\rm abs},i}(x)=1\}.
+  \]
+  Here \(m_{{\rm abs},i}(x)\) is the \(i\)-th entry of the mask, and \(S_{\rm abs}(x)\) is the equivalent active-index set. This strict active-coordinate mask is the input to \(F_{\rm abs}\) and to canonical wrong-support interventions. 
+  % Its entropy, fragmentation, and active-coordinate count are appendix checks.
+  \item \textbf{Absolute-threshold support family.} \(F_{\rm abs}\) groups exact supports whose active-index sets substantially overlap. The overlap score is the Jaccard similarity, or intersection-over-union, between the active coordinates of two Boolean support vectors \citep{jaccard_etude_1901}. On an evaluation collection \(\mathcal X\), the algorithm first counts all distinct Boolean vectors and then visits those distinct vectors from most to least frequent, following a leader-style threshold clustering rule \citep{hartigan_clustering_1975}. Each family \(f\) stores one fixed representative vector \(r_f\): the exact support vector that created that family. For the next distinct vector \(m\), the algorithm computes
+  \[
+    J(m,r_f)=
+    \frac{\sum_i \mathbf{1}\{m_i=1\ \text{and}\ r_{f,i}=1\}}
+         {\sum_i \mathbf{1}\{m_i=1\ \text{or}\ r_{f,i}=1\}},
+  \]
+  with \(J(0,0)=1\) when both vectors are all zero. If the best existing representative has Jaccard similarity at least \(0.5\), every occurrence of \(m\) receives that family label. Otherwise \(m\) starts a new family and becomes the representative \(r_f\) for that family. The representatives are not learned centroids and are not updated after assignment; they are exact support vectors chosen by each deterministic frequency-ordered pass. Thus the procedure is closer to threshold-based leader clustering than to \(k\)-means: the number of families is induced by the threshold and the data order, not fixed in advance. We write \(F_{\rm abs}(x)\) for the family assigned to \(m_{\rm abs}(x)\), and \(|F_{\rm abs}|\) for the number of occupied families. 
+  % Families are built without basin labels; labels are used only afterward to compute \(H(B\mid F_{\rm abs})\).
+  \item \textbf{Fixed-size top-\(8\) support and family.} \(S_{\rm top8}(x)=\operatorname{top}_8(|z|)\) is the set of the eight largest-magnitude coordinates. Unlike \(S_{\rm abs}\), it gives every state the same number of active indices and does not depend on a magnitude threshold. \(F_{\rm top8}(x)\) is obtained by applying the same Jaccard merge to exact \(S_{\rm top8}\) support vectors. Each state still begins with exactly eight active indices; \(F_{\rm top8}\) is a family label for nearby eight-index support vectors, not a new fixed-size support.
+\end{itemize}
+The main basin-alignment object is \(F_{\rm abs}\), which preserves the thresholded active set. The main routing object for support-conditioned prediction is \(F_{\rm top8}\), which gives every state the same number of active indices before family merging and is invariant to global rescalings of \(z\) when there are no top-\(8\) ties. This is a design choice, not a reported head-to-head claim that \(F_{\rm top8}\) is empirically superior to \(F_{\rm abs}\) as a router. A scale-relative rule, $S_{\rm rel}(x)=\{i:\ |z_i|>0.1\max_j |z_j|\}$, is used only in appendix sensitivity checks for centered local laws.
+% It is not used for the main routing table because thresholded exact supports fragment the label space, while $S_{\rm top8}$ assigns every state a fixed-size label.
+
+
+\subsection{Support-conditioned rollouts}
+\label{sec:method_rollouts}
+Support-conditioned rollouts test whether learned support families can select useful local predictors without supplied regime labels. They are post-hoc predictors fit after the Koopman autoencoder is trained, so they evaluate the learned representation rather than introducing basin supervision into training. The comparison point is the same model's global latent rollout,
+\begin{equation}
+  \hat z_{t+1}^{\rm global}=K z_t,\qquad
+  \hat x_{t+1}^{\rm global}=\Dec(\hat z_{t+1}^{\rm global}),
+  \label{eq:global_rollout}
+\end{equation}
+which uses the single learned transition \(K\) at every step. A support-conditioned rollout instead computes a route label from the current latent state and uses that label to choose the next-step latent update. We write \(F_{\rm top8}(z)\) for the same top-\(8\) mask and family assignment applied directly to a latent vector. No basin label, basin count, or oracle transition signal is used to define the route.
+
+The main local prediction support-conditioning object in \cref{tab:self_routing} is \(F_{\rm top8}\). On a disjoint fitting set, let \(\mathcal I_c=\{t:\ F_{\rm top8}(z_t)=c\}\) and let \(\bar z_c=|\mathcal I_c|^{-1}\sum_{t\in\mathcal I_c}z_t\) be the mean current latent state for family \(c\). For each observed family, we fit a centered ridge regression for the slope \(K_c\):
+\begin{equation}
+  K_c=\argmin_{\widetilde K\in\R^{d_z\times d_z}}\sum_{t\in\mathcal{I}_c}
+  \norm{(z_{t+1}-\bar z_c)-\widetilde K(z_t-\bar z_c)}_2^2+\eta\norm{\widetilde K}_F^2.
+  \label{eq:local_fit}
+\end{equation}
+Equivalently, \cref{eq:local_fit} minimizes the one-step error of the affine map
+\[
+  T_c(z)=\bar z_c+K_c(z-\bar z_c)
+       =K_c z+(I-K_c)\bar z_c
+\]
+on transitions whose current latent state has route \(c\). Thus the centering does not introduce a second model: it fixes the intercept of the route-local affine predictor to \((I-K_c)\bar z_c\) after fitting the centered slope. 
+During rollout, \(c_t=F_{\rm top8}(z_t)\) is recomputed from the current predicted latent state, and the next latent is initialized to the global prediction $\hat z_{t+1}^{\rm global}$. If the route was sufficiently represented in the fitting set, the next latent is overwritten by applying the fitted local map,
+\begin{equation}
+  \hat z_{t+1}^{\rm local}=T_{c_t}(z_t)=\bar z_{c_t}+K_{c_t}(z_t-\bar z_{c_t}).
+  \label{eq:family_local_rollout}
+\end{equation} 
+Exact \(S_{\rm top8}\)-local routing uses the same equations with \(c_t=S_{\rm top8}(z_t)\) and is an appendix ablation.
+
+% We also keep a gated exact-support ablation. For \(c=S_{\rm top8}(z_t)\), let \(m_c\) be its eight-coordinate mask and \(\bar z_c\) the corresponding fitting-set mean. The gated rule masks the centered input before applying the learned global transition:
+% \begin{equation}
+%   \hat z_{t+1}=\bar z_c+K\bigl(m_c\odot (z_t-\bar z_c)\bigr).
+%   \label{eq:gated_k}
+% \end{equation}
+
+
+\subsection{Periodic re-encoding}
+If a support indicates the currently relevant local dynamics, a long rollout should be able to update that support. We therefore evaluate periodic re-encoding, following \citet{fathi2024course}. Starting from $z_k=\Enc(x_k)$ and a re-encoding period $m$, the model advances for $m$ Koopman steps, decodes the predicted state, and encodes that prediction again:
+\begin{equation}
+  \tilde z_{k+m}=K^m z_k,\qquad
+  \tilde x_{k+m}=\Dec(\tilde z_{k+m}),\qquad
+  z_{k+m}=\Enc(\tilde x_{k+m}).
+  \label{eq:reencode}
+\end{equation}
+The same procedure is repeated over the rollout horizon. Each rollout uses only the model's predicted state; it does not use the true future state, a basin label, or an oracle for transitions between basins.
 
 \section{Experimental procedure}
 \label{sec:experiments}
 
-The experiments follow the chain \cref{eq:claim_chain}. We test alignment of support families \(F_{\rm abs}\) with withheld basin labels. We then test whether supports are functionally used in prediction and route local forecasts without oracle labels (\(S_{\rm abs}\) masks, \(S_{\rm top8}\), and \(F_{\rm top8}\) routing), whether periodic re-encoding refreshes \(S_{\rm top8}\) support after basin transfer, and finally examine long-horizon forecasting of sparse-latent models in procedurally generated multibasin systems and chaotic flows without basin labels.
+The experiments follow the chain \cref{eq:claim_chain}. We test alignment of support families \(F_{\rm abs}\) with withheld basin labels. We then test whether supports are functionally used in prediction and whether support families can route local forecasts without oracle labels, whether periodic re-encoding refreshes \(S_{\rm top8}\) support after basin transfer, and finally examine long-horizon forecasting of sparse-latent models in procedurally generated multibasin systems and chaotic flows without basin labels.
+
+\begin{figure}[tbp!]
+\centering
+\includegraphics[width=\linewidth]{figures/neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf}
+\caption{Benchmark visual summary. Top: procedurally generated multibasin systems where gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm top8}\) support families are mapped post hoc to each family's dominant evaluation basin. Bottom: $dt{\times}30$ Dysts horizon 5000 phase portraits with held-out truth in gray and forecasts from the best seed-$0$ LISTA variant.}
+\label{fig:benchmarks}
+\end{figure}
 
 \paragraph{Benchmarks and training.} 
-The controlled benchmark contains 15 procedurally generated two-dimensional multibasin systems, including multiwell potentials, gated local-linear systems, polygonal layouts, depth cascades, and transition-rich layouts. Basin labels are available only for evaluation: they are not used for training, model selection, support extraction, or routing. Multibasin training samples include many boundary-adjacent initial conditions, so models must handle both basin interiors and ambiguous regions. 
-
-We compare the six model rows shown in \cref{tab:fixed17_alignment}: three LISTA sparse encoders (two of which have structured latent transitions), two sparse MLP controls with dense or block-diagonal transitions, and a Dense MLP control with no sparsity penalty. All models except the Dense MLP use ReLU activations; Dense MLP uses tanh to avoid activation-induced sparsity. Each model--system cell is trained for 15 random seeds. All rows for Tables 1--3 use length-8 training windows and 200,000 optimization steps under the objective in \cref{eq:training_objective}. We use a subset of 10 chaotic systems from the Dysts repository \citep{gilpin_chaos_2021,gilpin_model_2023} as an additional external forecasting test, with length-10 training windows and 100,000 optimization steps. The step size $dt$ of Dysts systems is multiplied by a factor of 30.
+The main benchmark for our interpretability experiments contains 15 procedurally generated two-dimensional multibasin systems, including multiwell potentials, gated local-linear systems, depth cascades, and polygonal and transition-rich layouts. Basin labels are available only for evaluating alignment and diagnostic metrics. We also use a subset of 10 chaotic systems from the Dysts repository \citep{gilpin_chaos_2021,gilpin_model_2023} with the step size $dt$ multiplied by a factor of 30 as an additional forecasting test.
+The retained-system inventory and analytic generator families are summarized in \cref{app:fixed17_inventory}.
+We compare the six model rows shown in \cref{tab:fixed17_alignment}: three LISTA sparse encoders (two of which have structured latent transitions), 
+two sparse-latent MLP controls applying the sparsity penalty $\bar{\mathcal{L}}_{\rm sp}$ \eqref{eq:loss_latent_terms} with dense or block-diagonal transitions, 
+and a dense-latent MLP control with no sparsity incentive. 
+Each model is trained for 15 random seeds on each system. Training uses broad online rollout windows from the benchmark generator, with an additional hard-reset pool to oversample boundary and transient states; it is not restricted to the deep-state slice used for the support-alignment diagnostic. Exact training details are reported in \cref{app:experimental_details}.
 
 \paragraph{Forecasting and statistics.} 
 \label{sec:experiments_forecasting}
 \label{sec:stats_protocol}
-Forecasting is evaluated on held-out trajectories at the stored observation cadence. On the multibasin benchmark we report raw mean squared error at horizons 100, 500, and 1000. On Dysts systems, the main table reports mean squared error (MSE) at horizons 100, 500, 1000, 1500, 2000, 3000, 4000, and 5000. The reported forecasting performance is the best value over a fixed periodic re-encoding grid. 
+Forecasting is evaluated on all held-out rollout initial states and their trajectories at the stored observation cadence, not only on deep states. It is summarized by mean squared error (MSE) at prespecified horizons. Periodic re-encoding results report the best value over a fixed refresh grid, where the rollout uses only predicted states and never the true future trajectory.
 
 Point estimates are interquartile means (IQM) over seeds within each system, then arithmetic means across systems. We use seed IQMs within each system rather than the arithmetic mean because few-run deep-learning evaluations are sensitive to outlier runs, and IQM is a robust aggregate that reduces uncertainty in benchmark comparisons \citep{agarwal2021deep}.
-System-by-system performance is reported in the appendix. \todo{Report system-by-system in the appendix.} Horizon-trend bands are fixed-system seed-bootstrap 95\% intervals on the same mean-over-systems forecasting MSE estimand.
-For each candidate row and horizon, we compare against the Dense MLP baseline within each system using paired $\log_{10}$ errors over seeds, apply a one-sided paired Wilcoxon signed-rank test, and Holm-correct the resulting $p$-values. 
+Horizon-trend lines use the same point estimate as the tables, with seed-bootstrap bands that keep the benchmark systems fixed and summarize uncertainty over seeds for an average system.
+% Specifically, each bootstrap seed-IQM draw is converted to a log-relative perturbation from that system's observed seed-IQM, the perturbations are averaged across systems, and the resulting percentile interval is exponentiated and anchored to the displayed arithmetic-mean line. 
+
+We also perform rigorous statistical significance tests. For multibasin forecasting and support diagnostics, per-system significance counts use one-sided paired Wilcoxon signed-rank tests on matched seeds with Holm correction across systems. For support-based local predictor routing and Dysts forecasting, seeds are first summarized within each system and the confirmatory tests use benchmark systems as the independent units. Additional details on statistical testing and system-by-system performance are reported in \cref{app:experimental_details,app:statistical_testing,app:fixed17_full,app:dysts_full}.
 
 \paragraph{Support alignment.}
-Support--basin alignment is evaluated on held-out deep states. For each system, a state's basin-depth margin is the distance to the second-nearest basin center minus the distance to the nearest basin center. The deep slice is the global top quartile of this margin within the system, so it selects states far from basin boundaries. Because this cut is global rather than per basin, some basins with smaller absolute margins may not appear in the selected slice. We therefore compare the family count with the \emph{represented} basin count, the number of basin labels actually present in the evaluated slice. the evaluation basin-count mean/median is 4.20/4, while the global deep slice represents 3.00/3 basins on average/median. The main table reports \(H(B\mid F_{\rm abs})\) and \(\overline{|F_{\rm abs}|}\), computed from per-system seed summaries. Exact-mask entropy, support fragmentation, and active-coordinate counts are listed in the appendix. \todo{reference the appendix}
+The support-alignment experiment tests a static mechanistic question: after label-free training over the multibasin state space, do sparse support families behave like basin-interior regime variables? If a support family indexes the local chart or basin-specific description being used by the model, then on states safely inside a basin it should leave little uncertainty about the withheld benchmark basin label. States near separatrices are a different object: there, support changes, shared supports, or extra transition supports can be mechanistically appropriate rather than failures of basin-interior alignment. We therefore evaluate this diagnostic on held-out deep states, not because the model was trained only there, but because basin interiors are the cleanest population for testing whether supports identify basin-scale regimes.
+
+For a state \(x\), let \(d_1(x)\) and \(d_2(x)\) be its distances to the nearest and second-nearest benchmark attractor centers; the basin-depth margin is \(d_2(x)-d_1(x)\). The main table uses the \emph{global deep slice}: the top quartile of this margin over all held-out evaluation states in a system. This slice is evaluation-only and uses benchmark geometry only to choose clean basin-interior states for scoring. A per-basin top-quartile slice, where each basin contributes its own relative-deep states, is a basin-stratified appendix robustness check rather than the main Table~\ref{tab:fixed17_alignment} support-diagnostic population. The main metrics are \(H(B\mid F_{\rm abs})\), which should be small when support families are basin-aligned, and \(\overline{|F_{\rm abs}|}\), a non-directional family-count diagnostic compared with the number of basins represented.
+% Exact-mask entropy, support fragmentation, and active-coordinate counts are retained as appendix diagnostics.
 
 Functional use is tested by a wrong-support ablation. For each testable system, we construct a canonical deep-slice \(S_{\rm abs}\) mask per basin. Systems whose deep slice contains only one basin are excluded. Then, a held-out rollout replaces the inferred mask with a canonical mask from another basin and holds it fixed. The reported value is the wrong-support/base error ratio. 
 
-\paragraph{Support-based routing.}
-The routing experiment freezes the trained representation and fits the predictors in \cref{eq:gated_k,eq:local_fit} on a disjoint set. Table~\ref{tab:self_routing} reports the support-family router, and unseen or under-supported routes fall back to the global transition. The reported ratio compares routed and global rollouts for the same trained model after first summarizing finite seed-level log-ratios within each system. Exact \(S_{\rm top8}\) gated and local routes are retained as appendix  ablations, and appendix controls replace learned supports with oracle basin partitions, latent clusters, or random matched partitions.
+\paragraph{Support-conditioned routing for prediction.}
+The routing experiment freezes the trained representation and fits the family-local predictors in \cref{eq:local_fit} on a disjoint set. Table~\ref{tab:self_routing} reports the \(F_{\rm top8}\)-local rollout in \cref{eq:family_local_rollout} against the same model's global transition rollout in \cref{eq:global_rollout}. The primary metric is the routed/global MSE ratio for the same trained model; values below one mean that the learned support family selects a better local predictor without oracle basin labels. 
+% The displayed significance stars test system-level log-ratios after seed aggregation. 
+Exact \(S_{\rm top8}\) gated and local routes are retained as appendix ablations in \cref{app:routing_robustness}, and appendix controls replace learned supports with oracle basin partitions, latent clusters, or random matched partitions in \cref{app:falsification}.
 
-\paragraph{Periodic re-encoding for support refresh.} The periodic re-encoding support refresh experiment evaluates exact \(S_{\rm top8}\) selection after controlled transfer into a new basin. It compares a rollout that keeps the source-basin \(S_{\rm top8}\) mask with one that periodically decodes, re-encodes, and re-selects \(S_{\rm top8}\). Basin labels are used only to construct and score these transfers. The reported quantities are fraction of post-entry steps routed through the target class and the refreshed/previous support forecast-MSE ratio.
-Additional procedural details are collected in appendix \todo{add in the appendix}.
+\paragraph{Periodic re-encoding for support refresh.} The periodic re-encoding support refresh experiment evaluates exact \(S_{\rm top8}\) selection after controlled transfer into a new basin. It compares a rollout that keeps the source-basin \(S_{\rm top8}\) mask with one that periodically decodes, re-encodes, and re-selects \(S_{\rm top8}\). Basin labels are used only to construct and score these transfers. The reported quantities are fraction of post-entry steps routed through the target class and the refreshed/stale-source support forecast-MSE ratio.
+Additional procedural details are collected in \cref{app:experimental_details,app:statistical_testing}.
 
 \section{Results}
 \label{sec:results}
-The results support four main conclusions. Sparse-latent encoders expose basin-scale support families \(F_{\rm abs}\); those active coordinates (\(S_{\rm abs}\) masks) affect prediction; support families \(F_{\rm top8}\) can select useful local predictors for LISTA-style encoders; and sparse-latent models can improve long-horizon forecasting over dense-latent models.
+
+The results support four main conclusions. Sparse-latent encoders expose basin-scale support families \(F_{\rm abs}\); the active coordinates (\(S_{\rm abs}\) masks) affect prediction; support families \(F_{\rm top8}\) can select useful local predictors for LISTA-style encoders; and sparse-latent models can improve long-horizon forecasting over dense-latent models.
 
 \begin{table}[tbp]
 \centering
-\caption{Support--basin alignment, wrong-support ablations, and forecasting on the retained \(15\)-system multibasin benchmark. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline{|F_{\rm abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. Arrows denote the better direction. \(\overline{|F_{\rm abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice.}
+\caption{Sparse-latent rows improve forecasting on the 15-system multibasin benchmark, while sparse supports align with basin interiors and wrong-support interventions show that active coordinates are used by the predictor. The forecasting columns H100 and H1000 are computed on all held-out rollouts; the support columns \(H(B\mid F_{\rm abs})\), wrong-support ratios, and \(\overline{|F_{\rm abs}|}\) are computed on the global deep-state slice. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline{|F_{\rm abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. The LISTA + local \(K_c\) row freezes the LISTA encoder/decoder and reports a second-stage support-family-local transition-map forecasting variant; its support diagnostics are therefore inherited from LISTA rather than recomputed as a new representation. Arrows denote the better direction; \textbf{bold} marks the best entry for directional metrics. \(\overline{|F_{\rm abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice (mean 3.00).}
 \label{tab:fixed17_alignment}
 \resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table1_fixed17_alignment.tex}}
 \end{table}
 
 \paragraph{\(F_{\rm abs}\) identify basin membership (\cref{tab:fixed17_alignment}).}
-LISTA \(F_{\rm abs}\) support families have low basin uncertainty on the deep-state slice and sparse-latent MLP rows remain far below the dense-latent MLP baseline. LISTA rows expose about three support families on average, matching the retained benchmark's represented deep-slice basin-count mean/median \(3.00/3\), whereas the dense-latent MLP collapses the representation to one support family and mixes basins. Sparse-latent encoders therefore expose compact \(F_{\rm abs}\) families that identify basin membership. The per-(system, seed) distributions in \cref{fig:fixed17_entropy_strips} show that the gap is not driven by outliers.
+LISTA \(F_{\rm abs}\) support families have low basin uncertainty on the deep-state slice and sparse-latent MLP models also have far less basin-uncertainty than the dense-latent MLP baseline.
+LISTA rows expose about three support families on average, matching the retained benchmark's represented deep-slice basin-count mean/median \(3.00/3\), whereas the dense-latent MLP collapses the representation to one support family and mixes basins. 
+Sparse-latent encoders therefore expose compact \(F_{\rm abs}\) families that identify basin membership; \cref{fig:basin_support_family_alluvial} shows this compression for a representative system. The per-(system, seed) distributions in \cref{fig:fixed17_entropy_strips} show that the gap is not driven by outliers.
 
 \begin{figure}[tbp]
 \centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_entropy_strips_alt2.pdf}
-\caption{Per-seed support results on the deep-state slice. Dots show system--seed pairs, and gray I-bars mark first-to-third quartile ranges. Black bars mark the paper-facing summary: seed-IQM within each system followed by an arithmetic mean across systems for entropy and wrong-support ratios, and arithmetic means for \(|F_{\rm abs}|\). Lower is better for \(H(B\mid F_{\rm abs})\); \(|F_{\rm abs}|\) is a non-directional support-family count to compare with the represented basin count. The wrong-support panel shows wrong-support/base ratios at \(h{=}1\) on a log scale; higher means that using a wrong-basin support is more damaging.}
+\begin{subfigure}[t]{0.49\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/neurips_paper_2026/fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.pdf}
+\caption{Basin--support family alluvial.}
+\label{fig:basin_support_family_alluvial}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.49\linewidth}
+\centering
+\includegraphics[width=\linewidth,trim=0 0 199.6bp 0,clip]{figures/neurips_paper_2026/fig_fixed17_entropy_strips_alt2.pdf}
+\caption{Per-seed entropy and support-family counts.}
 \label{fig:fixed17_entropy_strips}
+\end{subfigure}
+\caption{Support families align with basins and do so consistently across systems and seeds. \textbf{Left:} alluvial view for a LISTA KAE on local-linear gates; held-out deep states are grouped by post-hoc evaluation basin, exact \(S_{\rm abs}\) mask, and merged \(F_{\rm abs}\) family, with \(393\) exact supports merging to three families, which is one-to-one with represented basins. \textbf{Right:} per-seed deep-slice support results on the retained benchmark. Dots show system--seed pairs, gray I-bars mark first-to-third quartile ranges, and black bars mark IQM summaries for \(H(B\mid F_{\rm abs})\) and arithmetic means for \(|F_{\rm abs}|\).}
+\label{fig:basin_support_alignment_summary}
 \end{figure}
 
-\paragraph{Accurate forecasts require same-basin supports (\cref{tab:fixed17_alignment}).}
-The wrong-support ratios are orders of magnitude larger for sparse-latent models than for the dense-latent baseline at horizon \(h{=}1\): 2.10${\times}$10$^4$--7.08${\times}$10$^4$ for sparse-latent models, compared with 20.0 for the dense-latent MLP, and the effect persists at \(h{=}20\).
+
+% \vspace{1em}
+
+\paragraph{Accurate forecasts require the correct active coordinates for a basin (\cref{tab:fixed17_alignment}).}
+The wrong-support ratios are orders of magnitude larger for sparse-latent models than for the dense-latent baseline at horizon 1, and the effect persists at horizon 20.
 % Per-system testing rejects on every testable system at the one-step horizon and on the majority at twenty steps; the result is statistically significant. 
-The active coordinates are therefore functionally coupled to prediction.
+We conclude that active coordinates are functionally coupled to prediction.
+
 
 \paragraph{\(F_{\rm top8}\) selects local predictors without basin labels (\cref{tab:self_routing}).}
-\(F_{\rm top8}\)-local routing gives strong system-level gains for LISTA-style encoders. At horizon \(H100\), the three LISTA rows reduce error to 0.011--0.239 of the global rollout, improve 13 of 15 systems, and pass the system-level sign-flip/Holm test. At \(H1000\), their ratios are 1.41\({\times}\)10\(^{-11}\)--6.96\({\times}\)10\(^{-5}\), again passing after correction and improving 14--15 of 15 systems under the censored system-win count. Sparse MLP rows also route well at \(H100\), but are weaker after finite-pair correction at \(H1000\), and Dense MLP fails under family-local routing. Exact \(S_{\rm top8}\) and gated \(S_{\rm top8}\) route forms are therefore treated as appendix diagnostics; the main evidence is that merged support families can select local predictors without basin labels. Random matched partitions do not explain the LISTA gains, while latent clusters can be competitive for MLP controls.
+\(F_{\rm top8}\)-local routing, defined by \cref{eq:local_fit,eq:family_local_rollout} and compared with the global rollout in \cref{eq:global_rollout}, gives strong system-level gains for LISTA-style encoders and the relative improvement increases with the forecasting horizon.
+Sparse MLP rows also route well, whereas dense MLPs fail under family-local routing.  In \cref{app:falsification}, additional results show random matched partitions do not explain the LISTA gains, while latent clusters can be competitive for MLP controls.
+Exact \(S_{\rm top8}\) and gated \(S_{\rm top8}\) routing results are also in \cref{app:routing_robustness}. A representative active-index codebook for \(F_{\rm top8}\) families is shown in \cref{fig:support_family_codebook}.
 
-\paragraph{Refreshing \(S_{\rm top8}\) with periodic re-encoding tracks basin transfer (\cref{tab:support_refresh}).}
-After controlled basin transfer, \(S_{\rm top8}\)-refreshed rollouts route most post-entry steps to the target-basin class under the evaluation-only support-to-basin mapping. Target-route fractions are 0.743--0.847, and refreshed/stale support MSE ratios are below 0.229 for every displayed row and period. Refreshing therefore helps select the appropriate current local description.
 
-\begin{table}[tbp]
+\begin{table}[tbp!]
 \centering
-\caption{Support-conditioned prediction diagnostics. Left: all-state support-family routing. \(F_{\rm top8}\)-local uses merged families of exact top-\(8\) supports to fit and select local predictors without basin labels. Ratios are \(10^{\operatorname{mean}_s D_s}\), where \(D_s\) is the within-system IQM of finite seed-level \(\log_{10}\) routed/global MSE ratios. System wins count systems whose censored per-system IQM log comparison favors routing; a finite routed rollout with an invalid same-model global rollout counts as a routed win, and the reverse counts as a loss. Superscripts mark a one-sided exact sign-flip test on system-level finite log effects, Holm-corrected across displayed model--horizon cells. Right: exact \(S_{\rm top8}\) refresh after controlled basin transfer. Target-route is the fraction of post-entry steps routed to the target basin; the MSE ratio compares refreshed \(S_{\rm top8}\) with stale source \(S_{\rm top8}\); brackets give Wilcoxon/Holm counts. Lower MSE ratios are better, and LISTA-SB is the soft-block LISTA ablation.}
+\caption{Support-conditioned prediction diagnostics. \textbf{Left:} label-free \(F_{\rm top8}\)-local routed/global MSE ratios and system-win counts on all states; lower ratios and higher win counts are better.
+% System wins count systems whose censored per-system IQM log comparison favors routing; a finite routed rollout with an invalid same-model global rollout counts as a routed win, and the reverse counts as a loss.
+Superscripts denote significance tests: \(\ast\), \(p_{\rm Holm}<0.05\); \(\ast\ast\), \(p_{\rm Holm}<0.01\). \textbf{Right:} exact \(S_{\rm top8}\) refresh after controlled basin transfer. Target-route is the post-entry target-basin route fraction (higher is better); the MSE ratio compares refreshed with stale source supports (lower is better); brackets give Wilcoxon/Holm counts. \textbf{Bold} marks the best directional entry.}
 \label{tab:routing_refresh}
 \begin{subtable}[t]{0.49\textwidth}
   \centering
@@ -417,1336 +457,70 @@ After controlled basin transfer, \(S_{\rm top8}\)-refreshed rollouts route most 
 \hfill
 \begin{subtable}[t]{0.49\textwidth}
   \centering
-  \caption{\(S_{\rm top8}\) refresh.}
+  \caption{Periodic re-encoding \(S_{\rm top8}\) support refresh.}
   \label{tab:support_refresh}
   \setlength{\tabcolsep}{2pt}
   \resizebox{\linewidth}{!}{\input{figures/neurips_paper_2026/_tables/table3_support_refresh_period_grouped.tex}}
 \end{subtable}
 \end{table}
 
-\paragraph{Sparse-latent models improve long-horizon forecasting of multibasin systems and chaotic flows.}
-On the retained 15-system multibasin benchmark, every sparse-latent row has lower arithmetic-mean MSE than the dense-latent MLP at \(H100\), \(H500\), and \(H1000\) (\cref{tab:fixed17_alignment}, \cref{fig:fixed17_horizon_curves,fig:fixed17_seed_strips}). On the retained 10-system Dysts benchmark (\cref{tab:dysts_long,fig:dysts_long_horizon}), all primary sparse-latent rows have lower aggregate MSE than the dense-latent MLP across the reported horizons; the best row is Sparse MLP at \(H100\), Sparse MLP-BD at \(H500\)--\(H1000\), and LISTA from \(H1500\) through \(H5000\). We conclude that sparse-latent encoding improves long-horizon forecasting on both the controlled multibasin benchmark and the Dysts chaotic-flow benchmark.
+\paragraph{Refreshing \(S_{\rm top8}\) with periodic re-encoding tracks basin transfer (\cref{tab:support_refresh}).}
+After controlled basin transfer, \(S_{\rm top8}\)-refreshed rollouts route most post-entry steps to the target-basin class under the evaluation-only support-to-basin mapping. Target-route fractions are 0.743--0.847, and refreshed/stale support MSE ratios are below 0.229 for every displayed row and period. Refreshing therefore helps select the appropriate current local description.
 
-\begin{figure}[tbp]
+\paragraph{Sparse-latent models improve long-horizon forecasting of multibasin systems and chaotic flows.}
+On the 15 controlled multibasin systems and the 10 Dysts systems, every sparse-latent model has lower aggregate MSE than the dense-latent MLP across the reported horizons (\cref{tab:fixed17_alignment}, \cref{tab:dysts_long,fig:dysts_long_horizon}, \cref{fig:fixed17_horizon_curves}).
+% fig:fixed17_seed_strips 
+Average-case forecasting on Dysts chaotic systems using IQMs over systems in the Appendix also shows that block-diagonal transition structure is most useful at longer horizons. We conclude that sparse-latent encoding improves long-horizon forecasting.
+
+\begin{figure}[tbp!]
 \centering
-\begin{subfigure}[t]{0.49\linewidth}
+\begin{subfigure}[t]{0.45\linewidth}
   \vspace{0pt}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_horizon_curves.pdf}
+  \includegraphics[width=\linewidth]{figures/neurips_paper_2026/fig_fixed17_horizon_curves.pdf}
   \caption{15-system multibasin benchmark.}
   \label{fig:fixed17_horizon_curves}
 \end{subfigure}
 \hfill
-\begin{subfigure}[t]{0.49\linewidth}
+\begin{subfigure}[t]{0.45\linewidth}
   \vspace{0pt}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf}
+  \includegraphics[width=\linewidth]{figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf}
   \caption{10-system Dysts $dt{\times}30$ benchmark.}
   \label{fig:dysts_long_horizon}
 \end{subfigure}
-\caption{Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale, and bands show fixed-system seed-bootstrap $95\%$ intervals for the same estimand.}
+\caption{Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale. Bands show fixed-system seed-bootstrap 95\% intervals after system-wise log-relative normalization, anchored to the displayed mean, so they summarize seed uncertainty within an average system.}
 \label{fig:forecasting_horizon_curves}
 \end{figure}
 
-\begin{table}[tbp]
+\begin{table}[tbp!]
 \centering
-\caption{Dysts forecasting on the retained $10$-system shortlist, excluding the six-dimensional \texttt{LorenzCoupled} system and the Chua-family duplicate \texttt{MultiChua}. Each cell is the arithmetic mean across systems of per-system seed-IQM MSEs. Superscripts mark the system-level paired Wilcoxon signed-rank test on per-system log-MSE differences against dense-latent MLP, Holm-corrected across all Dysts model--horizon comparisons: $\ast$ indicates $p_{\rm Holm}<0.05$ and $\ast\ast$ indicates $p_{\rm Holm}<0.01$. Dense MLP is the baseline.}
+\caption{Forecasting performance on the 10 chaotic flows from Dysts. Values are arithmetic means across systems of per-system seed-IQM MSEs; lower is better, and \textbf{bold} marks the best value at each horizon. Superscripts mark the system-level significance tests against the dense-latent MLP baseline, Holm-corrected across all Dysts model--horizon comparisons: $\ast$ indicates $p_{\rm Holm}<0.05$.}
 \label{tab:dysts_long}
 \resizebox{\textwidth}{!}{
 \input{figures/neurips_paper_2026/_tables/table4_dysts_dt30_iqm.tex}
 }
 \end{table}
 
-\section{Related work}
+\section{Conclusion}
+\label{sec:conclusion}
+Multibasin dynamics make global finite-dimensional Koopman learning difficult because the useful linear description can depend on which basin or local chart is active. This paper shows that sparse-latent Koopman autoencoders can expose that dependence as an interpretable support variable learned without basin supervision. Across controlled multibasin systems, support families align with held-out basin labels, wrong-support interventions show that supports are functionally tied to prediction, support-family routing improves local rollouts, and periodic re-encoding refreshes supports after basin transfer. Sparse-latent models also retain forecasting advantages on an external chaotic-flow stress test.
 
-\todo{Need to revise this and/or integrate with the introduction. Maybe if the introduction has a sufficient discussion of related work already, we don't need to include it?}
-
-\paragraph{Koopman learning.}
-Koopman operator theory represents nonlinear dynamics through a linear operator on observables \citep{koopman_hamiltonian_1931,mezic2005spectral}. EDMD approximates this operator with a chosen dictionary \citep{williams_datadriven_2015}. Neural Koopman methods learn the dictionary or invariant subspace from data \citep{takeishi2017learning,lusch_deep_2018,otto2019linearly}. Consistent and course-corrected Koopman autoencoders improve rollout behavior through additional losses and correction mechanisms \citep{azencot_forecasting_2020,fathi2024course}. Our contribution is not a new claim that neural Koopman autoencoders can forecast. It is an empirical study of whether sparse latent supports carry information about the relevant basin or local dynamics.
-
-\paragraph{Multibasin Koopman structure.}
-Multiple invariant sets complicate naive interpretations of a single global finite-dimensional Koopman representation. Prior theory shows that global lifting and reconstruction depend on invariant-set structure, spectra, and symmetry \citep{lan_linearization_2013,pan_lifting_2024}. This motivates our use of \(F_{\rm abs}\) for basin alignment and \(S_{\rm top8},F_{\rm top8}\) for routing, rather than a universal exact-support claim.
-
-\paragraph{Sparse coding and LISTA.}
-Sparse coding is a classical representation principle in which signals are reconstructed from a small number of active atoms \citep{olshausen_emergence_1996}. LISTA learns fast amortized sparse inference \citep{gregor_learning_2010}. We use this sparse-inference bias inside a dynamical model and evaluate whether the resulting active atoms form \(F_{\rm abs}\) families that align with benchmark basin labels.
-
-\paragraph{Switching and local linear models.}
-Switching state-space models, hybrid systems, and local Koopman methods explicitly introduce modes or local operators \citep{linderman_bayesian_2017,torrisi-bemporad-itcst04,mamakoukas_local_2019}. Our model differs because it does not train with known basin labels or a known basin count. The switching behavior, when it appears, is implicit in the learned sparse support.
-
-\section{Discussion}
-\label{sec:discussion}
+The central takeaway is that sparsity is not only a regularizer for Koopman autoencoders. It can turn a continuous latent representation into a hybrid object: coefficients carry within-regime state information, while supports provide discrete, model-produced candidates for local dynamical regimes. This suggests a practical path for interpretable multi-regime Koopman learning when regime structure is not specified in advance. Future work should scale the support-family mechanism to higher-dimensional systems, learn explicit support-transition graphs, and test the same support-routed predictors in controlled systems where the local regime variable can directly influence planning.
 
 \appendix
 
-\section{Additional background}
-\label{app:background}
-
-\subsection{Koopman operators and finite-dimensional approximations}
-\label{app:koopman_background}
-
-Consider a discrete-time nonlinear dynamical system
-\begin{equation}
-  x_{t+1}=f(x_t), \qquad x_t\in\mathcal{X}\subset\R^{d_x}.
-\end{equation}
-Koopman operator theory studies the evolution of observables rather than the evolution of the state directly. An observable is a measurement function $h:\mathcal{X}\to\R$, and the Koopman operator $\mathcal{K}$ acts by composition:
-\begin{equation}
-  (\mathcal{K}h)(x)=h(f(x)).
-\end{equation}
-The map $f$ may be nonlinear, but $\mathcal{K}$ is linear on the function space of observables. If a finite vector of observables
-\begin{equation}
-  \Phi(x)=\big[h_1(x),\ldots,h_{d_z}(x)\big]^\top
-\end{equation}
-spans a Koopman-invariant subspace, then there is a matrix $K_\Phi\in\R^{d_z\times d_z}$ such that
-\begin{equation}
-  \Phi(x_{t+1})=\Phi(f(x_t))=\mathcal{K}\Phi(x_t)=K_\Phi\Phi(x_t).
-\end{equation}
-In that case the nonlinear dynamics are exactly linear in the observable coordinates $z_t=\Phi(x_t)$. Learning Koopman models can therefore be viewed as searching for observables whose span is invariant enough to support useful finite-dimensional linear prediction.
-
-In practice, the infinite-dimensional operator is approximated from data. Given snapshot pairs $\{(x_t,x_{t+1})\}$ and a chosen feature map $\Phi$, dynamic mode decomposition and extended dynamic mode decomposition estimate a finite transition by least squares \citep{schmid_dmd_2010,rowley_2009_spectral,tu_dynamic_2014,williams_datadriven_2015,williams_kernel-based_2016}:
-\begin{equation}
-  K_\Phi
-  =
-  \argmin_{\hat K}
-  \sum_t \norm{\Phi(x_{t+1})-\hat K\Phi(x_t)}_2^2.
-\end{equation}
-DMD is the special case $\Phi(x)=x$, so it fits a linear state-space surrogate without a learned nonlinear lift. EDMD extends this by choosing a richer feature dictionary. Koopman autoencoders replace the fixed dictionary with a learned encoder and decoder, which is the setting used in this paper.
-
-The same lifted-linear viewpoint is also useful for controlled systems, even though the experiments in this paper are autonomous. For dynamics
-\begin{equation}
-  x_{t+1}=f(x_t,u_t),
-\end{equation}
-Koopman control models often learn observables $z=\psi(x)$ and matrices $A,B,C$ such that
-\begin{equation}
-  z_{t+1}\approx Az_t+Bu_t,\qquad x_t\approx Cz_t .
-\end{equation}
-The resulting predictor can be combined with linear control tools such as LQR or MPC while the nonlinearity is absorbed into the lifting map and decoder \citep{kalman_general_1960,korda_linear_2018,mayne_constrained_2000}. Linear latent dynamics also simplify system identification and long-horizon rollout because the same finite matrix can be fitted, analyzed, and iterated directly. This paper does not evaluate control policies, but this motivation is important for interpretation: if a support can identify the currently relevant local linear law, then it is not merely a post-hoc label, but a possible routing object for prediction, planning, or control.
-
-\subsection{Why multibasin systems require local structure}
-\label{app:multibasin_background}
-
-The theoretical obstruction in multibasin systems is not the absence of local linear descriptions. Near appropriate attracting sets, classical linearization and Koopman eigenfunction constructions can produce useful local or basin-restricted coordinates. The obstruction is instead global: a single finite-dimensional, state-reconstructing Koopman-invariant subspace is highly restrictive when multiple invariant sets coexist. In particular, results summarized by \citet{lan_linearization_2013} and \citet{brunton_koopman_2016} show that exact finite-dimensional invariant subspaces containing the state coordinates are compatible only with limited global attractor structure.
-
-Equivalently, an attractor $A$ induces a basin
-\begin{equation}
-  \mathcal{B}(A)=
-  \{x\in\mathcal{X}:\operatorname{dist}(f^t(x),A)\to 0\text{ as }t\to\infty\},
-\end{equation}
-and different basins can require different local coordinates or different linear predictive laws. Basin boundaries are therefore precisely the regions where a representation that was valid for one local chart may need to switch to another.
-
-For the present paper, this motivates a cautious formulation. A learned finite-dimensional Koopman representation on a multibasin system should not be expected to be one exact global linearization that reconstructs every basin simultaneously. It must either approximate across incompatible regions, or it must contain some implicit information about which local description is active. Sparse supports are useful because they make one such piece of information discrete and inspectable: the support can identify a basin, basin part, or local predictive chart while the coefficient values carry within-chart state information.
-
-\subsection{Koopman autoencoders and periodic re-encoding}
-\label{app:kae_reencoding_background}
-
-A standard Koopman autoencoder learns an encoder $\Enc:\R^{d_x}\to\R^{d_z}$, decoder $\Dec:\R^{d_z}\to\R^{d_x}$, and latent transition $K$ so that
-\begin{equation}
-  z_t=\Enc(x_t),\qquad z_{t+1}\approx Kz_t,\qquad x_t\approx\Dec(z_t).
-\end{equation}
-A minimal one-step objective has the form
-\begin{equation}
-  \min_{\Enc,\Dec,K}
-  \sum_t
-  \norm{x_t-\Dec(\Enc(x_t))}_2^2
-  +
-  \lambda_{\rm lin}
-  \norm{\Enc(x_{t+1})-K\Enc(x_t)}_2^2 .
-  \label{eq:KAE-standard-objective}
-\end{equation}
-This objective is useful as a reference point, but it is not sufficient for the present study. It does not directly train decoded multi-step rollouts, does not impose a sparse support object, and does not test whether the support itself selects a useful local predictive rule. The training objective in \cref{sec:method_training} therefore keeps the autoencoding and latent-linearity terms but adds decoded rollout prediction over windows, sparsity on the rolled latent states, and optional transition-structure penalties.
-
-After training, a one-shot Koopman rollout encodes once, advances by repeated multiplication with $K$, and decodes at the requested horizon. Periodic re-encoding instead interrupts the latent rollout after a fixed number of stored observation steps. For period $r$,
-\begin{equation}
-  \tilde z_{t+r}=K^r z_t,\qquad
-  \tilde x_{t+r}=\Dec(\tilde z_{t+r}),\qquad
-  z_{t+r}=\Enc(\tilde x_{t+r}).
-\end{equation}
-This is the same mechanism defined in \cref{eq:reencode}. It uses only the model's own predicted state and is therefore not a teacher-forced correction. The point is to refresh the latent embedding and, in sparse models, to refresh the support as the predicted state moves through regions where a different local linear description may be more appropriate \citep{fathi2024course}.
-
-A one-shot rollout can fail for two related reasons. First, the learned encoder and decoder are not exact inverses, so repeated multiplication by $K$ can push the latent state away from the region where the decoder was trained to reconstruct accurately. Second, finite-dimensional Koopman invariance is only approximate, especially near separatrices or transitions between locally valid charts. Periodic re-encoding addresses both issues by projecting the model's own decoded prediction back through the encoder, where the sparse thresholding rule can select a support appropriate for the current predicted state rather than preserving a stale support from the initial state.
-
-In multibasin terms, the support selected at the initial state should not be assumed to remain valid after the predicted trajectory enters another basin or another boundary-adjacent chart. Re-encoding is therefore evaluated not as teacher forcing, but as a label-free opportunity for the encoder to refresh both the continuous latent coefficients and the discrete support.
-
-\subsection{Sparse coding and LISTA}
-\label{app:sparse_lista_background}
-
-Classical sparse coding seeks a code $z$ that reconstructs a signal from a small set of active dictionary atoms:
-\begin{equation}
-  \min_z\;\frac{1}{2}\norm{x-Dz}_2^2+\lambda\norm{z}_1,
-\end{equation}
-where $D$ is a dictionary and $\lambda>0$ controls sparsity \citep{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003}. The active set of the solution is piecewise constant over regions of the input space, while the coefficient values vary continuously within a fixed active set. This gives a union-of-subspaces geometry: each support indexes a lower-dimensional chart, and nearby supports can be grouped into a support family when threshold noise or boundary effects fragment the exact masks.
-
-LISTA replaces an iterative sparse-coding solver with a learned finite-depth shrinkage network \citep{gregor_learning_2010}. In the notation of \cref{eq:lista}, the encoder forms a pre-code from the input and repeatedly applies learned affine refinement followed by soft thresholding. The thresholding operation is the important ingredient for this paper: it turns the latent code into both continuous coefficients and an explicit support. The experiments then ask whether \(F_{\rm abs}\) aligns with benchmark basin labels, whether \(S_{\rm abs}\) is functionally used by the predictor, and whether \(S_{\rm top8}\) or \(F_{\rm top8}\) can route local linear laws without a supplied basin label.
-
-Observed supports also define a simple label-free graph: nodes are exact supports or merged support families, and edges are support transitions seen along rollouts. This graph view is not used as a training signal in the reported experiments, but it explains why supports are useful objects to expose. A support node can index a local predictor, a support-family node can absorb small threshold perturbations, and an observed edge can record when the representation moves from one local chart to another. The routing experiments in \cref{tab:self_routing} instantiate this idea with \(S_{\rm top8}\) and \(F_{\rm top8}\), without assuming a known number of basins or known basin membership during training or deployment.
-
-\section{Proofs}
-\subsection{Piecewise-affine encoders with sparse supports induce local affine Koopman predictors}
-\label{app:pwa-supports}
-
-Once the
-encoder is piecewise affine, exact sparse supports induce a finite
-support-stratified collection of local affine decoded Koopman predictors.
-Throughout this subsection, unless explicitly stated otherwise, ``support''
-means the exact zero support \(\{i:E_i(x)\neq 0\}\). We use the convention
-\(\sign(0)=0\), so coordinatewise sign vectors take values in
-\(\{-1,0,+1\}^{d_z}\).
-
-Throughout, write \([d_z] := \{1,\ldots,d_z\}\). For a vector
-\(v\in\mathbb R^{d_z}\) and a set \(S\subseteq[d_z]\), \(v_S\)
-denotes the subvector with indices in \(S\). For a matrix \(M\), \(M_{:,S}\)
-denotes the submatrix consisting of the columns indexed by \(S\).
-
-\begin{definition}[Polyhedral stratum]
-A polyhedral stratum in \(\mathbb R^n\) is a set that can be written as the
-solution set of finitely many affine equalities and strict affine inequalities:
-\[
-\mathcal C
-=
-\left\{
-x\in\mathbb R^n:
-a_i^\top x=\alpha_i \ \text{for } i\in I_=,\quad
-b_j^\top x<\beta_j \ \text{for } j\in I_<,\quad
-c_k^\top x>\gamma_k \ \text{for } k\in I_>
-\right\}.
-\]
-The stratum may have dimension smaller than \(n\). Empty sets are allowed in
-intermediate constructions, but are omitted from stratifications.
-\end{definition}
-
-\begin{definition}[Finite polyhedral stratification]
-A finite polyhedral stratification of \(\mathbb R^n\) is a finite collection
-\(\mathscr C=\{\mathcal C_r\}_{r=1}^R\) of nonempty polyhedral strata such that
-\(\mathbb R^n=\bigsqcup_{r=1}^R \mathcal C_r\), where \(\bigsqcup\) denotes
-disjoint union.
-\end{definition}
-
-\begin{definition}[Piecewise-affine map]
-A map \(E:\mathbb R^{d_x}\to\mathbb R^{d_z}\) is piecewise affine on a finite
-polyhedral stratification \(\mathscr C=\{\mathcal C_r\}_{r=1}^R\) if, for each
-\(r\), there exist \(A_r\in\mathbb R^{d_z\times d_x}\) and
-\(a_r\in\mathbb R^{d_z}\) such that \(E(x)=A_r x+a_r\) for all
-\(x\in\mathcal C_r\).
-\end{definition}
-
-We will use two elementary closure facts.
-
-\begin{lemma}[Affine preimages of polyhedral strata]
-Let \(L:\mathbb R^n\to\mathbb R^m\) be affine, say \(L(x)=Mx+b\).
-If \(\mathcal P\subseteq\mathbb R^m\) is a polyhedral stratum, then
-\(L^{-1}(\mathcal P)\) is either empty or a polyhedral stratum in
-\(\mathbb R^n\). Consequently, if \(\{\mathcal P_j\}_{j=1}^N\) is a finite
-polyhedral stratification of \(\mathbb R^m\), then the nonempty sets
-\(L^{-1}(\mathcal P_j)\), \(j=1,\ldots,N\), form a finite polyhedral
-stratification of \(\mathbb R^n\).
-\end{lemma}
-
-\begin{proof}
-Write \(\mathcal P\) as
-\[
-\mathcal P
-=
-\left\{
-y\in\mathbb R^m:
-\ell_i(y)=0 \ \text{for } i\in I_=,\quad
-g_j(y)<0 \ \text{for } j\in I_<,\quad
-h_k(y)>0 \ \text{for } k\in I_>
-\right\},
-\]
-where \(\ell_i,g_j,h_k\) are affine functions. Then
-\[
-L^{-1}(\mathcal P)
-=
-\left\{
-x\in\mathbb R^n:
-\ell_i(Mx+b)=0 \ \text{for } i\in I_=,
-g_j(Mx+b)<0 \ \text{for } j\in I_<,
-h_k(Mx+b)>0 \ \text{for } k\in I_>
-\right\}.
-\]
-Each composed function \(\ell_i(Mx+b)\), \(g_j(Mx+b)\), and \(h_k(Mx+b)\) is
-affine in \(x\). Hence \(L^{-1}(\mathcal P)\) is a polyhedral stratum, unless
-the system is inconsistent, in which case it is empty.
-
-If \(\{\mathcal P_j\}_{j=1}^N\) is a stratification of \(\mathbb R^m\), then
-the preimages \(L^{-1}(\mathcal P_j)\) are pairwise disjoint because the
-\(\mathcal P_j\)'s are pairwise disjoint, and they cover \(\mathbb R^n\)
-because the \(\mathcal P_j\)'s cover \(\mathbb R^m\). Removing empty preimages
-therefore gives a finite polyhedral stratification of \(\mathbb R^n\).
-\end{proof}
-
-\begin{lemma}[Finite sign refinement by affine functions]
-Let \(\mathcal C\subseteq\mathbb R^n\) be a polyhedral stratum, and let
-\(g_1,\ldots,g_N:\mathbb R^n\to\mathbb R\) be affine functions. For each sign
-vector \(\rho=(\rho_1,\ldots,\rho_N)\in\{-1,0,+1\}^N\), define
-\[
-\mathcal C_\rho
-=
-\left\{
-x\in\mathcal C:
-g_j(x)<0 \ \text{if } \rho_j=-1,\quad
-g_j(x)=0 \ \text{if } \rho_j=0,\quad
-g_j(x)>0 \ \text{if } \rho_j=+1
-\right\}.
-\]
-Then the nonempty sets \(\mathcal C_\rho\) form a finite polyhedral
-stratification of \(\mathcal C\). On each such stratum, the signs of
-\(g_1,\ldots,g_N\) are constant.
-\end{lemma}
-
-\begin{proof}
-Each \(\mathcal C_\rho\) is obtained from \(\mathcal C\) by adding finitely
-many affine equalities and strict affine inequalities. Hence every nonempty
-\(\mathcal C_\rho\) is a polyhedral stratum. For each \(x\in\mathcal C\), every
-number \(g_j(x)\) is exactly one of negative, zero, or positive. Thus \(x\)
-belongs to exactly one of the sets \(\mathcal C_\rho\). Since there are only
-\(3^N\) possible sign vectors, the resulting stratification is finite.
-\end{proof}
-
-\setcounter{theorem}{0}
-\begin{theorem}[Piecewise-affine sparse encoders induce local affine Koopman predictors]
-Let \(E:\mathbb R^{d_x}\to\mathbb R^{d_z}\) be a single-valued encoder. Assume
-that \(E\) is piecewise affine on a finite polyhedral stratification
-\(\mathscr C=\{\mathcal C_r\}_{r=1}^R\) of \(\mathbb R^{d_x}\). Thus, for every
-\(r\), there exist
-\(A_r\in\mathbb R^{d_z\times d_x}\) and \(a_r\in\mathbb R^{d_z}\) such that
-\(E(x)=A_r x+a_r\) for all \(x\in\mathcal C_r\).
-
-Let the decoder be affine, \(D_\phi(z)=D_{\mathrm{dec}}z+b_{\mathrm{dec}}\),
-where \(D_{\mathrm{dec}}\in\mathbb R^{d_x\times d_z}\) and
-\(b_{\mathrm{dec}}\in\mathbb R^{d_x}\), and let
-\(K\in\mathbb R^{d_z\times d_z}\) be the latent transition matrix. For
-\(h\ge 1\), define the decoded \(h\)-step open-loop Koopman predictor
-\[
-F_h(x)
-=
-D_{\mathrm{dec}}K^hE(x)+b_{\mathrm{dec}}.
-\]
-
-Then the following statements hold.
-
-\begin{enumerate}
-\item The map \(F_h\) is piecewise affine on the same stratification
-\(\mathscr C\). More precisely, on each \(\mathcal C_r\),
-\(F_h(x)=M_{r,h}x+m_{r,h}\), where
-\(M_{r,h}=D_{\mathrm{dec}}K^hA_r\) and
-\(m_{r,h}=D_{\mathrm{dec}}K^h a_r+b_{\mathrm{dec}}\).
-
-\item There is a finite polyhedral refinement of \(\mathscr C\) on which the
-signed latent support \(\sign(E(x))\in\{-1,0,+1\}^{d_z}\) is constant on every
-stratum. In particular, the unsigned support
-\(\supp(E(x))=\{i\in[d_z]:E_i(x)\neq 0\}\) is also constant on every refined
-stratum.
-
-\item Let \(\mathcal S\) be one of the refined strata from part \(2\), and let
-\(S_\mathcal S=\supp(E(x))\) be the support on that stratum. Then, for all
-\(x\in\mathcal S\),
-\[
-F_h(x)
-=
-D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}E_{S_\mathcal S}(x)
-+
-b_{\mathrm{dec}}.
-\]
-Thus, on a fixed support stratum, only the active latent coordinates and the
-corresponding columns of \(K^h\) participate in the decoded predictor. For
-\(h=1\), these are precisely the corresponding columns of \(K\).
-
-\item Fix a re-encoding period \(p\ge 1\), and define the periodically
-re-encoded segment map \(G_p(x)=D_{\mathrm{dec}}K^pE(x)+b_{\mathrm{dec}}\).
-Then \(G_p\) is piecewise affine on a finite polyhedral stratification. Moreover,
-for every finite number \(T\ge 1\) of re-encoding segments, the \(T\)-fold
-composition
-\[
-G_p^{\circ T}
-=
-\underbrace{G_p\circ G_p\circ\cdots\circ G_p}_{T\ \text{times}}
-\]
-is piecewise affine on a finite polyhedral itinerary stratification. Each
-itinerary stratum is determined by the finite sequence of encoder regions
-visited by the rollout.
-\end{enumerate}
-\end{theorem}
-
-This theorem is an architectural statement. It shows that piecewise-affine
-encoders induce a finite collection of support-stratified affine decoded
-predictors. It does not by itself imply that supports recover basins, that the
-local affine predictors are accurate, or that the learned finite-dimensional
-coordinates are exactly Koopman-invariant.
-
-\paragraph{Scope of the support identity.}
-The identity in part 3 is an exact zero-support identity. It should not be
-read as an exact statement about thresholded or top-\(k\) support rules unless
-the omitted coordinates vanish. For any externally chosen set
-\(S\subseteq[d_z]\), the exact decomposition is
-\[
-F_h(x)
-=
-D_{\mathrm{dec}}(K^h)_{:,S}E_S(x)
-+
-D_{\mathrm{dec}}(K^h)_{:,S^c}E_{S^c}(x)
-+
-b_{\mathrm{dec}}.
-\]
-Here \(S^c=[d_z]\setminus S\). The omitted-coordinate contribution is zero
-whenever \(E_{S^c}(x)=0\), but the converse need not hold. In general,
-\[
-D_{\mathrm{dec}}(K^h)_{:,S^c}E_{S^c}(x)=0
-\quad\Longleftrightarrow\quad
-E_{S^c}(x)\in
-\ker\!\left(D_{\mathrm{dec}}(K^h)_{:,S^c}\right).
-\]
-Thus this vanishing is equivalent to \(E_{S^c}(x)=0\) only under the additional
-injectivity condition
-\(\ker(D_{\mathrm{dec}}(K^h)_{:,S^c})=\{0\}\). Moreover, the support selects
-the active columns of \(K^h\), but the full affine state-space predictor also
-depends on the encoder stratum through \(E_S(x)=(A_r x+a_r)_S\). Thus two
-refined strata can share the same support while inducing different affine maps
-in state space.
-
-\begin{proof}
-We prove the four claims in order.
-
-\paragraph{Part 1.}
-Fix a stratum \(\mathcal C_r\). By assumption, \(E(x)=A_r x+a_r\) for all
-\(x\in\mathcal C_r\). Therefore, for \(x\in\mathcal C_r\),
-\[
-\begin{aligned}
-F_h(x)
-&=
-D_{\mathrm{dec}}K^hE(x)+b_{\mathrm{dec}} \\
-&=
-D_{\mathrm{dec}}K^h(A_r x+a_r)+b_{\mathrm{dec}} \\
-&=
-D_{\mathrm{dec}}K^hA_r x
-+
-D_{\mathrm{dec}}K^h a_r
-+
-b_{\mathrm{dec}}.
-\end{aligned}
-\]
-Thus \(F_h\) is affine on \(\mathcal C_r\), with
-\(M_{r,h}=D_{\mathrm{dec}}K^hA_r\) and
-\(m_{r,h}=D_{\mathrm{dec}}K^h a_r+b_{\mathrm{dec}}\).
-Since there are finitely many strata \(\mathcal C_r\), the map \(F_h\) is
-piecewise affine on \(\mathscr C\).
-
-\paragraph{Part 2.}
-Fix a stratum \(\mathcal C_r\). On \(\mathcal C_r\), the \(i\)-th coordinate of
-the encoder is the affine scalar function \(E_i(x)=e_i^\top(A_r x+a_r)\), where
-\(e_i\) is the \(i\)-th standard basis vector of \(\mathbb R^{d_z}\). Apply the
-finite sign-refinement lemma to the affine functions
-\(g_{r,i}(x)=e_i^\top(A_r x+a_r)\), \(i=1,\ldots,d_z\). For each sign vector
-\(\rho\in\{-1,0,+1\}^{d_z}\), define
-\[
-\mathcal C_{r,\rho}
-=
-\left\{
-x\in\mathcal C_r:
-g_{r,i}(x)<0 \ \text{if }\rho_i=-1,\quad
-g_{r,i}(x)=0 \ \text{if }\rho_i=0,\quad
-g_{r,i}(x)>0 \ \text{if }\rho_i=+1
-\right\}.
-\]
-The nonempty sets \(\mathcal C_{r,\rho}\), over all \(r\) and \(\rho\), form a
-finite polyhedral refinement of \(\mathscr C\). Indeed, for each fixed \(r\)
-they stratify \(\mathcal C_r\), and the original \(\mathcal C_r\)'s already
-stratify \(\mathbb R^{d_x}\).
-
-By construction, \(\sign(E(x))=\rho\) for all \(x\in\mathcal C_{r,\rho}\).
-Hence the signed support is constant on every refined stratum. The unsigned
-support is obtained by forgetting the signs,
-\(\supp(E(x))=\{i:\rho_i\neq 0\}\), and is therefore also constant on every
-refined stratum.
-
-\paragraph{Part 3.}
-Let \(\mathcal S=\mathcal C_{r,\rho}\) be one of the refined strata from part
-\(2\), and define \(S_\mathcal S=\{i\in[d_z]:\rho_i\neq 0\}\). For every
-\(x\in\mathcal S\), we have \(E_i(x)=0\) for all \(i\notin S_\mathcal S\).
-Thus \(E(x)\) has zero coordinates outside \(S_\mathcal S\). Therefore
-\(K^hE(x)=(K^h)_{:,S_\mathcal S}E_{S_\mathcal S}(x)\).
-Substituting this identity into the decoded predictor gives
-\[
-F_h(x)
-=
-D_{\mathrm{dec}}K^hE(x)+b_{\mathrm{dec}}
-=
-D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}E_{S_\mathcal S}(x)
-+
-b_{\mathrm{dec}}.
-\]
-This proves that the local predictor on \(\mathcal S\) uses only the active
-latent coordinates and the corresponding columns of \(K^h\).
-
-\paragraph{Part 4.}
-The map \(G_p\) is exactly \(F_p\), so by part \(1\) it is piecewise affine on a
-finite polyhedral stratification. Let
-\(\mathscr P=\{\mathcal P_1,\ldots,\mathcal P_N\}\) be such a stratification,
-and write \(G_p(x)=B_jx+c_j\) for all \(x\in\mathcal P_j\).
-
-We prove that every finite composition \(G_p^{\circ T}\) is piecewise affine by
-constructing itinerary strata. Define \(G_p^{\circ 0}\) to be the identity map.
-For an itinerary
-\(\alpha=(\alpha_0,\alpha_1,\ldots,\alpha_{T-1})\in\{1,\ldots,N\}^T\), define
-the final itinerary cell
-\[
-\Omega_\alpha
-=
-\left\{
-x\in\mathbb R^{d_x}:
-G_p^{\circ s}(x)\in\mathcal P_{\alpha_s}
-\ \text{for }s=0,\ldots,T-1
-\right\}.
-\]
-The nonempty sets \(\Omega_\alpha\) cover \(\mathbb R^{d_x}\), because every
-point has a unique stratum membership at each of the finitely many times
-\(0,\ldots,T-1\). They are pairwise disjoint because the strata
-\(\mathcal P_j\) are pairwise disjoint.
-
-It remains to show that each nonempty \(\Omega_\alpha\) is polyhedral and that
-\(G_p^{\circ T}\) is affine on it. For \(t=0,\ldots,T\), define the partial
-itinerary cell
-\[
-\Omega_{\alpha,t}
-=
-\left\{
-x\in\mathbb R^{d_x}:
-G_p^{\circ s}(x)\in\mathcal P_{\alpha_s}
-\ \text{for }s=0,\ldots,t-1
-\right\},
-\]
-with the convention that \(\Omega_{\alpha,0}=\mathbb R^{d_x}\). Then
-\(\Omega_{\alpha,T}=\Omega_\alpha\). We prove by induction on \(t\) that each
-nonempty \(\Omega_{\alpha,t}\) is a polyhedral stratum and that
-\(G_p^{\circ t}\) is affine on \(\Omega_{\alpha,t}\).
-
-For \(t=0\), \(\Omega_{\alpha,0}=\mathbb R^{d_x}\), which is a polyhedral
-stratum, and \(G_p^{\circ 0}(x)=x\) is affine.
-
-Assume the claim holds for some \(t<T\). Thus, on \(\Omega_{\alpha,t}\),
-\(G_p^{\circ t}(x)=L_t x+\ell_t\) for some matrix \(L_t\) and vector
-\(\ell_t\). The next partial cell is
-\[
-\Omega_{\alpha,t+1}
-=
-\Omega_{\alpha,t}
-\cap
-\left\{x:L_t x+\ell_t\in\mathcal P_{\alpha_t}\right\}.
-\]
-By the affine-preimage lemma, the second set is either empty or a polyhedral
-stratum. Its intersection with the polyhedral stratum \(\Omega_{\alpha,t}\) is
-therefore either empty or a polyhedral stratum.
-
-On any nonempty \(\Omega_{\alpha,t+1}\), we have
-\(G_p^{\circ t}(x)\in\mathcal P_{\alpha_t}\), and on \(\mathcal P_{\alpha_t}\)
-the map \(G_p\) has the affine formula \(G_p(y)=B_{\alpha_t}y+c_{\alpha_t}\).
-Therefore, for \(x\in\Omega_{\alpha,t+1}\),
-\[
-\begin{aligned}
-G_p^{\circ(t+1)}(x)
-&=
-G_p(G_p^{\circ t}(x))  \\
-&=
-B_{\alpha_t}(L_t x+\ell_t)+c_{\alpha_t} \\
-&=
-(B_{\alpha_t}L_t)x+(B_{\alpha_t}\ell_t+c_{\alpha_t}),
-\end{aligned}
-\]
-which is affine in \(x\). This completes the induction.
-
-Taking \(t=T\), each nonempty final cell \(\Omega_\alpha\) is polyhedral and
-\(G_p^{\circ T}\) is affine on it. Since there are only finitely many
-itineraries \(\alpha\in\{1,\ldots,N\}^T\), the nonempty final cells give a finite
-polyhedral stratification, and \(G_p^{\circ T}\) is piecewise affine.
-\end{proof}
-
-\setcounter{corollary}{0}
-\begin{corollary}[Exact sparse coding under uniqueness]
-Let \(B\in\mathbb R^{d_x\times d_z}\) and \(\lambda>0\), and, for each
-\(x\in\mathbb R^{d_x}\), consider the lasso sparse-coding problem
-\[
-E_{\mathrm{lasso}}(x)
-=
-z^\star(x)
-=
-\arg\min_{z\in\mathbb R^{d_z}}
-\left\{
-\frac12\|x-Bz\|_2^2+\lambda\|z\|_1
-\right\}.
-\]
-Assume that the minimizer is unique for every \(x\in\mathbb R^{d_x}\). Then
-\(E_{\mathrm{lasso}}\) is single-valued, continuous, and piecewise affine on a
-finite polyhedral stratification. Consequently, the general theorem applies
-with \(E=E_{\mathrm{lasso}}\). In particular, for every \(h\ge 1\),
-\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}\) is
-piecewise affine, and on every refined support stratum \(\mathcal S\),
-\[
-D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}
-=
-D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
-(E_{\mathrm{lasso}}(x))_{S_\mathcal S}
-+
-b_{\mathrm{dec}}.
-\]
-
-The uniqueness assumption is essential. It is satisfied, for example, if
-\(B\) has full column rank.
-\end{corollary}
-
-\begin{proof}
-For fixed \(x\), define
-\(J_x(z)=\frac12\|x-Bz\|_2^2+\lambda\|z\|_1\). Because \(\lambda>0\),
-\(J_x(z)\ge \lambda\|z\|_1\), and hence \(J_x(z)\to\infty\) as
-\(\|z\|_1\to\infty\). Since \(J_x\) is continuous, a minimizer exists. By
-assumption, this minimizer is unique.
-
-We first derive the optimality conditions from first principles. Let
-\(r=x-Bz\). We claim that \(z\) minimizes \(J_x\) if and only if
-\(B^\top(x-Bz)=\lambda\gamma\) for some \(\gamma\in\mathbb R^{d_z}\)
-satisfying
-\[
-\gamma_i=
-\begin{cases}
-\sign(z_i), & z_i\neq 0,\\
-\text{some number in }[-1,1], & z_i=0.
-\end{cases}
-\]
-
-First suppose \(z\) is a minimizer. Let \(b_i\) denote the \(i\)-th column of
-\(B\). The differentiable part of \(J_x\) has coordinate derivative
-\[
-\frac{\partial}{\partial z_i}
-\left(
-\frac12\|x-Bz\|_2^2
-\right)
-=
-b_i^\top(Bz-x)
-=
--b_i^\top r.
-\]
-
-If \(z_i>0\), then for sufficiently small perturbations in the \(i\)-th
-coordinate the absolute-value term is differentiable with derivative \(+1\).
-Optimality of \(z\) therefore gives \(-b_i^\top r+\lambda=0\), or equivalently
-\(b_i^\top r=\lambda\).
-If \(z_i<0\), the absolute-value term has derivative \(-1\), and optimality
-gives \(-b_i^\top r-\lambda=0\), or equivalently \(b_i^\top r=-\lambda\).
-If \(z_i=0\), then moving in the positive coordinate direction by \(t>0\) gives
-\[
-J_x(z+t e_i)-J_x(z)
-=
-t(-b_i^\top r+\lambda)+O(t^2).
-\]
-Since \(z\) is a minimizer, the first-order coefficient must be nonnegative:
-\(-b_i^\top r+\lambda\ge 0\), so \(b_i^\top r\le \lambda\).
-Moving in the negative coordinate direction gives
-\[
-J_x(z-t e_i)-J_x(z)
-=
-t(b_i^\top r+\lambda)+O(t^2),
-\]
-and hence \(b_i^\top r+\lambda\ge 0\), so \(b_i^\top r\ge -\lambda\). Thus,
-when \(z_i=0\), \(|b_i^\top r|\le \lambda\).
-Combining the three cases gives the claimed condition.
-
-Conversely, suppose the claimed condition holds. Let \(w\in\mathbb R^{d_z}\)
-be arbitrary. Since \(r=x-Bz\), we have \(x-Bw=x-Bz-B(w-z)=r-B(w-z)\).
-Therefore
-\[
-\begin{aligned}
-J_x(w)-J_x(z)
-&=
-\frac12\|r-B(w-z)\|_2^2-\frac12\|r\|_2^2
-+
-\lambda(\|w\|_1-\|z\|_1) \\
-&=
--r^\top B(w-z)
-+
-\frac12\|B(w-z)\|_2^2
-+
-\lambda(\|w\|_1-\|z\|_1).
-\end{aligned}
-\]
-The condition \(B^\top r=\lambda\gamma\) gives
-\(r^\top B(w-z)=(B^\top r)^\top(w-z)=\lambda\gamma^\top(w-z)\).
-Hence
-\[
-J_x(w)-J_x(z)
-=
-\frac12\|B(w-z)\|_2^2
-+
-\lambda\bigl(\|w\|_1-\|z\|_1-\gamma^\top(w-z)\bigr).
-\]
-For each coordinate \(i\), the definition of \(\gamma_i\) gives
-\(|w_i|-|z_i|\ge \gamma_i(w_i-z_i)\).
-Indeed, if \(z_i>0\), then \(\gamma_i=1\) and this inequality is
-\(|w_i|-z_i\ge w_i-z_i\), which follows from \(|w_i|\ge w_i\). If \(z_i<0\),
-then \(\gamma_i=-1\) and the inequality is
-\(|w_i|+z_i\ge -w_i+z_i\), which follows from \(|w_i|\ge -w_i\). If \(z_i=0\),
-then \(|\gamma_i|\le 1\), so \(|w_i|\ge \gamma_i w_i\). Summing over
-coordinates gives
-\(\|w\|_1-\|z\|_1\ge \gamma^\top(w-z)\). Thus
-\(J_x(w)-J_x(z)\ge \frac12\|B(w-z)\|_2^2\ge 0\).
-Since \(w\) was arbitrary, \(z\) minimizes \(J_x\). This proves the optimality
-criterion.
-
-We now construct the affine pieces. Let \(A\subseteq[d_z]\) be a candidate
-active set and let \(s\in\{-1,+1\}^{A}\) be a candidate sign vector. We use
-the convention that, when \(A=\varnothing\),
-all matrices and vectors restricted to \(A\) have the corresponding empty
-dimensions and the formula below gives the zero vector.
-
-Assume \(B_A^\top B_A\) is invertible. Define the affine candidate
-\[
-z_A^{A,s}(x)
-=
-(B_A^\top B_A)^{-1}(B_A^\top x-\lambda s),
-\qquad
-z_{A^c}^{A,s}(x)=0.
-\]
-Define the corresponding residual \(r_{A,s}(x)=x-B_Az_A^{A,s}(x)\).
-Now define
-\[
-P_{A,s}
-=
-\left\{
-x\in\mathbb R^{d_x}:
-s_i z_i^{A,s}(x)\ge 0 \ \text{for all } i\in A,\quad
-|b_j^\top r_{A,s}(x)|\le \lambda \ \text{for all } j\notin A
-\right\}.
-\]
-The functions \(z_i^{A,s}(x)\) and \(b_j^\top r_{A,s}(x)\) are affine in
-\(x\). Hence \(P_{A,s}\) is a closed polyhedron.
-
-For \(x\in P_{A,s}\), the active residual equation holds by construction:
-\[
-B_A^\top r_{A,s}(x)
-=
-B_A^\top x
--
-B_A^\top B_A z_A^{A,s}(x)
-=
-\lambda s.
-\]
-For inactive indices \(j\notin A\), the definition of \(P_{A,s}\) gives
-\(|b_j^\top r_{A,s}(x)|\le \lambda\).
-For active indices \(i\in A\), if \(z_i^{A,s}(x)\neq 0\), then
-\(s_i z_i^{A,s}(x)>0\), so \(\sign(z_i^{A,s}(x))=s_i\).
-If \(z_i^{A,s}(x)=0\), then \(s_i\in[-1,1]\), which is allowed by the
-zero-coordinate optimality condition. Therefore the optimality criterion above
-shows that \(z^{A,s}(x)\) is a minimizer of \(J_x\). Since the minimizer is
-unique, \(E_{\mathrm{lasso}}(x)=z^{A,s}(x)\) for all \(x\in P_{A,s}\).
-Thus \(E_{\mathrm{lasso}}\) is affine on each such polyhedron.
-
-It remains to show that these finitely many polyhedra cover
-\(\mathbb R^{d_x}\). Fix \(x\), and let
-\(z^\star=E_{\mathrm{lasso}}(x)\), \(A=\supp(z^\star)\), and
-\(s=\sign(z^\star_A)\).
-We claim that \(B_A^\top B_A\) must be invertible. If \(A=\varnothing\), this
-is true by convention. Otherwise, suppose \(B_A^\top B_A\) is singular. Then
-there exists a nonzero vector \(h\in\mathbb R^{|A|}\) such that \(B_Ah=0\).
-Let \(r^\star=x-B_Az^\star_A\). The active optimality equations give
-\(B_A^\top r^\star=\lambda s\).
-Multiplying by \(h\), we obtain
-\[
-\lambda s^\top h
-=
-h^\top B_A^\top r^\star
-=
-(B_Ah)^\top r^\star
-=
-0.
-\]
-Thus \(s^\top h=0\).
-For sufficiently small nonzero \(t\), the vector \(z^\star_A+th\) has the same
-coordinate signs as \(z^\star_A\). Also,
-\[
-B_A(z^\star_A+th)
-=
-B_Az^\star_A+tB_Ah
-=
-B_Az^\star_A,
-\]
-so the residual is unchanged. Since the signs are unchanged,
-\[
-\|z^\star_A+th\|_1
-=
-s^\top(z^\star_A+th)
-=
-s^\top z^\star_A+t s^\top h
-=
-s^\top z^\star_A
-=
-\|z^\star_A\|_1.
-\]
-Therefore \(z^\star_A+th\), extended by zeros on \(A^c\), gives the same
-objective value as \(z^\star\). This contradicts uniqueness. Hence
-\(B_A^\top B_A\) is invertible.
-
-Since \(B_A^\top B_A\) is invertible, the active optimality equation
-\(B_A^\top(x-B_Az^\star_A)=\lambda s\) implies
-\[
-z^\star_A
-=
-(B_A^\top B_A)^{-1}(B_A^\top x-\lambda s)
-=
-z_A^{A,s}(x).
-\]
-The inactive optimality inequalities give
-\(|b_j^\top r_{A,s}(x)|\le \lambda\) for all \(j\notin A\), and the sign
-conditions give \(s_i z_i^{A,s}(x)>0\) for all \(i\in A\).
-Thus \(x\in P_{A,s}\). Therefore the finite collection of polyhedra \(P_{A,s}\),
-over all \(A\subseteq[d_z]\) and \(s\in\{-1,+1\}^A\) with
-\(B_A^\top B_A\) invertible, covers \(\mathbb R^{d_x}\).
-
-The sets \(P_{A,s}\) may overlap on boundaries. To obtain a genuine
-stratification, take the finite family of all affine functions appearing in the
-defining inequalities of all the polyhedra \(P_{A,s}\), and stratify
-\(\mathbb R^{d_x}\) according to the signs of those functions. By the finite
-sign-refinement lemma, this gives a finite polyhedral stratification. On every
-stratum, membership in each \(P_{A,s}\) is constant. Since the \(P_{A,s}\)'s
-cover \(\mathbb R^{d_x}\), each stratum lies inside at least one \(P_{A,s}\).
-On that stratum, \(E_{\mathrm{lasso}}(x)=z^{A,s}(x)\), which is affine in
-\(x\). If a stratum lies inside more than one such
-polyhedron, the corresponding affine formulas agree on the stratum because
-they all equal the unique minimizer. Hence \(E_{\mathrm{lasso}}\) is piecewise
-affine on a finite polyhedral stratification.
-
-The general theorem now applies directly with \(E=E_{\mathrm{lasso}}\). Therefore
-the decoded \(h\)-step Koopman predictor
-\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}\) is
-piecewise affine, and on each refined support stratum \(\mathcal S\) it uses
-only the active coordinates:
-\[
-D_{\mathrm{dec}}K^hE_{\mathrm{lasso}}(x)+b_{\mathrm{dec}}
-=
-D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
-(E_{\mathrm{lasso}}(x))_{S_\mathcal S}
-+
-b_{\mathrm{dec}}.
-\]
-
-We finally prove continuity of \(E_{\mathrm{lasso}}\). Let \(x_n\to x\), and set
-\(z_n=E_{\mathrm{lasso}}(x_n)\).
-Since \(z_n\) minimizes \(J_{x_n}\),
-\[
-\frac12\|x_n-Bz_n\|_2^2+\lambda\|z_n\|_1
-\le
-\frac12\|x_n\|_2^2.
-\]
-In particular, \(\lambda\|z_n\|_1\le\frac12\|x_n\|_2^2\).
-The sequence \((x_n)\) is bounded, so \((z_n)\) is bounded. Let
-\((z_{n_k})\) be any convergent subsequence, and write \(z_{n_k}\to \bar z\).
-For every \(w\in\mathbb R^{d_z}\), optimality of \(z_{n_k}\) gives
-\[
-J_{x_{n_k}}(z_{n_k})
-\le
-J_{x_{n_k}}(w).
-\]
-Taking \(k\to\infty\), using continuity of \(J_x(z)\) jointly in \((x,z)\),
-gives
-\[
-J_x(\bar z)\le J_x(w)
-\qquad
-\text{for all }w.
-\]
-Thus \(\bar z\) is a minimizer of \(J_x\). By uniqueness,
-\(\bar z=E_{\mathrm{lasso}}(x)\).
-Every convergent subsequence of \((z_n)\) has the same limit
-\(E_{\mathrm{lasso}}(x)\), and \((z_n)\) is bounded. Therefore
-\(z_n\to E_{\mathrm{lasso}}(x)\).
-So \(E_{\mathrm{lasso}}\) is continuous.
-
-If \(B\) has full column rank, then \(B^\top B\) is positive definite, so the
-quadratic term \(z\mapsto \frac12\|x-Bz\|_2^2\) is strictly convex. The term
-\(\lambda\|z\|_1\) is convex. The sum of a
-strictly convex function and a convex function is strictly convex, so \(J_x\)
-has at most one minimizer. Since a minimizer exists, it is unique. Hence full
-column rank is a sufficient condition for the uniqueness assumption.
-\end{proof}
-
-\begin{corollary}[Finite-depth LISTA encoders]
-Let \(Q\ge 0\) be an integer. Let
-\(c:\mathbb R^{d_x}\to\mathbb R^{d_z}\) be a single-valued pre-code that is
-piecewise affine on a finite polyhedral stratification. This includes the affine
-special case \(c(x)=Wx+b\), where \(W\in\mathbb R^{d_z\times d_x}\) and
-\(b\in\mathbb R^{d_z}\). Let \(S_{\mathrm{L}}\in\mathbb R^{d_z\times d_z}\),
-let \(\tau\in\mathbb R_{\ge 0}^{d_z}\), and define the coordinatewise
-soft-thresholding map by
-\([T_\tau(y)]_i=\sign(y_i)\max\{|y_i|-\tau_i,0\}\).
-Consider the finite-depth LISTA encoder
-\[
-u^{(0)}(x)=T_\tau(c(x)),
-\]
-\[
-u^{(q+1)}(x)=T_\tau(S_{\mathrm{L}}u^{(q)}(x)+c(x)),
-\qquad
-q=0,\ldots,Q-1,
-\]
-and
-\[
-E_{\mathrm{LISTA}}(x)=u^{(Q)}(x).
-\]
-Here \(Q\) counts the number of refinement steps after the initial
-thresholding; when \(Q=0\), the encoder is simply
-\(E_{\mathrm{LISTA}}=u^{(0)}\). Then \(E_{\mathrm{LISTA}}\) is
-single-valued and piecewise affine on a finite polyhedral stratification of
-\(\mathbb R^{d_x}\). Consequently, the general theorem applies with
-\(E=E_{\mathrm{LISTA}}\). In particular, for every \(h\ge 1\),
-\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}\) is
-piecewise affine, and on every refined support stratum \(\mathcal S\),
-\[
-D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}
-=
-D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
-(E_{\mathrm{LISTA}}(x))_{S_\mathcal S}
-+
-b_{\mathrm{dec}}.
-\]
-\end{corollary}
-
-\begin{proof}
-We first show that the soft-thresholding map \(T_\tau\) is piecewise affine on
-a finite polyhedral stratification of \(\mathbb R^{d_z}\).
-
-For one coordinate, define
-\(t_i(y_i)=\sign(y_i)\max\{|y_i|-\tau_i,0\}\).
-Equivalently,
-\[
-t_i(y_i)
-=
-\begin{cases}
-y_i+\tau_i, & y_i<-\tau_i,\\
-0, & -\tau_i\le y_i\le \tau_i,\\
-y_i-\tau_i, & y_i>\tau_i.
-\end{cases}
-\]
-To obtain a disjoint stratification, split the real line into the nonempty and
-distinct sets among \((-\infty,-\tau_i)\), \(\{-\tau_i\}\),
-\((-\tau_i,\tau_i)\), \(\{\tau_i\}\), and \((\tau_i,\infty)\).
-The phrase ``distinct'' only matters when \(\tau_i=0\), in which case
-\(\{-\tau_i\}=\{\tau_i\}\) and \((-\tau_i,\tau_i)\) is empty. On each
-remaining piece, \(t_i\) is affine: \(t_i(y_i)=y_i+\tau_i\) on
-\((-\infty,-\tau_i)\), \(t_i(y_i)=0\) on the pieces contained in
-\([-\tau_i,\tau_i]\), and \(t_i(y_i)=y_i-\tau_i\) on \((\tau_i,\infty)\).
-Taking Cartesian products of these one-dimensional strata over
-\(i=1,\ldots,d_z\) gives a finite polyhedral stratification of
-\(\mathbb R^{d_z}\). On each product stratum \(\mathcal P\), there exist a
-diagonal matrix \(R_\mathcal P\) and a vector \(r_\mathcal P\) such that
-\(T_\tau(y)=R_\mathcal P y+r_\mathcal P\) for all \(y\in\mathcal P\).
-Thus \(T_\tau\) is piecewise affine.
-
-Let \(\mathscr C^c=\{\mathcal C_\alpha^c\}_\alpha\) be a finite polyhedral
-stratification on which the pre-code \(c\) is affine.
-Thus, on each \(\mathcal C_\alpha^c\), there exist
-\(W_\alpha^c\) and \(b_\alpha^c\) such that
-\(c(x)=W_\alpha^c x+b_\alpha^c\) for all \(x\in\mathcal C_\alpha^c\).
-If \(c(x)=Wx+b\) is globally affine, this stratification has one stratum.
-
-We now prove by induction over the LISTA depth that every \(u^{(q)}\) is
-piecewise affine on a finite polyhedral stratification that refines
-\(\mathscr C^c\).
-
-For the initial step, let \(\mathcal P\) be one of the threshold strata for
-\(T_\tau\). On a fixed pre-code stratum \(\mathcal C_\alpha^c\), the set
-\[
-\mathcal C_\alpha^c
-\cap
-\{x:W_\alpha^c x+b_\alpha^c\in\mathcal P\}
-\]
-is either empty or a polyhedral stratum: it is the intersection of
-\(\mathcal C_\alpha^c\) with the affine preimage of \(\mathcal P\). The
-nonempty sets of this form, over all \(\alpha\) and all threshold strata
-\(\mathcal P\), form a finite polyhedral stratification of
-\(\mathbb R^{d_x}\) refining \(\mathscr C^c\). On such a stratum,
-\[
-\begin{aligned}
-u^{(0)}(x)
-&=
-T_\tau(c(x)) \\
-&=
-R_\mathcal P(W_\alpha^c x+b_\alpha^c)+r_\mathcal P \\
-&=
-(R_\mathcal P W_\alpha^c)x+(R_\mathcal P b_\alpha^c+r_\mathcal P),
-\end{aligned}
-\]
-which is affine in \(x\). Therefore \(u^{(0)}\) is piecewise affine.
-
-Now assume that, for some \(q\ge 0\), \(u^{(q)}\) is piecewise affine on a
-finite polyhedral stratification
-\(\mathscr C^{(q)}=\{\mathcal C_\beta^{(q)}\}_\beta\) that refines
-\(\mathscr C^c\). Thus, on each stratum
-\(\mathcal C_\beta^{(q)}\), there exist \(A_\beta^{(q)}\) and
-\(a_\beta^{(q)}\) such that
-\(u^{(q)}(x)=A_\beta^{(q)}x+a_\beta^{(q)}\).
-Because \(\mathscr C^{(q)}\) refines \(\mathscr C^c\), the pre-code is also
-affine on \(\mathcal C_\beta^{(q)}\); write
-\(c(x)=W_\beta^c x+b_\beta^c\) for all \(x\in\mathcal C_\beta^{(q)}\).
-On this same stratum, the next pre-threshold vector is
-\[
-\begin{aligned}
-v^{(q+1)}(x)
-&=
-S_{\mathrm{L}}u^{(q)}(x)+c(x)\\
-&=
-S_{\mathrm{L}}(A_\beta^{(q)}x+a_\beta^{(q)})+W_\beta^c x+b_\beta^c\\
-&=
-(S_{\mathrm{L}}A_\beta^{(q)}+W_\beta^c)x
-+
-(S_{\mathrm{L}}a_\beta^{(q)}+b_\beta^c),
-\end{aligned}
-\]
-which is affine in \(x\).
-
-Let \(\mathcal P\) again be a threshold stratum for \(T_\tau\). The set
-\[
-\mathcal C_\beta^{(q)}
-\cap
-\{x:v^{(q+1)}(x)\in\mathcal P\}
-\]
-is either empty or a polyhedral stratum: it is the intersection of
-\(\mathcal C_\beta^{(q)}\) with the affine preimage of \(\mathcal P\). These
-nonempty intersections, over all \(\beta\) and all threshold strata
-\(\mathcal P\), give a finite polyhedral refinement of
-\(\mathscr C^{(q)}\), and hence still refine \(\mathscr C^c\). On such a
-refined stratum,
-\[
-\begin{aligned}
-u^{(q+1)}(x)
-&=
-T_\tau(v^{(q+1)}(x))\\
-&=
-R_\mathcal P v^{(q+1)}(x)+r_\mathcal P\\
-&=
-R_\mathcal P\bigl((S_{\mathrm{L}}A_\beta^{(q)}+W_\beta^c)x
-+
-(S_{\mathrm{L}}a_\beta^{(q)}+b_\beta^c)\bigr)
-+
-r_\mathcal P,
-\end{aligned}
-\]
-which is affine in \(x\). Thus \(u^{(q+1)}\) is piecewise affine on a finite
-polyhedral stratification that refines \(\mathscr C^c\).
-
-By induction, \(E_{\mathrm{LISTA}}(x)=u^{(Q)}(x)\) is piecewise affine on a
-finite polyhedral stratification. The encoder is
-single-valued because it is defined by deterministic compositions of functions.
-
-The general theorem now applies with \(E=E_{\mathrm{LISTA}}\). Hence
-\(x\mapsto D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}\) is
-piecewise affine, and on each refined support stratum \(\mathcal S\),
-\[
-D_{\mathrm{dec}}K^hE_{\mathrm{LISTA}}(x)+b_{\mathrm{dec}}
-=
-D_{\mathrm{dec}}(K^h)_{:,S_\mathcal S}
-(E_{\mathrm{LISTA}}(x))_{S_\mathcal S}
-+
-b_{\mathrm{dec}}.
-\]
-
-When the pre-code is written as \(c(x)=f_\theta(x)\), this corollary applies
-literally whenever \(f_\theta\) is piecewise affine, for example an affine,
-ReLU, or leaky-ReLU MLP. It does not automatically cover smooth pre-codes such
-as tanh, sigmoid, GELU, or SiLU networks, or input-dependent normalizations,
-unless a separate approximation or regularity argument is supplied.
-\end{proof}
-
-\section{Additional experimental details}
-\label{app:experimental_details}
-
-\paragraph{Training and model rows.}
-The fixed multibasin comparison uses the six model rows reported in \cref{tab:fixed17_alignment}. All are trained on length-$8$ observation windows for $200{,}000$ optimization steps with minibatches of $256$ windows, using the prediction, reconstruction, latent-consistency, and sparsity objective described in \cref{sec:method_training}. The multibasin runs use AdamW, with learning rate $5{\times}10^{-5}$ for the encoder and decoder, learning rate $5{\times}10^{-6}$ for the latent transition, and weight decay $10^{-4}$ on the non-transition parameters. In the notation of \cref{eq:training_objective}, the relative weights are $\lambda_{\rm pred}=1$, $\lambda_{\rm rec}=0.03$, and $\lambda_{\rm lin}=1$; sparse rows use $\lambda_{\rm sp}=3{\times}10^{-3}$, while the Dense MLP row sets $\lambda_{\rm sp}=0$. The boundary-emphasized training distribution draws half of its resets from a pool of hard initial conditions selected without basin labels, using short probe rollouts to identify states with high perturbation sensitivity or lingering transient motion.
-
-The saved best checkpoint is chosen by a fixed validation rule during training. Every $500$ optimization steps, and again at the final step, the current model is rolled out for $200$ steps from $16$ held-out initial states using every-step re-encoding. The checkpoint with the lowest final validation error is saved as \texttt{checkpoint.pt}; the latest checkpoint is kept separately as \texttt{last.pt}. This validation rule is a training-side proxy for rollout stability. It does not use basin labels, test trajectories, or the post-hoc best-periodic evaluation grid.
-
-The main Dysts comparison is used only as a forecasting stress test and focuses on LISTA, LISTA-BD, Sparse MLP, Sparse MLP-BD, and Dense MLP as the primary rows. The soft-block LISTA row is retained in the table as a diagnostic rather than a primary forecasting row and is omitted from the main Dysts trend figure. Dysts training trajectories are drawn from native trajectory caches with standardized coordinates, $200$ cached trajectories, $30{,}000$ stored observations per trajectory, and a $2{,}000$-step warm-up; training samples length-$10$ windows from the cache training split. The current table reports the $dt{\times}30$ version of this benchmark: the stored Dysts observation interval is set to $30$ times the intrinsic Dysts timestep for the corresponding system, and evaluation uses reduced horizon indices through $H5000$ rather than the older tiny-step $H{\leq}60000$ extrapolation packet. Initial conditions are based on each Dysts system's default initial condition; the remaining cached trajectories perturb that state with Gaussian noise at scale $0.2$ times the coordinate-wise Dysts standard deviation. Train, validation, and test caches use deterministic split-specific namespaces so that held-out trajectories are disjoint from training windows and reusable across model seeds. Long-horizon evaluation uses the disjoint held-out test cache, with $100$ held-out trajectories for each system and seed. LISTA rows use the same learning rates as the multibasin runs, while MLP rows use learning rates $10^{-4}$ for encoder/decoder parameters and $10^{-5}$ for the latent transition. The paper-facing Dysts shortlist contains the \(10\) three-dimensional systems in \cref{tab:dysts_inventory}; the originally collected six-dimensional \texttt{LorenzCoupled} rows and Chua-family \texttt{MultiChua} rows are excluded from aggregation.
-
-\begin{table}[tbp]
-\centering
-\caption{Dysts forecasting shortlist. These systems are used only for long-horizon forecasting stress tests because basin labels are not available.}
-\label{tab:dysts_inventory}
-\begin{tabular}{@{}l c@{}}
-\toprule
-System & State dimension \\
-\midrule
-\texttt{Chua} & 3 \\
-\texttt{Dadras} & 3 \\
-\texttt{DequanLi} & 3 \\
-\texttt{Hadley} & 3 \\
-\texttt{LuChenCheng} & 3 \\
-\texttt{QiChen} & 3 \\
-\texttt{Sakarya} & 3 \\
-\texttt{SanUmSrisuchinwong} & 3 \\
-\texttt{ShimizuMorioka} & 3 \\
-\texttt{WangSun} & 3 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The Dysts systems have system-specific native integration intervals, so the cached sequences should be interpreted as benchmark observation sequences rather than as trajectories normalized to a common physical time. Coordinates are standardized before training and evaluation. The models never observe the vector field, the continuous solver, or the native integration substeps; they receive uniformly spaced stored states and are evaluated in stored-step units. This is why the Dysts table reports stored-step horizons such as $H1000$ and $H5000$ rather than a shared physical-time horizon.
-
-\paragraph{Training recipe selection.}
-Earlier exploratory sweeps varied LISTA depth, shrinkage scale, sparsity coefficient, sign-split encodings, transition structure, and MLP sparsity controls. Those pilots used shorter budgets or broader system lists, so their numeric grids are not treated as final protocol here. The paper-facing appendix instead reports the fixed model rows, training budgets, validation rule, held-out splits, and statistical units used for the final claims.
-In particular, staged recipe-discovery sweeps with $10{,}000$-step, three-seed cells and one-step training windows were used only to choose candidate recipes. They are not pooled with the final $200{,}000$-step, held-out-split evaluations and should not be interpreted as paper evidence.
-
-\paragraph{Evaluation splits.}
-All reported forecasting and interpretability results are evaluated on held-out trajectories, not on the training windows. Multibasin forecasting uses $100$ held-out initial conditions for each system and seed. Routing fits local predictors on $256$ disjoint held-out trajectories of length $256$ and evaluates them on a separate set of $128$ held-out rollouts. The Dysts long-horizon table uses $100$ held-out cached test trajectories for each system and seed. Basin labels, when available in the procedural benchmark, are used only to define evaluation slices, score support--basin agreement, construct controlled transfer pairs, and compute statistical summaries.
-
-\paragraph{Periodic forecasting.}
-All horizons and re-encoding periods are reported in stored observation steps, not in equal physical time across systems. The no-reencoding rollout applies the learned latent transition for the full horizon before decoding. The periodic rollout decodes and re-encodes the model's own predicted state at a fixed period. The multibasin forecasting tables select the best score over periods $10,25,50$, and $100$ stored observation steps. The Dysts $dt{\times}30$ evaluation uses periods $10,25,50,100,150$, and $200$. These choices are fixed before aggregation and do not use the true future trajectory.
-
-The fixed re-encoding grid is used only at evaluation time. Checkpoint selection uses the validation proxy described above, not a search over the final test-period grid, and the reported point estimates aggregate all completed seeds rather than selecting the best seed. The best-periodic score should therefore be read as a controlled diagnostic of whether a model benefits from regular support refresh at deployment, not as teacher forcing or basin-label access.
-
-\paragraph{Support diagnostics.}
-The wrong-support ablation first constructs, for each basin in a testable system, a canonical deep-slice \(S_{\rm abs}\) mask from the most common exact mask observed in that basin. The ablated rollout replaces the inferred \(S_{\rm abs}\) mask with a canonical mask from a different basin and holds that replacement fixed. \Cref{tab:fixed17_alignment} reports the wrong-support/base error ratio at horizons $h=1$ and $h=20$; larger ratios indicate stronger functional dependence on the selected support.
-
-\paragraph{Routing details.}
-Support-routed forecasting uses fixed-size \(S_{\rm top8}\) masks so every state receives an eight-index route key. The main table reports \(F_{\rm top8}\)-local routing, which fits ridge-regularized local linear maps after merging nearby top-\(8\) masks into support families. The ridge penalty is $10^{-4}$. At evaluation time, a local route is used only if it was observed in at least $128$ fitted transitions; otherwise the rollout falls back to the global latent transition. The reported routed/global ratio always compares the routed prediction with the same model's own global rollout, not with another model family. Exact gated \(S_{\rm top8}\), which masks the centered latent state before applying the learned transition, and exact \(S_{\rm top8}\)-local, which fits one local map per exact top-\(8\) support, are retained in \cref{tab:self_routing_deep} as route-form diagnostics rather than as the main paper claim.
-
-\input{figures/neurips_paper_2026/_tables/table2_partition_controls_compact.tex}
-
-\paragraph{Support refresh.}
-The support-refresh experiment uses exact \(S_{\rm top8}\) supports and the two re-encoding periods reported in \cref{tab:support_refresh}, $1$ and $10$ stored observation steps. Each comparison starts from a controlled source-to-target transfer. The frozen-source rollout keeps using the source \(S_{\rm top8}\) mask after target entry, while the refreshed-current rollout periodically decodes, re-encodes, and re-extracts \(S_{\rm top8}\) from its own predicted state. Basin labels are used only to construct valid transfer pairs and score post-entry routing; they are not supplied to the rollout.
-
-\subsection{Statistical testing protocol}
-\label{app:statistical_testing}
-All bracketed \(K/N\) counts are within-system reproducibility counts, not tests obtained by pooling all seeds or all systems together. The main Table~\ref{tab:self_routing} routing stars are the exception: because the displayed routing effect is a cross-system statement, its confirmatory test uses the benchmark system as the independent unit. For each table cell and each benchmark system, we first construct paired deltas over the appropriate replicate unit. For multibasin forecasting, \(S_{\rm abs}\)-size diagnostics, \(F_{\rm abs}\) entropy, and wrong-support ablations, the replicate unit is the training seed and the pairing is by the same system and seed. For Table~\ref{tab:self_routing}, seed-level finite routed/global log-ratios are summarized within each system before testing across systems. For the Dysts model-vs-Dense superscripts in \cref{tab:dysts_long}, the replicate unit is also the benchmark system after seed aggregation: each system contributes one \(\log_{10}\) difference between the candidate seed-IQM MSE and the Dense MLP seed-IQM MSE. For support refresh, the replicate unit is the controlled source-to-target transfer instance within a system; when multiple training seeds are available, all completed seeds contribute transfer instances to the same within-system test.
-
-The tested delta is chosen so that the sign matches the scientific claim. Forecasting comparisons against the Dense MLP baseline use
-\begin{equation}
-  \Delta_{s,u}
-  =
-  \log_{10} E^{\rm cand}_{s,u}
-  -
-  \log_{10} E^{\rm base}_{s,u}
-  =
-  \log_{10}\!\left(E^{\rm cand}_{s,u}/E^{\rm base}_{s,u}\right),
-\end{equation}
-where $s$ indexes the system and $u$ indexes the replicate unit; the one-sided alternative is $\Delta<0$. Routed/global and refreshed/previous comparisons use the same log-ratio convention, again with alternative $\Delta<0$. Mean \(S_{\rm abs}\) size and \(H(B\mid F_{\rm abs})\) use raw paired differences against the Dense MLP baseline with alternative candidate $<$ baseline. Exact-support uniqueness and wrong-support/base ratios use raw paired differences with alternative candidate $>$ baseline, because larger values mean that the representation assigns more unique basin-specific supports or depends more strongly on the selected support.
-
-Within each system, we apply a one-sided paired Wilcoxon signed-rank test to the within-system reproducibility deltas. Systems with too few finite pairs, all-zero deltas, or diagnostics that are undefined by construction are treated as non-significant for that cell. For each model--metric--horizon--subset cell, the resulting per-system \(p\)-values are Holm-corrected across the systems in that family at \(\alpha=0.05\). The reported \(K/N\) is the number of systems whose Holm-corrected \(p\)-value is below \(0.05\) divided by the number of systems eligible for that diagnostic: \(15\) for the controlled multibasin benchmark and \(11\) for the global deep-slice wrong-support ablation because four retained systems have a single-basin deep subset.
-
-For the main routing table, each system contributes one effect \(D_s=\operatorname{IQM}_i\log_{10}(E^{\rm routed}_{s,i}/E^{\rm global}_{s,i})\) over mutually finite seed pairs. The table reports \(10^{\operatorname{mean}_s D_s}\). Significance is tested with a one-sided exact sign-flip test on the finite system-level log effects and Holm-corrected across the displayed model--horizon cells. This matches the displayed cross-system claim and avoids treating seeds nested inside the same dynamical system as independent benchmark systems. The Dysts actual-MSE table uses a related row-level test: the \(11\) per-system candidate-minus-Dense differences in \(\log_{10}\) seed-IQM MSE are tested with a one-sided Wilcoxon signed-rank test and Holm-corrected across all candidate-model and horizon comparisons; passing cells receive significance superscripts.
-
-Table display uses fixed precision by metric: MSEs, MSE ratios, and raw wrong-support ratio differences use three significant figures with scientific notation outside \([10^{-3},10^3)\); route fractions use three decimal places; support-family counts use one decimal place; per-system \(\log_{10}\)-MSE effects use two decimal places; and displayed \(p\)-values use three decimals or \(<10^{-3}\).
-
-\paragraph{Censored routing comparisons.}
-Routing has an additional diagnostic issue: at long horizons, either the routed rollout or the same-model global rollout can be invalid because no finite H-step error remains available for that seed and subset. The main Table~\ref{tab:self_routing} ratio and sign-flip test use mutually finite routed/global pairs, while the system-wins column uses the censored all-seed-slot comparison so the table does not hide cases where routing remains finite but the same-model global rollout fails. For provenance and appendix diagnostics, we also keep the older all-seed-slot censored comparison for route-form ablations. For each horizon, we choose a log-scale censoring cap
-\begin{equation}
-  C
-  =
-  1+\left\lceil \max\!\left(12,\ \max_{\rm finite}\left|\log_{10}(E^{\rm routed}/E^{\rm global})\right|\right)\right\rceil,
-\end{equation}
-so the cap lies outside the observed finite log-ratio range. If both routed and global MSEs are finite and positive, the test uses the ordinary log ratio. If the routed MSE is finite but the same-model global MSE is invalid, the seed is encoded as a censored routed win, $\Delta=-C$. If the routed MSE is invalid but the global MSE is finite, the seed is encoded as a censored routed loss, $\Delta=+C$. If both sides are invalid or the expected seed row is missing, the seed is encoded as neutral, $\Delta=0$. The same convention treats zero routed error against positive global error as a censored win, positive routed error against zero global error as a censored loss, and both-zero as neutral.
-
-This censoring rule is an evaluation convention, not a causal diagnosis of why a rollout became invalid. It assumes only that, for an H-step forecasting benchmark, a finite evaluable forecast is better than an unevaluable forecast for the same model, system, seed, subset, and horizon. Finite catastrophic errors are retained as finite values; they are not discarded. Invalid global rollouts with finite routed rollouts therefore contribute directional evidence that routing produced an evaluable forecast where the same-model global rollout did not, but the statistic does not claim that the underlying cause was a particular learning failure. Encoding both-invalid and missing seed slots as neutral prevents the diagnostic count from rewarding methods merely because both compared rollouts failed.
-
-\subsection{Compute resources}
-Reported multibasin and Dysts training jobs were launched as independent cluster array tasks requesting one GPU, four CPU cores, and $16$GB memory per run, with a $24$-hour wall-time cap. The routing and refresh diagnostics were run as CPU jobs requesting four CPU cores and $24$GB memory, with a $12$-hour wall-time cap. The Dysts long-horizon re-evaluation was run in $100$-trajectory batches, with evaluation tasks requesting four CPU cores and $24$GB memory. These values describe the requested resources for the reported packets; the wall-time caps are not measured runtimes.
-
-\section{Support definitions and sensitivity}
-\label{app:support_definitions}
-
-The absolute-threshold support \(S_{\rm abs}\) marks a latent coordinate active when its magnitude exceeds \(10^{-3}\). It is the strict identifiability object used on the deep-state slice. Its active-coordinate count \(|S_{\rm abs}|\) is a state-dependent threshold statistic, so it can differ substantially across basins and systems and should not be confused with a fixed sparsity budget. The fixed-size support \(S_{\rm top8}\) selects the eight largest-magnitude latent coordinates. It is the routing object because every state receives an eight-index key without a magnitude threshold. The relative-threshold support \(S_{\rm rel}\) marks a coordinate active when its magnitude is at least \(10\%\) of the largest latent magnitude for that state. It removes global scale effects and was useful for centered local-law diagnostics, but it is too fragmented as an exact support router and is therefore retained only as a sensitivity object. Support families are produced by greedy Jaccard merging at threshold \(0.5\): \(F_{\rm abs}\) merges exact \(S_{\rm abs}\) masks for support--basin alignment, and \(F_{\rm top8}\) merges exact \(S_{\rm top8}\) masks for family-local routing. In our results, \(S_{\rm abs}\) saturates the conditional entropy \(H(B\mid S_{\rm abs})\) on the deep slice for all sparse rows and is therefore not a discriminator on its own; \(H(B\mid F_{\rm abs})\) and the non-directional family count \(\overline{|F_{\rm abs}|}\) are the Table~\ref{tab:fixed17_alignment} family-level diagnostics, while \(H(S_{\rm abs}\mid B)\), \(U_{\rm exact}\), and \(|S_{\rm abs}|\) remain appendix diagnostics for exact-support fragmentation and active-coordinate size. \(S_{\rm top8}\) is the only support definition for which the dense MLP control's failure on routing cannot be explained by route-availability artifacts.
-
-\section{Multibasin benchmark inventory}
-\label{app:fixed17_inventory}
-
-\Cref{tab:fixed17_inventory} lists the $15$ retained multibasin systems used in this paper, their basin counts available at evaluation, and the main-text display item that uses each system.
-
-\begin{table}[tbp]
-\centering
-\caption{The $15$ retained multibasin benchmark systems. Geometry types: \emph{multiwell} = multistable potential systems; \emph{gated} = gated local-linear systems with explicit transitions between regions; \emph{polygonal} = arrangement of point attractors at vertices of a polygon; \emph{cascade} = depth-cascade variants. Basin counts are revealed only at evaluation.}
-\label{tab:fixed17_inventory}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}l l c c@{}}
-\toprule
-System & Geometry & Basins & Used in \\
-\midrule
-\texttt{gated\_local\_linear}           & gated          & 4  & Tab.\,\ref{tab:fixed17_alignment}, Tab.\,\ref{tab:self_routing} \\
-\texttt{gated\_transfer\_linear}        & gated          & 4  & Tab.\,\ref{tab:fixed17_alignment}, Tab.\,\ref{tab:support_refresh} \\
-\texttt{arrested\_spiral}               & polygonal      & 4  & Tab.\,\ref{tab:self_routing} \\
-\texttt{cal\_asymmetric\_3}             & polygonal      & 3  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{cal\_high\_cross\_3}            & polygonal      & 3  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{cal\_hexagon\_6}                & polygonal      & 6  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{cal\_octagon\_8}                & polygonal      & 8  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{cal\_pentagon\_5}               & polygonal      & 5  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{cal\_square\_4}                 & polygonal      & 4  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{duffing\_triple\_well}          & multiwell      & 3  & Tab.\,\ref{tab:fixed17_alignment}, Fig.\,\ref{fig:fixed17_seed_strips} \\
-\texttt{snic\_multi}                    & polygonal      & 3  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{transition\_routes\_4}          & gated          & 4  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{var\_depth\_gradient\_4}        & cascade        & 4  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{var\_diamond\_4}                & polygonal      & 4  & Tab.\,\ref{tab:fixed17_alignment} \\
-\texttt{var\_l\_shape\_5}               & polygonal      & 5  & Tab.\,\ref{tab:fixed17_alignment} \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-
-\section{Per-seed distributions}
-\label{app:seed_distributions}
-
-\Cref{tab:fixed17_alignment} reports arithmetic means across retained systems after per-system seed-IQM summaries. The corresponding per-(system, seed) distributions are shown below. \Cref{fig:fixed17_seed_strips} shows the paper-facing strip plot for the matched boundary-emphasized rows. \Cref{fig:appfig_fixed17_perseed} plots per-(system, seed) histograms of forecasting MSE at every paper-facing horizon. \Cref{fig:appfig_fixed17_entropy} plots per-(system, seed) histograms of \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and \(U_{\rm exact}\) on the deep-state slice. \Cref{fig:appfig_dysts_perseed} plots the same per-seed distributions for the Dysts $dt{\times}30$ benchmark. The histograms show retained-system and seed-level dispersion around the paper-facing means.
-
-\begin{figure}[tbp]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_seed_strips_boundary_only.pdf}
-\caption{Per-(system, seed) forecasting MSE at $H100$, $H500$, and $H1000$ on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon.}
-\label{fig:fixed17_seed_strips}
-\end{figure}
-
-\begin{figure}[tbp]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_fixed17_perseed_histograms.pdf}
-\caption{Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon ($H100$, $H500$, $H1000$); the top row shows the LISTA finalists with the standard-sampling MLP controls (for completeness), and the bottom row shows the matched boundary-emphasized MLP controls used in the main-text comparison. Histograms are over the $\log_{10}$ raw MSE.}
-\label{fig:appfig_fixed17_perseed}
-\end{figure}
-
-\begin{figure}[tbp]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_fixed17_entropy_histograms.pdf}
-\caption{Per-(system, seed) support--basin diagnostic distributions on the deep-state slice. Histograms show \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and exact-support uniqueness for the rows summarized in \cref{tab:fixed17_alignment}.}
-\label{fig:appfig_fixed17_entropy}
-\end{figure}
-
-\begin{figure}[tbp]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_dysts_dt30_perseed_histograms.pdf}
-\caption{Per-(system, seed) forecasting MSE distributions on the Dysts $dt{\times}30$ benchmark.}
-\label{fig:appfig_dysts_perseed}
-\end{figure}
-
-\section{Full per-system tables}
-\label{app:fixed17_full}
-
-Tables \ref{tab:persystem_h100}--\ref{tab:persystem_h1000} render the per-(system, candidate) effect sizes and Holm-corrected Wilcoxon $p$-values that underlie the $K/N$ counts in \cref{tab:fixed17_alignment} and the forest plot in \cref{fig:fixed17_forest}. Each cell gives the per-system median paired $\log_{10}$-MSE difference (candidate minus matched-sampling Dense MLP, no-shrink baseline) over the common completed seeds, up to $15$ per system, and the corresponding Holm-corrected one-sided paired Wilcoxon $p$-value (Holm correction across the $15$ retained systems within each horizon-and-candidate column). Bold entries indicate Holm-corrected $p<0.05$ in favor of the candidate. Systems are sorted by the median across candidates of the per-system effect; the same ordering is used in all three tables for visual cross-reference.
-
-The raw per-(system, seed) values, per-system bootstrap $95\%$ CIs of the paired median, and the corresponding paired $t$-test $p$-values are released in the supplementary materials. The supplementary CSVs include per-system records, the row-level $K/N$ summary, and the all-system aggregate table used in the main text; the manifest lists the names and the source forecasting CSVs.
-
-\begin{figure}[tbp]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_forest.pdf}
-\caption{Per-system effect sizes at $H{=}1000$ versus the Dense MLP baseline. Each point is one benchmark system; the $x$-coordinate is the per-system median paired $\log_{10}$-MSE difference (candidate minus baseline) over the common completed seeds, up to $15$ per system, with whiskers showing the $95\%$ bootstrap interval. Filled markers clear Holm-corrected $\alpha{=}0.05$. Numerical values are in \cref{tab:persystem_h1000}.}
-\label{fig:fixed17_forest}
-\end{figure}
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=100$ on the $15$-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. $\Delta$ is the per-system median paired $\log_{10}$-MSE difference (candidate $-$ baseline) over the common completed seeds, up to $15$ per system; $p_{\rm H}$ is the one-sided paired Wilcoxon signed-rank $p$-value, Holm-corrected across the $15$ retained systems within each candidate column. Bold $\Delta$: Holm-corrected $p<0.05$ in favor of the candidate.}
-\label{tab:persystem_h100}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h100.tex}}
-\end{table}
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=500$ on the $15$-system multibasin benchmark. Format identical to \cref{tab:persystem_h100}.}
-\label{tab:persystem_h500}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h500.tex}}
-\end{table}
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=1000$ on the $15$-system multibasin benchmark. This is the numerical version of the forest plot in \cref{fig:fixed17_forest}. Format identical to \cref{tab:persystem_h100}.}
-\label{tab:persystem_h1000}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h1000.tex}}
-\end{table}
-
-\subsection*{Per-system audit of the interpretability columns}
-
-\paragraph{Why the wrong-support denominator is $11$ and not $15$.} The wrong-support ablation builds, for each system, a dictionary mapping each basin to its canonical support mask -- the most-common exact support among the deep-slice states of that basin. The ablated rollout draws a mask from a basin different from the state's own basin and holds that wrong mask fixed, so the test requires at least two distinct deep-slice canonical masks. Four of the \(15\) retained benchmark systems -- \texttt{arrested\_spiral} ($5$ basins), \texttt{cal\_asymmetric\_3} ($3$), \texttt{duffing\_triple\_well} ($3$), \texttt{var\_l\_shape\_5} ($5$) -- have multiple basins by design but a deep slice (top quartile by basin-depth margin) concentrated in a single basin: one basin's attractor has a much larger margin to the second-nearest centroid than the others, so the global top-quartile filter selects only that basin's states. This holds across all trained model rows and support-threshold definitions, confirming it is a property of the system's depth-margin geometry rather than of any encoder. The wrong-support ablation is undefined on those four systems by construction, and the corresponding \(K/N\) denominator in \cref{tab:fixed17_alignment} and \cref{tab:persystem_freeze_h1,tab:persystem_freeze_h20} is \(11\) instead of \(15\). The four omitted systems still appear in the per-system tables with ``--'' entries. A queued robustness re-evaluation under a per-basin top-quartile depth criterion -- which admits each basin's relative-deep states and is expected to restore full retained-system coverage on these four systems -- is documented in \texttt{docs/PER\_BASIN\_DEEP\_SLICE\_PLAN.md}; its results will appear here as a separate appendix table once the re-eval completes, and the global-slice numbers in \cref{tab:fixed17_alignment} and the per-system tables below are the source-of-truth in the meantime.
-
-Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full per-(system, candidate) breakdown of the retained active-count diagnostic and the three directional interpretability columns of \cref{tab:fixed17_alignment}. Each cell gives the per-system median paired difference between the candidate and the matched-sampling Dense MLP no-shrink baseline (over the common completed seeds, up to $15$ per system), and the corresponding Holm-corrected one-sided paired Wilcoxon $p$-value (Holm correction across the $15$ retained systems within each candidate column). Bold entries indicate Holm-corrected $p<0.05$ in favor of the candidate. The alternative direction is "candidate $<$ baseline" for \(|S_{\rm abs}|\) and \(H(B\mid F_{\rm abs})\) (smaller is better) and "candidate $>$ baseline" for the wrong-support ablation ratios (larger is better because the support is more functionally meaningful when the wrong one hurts more). The main-text family-count column is intentionally not included in these one-sided tests because \(|F_{\rm abs}|\) is a non-directional count.
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(|S_{\rm abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice, on the $15$-system multibasin benchmark. Alternative: candidate \(|S_{\rm abs}|<$ baseline \(|S_{\rm abs}|\). Lower (more negative) is better for the candidate. LISTA-SB denotes the matched $d_z{=}256$ soft-block LISTA ablation.}
-\label{tab:persystem_size}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_MeanSupportSize.tex}}
-\end{table}
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(H(B\mid F_{\rm abs})\) (basin uncertainty given the support \emph{family} built from \(S_{\rm abs}\), deep slice). Alternative: candidate \(H(B\mid F_{\rm abs})<\) baseline. Lower is better for the candidate.}
-\label{tab:persystem_hbf}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_HBgivenF.tex}}
-\end{table}
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}1$ (deep slice). Alternative: candidate ratio $>$ baseline. Higher is better for the candidate (using the wrong support hurts the prediction more, indicating the model genuinely uses the support).}
-\label{tab:persystem_freeze_h1}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_FreezeWrongH1.tex}}
-\end{table}
-
-\begin{table}[tbp]
-\centering
-\caption{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}20$. Alternative: candidate $>$ baseline. Higher is better.}
-\label{tab:persystem_freeze_h20}
-\setlength{\tabcolsep}{3pt}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_FreezeWrongH20.tex}}
-\end{table}
-
-\section{Support-routing robustness}
-\label{app:routing_robustness}
-
-\Cref{tab:self_routing_deep} reports the deep-state route-form diagnostics that were removed from the main table. The deep slice removes boundary-adjacent states, so it is useful as a robustness check rather than the primary deployment setting, and the exact \(S_{\rm top8}\) columns should be read as ablations of the support-family router rather than as the headline routing object.
-
-\begin{table}[tbp]
-\centering
-\caption{Deep-state support-routed forecasting route-form diagnostics. \(S_{\rm top8}\) columns use exact eight-index supports; \(F_{\rm top8}\) columns use merged families of those exact supports. Entries are arithmetic means across systems after within-system seed-IQM summarization, with diagnostic within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched $d_z{=}256$ soft-block LISTA ablation; lower is better.}
-\label{tab:self_routing_deep}
-\begin{minipage}[t]{0.49\textwidth}
-\centering
-\textbf{$H100$}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{@{}l rrr@{}}
-\toprule
-Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:local_fit}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:local_fit}} \\
-\midrule
-LISTA          & $0.783\,[4/15]$           & $0.771\,[5/15]$           & $0.165\,[9/15]$ \\
-LISTA-SB       & $0.861\,[1/15]$           & $0.861\,[1/15]$           & $0.00372\,[13/15]$ \\
-LISTA-BD       & $0.915\,[1/15]$           & $0.919\,[1/15]$           & $\mathbf{0.00207}\,[12/15]$ \\
-Sparse MLP, BD & $\mathbf{0.797}\,[0/15]$ & $0.770\,[0/15]$           & $0.00941\,[6/15]$ \\
-Sparse MLP     & $0.813\,[0/15]$           & $\mathbf{0.736}\,[0/15]$ & $0.0104\,[5/15]$ \\
-Dense MLP      & $0.991\,[0/15]$           & $0.990\,[0/15]$           & $102\,[0/15]$ \\
-\bottomrule
-\end{tabular}
-}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\textwidth}
-\centering
-\textbf{$H1000$}
-\resizebox{\linewidth}{!}{
-\begin{tabular}{@{}l rrr@{}}
-\toprule
-Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:local_fit}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:local_fit}} \\
-\midrule
-LISTA          & $0.681\,[8/15]$           & $0.676\,[7/15]$           & $\mathbf{8.03{\times}10^{-14}}\,[11/15]$ \\
-LISTA-SB       & $0.817\,[7/15]$           & $0.809\,[6/15]$           & $6.30{\times}10^{-11}\,[13/15]$ \\
-LISTA-BD       & $0.690\,[6/15]$           & $0.709\,[7/15]$           & $1.19{\times}10^{-7}\,[13/15]$ \\
-Sparse MLP, BD & $\mathbf{1.48{\times}10^{-5}}\,[1/15]$ & $\mathbf{2.99{\times}10^{-4}}\,[1/15]$ & $1.49{\times}10^{-6}\,[14/15]$ \\
-Sparse MLP     & $0.804\,[2/15]$           & $0.738\,[1/15]$           & $0.126\,[14/15]$ \\
-Dense MLP      & $0.849\,[0/15]$           & $0.965\,[0/15]$           & $78.6\,[0/15]$ \\
-\bottomrule
-\end{tabular}
-}
-\end{minipage}
-\end{table}
-
-\section{Full per-system Dysts tables}
-\label{app:dysts_full}
-
-The per-(system, seed) Dysts MSE values are released in the collected \texttt{forecasting\_rows.csv} artifacts. \Cref{tab:dysts_long} reports arithmetic means across systems after first summarizing seeds within each system by IQM. The $dt{\times}30$ packet is fully finite in median coverage at every reported horizon, but the per-seed distributions remain heavy-tailed on several systems, so the main table and \cref{fig:dysts_long_horizon,fig:appfig_dysts_perseed} should be read together: the table gives actual-MSE point estimates and paired system-level significance markers, while the figures show horizon-scale uncertainty and per-seed dispersion. The soft-block LISTA diagnostic improves on Dense MLP in aggregate but does not match the primary sparse forecasting rows and does not survive the main Dysts significance correction. The older tiny-step $H{\leq}60000$ packet is useful as a stress-test diagnostic because it exposed divergent block-diagonal LISTA rollouts, but it is not pooled with the coarser-step table.
-
-\section{Falsification: oracle, random, and latent-cluster controls}
-\label{app:falsification}
-
-The routing experiments include two falsification controls that we summarise here, using the $H100$ compact control table. (i) Oracle basin-label $A_{\rm basin}$ fits beat the global $K$ on $93$--$100\%$ of evaluated deep rows for every model family, including the dense no-sparsity MLP. This says local centred laws exist for many representations once a good partition is supplied; the sparse-latent contribution is that the model itself supplies an inspectable, label-free partition that does this work. (ii) Random count-matched partitions and latent $k$-means clusters do not reproduce the routed/global ratios in \cref{tab:self_routing_deep}: support-conditioned routing improves on these controls by an order of magnitude on the deep slice for the sparse-latent rows.
+\input{appendix/experimental_details}
+\input{appendix/training_dynamics}
+\input{appendix/benchmark_inventory}
+\input{appendix/support_definitions}
+\input{appendix/statistical_testing}
+\input{appendix/falsification}
+\input{appendix/fixed17_full}
+\input{appendix/seed_distributions}
+\input{appendix/routing_robustness}
+\input{appendix/dysts_full}
+\input{appendix/background}
 
 \bibliographystyle{plainnat}
 \bibliography{neurips_sparse_koopman_multibasin}

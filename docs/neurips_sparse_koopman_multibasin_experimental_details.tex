@@ -1,0 +1,93 @@
+\section{Additional experimental details}
+\label{app:experimental_details}
+
+\paragraph{Training and model rows.}
+The fixed multibasin comparison uses the six model rows reported in \cref{tab:fixed17_alignment}. All are trained on length-$8$ observation windows for $200{,}000$ optimization steps with minibatches of $256$ windows, using the prediction, reconstruction, latent-consistency, and sparsity objective described in \cref{sec:method_training}. The multibasin runs use AdamW, with learning rate $5{\times}10^{-5}$ for the encoder and decoder, learning rate $5{\times}10^{-6}$ for the latent transition, and weight decay $10^{-4}$ on the non-transition parameters. In the notation of \cref{eq:training_objective}, the relative weights are $\lambda_{\rm pred}=1$, $\lambda_{\rm rec}=0.03$, and $\lambda_{\rm lin}=1$; sparse rows use $\lambda_{\rm sp}=3{\times}10^{-3}$, while the Dense MLP row sets $\lambda_{\rm sp}=0$. The boundary-emphasized training distribution draws half of its resets from a pool of hard initial conditions selected by short probe rollouts that identify states with high perturbation sensitivity or lingering transient motion.
+
+The saved best checkpoint is chosen by a fixed validation rule during training. Every $500$ optimization steps, and again at the final step, the current model is rolled out for $200$ steps from $16$ held-out initial states using every-step re-encoding. The checkpoint with the lowest final validation error is saved as \texttt{checkpoint.pt}; the latest checkpoint is kept separately as \texttt{last.pt}. This validation rule is a training-side proxy for rollout stability, separate from test trajectories and the post-hoc best-periodic evaluation grid.
+
+The main Dysts comparison is used only as a forecasting stress test and focuses on LISTA, LISTA-BD, Sparse MLP, Sparse MLP-BD, and Dense MLP as the primary rows. The soft-block LISTA row is retained in the table as a diagnostic rather than a primary forecasting row and is omitted from the main Dysts trend figure. Dysts training trajectories are drawn from native trajectory caches with standardized coordinates, $200$ cached trajectories, $30{,}000$ stored observations per trajectory, and a $2{,}000$-step warm-up; training samples length-$10$ windows from the cache training split. The current table reports the $dt{\times}30$ version of this benchmark: the stored Dysts observation interval is set to $30$ times the intrinsic Dysts timestep for the corresponding system, and evaluation uses reduced horizon indices through $H5000$ rather than the older tiny-step $H{\leq}60000$ extrapolation packet. Initial conditions are based on each Dysts system's default initial condition; the remaining cached trajectories perturb that state with Gaussian noise at scale $0.2$ times the coordinate-wise Dysts standard deviation. Train, validation, and test caches use deterministic split-specific namespaces so that held-out trajectories are disjoint from training windows and reusable across model seeds. Long-horizon evaluation uses the disjoint held-out test cache, with $100$ held-out trajectories for each system and seed. LISTA rows use the same learning rates as the multibasin runs, while MLP rows use learning rates $10^{-4}$ for encoder/decoder parameters and $10^{-5}$ for the latent transition. The paper-facing Dysts shortlist contains the \(10\) three-dimensional systems in \cref{tab:dysts_inventory}; the originally collected six-dimensional \texttt{LorenzCoupled} rows and Chua-family \texttt{MultiChua} rows are excluded from aggregation.
+
+\begin{table}[tbp]
+\centering
+\caption{Dysts forecasting shortlist. These systems are used only as external long-horizon forecasting stress tests.}
+\label{tab:dysts_inventory}
+\begin{tabular}{@{}l c@{}}
+\toprule
+System & State dimension \\
+\midrule
+\texttt{Chua} & 3 \\
+\texttt{Dadras} & 3 \\
+\texttt{DequanLi} & 3 \\
+\texttt{Hadley} & 3 \\
+\texttt{LuChenCheng} & 3 \\
+\texttt{QiChen} & 3 \\
+\texttt{Sakarya} & 3 \\
+\texttt{SanUmSrisuchinwong} & 3 \\
+\texttt{ShimizuMorioka} & 3 \\
+\texttt{WangSun} & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Dysts systems have system-specific native integration intervals, so the cached sequences should be interpreted as benchmark observation sequences rather than as trajectories normalized to a common physical time. Coordinates are standardized before training and evaluation. The models never observe the vector field, the continuous solver, or the native integration substeps; they receive uniformly spaced stored states and are evaluated in stored-step units. This is why the Dysts table reports stored-step horizons such as $H1000$ and $H5000$ rather than a shared physical-time horizon.
+
+\paragraph{Training recipe selection.}
+Earlier exploratory sweeps varied LISTA depth, shrinkage scale, sparsity coefficient, sign-split encodings, transition structure, and MLP sparsity controls. Those pilots used shorter budgets or broader system lists, so their numeric grids are not treated as final protocol here. The paper-facing appendix instead reports the fixed model rows, training budgets, validation rule, held-out splits, and statistical units used for the final claims.
+In particular, staged recipe-discovery sweeps with $10{,}000$-step, three-seed cells and one-step training windows were used only to choose candidate recipes. They are not pooled with the final $200{,}000$-step, held-out-split evaluations and should not be interpreted as paper evidence.
+
+\paragraph{Evaluation splits.}
+All reported forecasting and interpretability results are evaluated on held-out trajectories, not on the training windows. Multibasin forecasting uses $100$ held-out initial conditions for each system and seed. Routing fits local predictors on $256$ disjoint held-out trajectories of length $256$ and evaluates them on a separate set of $128$ held-out rollouts. The Dysts long-horizon table uses $100$ held-out cached test trajectories for each system and seed. Procedural benchmark annotations define evaluation slices, score support--basin agreement, construct controlled transfer pairs, and compute statistical summaries.
+The support-routed operator-fitting split contains \(256\times256=65{,}536\) adjacent latent transitions per trained checkpoint and support definition. At the longest routed horizon reported in \cref{tab:self_routing}, the separate forecast split contains \(128\times1000=128{,}000\) one-step target positions along the evaluated rollouts. By comparison, the multibasin training budget samples \(200{,}000\times256\times8=409{,}600{,}000\) one-step transition targets from online length-$8$ windows; this is a sampling-budget comparison rather than a fixed finite training-set size, because the procedural training windows are regenerated from the environment.
+
+\paragraph{Periodic forecasting.}
+All horizons and re-encoding periods are reported in stored observation steps, not in equal physical time across systems. The no-reencoding rollout applies the learned latent transition for the full horizon before decoding. The periodic rollout decodes and re-encodes the model's own predicted state at a fixed period. The multibasin forecasting tables select the best score over periods $10,25,50$, and $100$ stored observation steps. The Dysts $dt{\times}30$ evaluation uses periods $10,25,50,100,150$, and $200$. These choices are fixed before aggregation and do not use the true future trajectory.
+
+The fixed re-encoding grid is used only at evaluation time. Checkpoint selection uses the validation proxy described above, not a search over the final test-period grid, and the reported point estimates aggregate all completed seeds rather than selecting the best seed. The best-periodic score should therefore be read as a controlled diagnostic of whether a model benefits from regular support refresh at deployment, not as a training procedure or teacher-forced correction.
+
+\paragraph{Support diagnostics.}
+The wrong-support ablation first constructs, for each basin in a testable system, a canonical deep-slice \(S_{\rm abs}\) mask from the most common exact mask observed in that basin. The ablated rollout replaces the inferred \(S_{\rm abs}\) mask with a canonical mask from a different basin and holds that replacement fixed. \Cref{tab:fixed17_alignment} reports the wrong-support/base error ratio at horizons $H1$ and $H20$; larger ratios indicate stronger functional dependence on the selected support.
+
+\paragraph{Routing details.}
+Support-routed forecasting uses fixed-size \(S_{\rm top8}\) masks so every state receives an eight-index route key. The main table reports \(F_{\rm top8}\)-local routing, which fits ridge-regularized local \(K_c\) maps after merging nearby top-\(8\) masks into support families. The ridge penalty is $10^{-4}$. At evaluation time, a local route is used only if it was observed in at least $128$ fitted transitions; otherwise the rollout falls back to the global latent transition. The reported routed/global ratio always compares the routed prediction with the same model's own global rollout, not with another model family. Exact gated \(S_{\rm top8}\), which masks the centered latent state before applying the learned transition, and exact \(S_{\rm top8}\)-local, which fits one local \(K_c\) map per exact top-\(8\) support, are retained in \cref{tab:self_routing_deep} as route-form diagnostics rather than as the main paper claim.
+
+\input{figures/neurips_paper_2026/_tables/table2_partition_controls_compact.tex}
+
+\paragraph{Support refresh.}
+The support-refresh experiment uses exact \(S_{\rm top8}\) supports and the two re-encoding periods reported in \cref{tab:support_refresh}, $1$ and $10$ stored observation steps. Each comparison starts from a controlled source-to-target transfer. The frozen-source rollout keeps using the source \(S_{\rm top8}\) mask after target entry, while the refreshed-current rollout periodically decodes, re-encodes, and re-extracts \(S_{\rm top8}\) from its own predicted state. Benchmark annotations construct valid transfer pairs and score post-entry routing.
+
+\subsection{Statistical testing protocol}
+\label{app:statistical_testing}
+All bracketed \(K/N\) counts are within-system reproducibility counts, not tests obtained by pooling all seeds or all systems together. The main Table~\ref{tab:self_routing} routing stars are the exception: because the displayed routing effect is a cross-system statement, its confirmatory test uses the benchmark system as the independent unit. For each table cell and each benchmark system, we first construct paired deltas over the appropriate replicate unit. For multibasin forecasting, \(S_{\rm abs}\)-size diagnostics, \(F_{\rm abs}\) entropy, and wrong-support ablations, the replicate unit is the training seed and the pairing is by the same system and seed. For Table~\ref{tab:self_routing}, seed-level finite routed/global log-ratios are summarized within each system before testing across systems. For the Dysts model-vs-Dense superscripts in \cref{tab:dysts_long}, the replicate unit is also the benchmark system after seed aggregation: each system contributes one \(\log_{10}\) difference between the candidate seed-IQM MSE and the Dense MLP seed-IQM MSE. For support refresh, the replicate unit is the controlled source-to-target transfer instance within a system; when multiple training seeds are available, all completed seeds contribute transfer instances to the same within-system test.
+
+The tested delta is chosen so that the sign matches the scientific claim. Forecasting comparisons against the Dense MLP baseline use
+\begin{equation}
+  \Delta_{s,u}
+  =
+  \log_{10} E^{\rm cand}_{s,u}
+  -
+  \log_{10} E^{\rm base}_{s,u}
+  =
+  \log_{10}\!\left(E^{\rm cand}_{s,u}/E^{\rm base}_{s,u}\right),
+\end{equation}
+where $s$ indexes the system and $u$ indexes the replicate unit; the one-sided alternative is $\Delta<0$. Routed/global and refreshed/previous comparisons use the same log-ratio convention, again with alternative $\Delta<0$. Mean \(S_{\rm abs}\) size and \(H(B\mid F_{\rm abs})\) use raw paired differences against the Dense MLP baseline with alternative candidate $<$ baseline. Exact-support uniqueness and wrong-support/base ratios use raw paired differences with alternative candidate $>$ baseline, because larger values mean that the representation assigns more unique basin-specific supports or depends more strongly on the selected support.
+
+Within each system, we apply a one-sided paired Wilcoxon signed-rank test to the within-system reproducibility deltas. Systems with too few finite pairs, all-zero deltas, or diagnostics that are undefined by construction are treated as non-significant for that cell. For each model--metric--horizon--subset cell, the resulting per-system \(p\)-values are Holm-corrected across the systems in that family at \(\alpha=0.05\). The reported \(K/N\) is the number of systems whose Holm-corrected \(p\)-value is below \(0.05\) divided by the number of systems eligible for that diagnostic: \(15\) for the controlled multibasin benchmark and \(11\) for the global deep-slice wrong-support ablation because four retained systems have a single-basin deep subset.
+
+For the main routing table, each system contributes one effect \(D_s=\operatorname{IQM}_i\log_{10}(E^{\rm routed}_{s,i}/E^{\rm global}_{s,i})\) over mutually finite seed pairs. The table reports \(10^{\operatorname{mean}_s D_s}\). Significance is tested with a one-sided exact sign-flip test on the finite system-level log effects and Holm-corrected across the displayed model--horizon cells. This matches the displayed cross-system claim and avoids treating seeds nested inside the same dynamical system as independent benchmark systems. The Dysts actual-MSE table uses a related row-level test: the \(10\) per-system candidate-minus-Dense differences in \(\log_{10}\) seed-IQM MSE are tested with a one-sided Wilcoxon signed-rank test and Holm-corrected across all candidate-model and horizon comparisons; passing cells receive significance superscripts.
+
+Table display uses fixed precision by metric: MSEs, MSE ratios, and raw wrong-support ratio differences use three significant figures with scientific notation outside \([10^{-3},10^3)\); route fractions use three decimal places; support-family counts use one decimal place; per-system \(\log_{10}\)-MSE effects use two decimal places; and displayed \(p\)-values use three decimals or \(<10^{-3}\).
+
+\paragraph{Censored routing comparisons.}
+Routing has an additional diagnostic issue: at long horizons, either the routed rollout or the same-model global rollout can be invalid because no finite H-step error remains available for that seed and subset. The main Table~\ref{tab:self_routing} ratio and sign-flip test use mutually finite routed/global pairs, while the system-wins column uses the censored all-seed-slot comparison so the table does not hide cases where routing remains finite but the same-model global rollout fails. For provenance and appendix diagnostics, we also keep the older all-seed-slot censored comparison for route-form ablations. For each horizon, we choose a log-scale censoring cap
+\begin{equation}
+  C
+  =
+  1+\left\lceil \max\!\left(12,\ \max_{\rm finite}\left|\log_{10}(E^{\rm routed}/E^{\rm global})\right|\right)\right\rceil,
+\end{equation}
+so the cap lies outside the observed finite log-ratio range. If both routed and global MSEs are finite and positive, the test uses the ordinary log ratio. If the routed MSE is finite but the same-model global MSE is invalid, the seed is encoded as a censored routed win, $\Delta=-C$. If the routed MSE is invalid but the global MSE is finite, the seed is encoded as a censored routed loss, $\Delta=+C$. If both sides are invalid or the expected seed row is missing, the seed is encoded as neutral, $\Delta=0$. The same convention treats zero routed error against positive global error as a censored win, positive routed error against zero global error as a censored loss, and both-zero as neutral.
+
+This censoring rule is an evaluation convention, not a causal diagnosis of why a rollout became invalid. It assumes only that, for an H-step forecasting benchmark, a finite evaluable forecast is better than an unevaluable forecast for the same model, system, seed, subset, and horizon. Finite catastrophic errors are retained as finite values; they are not discarded. Invalid global rollouts with finite routed rollouts therefore contribute directional evidence that routing produced an evaluable forecast where the same-model global rollout did not, but the statistic does not claim that the underlying cause was a particular learning failure. Encoding both-invalid and missing seed slots as neutral prevents the diagnostic count from rewarding methods merely because both compared rollouts failed.
+
+\subsection{Compute resources}
+Reported multibasin and Dysts training jobs were launched as independent cluster array tasks requesting one GPU, four CPU cores, and $16$GB memory per run, with a $24$-hour wall-time cap. The routing and refresh diagnostics were run as CPU jobs requesting four CPU cores and $24$GB memory, with a $12$-hour wall-time cap. The Dysts long-horizon re-evaluation was run in $100$-trajectory batches, with evaluation tasks requesting four CPU cores and $24$GB memory. These values describe the requested resources for the reported packets; the wall-time caps are not measured runtimes.

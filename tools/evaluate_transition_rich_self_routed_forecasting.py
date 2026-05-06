@@ -29,6 +29,7 @@ import importlib.util
 import json
 import math
 import os
+import signal
 import sys
 import time
 from collections import Counter, defaultdict
@@ -39,9 +40,12 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import torch
 
+from skae.dysts_cache_profiles import apply_dysts_cache_profile, default_dysts_cache_dir
+
 EPS = 1e-12
 INVALID_ROUTE = "__invalid__"
 FALLBACK_ROUTE = "__global_fallback__"
+STOP_REQUESTED = False
 
 
 def _load_module(filename: str, module_name: str):
@@ -101,6 +105,15 @@ def _parse_args() -> argparse.Namespace:
         default="100,500,1000",
         help="comma-separated rollout horizons to summarize",
     )
+    parser.add_argument(
+        "--reencode_periods",
+        default="0",
+        help=(
+            "comma-separated decode/re-encode refresh periods. "
+            "Use 0 for fully autonomous latent rollouts; positive values refresh "
+            "the propagated latent by decoding and re-encoding every N rollout steps."
+        ),
+    )
     parser.add_argument("--fit_num_trajectories", type=int, default=256)
     parser.add_argument("--fit_trajectory_length", type=int, default=256)
     parser.add_argument("--fit_eval_seed", type=int, default=42)
@@ -111,9 +124,24 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--label_mode",
         default="auto",
-        choices=["auto", "native", "env_points", "estimated_centers"],
+        choices=["auto", "native", "env_points", "estimated_centers", "none"],
         help="how to construct basin labels and centers for benchmark evaluation",
     )
+    parser.add_argument(
+        "--fit_dysts_cache_split",
+        default="",
+        choices=["", "train", "val", "test"],
+        help="optional Dysts native-cache split for route-operator fitting",
+    )
+    parser.add_argument(
+        "--forecast_dysts_cache_split",
+        default="",
+        choices=["", "train", "val", "test"],
+        help="optional Dysts native-cache split for routed forecast evaluation",
+    )
+    parser.add_argument("--dysts_cache_profile", default="full")
+    parser.add_argument("--dysts_cache_dir", default="")
+    parser.add_argument("--dysts_cache_num_workers", type=int, default=2)
     parser.add_argument("--ridge_lambda", type=float, default=1e-4)
     parser.add_argument("--min_operator_transitions", type=int, default=128)
     parser.add_argument("--family_jaccard_threshold", type=float, default=0.5)
@@ -121,11 +149,23 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--progress_every_runs", type=int, default=1)
     parser.add_argument("--flush_every_runs", type=int, default=1)
     parser.add_argument(
+        "--max_runtime_seconds",
+        type=int,
+        default=0,
+        help="stop after the current completed spec once this runtime is exceeded; 0 disables",
+    )
+    parser.add_argument(
         "--no_resume",
         action="store_true",
         help="disable automatic resume from existing shard outputs in output_dir",
     )
     return parser.parse_args()
+
+
+def _request_stop(signum, _frame) -> None:
+    global STOP_REQUESTED
+    STOP_REQUESTED = True
+    print(f"Received signal {signum}; will flush and stop after the current spec.", flush=True)
 
 
 def _parse_csv_strings(raw: str) -> List[str]:
@@ -164,6 +204,15 @@ def _parse_horizons(raw: str) -> List[int]:
     return horizons
 
 
+def _parse_reencode_periods(raw: str) -> List[int]:
+    periods = sorted({int(item.strip()) for item in raw.split(",") if item.strip()})
+    if not periods:
+        return [0]
+    if min(periods) < 0:
+        raise ValueError("reencode_periods must be non-negative integers; use 0 for no refresh")
+    return periods
+
+
 def _initial_depth_masks(states: torch.Tensor, centers: torch.Tensor) -> Dict[str, np.ndarray]:
     flat = states.reshape(-1, states.shape[-1])
     dists = torch.cdist(flat, centers.to(dtype=flat.dtype))
@@ -191,6 +240,30 @@ def _initial_depth_masks(states: torch.Tensor, centers: torch.Tensor) -> Dict[st
     masks["boundary"] = masks["q1"]
     masks["deep"] = masks["q4"]
     return masks
+
+
+def _all_depth_mask(states: torch.Tensor) -> Dict[str, np.ndarray]:
+    return {"all": np.ones(int(states.shape[0]), dtype=bool)}
+
+
+def _make_dysts_cache_env(
+    cfg,
+    system_key: str,
+    *,
+    split: str,
+    profile: str,
+    cache_dir: str,
+    cache_num_workers: int,
+):
+    cloned = REDUCER.Config.from_dict(cfg.to_dict())
+    cloned.ENV.ENV_NAME = system_key
+    cloned.ENV.DYSTS.USE_NATIVE_CACHE = True
+    cloned.ENV.DYSTS.CACHE_REUSE = True
+    cloned.ENV.DYSTS.CACHE_SPLIT = split
+    cloned.ENV.DYSTS.CACHE_DIR = cache_dir or default_dysts_cache_dir()
+    cloned.ENV.DYSTS.CACHE_NUM_WORKERS = int(cache_num_workers)
+    apply_dysts_cache_profile(cloned, profile)
+    return REDUCER.make_env(cloned)
 
 
 def _safe_ratio(numerator: Optional[float], denominator: Optional[float]) -> Optional[float]:
@@ -601,6 +674,7 @@ def _rollout_self_routed(
     random_ops: Dict[object, np.ndarray],
     random_centers: Dict[object, np.ndarray],
     random_assignment_centers: Dict[object, np.ndarray],
+    reencode_period: int = 0,
 ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
     model.eval()
     model_device = next(model.parameters()).device
@@ -748,15 +822,27 @@ def _rollout_self_routed(
             np.all(np.isfinite(next_latent), axis=1),
             np.all(np.isfinite(pred_state), axis=1),
         )
+        latent_for_next = next_latent
+        if reencode_period > 0 and (step + 1) % int(reencode_period) == 0:
+            refresh_indices = np.flatnonzero(np.logical_and(valid, finite_mask))
+            refreshed_latent = np.full_like(next_latent, np.nan)
+            if refresh_indices.size:
+                with torch.no_grad():
+                    refreshed_valid = model.encode(
+                        torch.from_numpy(pred_state[refresh_indices]).to(model_device, dtype=x0.dtype)
+                    ).detach().cpu().numpy().astype(np.float32, copy=False)
+                refreshed_latent[refresh_indices] = refreshed_valid
+            finite_mask = np.logical_and(finite_mask, np.all(np.isfinite(refreshed_latent), axis=1))
+            latent_for_next = refreshed_latent
         valid = np.logical_and(valid, finite_mask)
-        latent = next_latent
+        latent = latent_for_next
 
     route_metrics = _summarize_route_metrics(predictions, used_local, route_labels)
     return predictions, route_metrics
 
 
 def _attach_global_ratios(rows: Sequence[Dict[str, object]], horizons: Sequence[int]) -> None:
-    grouped: Dict[Tuple[str, str, int, str, str], List[Dict[str, object]]] = defaultdict(list)
+    grouped: Dict[Tuple[str, str, int, str, str, str], List[Dict[str, object]]] = defaultdict(list)
     for row in rows:
         key = (
             str(row["system_key"]),
@@ -764,6 +850,7 @@ def _attach_global_ratios(rows: Sequence[Dict[str, object]], horizons: Sequence[
             int(row["seed"]),
             str(row["support_definition"]),
             str(row["depth_stratum"]),
+            str(row.get("reencode_period", 0)),
         )
         grouped[key].append(row)
 
@@ -813,13 +900,14 @@ def _format_float(value: Optional[float]) -> str:
 
 
 def _write_summary(path: Path, rows: Sequence[Dict[str, object]], horizons: Sequence[int]) -> None:
-    grouped: Dict[Tuple[str, str, str, str], List[Dict[str, object]]] = defaultdict(list)
+    grouped: Dict[Tuple[str, str, str, str, str], List[Dict[str, object]]] = defaultdict(list)
     for row in rows:
         key = (
             str(row["root_label"]),
             str(row["support_definition"]),
             str(row["depth_stratum"]),
             str(row["rollout_mode"]),
+            str(row.get("reencode_period", 0)),
         )
         grouped[key].append(row)
 
@@ -828,19 +916,20 @@ def _write_summary(path: Path, rows: Sequence[Dict[str, object]], horizons: Sequ
         "",
         "Non-oracle rollout comparison: one global Koopman matrix versus self-routed support-conditioned local laws.",
         "",
-        "| root | support | initial depth | mode | mean coverage | mean fallback | mean switch | "
+        "| root | support | initial depth | mode | reencode period | mean coverage | mean fallback | mean switch | "
         + " | ".join([f"mean H{int(h)}" for h in horizons])
         + " | "
         + " | ".join([f"mean H{int(h)}/global" for h in horizons])
         + " |",
-        "|---|---|---|---|---:|---:|---:|"
+        "|---|---|---|---|---:|---:|---:|---:|"
         + "".join(["---:|" for _ in horizons])
         + "".join(["---:|" for _ in horizons]),
     ]
     for key, group_rows in sorted(grouped.items()):
-        root_label, support_definition, depth_stratum, rollout_mode = key
+        root_label, support_definition, depth_stratum, rollout_mode, reencode_period = key
         pieces = [
             f"| `{root_label}` | `{support_definition}` | `{depth_stratum}` | `{rollout_mode}` | "
+            f"{reencode_period} | "
             f"{_format_float(_safe_mean(row.get('route_coverage_fraction') for row in group_rows))} | "
             f"{_format_float(_safe_mean(row.get('fallback_fraction') for row in group_rows))} | "
             f"{_format_float(_safe_mean(row.get('route_switch_rate') for row in group_rows))} |"
@@ -864,6 +953,7 @@ def _write_manifest(
     support_definitions: Sequence[Tuple[str, float]],
     depth_strata: Sequence[str],
     rollout_modes: Sequence[str],
+    reencode_periods: Sequence[int],
     horizons: Sequence[int],
     num_specs: int,
     completed_specs: int,
@@ -884,6 +974,7 @@ def _write_manifest(
                 ],
                 "depth_strata": list(depth_strata),
                 "rollout_modes": list(rollout_modes),
+                "reencode_periods": [int(period) for period in reencode_periods],
                 "horizons": list(horizons),
                 "fit_num_trajectories": int(args.fit_num_trajectories),
                 "fit_trajectory_length": int(args.fit_trajectory_length),
@@ -1024,6 +1115,7 @@ def _flush_outputs(
     support_definitions: Sequence[Tuple[str, float]],
     depth_strata: Sequence[str],
     rollout_modes: Sequence[str],
+    reencode_periods: Sequence[int],
     horizons: Sequence[int],
     num_specs: int,
     completed_specs: int,
@@ -1048,6 +1140,7 @@ def _flush_outputs(
         support_definitions=support_definitions,
         depth_strata=depth_strata,
         rollout_modes=rollout_modes,
+        reencode_periods=reencode_periods,
         horizons=horizons,
         num_specs=num_specs,
         completed_specs=completed_specs,
@@ -1074,6 +1167,7 @@ def evaluate_run(
     support_definitions: Sequence[Tuple[str, float]],
     depth_strata: Sequence[str],
     rollout_modes: Sequence[str],
+    reencode_periods: Sequence[int],
     horizons: Sequence[int],
     fit_num_trajectories: int,
     fit_trajectory_length: int,
@@ -1083,53 +1177,85 @@ def evaluate_run(
     endpoint_rollout_steps: int,
     device: str,
     label_mode: str,
+    fit_dysts_cache_split: str,
+    forecast_dysts_cache_split: str,
+    dysts_cache_profile: str,
+    dysts_cache_dir: str,
+    dysts_cache_num_workers: int,
     ridge_lambda: float,
     min_operator_transitions: int,
     family_jaccard_threshold: float,
     max_partition_classes: int,
 ) -> List[Dict[str, object]]:
     checkpoint_path = Path(spec.run_dir) / "checkpoint.pt"
-    _cfg, env, model = REDUCER._load_checkpoint_model(checkpoint_path, spec.system_key, device)
+    cfg, env, model = REDUCER._load_checkpoint_model(checkpoint_path, spec.system_key, device)
     model_device = next(model.parameters()).device
     global_k = model.kmatrix().detach().cpu().numpy().astype(np.float32, copy=False)
     block_offset, block_sizes = REDUCER._block_layout_from_model(model)
     block_masks = OPSEL._block_masks_from_layout(block_offset, block_sizes, global_k.shape[0]) if block_sizes else {}
+    is_dysts = str(spec.system_key).lower().startswith("dysts:")
+    fit_env = env
+    forecast_env = env
+    if is_dysts and fit_dysts_cache_split:
+        fit_env = _make_dysts_cache_env(
+            cfg,
+            spec.system_key,
+            split=fit_dysts_cache_split,
+            profile=dysts_cache_profile,
+            cache_dir=dysts_cache_dir,
+            cache_num_workers=dysts_cache_num_workers,
+        )
+    if is_dysts and forecast_dysts_cache_split:
+        forecast_env = _make_dysts_cache_env(
+            cfg,
+            spec.system_key,
+            split=forecast_dysts_cache_split,
+            profile=dysts_cache_profile,
+            cache_dir=dysts_cache_dir,
+            cache_num_workers=dysts_cache_num_workers,
+        )
 
     fit_trajectories = REDUCER._generate_observation_trajectories(
-        env,
+        fit_env,
         num_trajectories=fit_num_trajectories,
         trajectory_length=fit_trajectory_length,
         eval_seed=fit_eval_seed,
     )
-    fit_basin_labels, centers, label_source = OPSEL._label_sequences_for_mode(
-        env,
-        fit_trajectories,
-        system_key=spec.system_key,
-        endpoint_rollout_steps=endpoint_rollout_steps,
-        label_mode=label_mode,
-    )
-    fit_basin_labels_np = (
-        fit_basin_labels.cpu().numpy()
-        if isinstance(fit_basin_labels, torch.Tensor)
-        else np.asarray(fit_basin_labels)
-    )
-    state_partition_centers = (
-        centers.detach().cpu().numpy().astype(np.float32, copy=False)
-        if isinstance(centers, torch.Tensor)
-        else np.asarray(centers, dtype=np.float32)
-    )
+    if label_mode == "none":
+        fit_basin_labels_np = np.zeros(fit_trajectories.shape[:2], dtype=np.int64)
+        centers = None
+        state_partition_centers = None
+        label_source = "none"
+    else:
+        fit_basin_labels, centers, label_source = OPSEL._label_sequences_for_mode(
+            fit_env,
+            fit_trajectories,
+            system_key=spec.system_key,
+            endpoint_rollout_steps=endpoint_rollout_steps,
+            label_mode=label_mode,
+        )
+        fit_basin_labels_np = (
+            fit_basin_labels.cpu().numpy()
+            if isinstance(fit_basin_labels, torch.Tensor)
+            else np.asarray(fit_basin_labels)
+        )
+        state_partition_centers = (
+            centers.detach().cpu().numpy().astype(np.float32, copy=False)
+            if isinstance(centers, torch.Tensor)
+            else np.asarray(centers, dtype=np.float32)
+        )
     fit_latents = REDUCER._encode_trajectories(model, fit_trajectories, device)
 
     max_horizon = int(max(horizons))
     forecast_trajectories = REDUCER._generate_observation_trajectories(
-        env,
+        forecast_env,
         num_trajectories=forecast_num_trajectories,
         trajectory_length=max_horizon + 1,
         eval_seed=forecast_eval_seed,
     )
     initial_states = forecast_trajectories[:, 0, :]
     true_future = forecast_trajectories[:, 1 : max_horizon + 1, :].cpu().numpy().astype(np.float32, copy=False)
-    depth_masks = _initial_depth_masks(initial_states, centers)
+    depth_masks = _all_depth_mask(initial_states) if label_mode == "none" else _initial_depth_masks(initial_states, centers)
 
     rows: List[Dict[str, object]] = []
     for scheme, value in support_definitions:
@@ -1154,97 +1280,53 @@ def evaluate_run(
         random_class_count_total = int(len(class_bundle["random_counts"]))
         support_modes_allowed = support_class_count_total <= int(max_partition_classes)
 
-        predictions_by_mode: Dict[str, np.ndarray] = {}
-        route_metrics_by_mode: Dict[str, Dict[str, np.ndarray]] = {}
+        predictions_by_mode: Dict[Tuple[str, int], np.ndarray] = {}
+        route_metrics_by_mode: Dict[Tuple[str, int], Dict[str, np.ndarray]] = {}
         for rollout_mode in rollout_modes:
             if rollout_mode in {"support_local_centered", "support_gated_k", "support_block_gated_k"} and not support_modes_allowed:
                 continue
             if rollout_mode == "support_block_gated_k" and not block_masks:
                 continue
-            predictions, route_metrics = _rollout_self_routed(
-                model,
-                initial_states,
-                max_horizon,
-                device=device,
-                global_k=global_k,
-                support_scheme=scheme,
-                support_value=value,
-                family_jaccard_threshold=family_jaccard_threshold,
-                rollout_mode=rollout_mode,
-                support_ops=class_bundle["support_ops"],
-                support_centers=class_bundle["support_centers"],
-                support_block_masks=class_bundle["support_block_masks"],
-                family_ops=class_bundle["family_ops"],
-                family_centers=class_bundle["family_centers"],
-                family_prototypes=class_bundle["family_prototypes"],
-                support_key_to_family=class_bundle["support_key_to_family"],
-                basin_ops=class_bundle["basin_ops"],
-                basin_centers=class_bundle["basin_centers"],
-                state_partition_centers=state_partition_centers,
-                latent_kmeans_ops=class_bundle["latent_kmeans_ops"],
-                latent_kmeans_centers=class_bundle["latent_kmeans_centers"],
-                latent_kmeans_assignment_centers=class_bundle["latent_kmeans_assignment_centers"],
-                random_ops=class_bundle["random_ops"],
-                random_centers=class_bundle["random_centers"],
-                random_assignment_centers=class_bundle["random_assignment_centers"],
-            )
-            predictions_by_mode[rollout_mode] = predictions
-            route_metrics_by_mode[rollout_mode] = route_metrics
+            for reencode_period in reencode_periods:
+                predictions, route_metrics = _rollout_self_routed(
+                    model,
+                    initial_states,
+                    max_horizon,
+                    device=device,
+                    global_k=global_k,
+                    support_scheme=scheme,
+                    support_value=value,
+                    family_jaccard_threshold=family_jaccard_threshold,
+                    rollout_mode=rollout_mode,
+                    support_ops=class_bundle["support_ops"],
+                    support_centers=class_bundle["support_centers"],
+                    support_block_masks=class_bundle["support_block_masks"],
+                    family_ops=class_bundle["family_ops"],
+                    family_centers=class_bundle["family_centers"],
+                    family_prototypes=class_bundle["family_prototypes"],
+                    support_key_to_family=class_bundle["support_key_to_family"],
+                    basin_ops=class_bundle["basin_ops"],
+                    basin_centers=class_bundle["basin_centers"],
+                    state_partition_centers=state_partition_centers,
+                    latent_kmeans_ops=class_bundle["latent_kmeans_ops"],
+                    latent_kmeans_centers=class_bundle["latent_kmeans_centers"],
+                    latent_kmeans_assignment_centers=class_bundle["latent_kmeans_assignment_centers"],
+                    random_ops=class_bundle["random_ops"],
+                    random_centers=class_bundle["random_centers"],
+                    random_assignment_centers=class_bundle["random_assignment_centers"],
+                    reencode_period=int(reencode_period),
+                )
+                predictions_by_mode[(rollout_mode, int(reencode_period))] = predictions
+                route_metrics_by_mode[(rollout_mode, int(reencode_period))] = route_metrics
 
         for depth_stratum in depth_strata:
             subset_mask = depth_masks.get(depth_stratum)
             if subset_mask is None or not bool(np.any(subset_mask)):
                 continue
             for rollout_mode in rollout_modes:
-                if rollout_mode not in predictions_by_mode:
-                    rows.append(
-                        {
-                            "root_label": spec.root_label,
-                            "system_key": spec.system_key,
-                            "system_name": spec.system_name,
-                            "seed": spec.seed,
-                            "run_dir": spec.run_dir,
-                            "support_definition": support_definition,
-                            "depth_stratum": depth_stratum,
-                            "rollout_mode": rollout_mode,
-                            "label_mode": label_mode,
-                            "label_source": label_source,
-                            "fit_num_trajectories": float(fit_num_trajectories),
-                            "fit_trajectory_length": float(fit_trajectory_length),
-                            "forecast_num_trajectories": float(forecast_num_trajectories),
-                            "fit_support_class_count_total": float(support_class_count_total),
-                            "fit_support_class_count_fit": float(len(class_bundle["support_ops"])),
-                            "fit_family_class_count_total": float(family_class_count_total),
-                            "fit_family_class_count_fit": float(len(class_bundle["family_ops"])),
-                            "fit_basin_class_count_total": float(basin_class_count_total),
-                            "fit_basin_class_count_fit": float(len(class_bundle["basin_ops"])),
-                            "fit_latent_kmeans_class_count_total": float(latent_kmeans_class_count_total),
-                            "fit_latent_kmeans_class_count_fit": float(len(class_bundle["latent_kmeans_ops"])),
-                            "fit_random_class_count_total": float(random_class_count_total),
-                            "fit_random_class_count_fit": float(len(class_bundle["random_ops"])),
-                            "route_coverage_fraction": None,
-                            "fallback_fraction": None,
-                            "route_switch_rate": None,
-                            "valid_step_fraction": None,
-                            "skip_reason": (
-                                "support_class_count>max_partition_classes"
-                                if rollout_mode in {"support_local_centered", "support_gated_k", "support_block_gated_k"}
-                                and not support_modes_allowed
-                                else "block_structure_unavailable"
-                            ),
-                        }
-                    )
-                    continue
-
-                route_summary = _compute_subset_route_summary(route_metrics_by_mode[rollout_mode], subset_mask)
-                horizon_stats = _compute_horizon_stats(
-                    predictions_by_mode[rollout_mode],
-                    np.transpose(true_future, (1, 0, 2)),
-                    horizons,
-                    subset_mask,
-                )
-                rows.append(
-                    {
+                for reencode_period in reencode_periods:
+                    mode_key = (rollout_mode, int(reencode_period))
+                    base_row = {
                         "root_label": spec.root_label,
                         "system_key": spec.system_key,
                         "system_name": spec.system_name,
@@ -1253,6 +1335,7 @@ def evaluate_run(
                         "support_definition": support_definition,
                         "depth_stratum": depth_stratum,
                         "rollout_mode": rollout_mode,
+                        "reencode_period": int(reencode_period),
                         "label_mode": label_mode,
                         "label_source": label_source,
                         "fit_num_trajectories": float(fit_num_trajectories),
@@ -1270,11 +1353,44 @@ def evaluate_run(
                         "fit_latent_kmeans_class_count_fit": float(len(class_bundle["latent_kmeans_ops"])),
                         "fit_random_class_count_total": float(random_class_count_total),
                         "fit_random_class_count_fit": float(len(class_bundle["random_ops"])),
-                        **route_summary,
-                        **horizon_stats,
-                        "skip_reason": "",
                     }
-                )
+                    if mode_key not in predictions_by_mode:
+                        rows.append(
+                            {
+                                **base_row,
+                                "route_coverage_fraction": None,
+                                "fallback_fraction": None,
+                                "route_switch_rate": None,
+                                "valid_step_fraction": None,
+                                "skip_reason": (
+                                    "support_class_count>max_partition_classes"
+                                    if rollout_mode in {
+                                        "support_local_centered",
+                                        "support_gated_k",
+                                        "support_block_gated_k",
+                                    }
+                                    and not support_modes_allowed
+                                    else "block_structure_unavailable"
+                                ),
+                            }
+                        )
+                        continue
+
+                    route_summary = _compute_subset_route_summary(route_metrics_by_mode[mode_key], subset_mask)
+                    horizon_stats = _compute_horizon_stats(
+                        predictions_by_mode[mode_key],
+                        np.transpose(true_future, (1, 0, 2)),
+                        horizons,
+                        subset_mask,
+                    )
+                    rows.append(
+                        {
+                            **base_row,
+                            **route_summary,
+                            **horizon_stats,
+                            "skip_reason": "",
+                        }
+                    )
 
     _attach_global_ratios(rows, horizons)
     return rows
@@ -1289,6 +1405,7 @@ def main() -> None:
     support_definitions = _parse_support_definitions(args.support_definitions)
     depth_strata = _parse_csv_strings(args.depth_strata)
     rollout_modes = _parse_csv_strings(args.rollout_modes)
+    reencode_periods = _parse_reencode_periods(args.reencode_periods)
     horizons = _parse_horizons(args.horizons)
     specs = OPSEL._load_latest_specs(
         [Path(item) for item in rows_csvs],
@@ -1313,11 +1430,14 @@ def main() -> None:
     specs_to_run = [spec for spec in specs if _spec_key(spec) not in completed_keys]
     initial_completed_count = len(completed_keys)
     start_time = time.time()
+    max_runtime_seconds = max(0, int(args.max_runtime_seconds))
     progress_every_runs = max(1, int(args.progress_every_runs))
     flush_every_runs = max(0, int(args.flush_every_runs))
     last_completed_spec = None
     last_completed_status: Optional[str] = None
     last_completed_error: Optional[str] = None
+    if hasattr(signal, "SIGUSR1"):
+        signal.signal(signal.SIGUSR1, _request_stop)
 
     if completed_keys:
         print(
@@ -1336,6 +1456,7 @@ def main() -> None:
         support_definitions=support_definitions,
         depth_strata=depth_strata,
         rollout_modes=rollout_modes,
+        reencode_periods=reencode_periods,
         horizons=horizons,
         num_specs=num_specs,
         completed_specs=len(completed_keys),
@@ -1349,6 +1470,15 @@ def main() -> None:
     )
 
     for remaining_index, spec in enumerate(specs_to_run, start=1):
+        if STOP_REQUESTED:
+            print("Stop requested before starting next spec; flushing partial outputs.", flush=True)
+            break
+        if max_runtime_seconds and time.time() - start_time >= max_runtime_seconds:
+            print(
+                f"Runtime budget {max_runtime_seconds}s reached before next spec; flushing partial outputs.",
+                flush=True,
+            )
+            break
         index = initial_completed_count + remaining_index
         spec_key = _spec_key(spec)
         try:
@@ -1357,6 +1487,7 @@ def main() -> None:
                 support_definitions=support_definitions,
                 depth_strata=depth_strata,
                 rollout_modes=rollout_modes,
+                reencode_periods=reencode_periods,
                 horizons=horizons,
                 fit_num_trajectories=args.fit_num_trajectories,
                 fit_trajectory_length=args.fit_trajectory_length,
@@ -1366,6 +1497,11 @@ def main() -> None:
                 endpoint_rollout_steps=args.endpoint_rollout_steps,
                 device=args.device,
                 label_mode=args.label_mode,
+                fit_dysts_cache_split=args.fit_dysts_cache_split,
+                forecast_dysts_cache_split=args.forecast_dysts_cache_split,
+                dysts_cache_profile=args.dysts_cache_profile,
+                dysts_cache_dir=args.dysts_cache_dir,
+                dysts_cache_num_workers=args.dysts_cache_num_workers,
                 ridge_lambda=args.ridge_lambda,
                 min_operator_transitions=args.min_operator_transitions,
                 family_jaccard_threshold=args.family_jaccard_threshold,
@@ -1410,6 +1546,7 @@ def main() -> None:
                 support_definitions=support_definitions,
                 depth_strata=depth_strata,
                 rollout_modes=rollout_modes,
+                reencode_periods=reencode_periods,
                 horizons=horizons,
                 num_specs=num_specs,
                 completed_specs=len(completed_keys),
@@ -1421,8 +1558,23 @@ def main() -> None:
                 last_status=last_completed_status,
                 last_error=last_completed_error,
             )
+        if STOP_REQUESTED:
+            print("Stop requested; ending after current spec.", flush=True)
+            break
+        if max_runtime_seconds and time.time() - start_time >= max_runtime_seconds:
+            print(f"Runtime budget {max_runtime_seconds}s reached; ending after current spec.", flush=True)
+            break
 
     failures = _sorted_failures(failure_map)
+    final_status = (
+        "complete"
+        if len(completed_keys) == num_specs and not failures
+        else "complete_with_failures"
+        if len(completed_keys) == num_specs
+        else "partial_with_failures"
+        if failures
+        else "partial"
+    )
     _flush_outputs(
         output_dir,
         args=args,
@@ -1433,23 +1585,26 @@ def main() -> None:
         support_definitions=support_definitions,
         depth_strata=depth_strata,
         rollout_modes=rollout_modes,
+        reencode_periods=reencode_periods,
         horizons=horizons,
         num_specs=num_specs,
         completed_specs=len(completed_keys),
         rows=rows,
         failures=failures,
-        status=(
-            "complete"
-            if len(completed_keys) == num_specs and not failures
-            else "complete_with_failures"
-            if len(completed_keys) == num_specs
-            else "partial_with_failures"
-        ),
+        status=final_status,
         elapsed_seconds=time.time() - start_time,
         last_spec=last_completed_spec,
         last_status=last_completed_status,
         last_error=last_completed_error,
     )
+    if final_status != "complete":
+        print(
+            f"Self-routed forecasting finished with status={final_status}; "
+            "outputs were flushed but the SLURM shard should be resumed before merge.",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(2 if final_status.startswith("partial") else 1)
 
 
 if __name__ == "__main__":

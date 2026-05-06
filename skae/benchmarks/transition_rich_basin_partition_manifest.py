@@ -248,6 +248,38 @@ TRANSITION_RICH_BASIN_PARTITION_SYSTEMS: Sequence[TransitionRichBasinPartitionSy
 )
 
 
+TRANSITION_RICH_OUT_OF_GENERATOR_MULTISTABLE_SYSTEMS: Sequence[TransitionRichBasinPartitionSystem] = (
+    TransitionRichBasinPartitionSystem(
+        system_key="claude:toggle_switch_3gene",
+        env_name="claude:toggle_switch_3gene",
+        system_group="out_of_generator_multistable",
+        basin_count=3,
+        paper_role="canonical gene-regulatory tristability supplemental",
+    ),
+    TransitionRichBasinPartitionSystem(
+        system_key="claude:bistable_reactor",
+        env_name="claude:bistable_reactor",
+        system_group="out_of_generator_multistable",
+        basin_count=3,
+        paper_role="reaction-system thermal multistability supplemental",
+    ),
+    TransitionRichBasinPartitionSystem(
+        system_key="claude:fitzhugh_nagumo_3eq",
+        env_name="claude:fitzhugh_nagumo_3eq",
+        system_group="out_of_generator_multistable",
+        basin_count=3,
+        paper_role="neural-excitability multistability supplemental",
+    ),
+    TransitionRichBasinPartitionSystem(
+        system_key="claude:buckled_beam",
+        env_name="claude:buckled_beam",
+        system_group="out_of_generator_multistable",
+        basin_count=4,
+        paper_role="mechanical buckling multistability supplemental",
+    ),
+)
+
+
 TRANSITION_RICH_BASIN_PARTITION_MODELS: Sequence[TransitionRichBasinPartitionModel] = (
     TransitionRichBasinPartitionModel(
         variant="lista_dense_basin_partition",
@@ -1292,14 +1324,22 @@ def transition_rich_basin_partition_systems() -> List[TransitionRichBasinPartiti
     return list(TRANSITION_RICH_BASIN_PARTITION_SYSTEMS)
 
 
+def transition_rich_out_of_generator_multistable_systems() -> List[TransitionRichBasinPartitionSystem]:
+    """Return supplemental canonical systems outside the fixed shortlist."""
+    return list(TRANSITION_RICH_OUT_OF_GENERATOR_MULTISTABLE_SYSTEMS)
+
+
 def transition_rich_basin_partition_models() -> List[TransitionRichBasinPartitionModel]:
     """Return the ordered LISTA variants for the shortlist."""
     return list(TRANSITION_RICH_BASIN_PARTITION_MODELS)
 
 
 def get_transition_rich_basin_partition_system(system_key: str) -> TransitionRichBasinPartitionSystem:
-    """Lookup a fixed-shortlist system by key."""
-    for spec in TRANSITION_RICH_BASIN_PARTITION_SYSTEMS:
+    """Lookup a fixed-shortlist or supplemental system by key."""
+    for spec in (
+        *TRANSITION_RICH_BASIN_PARTITION_SYSTEMS,
+        *TRANSITION_RICH_OUT_OF_GENERATOR_MULTISTABLE_SYSTEMS,
+    ):
         if spec.system_key == system_key:
             return spec
     raise KeyError(f"Unknown transition-rich basin-partition system '{system_key}'")

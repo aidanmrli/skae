@@ -1,0 +1,79 @@
+\section{Additional background}
+\label{app:background}
+
+\subsection{Koopman operators and finite-dimensional approximations}
+\label{app:koopman_background}
+
+Consider the stored-step map used in \cref{sec:problem},
+\begin{equation}
+  x_{k+1}=F_{\Delta t}(x_k), \qquad x_k\in\mathcal X\subseteq\R^{d_x}.
+\end{equation}
+Koopman operator theory studies the evolution of observables rather than the evolution of the state directly. An observable is a measurement function \(g:\mathcal X\to\R\), and the Koopman operator \(\mathcal K\) acts by composition:
+\begin{equation}
+  (\mathcal K g)(x)=g(F_{\Delta t}(x)).
+\end{equation}
+The map \(F_{\Delta t}\) may be nonlinear, but \(\mathcal K\) is linear on the function space of observables. If a finite vector of observables
+\begin{equation}
+  \Phi(x)=\big[g_1(x),\ldots,g_{d_z}(x)\big]^\top
+\end{equation}
+spans a Koopman-invariant subspace, then there is a matrix \(K\in\R^{d_z\times d_z}\) such that
+\begin{equation}
+  \Phi(x_{k+1})=\Phi(F_{\Delta t}(x_k))=\mathcal K\Phi(x_k)=K\Phi(x_k).
+\end{equation}
+In that case the nonlinear dynamics are exactly linear in the observable coordinates \(z_k=\Phi(x_k)\). Learning Koopman models can therefore be viewed as searching for observables whose span is invariant enough to support useful finite-dimensional linear prediction.
+
+In practice, the infinite-dimensional operator is approximated from data. Given snapshot pairs \(\{(x_k,x_{k+1})\}\) and a chosen feature map \(\Phi\), dynamic mode decomposition and extended dynamic mode decomposition (eDMD) estimate a finite transition by least squares \citep{schmid_dmd_2010,rowley_2009_spectral,tu_dynamic_2014,williams_datadriven_2015,williams_kernel-based_2016}:
+\begin{equation}
+  K
+  =
+  \argmin_{\widetilde K\in\R^{d_z\times d_z}}
+  \sum_k \norm{\Phi(x_{k+1})-\widetilde K\Phi(x_k)}_2^2.
+\end{equation}
+DMD is the special case \(\Phi(x)=x\), so it fits a linear state-space surrogate without a learned nonlinear lift. eDMD extends this by choosing a richer observable dictionary. Koopman autoencoders replace the fixed observable dictionary with a learned encoder and decoder, which is the setting used in this paper.
+
+\subsection{Why multibasin systems require local structure}
+\label{app:multibasin_background}
+
+The theoretical obstruction in multibasin systems is not the absence of local linear descriptions. Near appropriate attracting sets, classical linearization and Koopman eigenfunction constructions can produce useful local or basin-restricted coordinates. The obstruction is instead global: as stated in the main text, multi-attractor systems should not generally be expected to admit a single finite-dimensional global linearization with a continuous encoder-decoder pair \citep{lan_linearization_2013,brunton_koopman_2016,pan_lifting_2024,liu_properties_2025}. A single continuous, exact, state-reconstructing finite-dimensional Koopman representation is therefore compatible only with restricted global attractor structure.
+
+For the present paper, this motivates a cautious formulation. A learned finite-dimensional Koopman representation on a multibasin system should not be expected to be one exact global linearization that reconstructs every basin simultaneously. It must either approximate across incompatible regions, or it must contain some implicit information about which local description is active. Sparse supports are useful because they make one such piece of information discrete and inspectable: the support can identify a basin, basin part, or local predictive chart while the coefficient values carry within-chart state information.
+
+\subsection{Koopman autoencoders and periodic re-encoding}
+\label{app:kae_reencoding_background}
+
+A standard Koopman autoencoder learns an encoder \(\Enc:\R^{d_x}\to\R^{d_z}\), decoder \(\Dec:\R^{d_z}\to\R^{d_x}\), and latent transition \(K\) so that
+\begin{equation}
+  z_k=\Enc(x_k),\qquad z_{k+1}\approx Kz_k,\qquad x_k\approx\Dec(z_k).
+\end{equation}
+A schematic one-step objective has the form
+\begin{equation}
+  \min_{\Enc,\Dec,K}
+  \sum_k
+  \norm{x_k-\Dec(\Enc(x_k))}_2^2
+  +
+  \lambda_{\rm lin}
+  \norm{\Enc(x_{k+1})-K\Enc(x_k)}_2^2 .
+  \label{eq:KAE-standard-objective}
+\end{equation}
+This objective is useful as a reference point, but it is not sufficient for the present study. It does not directly train decoded multi-step rollouts, does not impose a sparse support object, and does not test whether the support itself selects a useful local predictive rule. The training objective in \cref{sec:method_training} therefore keeps the autoencoding and latent-linearity terms but adds decoded rollout prediction over windows, sparsity on the rolled latent states, and optional transition-structure penalties.
+
+Periodic re-encoding interrupts a latent rollout after a fixed number of stored observation steps. For period \(m\),
+\begin{equation}
+  \tilde z_{k+m}=K^m z_k,\qquad
+  \tilde x_{k+m}=\Dec(\tilde z_{k+m}),\qquad
+  z_{k+m}=\Enc(\tilde x_{k+m}).
+\end{equation}
+This is the same mechanism defined in \cref{eq:reencode}. It uses only the model's own predicted state and is therefore not a teacher-forced correction. The point is to refresh the latent embedding and, in sparse models, to refresh the support as the predicted state moves through regions where a different local linear description may be more appropriate \citep{fathi2024course}.
+
+\subsection{Sparse coding and LISTA}
+\label{app:sparse_lista_background}
+
+Classical sparse coding seeks a code \(z\) that reconstructs a signal from a small set of active dictionary atoms:
+\begin{equation}
+  z^\star(x)=
+  \argmin_{z\in\R^{d_z}}\;\frac{1}{2}\norm{x-Dz}_2^2+\lambda_{\rm sc}\norm{z}_1,
+  \qquad \lambda_{\rm sc}>0,
+\end{equation}
+where \(D\) is a dictionary and \(\lambda_{\rm sc}\) controls sparsity \citep{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003}. For a fixed dictionary, and under the usual uniqueness and non-boundary conditions for the Lasso solution, the active set and signs are locally constant over regions of the input space, while the coefficient values vary continuously within a fixed active set. The decoder reconstruction then lies in the span of the selected dictionary columns, giving a union-of-subspaces geometry. Each exact support can index a local chart, and the greedy Jaccard procedure in \cref{sec:method_supports} groups nearby Boolean support vectors into support families when threshold noise or boundary effects fragment the exact masks.
+
+LISTA replaces an iterative sparse-coding solver with a learned finite-depth shrinkage network \citep{gregor_learning_2010}. In the notation of \cref{eq:lista}, the encoder forms a pre-code from the input and repeatedly applies learned affine refinement followed by soft thresholding. In this paper, the encoder is trained jointly with the Koopman rollout objective rather than solving the sparse-coding problem at evaluation time. The thresholding operation is the important ingredient: it turns the latent code into both continuous coefficients and an explicit support. The experiments then ask whether \(F_{\rm abs}\) groups absolute-threshold supports \(S_{\rm abs}\) in a way that aligns with withheld benchmark basin labels, whether \(S_{\rm abs}\) is functionally used by the predictor, whether \(F_{\rm top8}\) can route family-local predictors, and whether refreshed \(S_{\rm top8}\) supports track controlled basin transfer.

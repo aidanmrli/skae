@@ -1,14 +1,25 @@
-\begin{thebibliography}{32}
+\begin{thebibliography}{37}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
+\bibitem[Agarwal et~al.(2021)Agarwal, Schwarzer, Castro, Courville, and Bellemare]{agarwal2021deep}
+Rishabh Agarwal, Max Schwarzer, Pablo~Samuel Castro, Aaron~C Courville, and Marc Bellemare.
+\newblock Deep reinforcement learning at the edge of the statistical precipice.
+\newblock \emph{Advances in Neural Information Processing Systems}, 34, 2021.
+
 \bibitem[Azencot et~al.(2020)Azencot, Erichson, Lin, and Mahoney]{azencot_forecasting_2020}
 Omri Azencot, N.~Benjamin Erichson, Vanessa Lin, and Michael Mahoney.
 \newblock Forecasting {Sequential} {Data} {Using} {Consistent} {Koopman} {Autoencoders}.
 \newblock In \emph{Proceedings of the 37th {International} {Conference} on {Machine} {Learning}}, pages 475--485. PMLR, November 2020.
+
+\bibitem[Beck and Teboulle(2009)]{beck2009fast}
+Amir Beck and Marc Teboulle.
+\newblock A fast iterative shrinkage-thresholding algorithm for linear inverse problems.
+\newblock \emph{SIAM Journal on Imaging Sciences}, 2\penalty0 (1):\penalty0 183--202, 2009.
+\newblock \doi{10.1137/080716542}.
 
 \bibitem[Brunton et~al.(2016)Brunton, Brunton, Proctor, and Kutz]{brunton_koopman_2016}
 Steven~L. Brunton, Bingni~W. Brunton, Joshua~L. Proctor, and J.~Nathan Kutz.
@@ -35,7 +46,7 @@ Scott~Shaobing Chen, David~L. Donoho, and Michael~A. Saunders.
 
 \bibitem[Donoho and Elad(2003)]{donoho_optimally_2003}
 David~L. Donoho and Michael Elad.
-\newblock Optimally sparse representation in general (nonorthogonal) dictionaries via $\ell^1$ minimization.
+\newblock Optimally sparse representation in general (nonorthogonal) dictionaries via {$\ell_1$} minimization.
 \newblock \emph{Proceedings of the National Academy of Sciences}, 100\penalty0 (5):\penalty0 2197--2202, March 2003.
 \newblock \doi{10.1073/pnas.0437847100}.
 \newblock URL \url{https://doi.org/10.1073/pnas.0437847100}.
@@ -45,6 +56,19 @@ Mahan Fathi, Clement Gehring, Jonathan Pilault, David Kanaa, Pierre-Luc Bacon, a
 \newblock Course correcting koopman representations.
 \newblock In \emph{The Twelfth International Conference on Learning Representations}, 2024.
 \newblock URL \url{https://openreview.net/forum?id=A18gWgc5mi}.
+
+\bibitem[Gilpin(2021)]{gilpin_chaos_2021}
+William Gilpin.
+\newblock Chaos as an interpretable benchmark for forecasting and data-driven modelling.
+\newblock In \emph{Advances in {Neural} {Information} {Processing} {Systems} ({NeurIPS}) 2021}, 2021.
+\newblock URL \url{http://arxiv.org/abs/2110.05266}.
+
+\bibitem[Gilpin(2023)]{gilpin_model_2023}
+William Gilpin.
+\newblock Model scale versus domain knowledge in statistical forecasting of chaotic systems.
+\newblock \emph{Physical Review Research}, 5\penalty0 (4):\penalty0 043252, December 2023.
+\newblock \doi{10.1103/PhysRevResearch.5.043252}.
+\newblock URL \url{https://link.aps.org/doi/10.1103/PhysRevResearch.5.043252}.
 
 \bibitem[Gregor and LeCun(2010)]{gregor_learning_2010}
 Karol Gregor and Yann LeCun.
@@ -67,11 +91,23 @@ Lars Grüne and Jürgen Pannek.
 \newblock \doi{10.1007/978-3-319-46024-6}.
 \newblock URL \url{http://link.springer.com/10.1007/978-3-319-46024-6}.
 
+\bibitem[Hartigan(1975)]{hartigan_clustering_1975}
+John~A. Hartigan.
+\newblock \emph{Clustering Algorithms}.
+\newblock John Wiley \& Sons, New York, 1975.
+\newblock ISBN 0-471-35645-X.
+
 \bibitem[Hartman(1960)]{hartman1960lemma}
 Philip Hartman.
 \newblock A lemma in the theory of structural stability of differential equations.
 \newblock \emph{Proceedings of the American Mathematical Society}, 11\penalty0 (4):\penalty0 610--620, 1960.
 \newblock \doi{10.1090/S0002-9939-1960-0121542-7}.
+
+\bibitem[Jaccard(1901)]{jaccard_etude_1901}
+Paul Jaccard.
+\newblock {\'E}tude comparative de la distribution florale dans une portion des alpes et du jura.
+\newblock \emph{Bulletin de la Soci{\'e}t{\'e} Vaudoise des Sciences Naturelles}, 37\penalty0 (142):\penalty0 547--579, 1901.
+\newblock \doi{10.5169/seals-266450}.
 
 \bibitem[Kalman(1960)]{kalman_general_1960}
 R.E. Kalman.
@@ -118,11 +154,13 @@ Yueheng Lan and Igor Mezić.
 \newblock ISSN 0167-2789.
 \newblock \doi{10.1016/j.physd.2012.08.017}.
 
-\bibitem[Linderman et~al.(2017)Linderman, Johnson, Miller, Adams, Blei, and Paninski]{linderman_bayesian_2017}
-Scott Linderman, Matthew Johnson, Andrew Miller, Ryan Adams, David Blei, and Liam Paninski.
-\newblock Bayesian {Learning} and {Inference} in {Recurrent} {Switching} {Linear} {Dynamical} {Systems}.
-\newblock In \emph{Proceedings of the 20th {International} {Conference} on {Artificial} {Intelligence} and {Statistics}}, pages 914--922. PMLR, April 2017.
-\newblock URL \url{https://proceedings.mlr.press/v54/linderman17a.html}.
+\bibitem[Liu et~al.(2025)Liu, Ozay, and Sontag]{liu_properties_2025}
+Zexiang Liu, Necmiye Ozay, and Eduardo~D. Sontag.
+\newblock Properties of immersions for systems with multiple limit sets with implications to learning {Koopman} embeddings.
+\newblock \emph{Automatica}, 176:\penalty0 112226, June 2025.
+\newblock ISSN 0005-1098.
+\newblock \doi{10.1016/j.automatica.2025.112226}.
+\newblock URL \url{https://www.sciencedirect.com/science/article/pii/S0005109825001189}.
 
 \bibitem[Lusch et~al.(2018)Lusch, Kutz, and Brunton]{lusch_deep_2018}
 Bethany Lusch, J.~Nathan Kutz, and Steven~L. Brunton.
@@ -200,12 +238,6 @@ Naoya Takeishi, Yoshinobu Kawahara, and Takehisa Yairi.
 \newblock Learning koopman invariant subspaces for dynamic mode decomposition.
 \newblock In \emph{Advances in Neural Information Processing Systems 30}, volume~30, 2017.
 \newblock URL \url{https://papers.nips.cc/paper/6713-learning-koopman-invariant-subspaces-for-dynamic-mode-decomposition}.
-
-\bibitem[Torrisi and Bemporad(2004)]{torrisi-bemporad-itcst04}
-F.D. Torrisi and A.~Bemporad.
-\newblock Hysdel-a tool for generating computational hybrid models for analysis and synthesis problems.
-\newblock \emph{IEEE Transactions on Control Systems Technology}, 12\penalty0 (2):\penalty0 235--249, 2004.
-\newblock \doi{10.1109/TCST.2004.824309}.
 
 \bibitem[Tu et~al.(2014)Tu, Rowley, Luchtenburg, Brunton, and Kutz]{tu_dynamic_2014}
 Jonathan~H. Tu, Clarence~W. Rowley, Dirk~M. Luchtenburg, Steven~L. Brunton, and J.~Nathan Kutz.

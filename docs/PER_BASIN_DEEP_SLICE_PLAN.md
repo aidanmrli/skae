@@ -90,6 +90,14 @@ A new appendix subsection of [`docs/neurips_sparse_koopman_multibasin.tex`](neur
 
 The current Table 1 (global slice) **does not change**: it remains the reference for the absolute-deep-states reading. The per-basin appendix becomes the reference for the "every basin contributes deep states" reading and is what supports the 17/17 wrong-support-freeze claim.
 
+May 6 correction: the completed packet below belongs to the earlier root roster.
+It does not fully cover the current manuscript Table 1 roster because the current
+table adds the plain `p256` LISTA row and uses matched `p256` LISTA-SB instead of
+the older `p64` soft-block row. A current-roster rerun has therefore been queued
+with output directory name `interpretability_per_basin_deep_current_table1_pass0`.
+Those outputs, not the older packet, should be used for the appendix table or for
+any deliberate main-table replacement.
+
 ## Status
 
 | Stage | State | Notes |
@@ -100,7 +108,8 @@ The current Table 1 (global slice) **does not change**: it remains the reference
 | Smoke test on 1 system / 1 seed | done | 16 s on a `long`-partition `salloc` node. `duffing_triple_well` returned `support_freeze_template_count=3` (vs `1` under global slice) and populated `wrong_over_base` ratios. |
 | Submit per-basin shards (5 shards across 2 packets) | complete | Job IDs: 9388212, 9388213 (LISTA packet) and 9388215, 9388216, 9388217 (boundary MLP packet) all completed with exit `0:0`; partition `long-cpu`, 16 GB, 12 h walltime, 4 CPUs. |
 | Merge per-packet shard outputs | complete | Merge jobs 9388214 (LISTA) and 9388218 (boundary MLP) completed with exit `0:0`. Merged outputs exist at both `interpretability_per_basin_deep_pass1/interpretability_rows.csv` paths: 9,181 lines for the LISTA packet and 13,555 lines for the boundary-MLP packet. |
-| Re-run `scripts/build_per_system_stats_and_forest.py` against new CSVs | pending | Add a per-basin variant that reads from `interpretability_per_basin_deep_pass1/`. |
+| Queue current Table 1 roster rerun | running | Submitted via `scripts/queue_per_basin_deep_current_table1_eval.sh`: backfill shards `9477837`--`9477840` with merge `9477841`, matched `p256` LISTA-SB shard `9477842` with merge `9477843`, and plain `p256` LISTA shard `9477844` with merge `9477845`. |
+| Re-run `scripts/build_per_system_stats_and_forest.py` against current per-basin CSVs | pending | Add a per-basin variant that reads from `interpretability_per_basin_deep_current_table1_pass0/` across the three current Table 1 source packets. |
 | Add appendix table to LaTeX | pending | Will *not* overwrite Table 1; will be a new appendix table. |
 
 ### Job-ID provenance

@@ -1,0 +1,139 @@
+{
+  "systems": [
+    "dysts_Chua",
+    "dysts_Dadras",
+    "dysts_DequanLi",
+    "dysts_Hadley",
+    "dysts_LuChenCheng",
+    "dysts_QiChen",
+    "dysts_Sakarya",
+    "dysts_SanUmSrisuchinwong",
+    "dysts_ShimizuMorioka",
+    "dysts_WangSun"
+  ],
+  "seed": 0,
+  "sample_every": 500,
+  "aggregation": "median over retained Dysts systems at each step; non-finite values omitted",
+  "models": {
+    "LISTA": {
+      "source_files": {
+        "dysts_Chua": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-101352/metrics_history.jsonl",
+        "dysts_Dadras": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-122650/metrics_history.jsonl",
+        "dysts_DequanLi": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-102304/metrics_history.jsonl",
+        "dysts_Hadley": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-122708/metrics_history.jsonl",
+        "dysts_LuChenCheng": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-133722/metrics_history.jsonl",
+        "dysts_QiChen": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-180139/metrics_history.jsonl",
+        "dysts_Sakarya": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-151847/metrics_history.jsonl",
+        "dysts_SanUmSrisuchinwong": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-205328/metrics_history.jsonl",
+        "dysts_ShimizuMorioka": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-180644/metrics_history.jsonl",
+        "dysts_WangSun": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-210702/metrics_history.jsonl"
+      },
+      "best_median_validation_step": 80000,
+      "best_median_validation_final_error": 1.9336374998092651,
+      "final_median_validation_step": 99999,
+      "final_median_validation_final_error": 2.3654699325561523,
+      "final_median_spectral_radius_step": 99999,
+      "final_median_spectral_radius": 1.000903069972992
+    },
+    "LISTA-BD": {
+      "source_files": {
+        "dysts_Chua": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-115407/metrics_history.jsonl",
+        "dysts_Dadras": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-142212/metrics_history.jsonl",
+        "dysts_DequanLi": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-114704/metrics_history.jsonl",
+        "dysts_Hadley": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-143619/metrics_history.jsonl",
+        "dysts_LuChenCheng": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-155402/metrics_history.jsonl",
+        "dysts_QiChen": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-214916/metrics_history.jsonl",
+        "dysts_Sakarya": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-172402/metrics_history.jsonl",
+        "dysts_SanUmSrisuchinwong": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-223332/metrics_history.jsonl",
+        "dysts_ShimizuMorioka": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-201631/metrics_history.jsonl",
+        "dysts_WangSun": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_bd/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-233431/metrics_history.jsonl"
+      },
+      "best_median_validation_step": 29000,
+      "best_median_validation_final_error": 1.904995858669281,
+      "final_median_validation_step": 99999,
+      "final_median_validation_final_error": 2.218518018722534,
+      "final_median_spectral_radius_step": 99999,
+      "final_median_spectral_radius": 1.0008675456047058
+    },
+    "LISTA-SB": {
+      "source_files": {
+        "dysts_Chua": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-134356/metrics_history.jsonl",
+        "dysts_Dadras": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-102303/metrics_history.jsonl",
+        "dysts_DequanLi": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-130630/metrics_history.jsonl",
+        "dysts_Hadley": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-102304/metrics_history.jsonl",
+        "dysts_LuChenCheng": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-110001/metrics_history.jsonl",
+        "dysts_QiChen": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-151848/metrics_history.jsonl",
+        "dysts_Sakarya": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-191801/metrics_history.jsonl",
+        "dysts_SanUmSrisuchinwong": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-180349/metrics_history.jsonl",
+        "dysts_ShimizuMorioka": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-221635/metrics_history.jsonl",
+        "dysts_WangSun": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/lista_sb/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-182840/metrics_history.jsonl"
+      },
+      "best_median_validation_step": 84000,
+      "best_median_validation_final_error": 1.8446152210235596,
+      "final_median_validation_step": 99999,
+      "final_median_validation_final_error": 1.883772373199463,
+      "final_median_spectral_radius_step": 99999,
+      "final_median_spectral_radius": 1.0003170371055603
+    },
+    "Sparse MLP-BD": {
+      "source_files": {
+        "dysts_Chua": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-101350/metrics_history.jsonl",
+        "dysts_Dadras": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-124134/metrics_history.jsonl",
+        "dysts_DequanLi": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-102304/metrics_history.jsonl",
+        "dysts_Hadley": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-131046/metrics_history.jsonl",
+        "dysts_LuChenCheng": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-174335/metrics_history.jsonl",
+        "dysts_QiChen": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-183033/metrics_history.jsonl",
+        "dysts_Sakarya": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-153417/metrics_history.jsonl",
+        "dysts_SanUmSrisuchinwong": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-213228/metrics_history.jsonl",
+        "dysts_ShimizuMorioka": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-181919/metrics_history.jsonl",
+        "dysts_WangSun": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp_bd/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-212124/metrics_history.jsonl"
+      },
+      "best_median_validation_step": 500,
+      "best_median_validation_final_error": 1.987281322479248,
+      "final_median_validation_step": 99999,
+      "final_median_validation_final_error": 2.1030168533325195,
+      "final_median_spectral_radius_step": 99999,
+      "final_median_spectral_radius": 1.000866711139679
+    },
+    "Sparse MLP": {
+      "source_files": {
+        "dysts_Chua": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-160238/metrics_history.jsonl",
+        "dysts_Dadras": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-115633/metrics_history.jsonl",
+        "dysts_DequanLi": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-151817/metrics_history.jsonl",
+        "dysts_Hadley": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-122021/metrics_history.jsonl",
+        "dysts_LuChenCheng": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-125659/metrics_history.jsonl",
+        "dysts_QiChen": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-180836/metrics_history.jsonl",
+        "dysts_Sakarya": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-212654/metrics_history.jsonl",
+        "dysts_SanUmSrisuchinwong": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260501-010232/metrics_history.jsonl",
+        "dysts_ShimizuMorioka": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-235917/metrics_history.jsonl",
+        "dysts_WangSun": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/sparse_mlp/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-203302/metrics_history.jsonl"
+      },
+      "best_median_validation_step": 3000,
+      "best_median_validation_final_error": 1.9635769128799438,
+      "final_median_validation_step": 99999,
+      "final_median_validation_final_error": 2.3623772859573364,
+      "final_median_spectral_radius_step": 99999,
+      "final_median_spectral_radius": 1.0007402300834656
+    },
+    "Dense MLP": {
+      "source_files": {
+        "dysts_Chua": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Chua/dt_0p0085424237372876636/seed_0/20260430-121800/metrics_history.jsonl",
+        "dysts_Dadras": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Dadras/dt_0p019734889148190861/seed_0/20260430-135201/metrics_history.jsonl",
+        "dysts_DequanLi": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_DequanLi/dt_0p00050291981996988247/seed_0/20260430-113526/metrics_history.jsonl",
+        "dysts_Hadley": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Hadley/dt_0p0087260543423923302/seed_0/20260430-144528/metrics_history.jsonl",
+        "dysts_LuChenCheng": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_LuChenCheng/dt_0p0055409034839144057/seed_0/20260430-190527/metrics_history.jsonl",
+        "dysts_QiChen": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_QiChen/dt_0p0023511318553094186/seed_0/20260430-200646/metrics_history.jsonl",
+        "dysts_Sakarya": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_Sakarya/dt_0p029911385230877836/seed_0/20260430-194411/metrics_history.jsonl",
+        "dysts_SanUmSrisuchinwong": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_SanUmSrisuchinwong/dt_0p044799866644439135/seed_0/20260430-232844/metrics_history.jsonl",
+        "dysts_ShimizuMorioka": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_ShimizuMorioka/dt_0p072240040006681744/seed_0/20260430-194722/metrics_history.jsonl",
+        "dysts_WangSun": "/network/scratch/l/lia/skae/dysts_dt30_basinblock_p256_seq10_100k_20260430/dysts_dt30_basinblock_p256_seq10_100k/dense_mlp_tanh/dysts_WangSun/dt_0p16177496249375733/seed_0/20260430-222913/metrics_history.jsonl"
+      },
+      "best_median_validation_step": 59000,
+      "best_median_validation_final_error": 1.988231122493744,
+      "final_median_validation_step": 99999,
+      "final_median_validation_final_error": 2.1205523014068604,
+      "final_median_spectral_radius_step": 99999,
+      "final_median_spectral_radius": 1.0010716319084167
+    }
+  }
+}

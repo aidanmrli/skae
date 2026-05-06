@@ -129,6 +129,60 @@ def stratified_bootstrap_mean(
     return float(point), float(lo), float(hi)
 
 
+def row_iqm(values: np.ndarray) -> np.ndarray:
+    """Compute the same percentile-trimmed IQM for each row of a 2D array."""
+    arr = np.asarray(values, dtype=float)
+    if arr.ndim != 2:
+        raise ValueError("row_iqm expects a 2D array")
+    if arr.shape[1] == 0:
+        return np.full(arr.shape[0], np.nan)
+    if arr.shape[1] < 4:
+        return np.mean(arr, axis=1)
+    lo = np.percentile(arr, 25, axis=1)
+    hi = np.percentile(arr, 75, axis=1)
+    keep = (arr >= lo[:, None]) & (arr <= hi[:, None])
+    counts = keep.sum(axis=1)
+    sums = np.where(keep, arr, 0.0).sum(axis=1)
+    means = np.mean(arr, axis=1)
+    return np.divide(sums, counts, out=means, where=counts > 0)
+
+
+def fixed_system_seed_bootstrap_log_relative_band(
+    system_seed_values: list[np.ndarray],
+    *,
+    center: float,
+    rng: np.random.Generator,
+    n_reps: int,
+) -> tuple[float, float, float]:
+    """Bootstrap typical within-system seed uncertainty on a relative scale."""
+    if n_reps <= 0 or not math.isfinite(center) or center <= 0.0:
+        return float("nan"), float("nan"), float("nan")
+
+    valid = []
+    for values in system_seed_values:
+        values = np.asarray(values, dtype=float)
+        values = values[np.isfinite(values) & (values > 0.0)]
+        system_center = iqm(values)
+        if values.size > 0 and math.isfinite(system_center) and system_center > 0.0:
+            valid.append((values, system_center))
+    if not valid:
+        return float("nan"), float("nan"), float("nan")
+
+    per_system_log_rel = []
+    for values, system_center in valid:
+        indices = rng.integers(0, values.size, size=(n_reps, values.size))
+        draws = row_iqm(values[indices])
+        draws = np.clip(draws, np.finfo(float).tiny, None)
+        per_system_log_rel.append(np.log10(draws) - math.log10(system_center))
+
+    log_rel_draws = np.mean(np.column_stack(per_system_log_rel), axis=1)
+    return (
+        float(center * (10.0 ** np.percentile(log_rel_draws, 2.5))),
+        float(center * (10.0 ** np.percentile(log_rel_draws, 97.5))),
+        float(np.std(log_rel_draws, ddof=1)),
+    )
+
+
 def fmt(value: float, std_value: float | None = None, sig: int = 3) -> str:
     if not np.isfinite(value):
         return "--"
@@ -482,7 +536,7 @@ sig_hardinit = paired_wilcoxon_forecasting(
 (TBL_DIR / "wilcoxon_significance_hardinit.json").write_text(json.dumps(sig_hardinit, indent=2))
 
 # --------------------------------------------------------------------------------------
-# Figure 1: Fixed-17 forecasting horizon curves with bootstrap IQM CI
+# Figure 1: Fixed-17 forecasting horizon curves with log-relative seed-bootstrap CI
 # --------------------------------------------------------------------------------------
 
 print("Building Figure: Fixed-17 forecasting curves...")
@@ -490,6 +544,7 @@ print("Building Figure: Fixed-17 forecasting curves...")
 
 def build_horizon_curve(fc_df: pd.DataFrame, label_map: dict, ax, title: str):
     horizons = HORIZONS_FIXED17
+    rng = np.random.default_rng(20260501 + 155921)
     for root_label, (display, transition, encoder, regime, color) in label_map.items():
         sub = fc_df[fc_df["root_label"] == root_label]
         if sub.empty:
@@ -497,18 +552,22 @@ def build_horizon_curve(fc_df: pd.DataFrame, label_map: dict, ax, title: str):
         iqms, lo_arr, hi_arr = [], [], []
         for h in horizons:
             col = f"h{h}_best_periodic_mean"
-            sys_iqm = sub.groupby("system_key")[col].apply(lambda v: iqm(v.to_numpy()))
-            sys_iqm = sys_iqm.replace([np.inf, -np.inf], np.nan).dropna()
-            iqms.append(mean_finite(sys_iqm.to_numpy()))
-            # Use 25-75 percentile band on the system-level distribution (robust to a few catastrophic systems).
-            v = sys_iqm.to_numpy()
-            v = v[np.isfinite(v) & (v > 0)]
-            if v.size == 0:
-                lo_arr.append(float("nan"))
-                hi_arr.append(float("nan"))
-            else:
-                lo_arr.append(float(np.percentile(v, 25)))
-                hi_arr.append(float(np.percentile(v, 75)))
+            system_seed_values = [
+                values[np.isfinite(values) & (values > 0.0)]
+                for values in (group[col].to_numpy(dtype=float) for _, group in sub.groupby("system_key", sort=True))
+            ]
+            system_seed_values = [values for values in system_seed_values if values.size > 0]
+            sys_iqm = np.asarray([iqm(values) for values in system_seed_values], dtype=float)
+            center = mean_finite(sys_iqm)
+            iqms.append(center)
+            ci_low, ci_high, _ = fixed_system_seed_bootstrap_log_relative_band(
+                system_seed_values,
+                center=center,
+                rng=rng,
+                n_reps=10000,
+            )
+            lo_arr.append(ci_low)
+            hi_arr.append(ci_high)
         c = PALETTE[color]
         ls = "-" if encoder == "LISTA" else "--"
         ax.plot(horizons, iqms, marker="o", color=c, lw=1.6, ms=4, label=display, linestyle=ls)

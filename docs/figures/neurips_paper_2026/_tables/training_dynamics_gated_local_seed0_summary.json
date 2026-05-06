@@ -1,0 +1,62 @@
+{
+  "system_key": "gated_local_linear",
+  "seed": 0,
+  "sample_every": 500,
+  "models": {
+    "LISTA": {
+      "metrics_file": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_0/20260501-052234/metrics_history.jsonl",
+      "best_validation_step": 179500,
+      "best_validation_final_error": 0.2482554316520691,
+      "final_validation_step": 199999,
+      "final_validation_final_error": 0.279560923576355,
+      "final_spectral_radius_step": 199999,
+      "final_spectral_radius": 1.016312837600708
+    },
+    "LISTA-BD": {
+      "metrics_file": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_0/20260409-152035/metrics_history.jsonl",
+      "best_validation_step": 192000,
+      "best_validation_final_error": 0.06373847275972366,
+      "final_validation_step": 199999,
+      "final_validation_final_error": 0.12636511027812958,
+      "final_spectral_radius_step": 199999,
+      "final_spectral_radius": 1.0251013040542603
+    },
+    "LISTA-SB": {
+      "metrics_file": "/network/scratch/l/lia/skae/transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/transition_rich_basin_partition/lista_dense_softblock_signsplit_p256_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_0/20260429-050710/metrics_history.jsonl",
+      "best_validation_step": 183500,
+      "best_validation_final_error": 0.23397529125213623,
+      "final_validation_step": 199999,
+      "final_validation_final_error": 0.2598794400691986,
+      "final_spectral_radius_step": 199999,
+      "final_spectral_radius": 1.009430170059204
+    },
+    "Sparse MLP-BD": {
+      "metrics_file": "/network/scratch/l/lia/skae/transition_rich_hardinit_mlp_controls_seed10_20260416/transition_rich_basin_partition/mlp_sparse_blockdiag_hardinit_basin_partition_control/gated_local_linear/dt_0p04/seed_0/20260416-212108/metrics_history.jsonl",
+      "best_validation_step": 193500,
+      "best_validation_final_error": 0.03492606803774834,
+      "final_validation_step": 199999,
+      "final_validation_final_error": 0.10269059240818024,
+      "final_spectral_radius_step": 199999,
+      "final_spectral_radius": 1.027934193611145
+    },
+    "Sparse MLP": {
+      "metrics_file": "/network/scratch/l/lia/skae/transition_rich_hardinit_mlp_controls_seed10_20260416/transition_rich_basin_partition/mlp_sparse_hardinit_basin_partition_control/gated_local_linear/dt_0p04/seed_0/20260416-140922/metrics_history.jsonl",
+      "best_validation_step": 188500,
+      "best_validation_final_error": 0.029283814132213593,
+      "final_validation_step": 199999,
+      "final_validation_final_error": 0.1027148887515068,
+      "final_spectral_radius_step": 199999,
+      "final_spectral_radius": 1.0430736541748047
+    },
+    "Dense MLP": {
+      "metrics_file": "/network/scratch/l/lia/skae/transition_rich_hardinit_mlp_controls_seed10_20260416/transition_rich_basin_partition/mlp_zero_sparse_hardinit_basin_partition_control/gated_local_linear/dt_0p04/seed_0/20260416-185926/metrics_history.jsonl",
+      "best_validation_step": 83000,
+      "best_validation_final_error": 0.6107040047645569,
+      "final_validation_step": 199999,
+      "final_validation_final_error": 0.6910592317581177,
+      "final_spectral_radius_step": 199999,
+      "final_spectral_radius": 1.0118095874786377
+    }
+  },
+  "notes": "Dots in the validation panel mark the minimum eval/final_error within each plotted trace, matching the validation checkpoint rule."
+}

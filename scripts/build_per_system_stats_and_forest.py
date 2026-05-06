@@ -166,6 +166,14 @@ ROOTS = {
     },
 }
 BASELINE = "mlp_zero_sparse_hardinit_basin_partition_control"
+STAGE2_LOCAL_MAP_SUMMARY_CSV = (
+    ROOT
+    / "results"
+    / "routed_stage2_local_maps_20260506"
+    / "combined_best_lista_multibasin_j040_50k_seed0_9"
+    / "dense_mlp_comparison"
+    / "stage2_vs_dense_summary.csv"
+)
 
 # --------------------------------------------------------------------------------------
 # Load and merge
@@ -276,6 +284,42 @@ def fixed_system_seed_bootstrap_mean(
         float(np.percentile(draws, 2.5)),
         float(np.percentile(draws, 97.5)),
         float(np.std(draws, ddof=1)),
+    )
+
+
+def fixed_system_seed_bootstrap_log_relative_band(
+    system_seed_values: list[np.ndarray],
+    *,
+    center: float,
+    rng: np.random.Generator,
+    n_reps: int,
+) -> tuple[float, float, float]:
+    """Bootstrap typical within-system seed uncertainty on a relative scale."""
+    if n_reps <= 0 or not math.isfinite(center) or center <= 0.0:
+        return float("nan"), float("nan"), float("nan")
+
+    valid = []
+    for values in system_seed_values:
+        values = np.asarray(values, dtype=float)
+        values = values[np.isfinite(values) & (values > 0.0)]
+        system_center = iqm(values)
+        if values.size > 0 and math.isfinite(system_center) and system_center > 0.0:
+            valid.append((values, system_center))
+    if not valid:
+        return float("nan"), float("nan"), float("nan")
+
+    per_system_log_rel = []
+    for values, system_center in valid:
+        indices = rng.integers(0, values.size, size=(n_reps, values.size))
+        draws = row_iqm(values[indices])
+        draws = np.clip(draws, np.finfo(float).tiny, None)
+        per_system_log_rel.append(np.log10(draws) - math.log10(system_center))
+
+    log_rel_draws = np.mean(np.column_stack(per_system_log_rel), axis=1)
+    return (
+        float(center * (10.0 ** np.percentile(log_rel_draws, 2.5))),
+        float(center * (10.0 ** np.percentile(log_rel_draws, 97.5))),
+        float(np.std(log_rel_draws, ddof=1)),
     )
 
 
@@ -1094,11 +1138,19 @@ def metric_cell(
 
 
 table1_lines: list[str] = [
-    r"\begin{tabular}{@{}l r rr r rr@{}}",
+    r"\begin{tabular}{@{}l rr rrr r@{}}",
     r"\toprule",
-    r"Model & $H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ & wr.\,$h{=}1$\,$\uparrow$ & wr.\,$h{=}20$\,$\uparrow$ & $\overline{|F_{\rm abs}|}$ & H100\,$\downarrow$ & H1000\,$\downarrow$ \\",
+    r"& \multicolumn{2}{c}{Forecasting (all held-out)} & \multicolumn{4}{c}{Support diagnostics (global deep slice)} \\",
+    r"\cmidrule(lr){2-3}\cmidrule(l){4-7}",
+    r"Model & H100\,$\downarrow$ & H1000\,$\downarrow$ & $H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ & wr.\,$h{=}1$\,$\uparrow$ & wr.\,$h{=}20$\,$\uparrow$ & $\overline{|F_{\rm abs}|}$ \\",
     r"\midrule",
 ]
+
+stage2_summary_by_horizon: dict[int, dict] = {}
+if STAGE2_LOCAL_MAP_SUMMARY_CSV.exists():
+    stage2_summary = pd.read_csv(STAGE2_LOCAL_MAP_SUMMARY_CSV)
+    for _, stage2_row in stage2_summary.iterrows():
+        stage2_summary_by_horizon[int(stage2_row["horizon"])] = stage2_row.to_dict()
 
 for i, row in enumerate(main_table_rows):
     label = row["label"]
@@ -1151,9 +1203,25 @@ for i, row in enumerate(main_table_rows):
             cell += rf"\,[{sig_row['K_systems_better']}/{sig_row['N_systems_tested']}]"
         forecast_cells.append(cell)
     table1_lines.append(
-        f"{label} & {hbf_cell} & {fw1_cell} & {fw20_cell} & "
-        f"{family_count_cell} & {' & '.join(forecast_cells)} \\\\"
+        f"{label} & {' & '.join(forecast_cells)} & {hbf_cell} & "
+        f"{fw1_cell} & {fw20_cell} & {family_count_cell} \\\\"
     )
+    if row["root"] == "lista_dense_signsplit_p256_hardinit_basin_partition" and stage2_summary_by_horizon:
+        stage2_cells = []
+        for h in (100, 1000):
+            stage2_row = stage2_summary_by_horizon.get(h)
+            if stage2_row is None:
+                stage2_cells.append("--")
+                continue
+            v = float(stage2_row["stage2_mean_over_system_iqm"])
+            k = int(stage2_row["within_system_holm_passes"])
+            n = int(stage2_row["within_system_holm_total"])
+            stage2_cells.append(f"${fmt_num(v)}$\\,[{k}/{n}]")
+        table1_lines.append(
+            r"LISTA + local $K_c$ & "
+            + " & ".join(stage2_cells)
+            + r" & \multicolumn{4}{c@{}}{same frozen encoder/support diagnostics as LISTA} \\"
+        )
 
 table1_lines.extend([r"\bottomrule", r"\end{tabular}"])
 (TBL_DIR / "table1_fixed17_alignment.tex").write_text("\n".join(table1_lines))
@@ -1175,7 +1243,7 @@ DIAGNOSTIC_METRICS = [
 def plot_current_horizon_curve() -> None:
     horizons = ALL_FORECAST_HORIZONS or HORIZONS
     fig, ax = plt.subplots(1, 1, figsize=(4.2, 3.2), constrained_layout=True)
-    rng = np.random.default_rng(BOOTSTRAP_SEED)
+    rng = np.random.default_rng(BOOTSTRAP_SEED + 155921)
     for root_label, meta in ROOTS.items():
         sub = fc[fc["root_label"] == root_label]
         if sub.empty:
@@ -1189,9 +1257,11 @@ def plot_current_horizon_curve() -> None:
             ]
             system_seed_values = [values for values in system_seed_values if values.size > 0]
             per_system_iqms = np.asarray([iqm(values) for values in system_seed_values], dtype=float)
-            ys.append(mean_finite(per_system_iqms))
-            ci_low, ci_high, _ = fixed_system_seed_bootstrap_mean(
+            center = mean_finite(per_system_iqms)
+            ys.append(center)
+            ci_low, ci_high, _ = fixed_system_seed_bootstrap_log_relative_band(
                 system_seed_values,
+                center=center,
                 rng=rng,
                 n_reps=BOOTSTRAP_REPS,
             )

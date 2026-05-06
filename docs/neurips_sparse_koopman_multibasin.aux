@@ -2,301 +2,378 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
-\citation{kalman_general_1960}
-\citation{mayne_constrained_2000,grune_nonlinear_2017}
+\citation{mayne_constrained_2000,grune_nonlinear_2017,korda_linear_2018,kalman_general_1960,mamakoukas_local_2019}
 \citation{grobman1959homeomorphism,hartman1960lemma}
 \citation{lan_linearization_2013,kvalheim_existence_2021}
 \citation{koopman_hamiltonian_1931,koopman_dynamical_1932,mezic2005spectral,brunton_modern_2022}
 \citation{schmid_dmd_2010,williams_datadriven_2015,williams_kernel-based_2016}
-\citation{korda_linear_2018}
-\citation{mamakoukas_local_2019}
 \citation{takeishi2017learning,lusch_deep_2018,otto2019linearly,azencot_forecasting_2020,shi_deep_2022,fathi2024course}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:introduction}{{1}{1}{Introduction}{section.1}{}}
 \newlabel{sec:introduction@cref}{{[section][1][]1}{[1][1][]1}{}{}{}}
-\citation{lan_linearization_2013,brunton_koopman_2016,pan_lifting_2024}
+\citation{lan_linearization_2013,brunton_koopman_2016,pan_lifting_2024,liu_properties_2025}
+\citation{fathi2024course}
 \citation{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003,gregor_learning_2010}
 \citation{fathi2024course}
+\citation{fathi2024course}
+\@writefile{toc}{\contentsline {paragraph}{Contributions.}{2}{section*.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Problem formulation}{2}{section.2}\protected@file@percent }
 \newlabel{sec:problem}{{2}{2}{Problem formulation}{section.2}{}}
 \newlabel{sec:problem@cref}{{[section][2][]2}{[1][2][]2}{}{}{}}
-\newlabel{eq:sampled_map}{{1}{2}{Problem formulation}{equation.1}{}}
-\newlabel{eq:sampled_map@cref}{{[equation][1][]1}{[1][2][]2}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Benchmark visual diagnostics. Top: controlled multibasin systems where the pale background is the evaluation basin map, gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm  top8}\) families are mapped post hoc to each family's dominant evaluation basin. Basin labels and counts are evaluation-only, and the catalog panels use the attractor-center basin convention from the validation figures. Bottom: Dysts $dt{\times }30$ $H5000$ phase portraits with held-out truth in gray and forecasts from the best seed-$0$ primary model. Dysts is used only for forecasting and has no basin labels.}}{3}{figure.caption.1}\protected@file@percent }
-\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:benchmarks}{{1}{3}{Benchmark visual diagnostics. Top: controlled multibasin systems where the pale background is the evaluation basin map, gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm top8}\) families are mapped post hoc to each family's dominant evaluation basin. Basin labels and counts are evaluation-only, and the catalog panels use the attractor-center basin convention from the validation figures. Bottom: Dysts $dt{\times }30$ $H5000$ phase portraits with held-out truth in gray and forecasts from the best seed-$0$ primary model. Dysts is used only for forecasting and has no basin labels}{figure.caption.1}{}}
-\newlabel{fig:benchmarks@cref}{{[figure][1][]1}{[1][2][]3}{}{}{}}
+\newlabel{eq:sampled_map}{{1}{3}{Problem formulation}{equation.1}{}}
+\newlabel{eq:sampled_map@cref}{{[equation][1][]1}{[1][3][]3}{}{}{}}
 \@writefile{toc}{\contentsline {paragraph}{Basins of attraction.}{3}{section*.2}\protected@file@percent }
 \newlabel{eq:basin}{{2}{3}{Basins of attraction}{equation.2}{}}
 \newlabel{eq:basin@cref}{{[equation][2][]2}{[1][3][]3}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Koopman autoencoders.}{4}{section*.3}\protected@file@percent }
-\newlabel{eq:kae_forecast}{{3}{4}{Koopman autoencoders}{equation.3}{}}
-\newlabel{eq:kae_forecast@cref}{{[equation][3][]3}{[1][4][]4}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Training windows.}{4}{section*.4}\protected@file@percent }
-\newlabel{eq:window_rollout}{{4}{4}{Training windows}{equation.4}{}}
-\newlabel{eq:window_rollout@cref}{{[equation][4][]4}{[1][4][]4}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Model discovers basins unsupervised.}{4}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Sparse supports as local-regime indicators}{4}{section.3}\protected@file@percent }
-\newlabel{sec:sparse-supports}{{3}{4}{Sparse supports as local-regime indicators}{section.3}{}}
-\newlabel{sec:sparse-supports@cref}{{[section][3][]3}{[1][4][]4}{}{}{}}
-\newlabel{thm:support-local-affine}{{1}{4}{Support-stratified Koopman predictors}{theorem.1}{}}
-\newlabel{thm:support-local-affine@cref}{{[theorem][1][]1}{[1][4][]4}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Koopman theory.}{3}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Koopman autoencoders.}{3}{section*.4}\protected@file@percent }
+\newlabel{eq:kae_forecast}{{3}{3}{Koopman autoencoders}{equation.3}{}}
+\newlabel{eq:kae_forecast@cref}{{[equation][3][]3}{[1][3][]3}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Training windows.}{3}{section*.5}\protected@file@percent }
+\newlabel{eq:window_rollout}{{4}{3}{Training windows}{equation.4}{}}
+\newlabel{eq:window_rollout@cref}{{[equation][4][]4}{[1][3][]3}{}{}{}}
+\citation{beck2009fast}
+\citation{beck2009fast}
 \citation{gregor_learning_2010}
-\newlabel{cor:lasso-pwa-short}{{1}{5}{Exact sparse coding}{corollary.1}{}}
-\newlabel{cor:lasso-pwa-short@cref}{{[corollary][1][]1}{[1][5][]5}{}{}{}}
-\newlabel{cor:lista-pwa-short}{{2}{5}{Finite-depth LISTA}{corollary.2}{}}
-\newlabel{cor:lista-pwa-short@cref}{{[corollary][2][]2}{[1][5][]5}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Method}{5}{section.4}\protected@file@percent }
-\newlabel{sec:method}{{4}{5}{Method}{section.4}{}}
-\newlabel{sec:method@cref}{{[section][4][]4}{[1][5][]5}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Model class}{5}{subsection.4.1}\protected@file@percent }
-\newlabel{sec:method_model}{{4.1}{5}{Model class}{subsection.4.1}{}}
-\newlabel{sec:method_model@cref}{{[subsection][1][4]4.1}{[1][5][]5}{}{}{}}
-\newlabel{eq:claim_chain}{{5}{5}{Model class}{equation.5}{}}
-\newlabel{eq:claim_chain@cref}{{[equation][5][]5}{[1][5][]5}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Sparse encoder.}{5}{section*.6}\protected@file@percent }
-\newlabel{eq:lista}{{7}{5}{Sparse encoder}{equation.7}{}}
-\newlabel{eq:lista@cref}{{[equation][7][]7}{[1][5][]5}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Transition families.}{6}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Support objects}{6}{subsection.4.2}\protected@file@percent }
-\newlabel{sec:method_supports}{{4.2}{6}{Support objects}{subsection.4.2}{}}
-\newlabel{sec:method_supports@cref}{{[subsection][2][4]4.2}{[1][6][]6}{}{}{}}
-\citation{fathi2024course}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Periodic re-encoding}{7}{subsection.4.3}\protected@file@percent }
-\newlabel{eq:reencode}{{10}{7}{Periodic re-encoding}{equation.10}{}}
-\newlabel{eq:reencode@cref}{{[equation][10][]10}{[1][7][]7}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Support-conditioned rollouts}{7}{subsection.4.4}\protected@file@percent }
-\newlabel{sec:method_rollouts}{{4.4}{7}{Support-conditioned rollouts}{subsection.4.4}{}}
-\newlabel{sec:method_rollouts@cref}{{[subsection][4][4]4.4}{[1][7][]7}{}{}{}}
-\newlabel{eq:gated_k}{{11}{7}{Support-conditioned rollouts}{equation.11}{}}
-\newlabel{eq:gated_k@cref}{{[equation][11][]11}{[1][7][]7}{}{}{}}
-\newlabel{eq:local_fit}{{12}{7}{Support-conditioned rollouts}{equation.12}{}}
-\newlabel{eq:local_fit@cref}{{[equation][12][]12}{[1][7][]7}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Training objective}{7}{subsection.4.5}\protected@file@percent }
-\newlabel{sec:method_training}{{4.5}{7}{Training objective}{subsection.4.5}{}}
-\newlabel{sec:method_training@cref}{{[subsection][5][4]4.5}{[1][7][]7}{}{}{}}
-\newlabel{eq:loss_state_terms}{{13}{7}{Training objective}{equation.13}{}}
-\newlabel{eq:loss_state_terms@cref}{{[equation][13][]13}{[1][7][]7}{}{}{}}
-\newlabel{eq:loss_latent_terms}{{14}{7}{Training objective}{equation.14}{}}
-\newlabel{eq:loss_latent_terms@cref}{{[equation][14][]14}{[1][7][]7}{}{}{}}
-\newlabel{eq:training_objective}{{15}{8}{Training objective}{equation.15}{}}
-\newlabel{eq:training_objective@cref}{{[equation][15][]15}{[1][8][]8}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Experimental procedure}{8}{section.5}\protected@file@percent }
-\newlabel{sec:experiments}{{5}{8}{Experimental procedure}{section.5}{}}
-\newlabel{sec:experiments@cref}{{[section][5][]5}{[1][8][]8}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Benchmarks and training.}{8}{section*.8}\protected@file@percent }
-\newlabel{sec:experiments_forecasting}{{5}{8}{Forecasting and statistics}{section*.9}{}}
-\newlabel{sec:experiments_forecasting@cref}{{[section][5][]5}{[1][8][]8}{}{}{}}
-\newlabel{sec:stats_protocol}{{5}{8}{Forecasting and statistics}{section*.9}{}}
-\newlabel{sec:stats_protocol@cref}{{[section][5][]5}{[1][8][]8}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Forecasting and statistics.}{8}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Support alignment.}{9}{section*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Routing and refresh.}{9}{section*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Results}{9}{section.6}\protected@file@percent }
-\newlabel{sec:results}{{6}{9}{Results}{section.6}{}}
-\newlabel{sec:results@cref}{{[section][6][]6}{[1][9][]9}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{\(F_{\rm  abs}\) identify basin membership (\cref  {tab:fixed17_alignment}).}{9}{section*.13}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Support--basin alignment, wrong-support ablations, and forecasting on the retained \(15\)-system multibasin benchmark. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline  {|F_{\rm  abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. Arrows denote the better direction. \(\overline  {|F_{\rm  abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice.}}{10}{table.caption.12}\protected@file@percent }
-\newlabel{tab:fixed17_alignment}{{1}{10}{Support--basin alignment, wrong-support ablations, and forecasting on the retained \(15\)-system multibasin benchmark. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline {|F_{\rm abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. Arrows denote the better direction. \(\overline {|F_{\rm abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice}{table.caption.12}{}}
-\newlabel{tab:fixed17_alignment@cref}{{[table][1][]1}{[1][9][]10}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Per-seed support results on the deep-state slice. Dots show system--seed pairs, and gray I-bars mark first-to-third quartile ranges. Black bars mark the paper-facing summary: seed-IQM within each system followed by an arithmetic mean across systems for entropy and wrong-support ratios, and arithmetic means for \(|F_{\rm  abs}|\). Lower is better for \(H(B\mid F_{\rm  abs})\); \(|F_{\rm  abs}|\) is a non-directional support-family count to compare with the represented basin count. The wrong-support panel shows wrong-support/base ratios at \(h{=}1\) on a log scale; higher means that using a wrong-basin support is more damaging.}}{10}{figure.caption.14}\protected@file@percent }
-\newlabel{fig:fixed17_entropy_strips}{{2}{10}{Per-seed support results on the deep-state slice. Dots show system--seed pairs, and gray I-bars mark first-to-third quartile ranges. Black bars mark the paper-facing summary: seed-IQM within each system followed by an arithmetic mean across systems for entropy and wrong-support ratios, and arithmetic means for \(|F_{\rm abs}|\). Lower is better for \(H(B\mid F_{\rm abs})\); \(|F_{\rm abs}|\) is a non-directional support-family count to compare with the represented basin count. The wrong-support panel shows wrong-support/base ratios at \(h{=}1\) on a log scale; higher means that using a wrong-basin support is more damaging}{figure.caption.14}{}}
-\newlabel{fig:fixed17_entropy_strips@cref}{{[figure][2][]2}{[1][9][]10}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Support-conditioned prediction diagnostics. Left: all-state support-family routing. \(F_{\rm  top8}\)-local uses merged families of exact top-\(8\) supports to fit and select local predictors without basin labels. Ratios are \(10^{\operatorname  {mean}_s D_s}\), where \(D_s\) is the within-system IQM of finite seed-level \(\log _{10}\) routed/global MSE ratios. System wins count systems whose censored per-system IQM log comparison favors routing; a finite routed rollout with an invalid same-model global rollout counts as a routed win, and the reverse counts as a loss. Superscripts mark a one-sided exact sign-flip test on system-level finite log effects, Holm-corrected across displayed model--horizon cells. Right: exact \(S_{\rm  top8}\) refresh after controlled basin transfer. Target-route is the fraction of post-entry steps routed to the target basin; the MSE ratio compares refreshed \(S_{\rm  top8}\) with stale source \(S_{\rm  top8}\); brackets give Wilcoxon/Holm counts. Lower MSE ratios are better, and LISTA-SB is the soft-block LISTA ablation.}}{11}{table.caption.18}\protected@file@percent }
-\newlabel{tab:routing_refresh}{{2}{11}{Support-conditioned prediction diagnostics. Left: all-state support-family routing. \(F_{\rm top8}\)-local uses merged families of exact top-\(8\) supports to fit and select local predictors without basin labels. Ratios are \(10^{\operatorname {mean}_s D_s}\), where \(D_s\) is the within-system IQM of finite seed-level \(\log _{10}\) routed/global MSE ratios. System wins count systems whose censored per-system IQM log comparison favors routing; a finite routed rollout with an invalid same-model global rollout counts as a routed win, and the reverse counts as a loss. Superscripts mark a one-sided exact sign-flip test on system-level finite log effects, Holm-corrected across displayed model--horizon cells. Right: exact \(S_{\rm top8}\) refresh after controlled basin transfer. Target-route is the fraction of post-entry steps routed to the target basin; the MSE ratio compares refreshed \(S_{\rm top8}\) with stale source \(S_{\rm top8}\); brackets give Wilcoxon/Holm counts. Lower MSE ratios are better, and LISTA-SB is the soft-block LISTA ablation}{table.caption.18}{}}
-\newlabel{tab:routing_refresh@cref}{{[table][2][]2}{[1][11][]11}{}{}{}}
-\newlabel{tab:self_routing}{{2a}{11}{\(F_{\rm top8}\)-local routing}{table.caption.18}{}}
-\newlabel{tab:self_routing@cref}{{[subtable][1][2]2a}{[1][11][]11}{}{}{}}
-\newlabel{sub@tab:self_routing}{{a}{11}{\(F_{\rm top8}\)-local routing}{table.caption.18}{}}
-\newlabel{sub@tab:self_routing@cref}{{[subtable][1][2]2a}{[1][11][]11}{}{}{}}
-\newlabel{tab:support_refresh}{{2b}{11}{\(S_{\rm top8}\) refresh}{table.caption.18}{}}
-\newlabel{tab:support_refresh@cref}{{[subtable][2][2]2b}{[1][11][]11}{}{}{}}
-\newlabel{sub@tab:support_refresh}{{b}{11}{\(S_{\rm top8}\) refresh}{table.caption.18}{}}
-\newlabel{sub@tab:support_refresh@cref}{{[subtable][2][2]2b}{[1][11][]11}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Accurate forecasts require same-basin supports (\cref  {tab:fixed17_alignment}).}{11}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\(F_{\rm  top8}\) selects local predictors without basin labels (\cref  {tab:self_routing}).}{11}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Refreshing \(S_{\rm  top8}\) with periodic re-encoding tracks basin transfer (\cref  {tab:support_refresh}).}{11}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Sparse-latent models improve long-horizon forecasting of multibasin systems and chaotic flows.}{11}{section*.19}\protected@file@percent }
-\citation{koopman_hamiltonian_1931,mezic2005spectral}
-\citation{williams_datadriven_2015}
-\citation{takeishi2017learning,lusch_deep_2018,otto2019linearly}
-\citation{azencot_forecasting_2020,fathi2024course}
-\newlabel{fig:fixed17_horizon_curves}{{3a}{12}{15-system multibasin benchmark}{figure.caption.20}{}}
-\newlabel{fig:fixed17_horizon_curves@cref}{{[subfigure][1][3]3a}{[1][12][]12}{}{}{}}
-\newlabel{sub@fig:fixed17_horizon_curves}{{a}{12}{15-system multibasin benchmark}{figure.caption.20}{}}
-\newlabel{sub@fig:fixed17_horizon_curves@cref}{{[subfigure][1][3]3a}{[1][12][]12}{}{}{}}
-\newlabel{fig:dysts_long_horizon}{{3b}{12}{10-system Dysts $dt{\times }30$ benchmark}{figure.caption.20}{}}
-\newlabel{fig:dysts_long_horizon@cref}{{[subfigure][2][3]3b}{[1][12][]12}{}{}{}}
-\newlabel{sub@fig:dysts_long_horizon}{{b}{12}{10-system Dysts $dt{\times }30$ benchmark}{figure.caption.20}{}}
-\newlabel{sub@fig:dysts_long_horizon@cref}{{[subfigure][2][3]3b}{[1][12][]12}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale, and bands show fixed-system seed-bootstrap $95\%$ intervals for the same estimand.}}{12}{figure.caption.20}\protected@file@percent }
-\newlabel{fig:forecasting_horizon_curves}{{3}{12}{Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale, and bands show fixed-system seed-bootstrap $95\%$ intervals for the same estimand}{figure.caption.20}{}}
-\newlabel{fig:forecasting_horizon_curves@cref}{{[figure][3][]3}{[1][12][]12}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Related work}{12}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Koopman learning.}{12}{section*.22}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Dysts forecasting on the retained $10$-system shortlist, excluding the six-dimensional \texttt  {LorenzCoupled} system and the Chua-family duplicate \texttt  {MultiChua}. Each cell is the arithmetic mean across systems of per-system seed-IQM MSEs. Superscripts mark the system-level paired Wilcoxon signed-rank test on per-system log-MSE differences against dense-latent MLP, Holm-corrected across all Dysts model--horizon comparisons: $\ast $ indicates $p_{\rm  Holm}<0.05$ and $\ast \ast $ indicates $p_{\rm  Holm}<0.01$. Dense MLP is the baseline.}}{12}{table.caption.21}\protected@file@percent }
-\newlabel{tab:dysts_long}{{3}{12}{Dysts forecasting on the retained $10$-system shortlist, excluding the six-dimensional \texttt {LorenzCoupled} system and the Chua-family duplicate \texttt {MultiChua}. Each cell is the arithmetic mean across systems of per-system seed-IQM MSEs. Superscripts mark the system-level paired Wilcoxon signed-rank test on per-system log-MSE differences against dense-latent MLP, Holm-corrected across all Dysts model--horizon comparisons: $\ast $ indicates $p_{\rm Holm}<0.05$ and $\ast \ast $ indicates $p_{\rm Holm}<0.01$. Dense MLP is the baseline}{table.caption.21}{}}
-\newlabel{tab:dysts_long@cref}{{[table][3][]3}{[1][12][]12}{}{}{}}
-\citation{lan_linearization_2013,pan_lifting_2024}
 \citation{olshausen_emergence_1996}
+\@writefile{toc}{\contentsline {paragraph}{Model discovers basins unsupervised.}{4}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{4}{section.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{4}{Method}{section.3}{}}
+\newlabel{sec:method@cref}{{[section][3][]3}{[1][4][]4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Sparse supports as local regime variables}{4}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:method_regime_supports}{{3.1}{4}{Sparse supports as local regime variables}{subsection.3.1}{}}
+\newlabel{sec:method_regime_supports@cref}{{[subsection][1][3]3.1}{[1][4][]4}{}{}{}}
+\newlabel{eq:sparse_coding_objective}{{5}{4}{Sparse supports as local regime variables}{equation.5}{}}
+\newlabel{eq:sparse_coding_objective@cref}{{[equation][5][]5}{[1][4][]4}{}{}{}}
+\newlabel{eq:claim_chain}{{6}{4}{Sparse supports as local regime variables}{equation.6}{}}
+\newlabel{eq:claim_chain@cref}{{[equation][6][]6}{[1][4][]4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Koopman autoencoder and sparse encoder}{4}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:method_model}{{3.2}{4}{Koopman autoencoder and sparse encoder}{subsection.3.2}{}}
+\newlabel{sec:method_model@cref}{{[subsection][2][3]3.2}{[1][4][]4}{}{}{}}
 \citation{gregor_learning_2010}
-\citation{linderman_bayesian_2017,torrisi-bemporad-itcst04,mamakoukas_local_2019}
+\@writefile{toc}{\contentsline {paragraph}{Sparse encoding.}{5}{section*.7}\protected@file@percent }
+\newlabel{eq:lista}{{7}{5}{Sparse encoding}{equation.7}{}}
+\newlabel{eq:lista@cref}{{[equation][7][]7}{[1][5][]5}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Transition families.}{5}{section*.8}\protected@file@percent }
+\newlabel{eq:block_transition}{{8}{5}{Transition families}{equation.8}{}}
+\newlabel{eq:block_transition@cref}{{[equation][8][]8}{[1][5][]5}{}{}{}}
+\newlabel{eq:offblock_penalty}{{9}{5}{Transition families}{equation.9}{}}
+\newlabel{eq:offblock_penalty@cref}{{[equation][9][]9}{[1][5][]5}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Training objective}{5}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:method_training}{{3.3}{5}{Training objective}{subsection.3.3}{}}
+\newlabel{sec:method_training@cref}{{[subsection][3][3]3.3}{[1][5][]5}{}{}{}}
+\newlabel{eq:loss_state_terms}{{10}{5}{Training objective}{equation.10}{}}
+\newlabel{eq:loss_state_terms@cref}{{[equation][10][]10}{[1][5][]5}{}{}{}}
+\newlabel{eq:loss_latent_terms}{{11}{5}{Training objective}{equation.11}{}}
+\newlabel{eq:loss_latent_terms@cref}{{[equation][11][]11}{[1][5][]5}{}{}{}}
+\newlabel{eq:training_objective}{{12}{5}{Training objective}{equation.12}{}}
+\newlabel{eq:training_objective@cref}{{[equation][12][]12}{[1][5][]5}{}{}{}}
+\citation{jaccard_etude_1901}
+\citation{hartigan_clustering_1975}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Support objects}{6}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:method_supports}{{3.4}{6}{Support objects}{subsection.3.4}{}}
+\newlabel{sec:method_supports@cref}{{[subsection][4][3]3.4}{[1][6][]6}{}{}{}}
+\citation{fathi2024course}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Support-conditioned rollouts}{7}{subsection.3.5}\protected@file@percent }
+\newlabel{sec:method_rollouts}{{3.5}{7}{Support-conditioned rollouts}{subsection.3.5}{}}
+\newlabel{sec:method_rollouts@cref}{{[subsection][5][3]3.5}{[1][7][]7}{}{}{}}
+\newlabel{eq:global_rollout}{{13}{7}{Support-conditioned rollouts}{equation.13}{}}
+\newlabel{eq:global_rollout@cref}{{[equation][13][]13}{[1][7][]7}{}{}{}}
+\newlabel{eq:local_fit}{{14}{7}{Support-conditioned rollouts}{equation.14}{}}
+\newlabel{eq:local_fit@cref}{{[equation][14][]14}{[1][7][]7}{}{}{}}
+\newlabel{eq:family_local_rollout}{{15}{7}{Support-conditioned rollouts}{equation.15}{}}
+\newlabel{eq:family_local_rollout@cref}{{[equation][15][]15}{[1][7][]7}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Periodic re-encoding}{7}{subsection.3.6}\protected@file@percent }
+\newlabel{eq:reencode}{{16}{7}{Periodic re-encoding}{equation.16}{}}
+\newlabel{eq:reencode@cref}{{[equation][16][]16}{[1][7][]7}{}{}{}}
+\citation{gilpin_chaos_2021,gilpin_model_2023}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Benchmark visual summary. Top: procedurally generated multibasin systems where gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm  top8}\) support families are mapped post hoc to each family's dominant evaluation basin. Bottom: $dt{\times }30$ Dysts horizon 5000 phase portraits with held-out truth in gray and forecasts from the best seed-$0$ LISTA variant.}}{8}{figure.caption.9}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:benchmarks}{{1}{8}{Benchmark visual summary. Top: procedurally generated multibasin systems where gray streamlines are the true vector field, colored dots mark support-family/basin matches, and black dots mark support-family/basin mismatches. The learned LISTA \(F_{\rm top8}\) support families are mapped post hoc to each family's dominant evaluation basin. Bottom: $dt{\times }30$ Dysts horizon 5000 phase portraits with held-out truth in gray and forecasts from the best seed-$0$ LISTA variant}{figure.caption.9}{}}
+\newlabel{fig:benchmarks@cref}{{[figure][1][]1}{[1][8][]8}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental procedure}{8}{section.4}\protected@file@percent }
+\newlabel{sec:experiments}{{4}{8}{Experimental procedure}{section.4}{}}
+\newlabel{sec:experiments@cref}{{[section][4][]4}{[1][7][]8}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Benchmarks and training.}{8}{section*.10}\protected@file@percent }
+\citation{agarwal2021deep}
+\newlabel{sec:experiments_forecasting}{{4}{9}{Forecasting and statistics}{section*.11}{}}
+\newlabel{sec:experiments_forecasting@cref}{{[section][4][]4}{[1][8][]9}{}{}{}}
+\newlabel{sec:stats_protocol}{{4}{9}{Forecasting and statistics}{section*.11}{}}
+\newlabel{sec:stats_protocol@cref}{{[section][4][]4}{[1][8][]9}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Forecasting and statistics.}{9}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Support alignment.}{9}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Support-conditioned routing for prediction.}{9}{section*.13}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Sparse-latent rows improve forecasting on the 15-system multibasin benchmark, while sparse supports align with basin interiors and wrong-support interventions show that active coordinates are used by the predictor. The forecasting columns H100 and H1000 are computed on all held-out rollouts; the support columns \(H(B\mid F_{\rm  abs})\), wrong-support ratios, and \(\overline  {|F_{\rm  abs}|}\) are computed on the global deep-state slice. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline  {|F_{\rm  abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. The LISTA + local \(K_c\) row freezes the LISTA encoder/decoder and reports a second-stage support-family-local transition-map forecasting variant; its support diagnostics are therefore inherited from LISTA rather than recomputed as a new representation. Arrows denote the better direction; \textbf  {bold} marks the best entry for directional metrics. \(\overline  {|F_{\rm  abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice (mean 3.00).}}{10}{table.caption.15}\protected@file@percent }
+\newlabel{tab:fixed17_alignment}{{1}{10}{Sparse-latent rows improve forecasting on the 15-system multibasin benchmark, while sparse supports align with basin interiors and wrong-support interventions show that active coordinates are used by the predictor. The forecasting columns H100 and H1000 are computed on all held-out rollouts; the support columns \(H(B\mid F_{\rm abs})\), wrong-support ratios, and \(\overline {|F_{\rm abs}|}\) are computed on the global deep-state slice. Values are arithmetic means across systems after first summarizing seeds within each system by IQM; \(\overline {|F_{\rm abs}|}\) is an arithmetic mean over per-system seed means. Brackets give within-system Wilcoxon/Holm counts. The LISTA + local \(K_c\) row freezes the LISTA encoder/decoder and reports a second-stage support-family-local transition-map forecasting variant; its support diagnostics are therefore inherited from LISTA rather than recomputed as a new representation. Arrows denote the better direction; \textbf {bold} marks the best entry for directional metrics. \(\overline {|F_{\rm abs}|}\) should be compared with the number of basin labels present in the evaluated deep slice (mean 3.00)}{table.caption.15}{}}
+\newlabel{tab:fixed17_alignment@cref}{{[table][1][]1}{[1][10][]10}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Periodic re-encoding for support refresh.}{10}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Results}{10}{section.5}\protected@file@percent }
+\newlabel{sec:results}{{5}{10}{Results}{section.5}{}}
+\newlabel{sec:results@cref}{{[section][5][]5}{[1][10][]10}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{\(F_{\rm  abs}\) identify basin membership (\cref  {tab:fixed17_alignment}).}{10}{section*.16}\protected@file@percent }
+\newlabel{fig:basin_support_family_alluvial}{{2a}{11}{Basin--support family alluvial}{figure.caption.17}{}}
+\newlabel{fig:basin_support_family_alluvial@cref}{{[subfigure][1][2]2a}{[1][10][]11}{}{}{}}
+\newlabel{sub@fig:basin_support_family_alluvial}{{a}{11}{Basin--support family alluvial}{figure.caption.17}{}}
+\newlabel{sub@fig:basin_support_family_alluvial@cref}{{[subfigure][1][2]2a}{[1][10][]11}{}{}{}}
+\newlabel{fig:fixed17_entropy_strips}{{2b}{11}{Per-seed entropy and support-family counts}{figure.caption.17}{}}
+\newlabel{fig:fixed17_entropy_strips@cref}{{[subfigure][2][2]2b}{[1][10][]11}{}{}{}}
+\newlabel{sub@fig:fixed17_entropy_strips}{{b}{11}{Per-seed entropy and support-family counts}{figure.caption.17}{}}
+\newlabel{sub@fig:fixed17_entropy_strips@cref}{{[subfigure][2][2]2b}{[1][10][]11}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Support families align with basins and do so consistently across systems and seeds. \textbf  {Left:} alluvial view for a LISTA KAE on local-linear gates; held-out deep states are grouped by post-hoc evaluation basin, exact \(S_{\rm  abs}\) mask, and merged \(F_{\rm  abs}\) family, with \(393\) exact supports merging to three families, which is one-to-one with represented basins. \textbf  {Right:} per-seed deep-slice support results on the retained benchmark. Dots show system--seed pairs, gray I-bars mark first-to-third quartile ranges, and black bars mark IQM summaries for \(H(B\mid F_{\rm  abs})\) and arithmetic means for \(|F_{\rm  abs}|\).}}{11}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:basin_support_alignment_summary}{{2}{11}{Support families align with basins and do so consistently across systems and seeds. \textbf {Left:} alluvial view for a LISTA KAE on local-linear gates; held-out deep states are grouped by post-hoc evaluation basin, exact \(S_{\rm abs}\) mask, and merged \(F_{\rm abs}\) family, with \(393\) exact supports merging to three families, which is one-to-one with represented basins. \textbf {Right:} per-seed deep-slice support results on the retained benchmark. Dots show system--seed pairs, gray I-bars mark first-to-third quartile ranges, and black bars mark IQM summaries for \(H(B\mid F_{\rm abs})\) and arithmetic means for \(|F_{\rm abs}|\)}{figure.caption.17}{}}
+\newlabel{fig:basin_support_alignment_summary@cref}{{[figure][2][]2}{[1][10][]11}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Support-conditioned prediction diagnostics. \textbf  {Left:} label-free \(F_{\rm  top8}\)-local routed/global MSE ratios and system-win counts on all states; lower ratios and higher win counts are better. Superscripts denote significance tests: \(\ast \), \(p_{\rm  Holm}<0.05\); \(\ast \ast \), \(p_{\rm  Holm}<0.01\). \textbf  {Right:} exact \(S_{\rm  top8}\) refresh after controlled basin transfer. Target-route is the post-entry target-basin route fraction (higher is better); the MSE ratio compares refreshed with stale source supports (lower is better); brackets give Wilcoxon/Holm counts. \textbf  {Bold} marks the best directional entry.}}{11}{table.caption.20}\protected@file@percent }
+\newlabel{tab:routing_refresh}{{2}{11}{Support-conditioned prediction diagnostics. \textbf {Left:} label-free \(F_{\rm top8}\)-local routed/global MSE ratios and system-win counts on all states; lower ratios and higher win counts are better. Superscripts denote significance tests: \(\ast \), \(p_{\rm Holm}<0.05\); \(\ast \ast \), \(p_{\rm Holm}<0.01\). \textbf {Right:} exact \(S_{\rm top8}\) refresh after controlled basin transfer. Target-route is the post-entry target-basin route fraction (higher is better); the MSE ratio compares refreshed with stale source supports (lower is better); brackets give Wilcoxon/Holm counts. \textbf {Bold} marks the best directional entry}{table.caption.20}{}}
+\newlabel{tab:routing_refresh@cref}{{[table][2][]2}{[1][11][]11}{}{}{}}
+\newlabel{tab:self_routing}{{2a}{11}{\(F_{\rm top8}\)-local routing}{table.caption.20}{}}
+\newlabel{tab:self_routing@cref}{{[subtable][1][2]2a}{[1][11][]11}{}{}{}}
+\newlabel{sub@tab:self_routing}{{a}{11}{\(F_{\rm top8}\)-local routing}{table.caption.20}{}}
+\newlabel{sub@tab:self_routing@cref}{{[subtable][1][2]2a}{[1][11][]11}{}{}{}}
+\newlabel{tab:support_refresh}{{2b}{11}{Periodic re-encoding \(S_{\rm top8}\) support refresh}{table.caption.20}{}}
+\newlabel{tab:support_refresh@cref}{{[subtable][2][2]2b}{[1][11][]11}{}{}{}}
+\newlabel{sub@tab:support_refresh}{{b}{11}{Periodic re-encoding \(S_{\rm top8}\) support refresh}{table.caption.20}{}}
+\newlabel{sub@tab:support_refresh@cref}{{[subtable][2][2]2b}{[1][11][]11}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Accurate forecasts require the correct active coordinates for a basin (\cref  {tab:fixed17_alignment}).}{11}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\(F_{\rm  top8}\) selects local predictors without basin labels (\cref  {tab:self_routing}).}{11}{section*.19}\protected@file@percent }
+\newlabel{fig:fixed17_horizon_curves}{{3a}{12}{15-system multibasin benchmark}{figure.caption.23}{}}
+\newlabel{fig:fixed17_horizon_curves@cref}{{[subfigure][1][3]3a}{[1][12][]12}{}{}{}}
+\newlabel{sub@fig:fixed17_horizon_curves}{{a}{12}{15-system multibasin benchmark}{figure.caption.23}{}}
+\newlabel{sub@fig:fixed17_horizon_curves@cref}{{[subfigure][1][3]3a}{[1][12][]12}{}{}{}}
+\newlabel{fig:dysts_long_horizon}{{3b}{12}{10-system Dysts $dt{\times }30$ benchmark}{figure.caption.23}{}}
+\newlabel{fig:dysts_long_horizon@cref}{{[subfigure][2][3]3b}{[1][12][]12}{}{}{}}
+\newlabel{sub@fig:dysts_long_horizon}{{b}{12}{10-system Dysts $dt{\times }30$ benchmark}{figure.caption.23}{}}
+\newlabel{sub@fig:dysts_long_horizon@cref}{{[subfigure][2][3]3b}{[1][12][]12}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale. Bands show fixed-system seed-bootstrap 95\% intervals after system-wise log-relative normalization, anchored to the displayed mean, so they summarize seed uncertainty within an average system.}}{12}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:forecasting_horizon_curves}{{3}{12}{Forecasting horizon trends. Lines show arithmetic means across per-system seed-IQM MSEs on a log scale. Bands show fixed-system seed-bootstrap 95\% intervals after system-wise log-relative normalization, anchored to the displayed mean, so they summarize seed uncertainty within an average system}{figure.caption.23}{}}
+\newlabel{fig:forecasting_horizon_curves@cref}{{[figure][3][]3}{[1][12][]12}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Forecasting performance on the 10 chaotic flows from Dysts. Values are arithmetic means across systems of per-system seed-IQM MSEs; lower is better, and \textbf  {bold} marks the best value at each horizon. Superscripts mark the system-level significance tests against the dense-latent MLP baseline, Holm-corrected across all Dysts model--horizon comparisons: $\ast $ indicates $p_{\rm  Holm}<0.05$.}}{12}{table.caption.24}\protected@file@percent }
+\newlabel{tab:dysts_long}{{3}{12}{Forecasting performance on the 10 chaotic flows from Dysts. Values are arithmetic means across systems of per-system seed-IQM MSEs; lower is better, and \textbf {bold} marks the best value at each horizon. Superscripts mark the system-level significance tests against the dense-latent MLP baseline, Holm-corrected across all Dysts model--horizon comparisons: $\ast $ indicates $p_{\rm Holm}<0.05$}{table.caption.24}{}}
+\newlabel{tab:dysts_long@cref}{{[table][3][]3}{[1][12][]12}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Refreshing \(S_{\rm  top8}\) with periodic re-encoding tracks basin transfer (\cref  {tab:support_refresh}).}{12}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sparse-latent models improve long-horizon forecasting of multibasin systems and chaotic flows.}{12}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{13}{section.6}\protected@file@percent }
+\newlabel{sec:conclusion}{{6}{13}{Conclusion}{section.6}{}}
+\newlabel{sec:conclusion@cref}{{[section][6][]6}{[1][12][]13}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Additional experimental details}{13}{appendix.A}\protected@file@percent }
+\newlabel{app:experimental_details}{{A}{13}{Additional experimental details}{appendix.A}{}}
+\newlabel{app:experimental_details@cref}{{[section][1][]A}{[1][13][]13}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Training and model rows.}{13}{section*.25}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Dysts forecasting systems. These systems are used only as external long-horizon forecasting stress tests.}}{14}{table.caption.26}\protected@file@percent }
+\newlabel{tab:dysts_inventory}{{4}{14}{Dysts forecasting systems. These systems are used only as external long-horizon forecasting stress tests}{table.caption.26}{}}
+\newlabel{tab:dysts_inventory@cref}{{[table][4][]4}{[1][14][]14}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Training recipe selection.}{14}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evaluation splits.}{15}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Periodic forecasting.}{15}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Support diagnostics.}{15}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Routing details.}{16}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Support refresh.}{16}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {B}Training-dynamics diagnostic}{16}{appendix.B}\protected@file@percent }
+\newlabel{app:training_dynamics}{{B}{16}{Training-dynamics diagnostic}{appendix.B}{}}
+\newlabel{app:training_dynamics@cref}{{[section][2][]B}{[1][16][]16}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Representative training-dynamics diagnostic on \texttt  {gated\_local\_linear}, seed \(0\), for the six controlled multibasin model rows. Validation final error is the held-out rollout error used by the checkpoint-selection rule; dots mark the minimum validation final error for each trace. The training objective, validation error, transition spectral radius \(\rho (K)\), and sparsity-ratio diagnostic are plotted against optimization step. The horizontal dashed line marks \(\rho (K)=1\). These curves are a diagnostic of training progression and checkpoint selection, not an aggregate benchmark comparison.}}{17}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:app_training_dynamics}{{4}{17}{Representative training-dynamics diagnostic on \texttt {gated\_local\_linear}, seed \(0\), for the six controlled multibasin model rows. Validation final error is the held-out rollout error used by the checkpoint-selection rule; dots mark the minimum validation final error for each trace. The training objective, validation error, transition spectral radius \(\rho (K)\), and sparsity-ratio diagnostic are plotted against optimization step. The horizontal dashed line marks \(\rho (K)=1\). These curves are a diagnostic of training progression and checkpoint selection, not an aggregate benchmark comparison}{figure.caption.33}{}}
+\newlabel{fig:app_training_dynamics@cref}{{[figure][4][]4}{[1][16][]17}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Dysts \(dt{\times }30\) training-dynamics diagnostic. Curves summarize seed \(0\) over the retained 10 Dysts systems by the median over finite per-system metric values at each logged step. Validation final error is the same held-out rollout proxy used by checkpoint selection; dots mark the minimum median validation final error for each trace. The Dysts validation panel is noisier than the controlled trace because chaotic rollout errors can become very large early in training, so this figure is an appendix diagnostic of optimization and selection behavior rather than a main benchmark ranking.}}{18}{figure.caption.34}\protected@file@percent }
+\newlabel{fig:app_training_dynamics_dysts}{{5}{18}{Dysts \(dt{\times }30\) training-dynamics diagnostic. Curves summarize seed \(0\) over the retained 10 Dysts systems by the median over finite per-system metric values at each logged step. Validation final error is the same held-out rollout proxy used by checkpoint selection; dots mark the minimum median validation final error for each trace. The Dysts validation panel is noisier than the controlled trace because chaotic rollout errors can become very large early in training, so this figure is an appendix diagnostic of optimization and selection behavior rather than a main benchmark ranking}{figure.caption.34}{}}
+\newlabel{fig:app_training_dynamics_dysts@cref}{{[figure][5][]5}{[1][18][]18}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces The \(15\) multibasin benchmark systems.}}{19}{table.caption.35}\protected@file@percent }
+\newlabel{tab:fixed17_inventory}{{5}{19}{The \(15\) multibasin benchmark systems}{table.caption.35}{}}
+\newlabel{tab:fixed17_inventory@cref}{{[table][5][]5}{[1][19][]19}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Multibasin benchmark inventory and system definitions}{19}{appendix.C}\protected@file@percent }
+\newlabel{app:fixed17_inventory}{{C}{19}{Multibasin benchmark inventory and system definitions}{appendix.C}{}}
+\newlabel{app:fixed17_inventory@cref}{{[section][3][]C}{[1][19][]19}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Stored-step convention.}{19}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Gaussian-well family.}{19}{section*.37}\protected@file@percent }
+\newlabel{eq:app_gaussian_well}{{17}{19}{Gaussian-well family}{equation.17}{}}
+\newlabel{eq:app_gaussian_well@cref}{{[equation][17][]17}{[1][19][]19}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Parameters for retained Gaussian-well systems. Repeated pairs in the \((a_i,\sigma _i)\) column apply to every listed center.}}{20}{table.caption.38}\protected@file@percent }
+\newlabel{tab:app_gaussian_params}{{6}{20}{Parameters for retained Gaussian-well systems. Repeated pairs in the \((a_i,\sigma _i)\) column apply to every listed center}{table.caption.38}{}}
+\newlabel{tab:app_gaussian_params@cref}{{[table][6][]6}{[1][19][]20}{}{}{}}
+\newlabel{eq:app_transition_routes}{{18}{20}{Gaussian-well family}{equation.18}{}}
+\newlabel{eq:app_transition_routes@cref}{{[equation][18][]18}{[1][20][]20}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Native gated local-linear systems.}{20}{section*.39}\protected@file@percent }
+\citation{gilpin_chaos_2021,gilpin_model_2023}
+\@writefile{toc}{\contentsline {paragraph}{Other specialized systems.}{21}{section*.40}\protected@file@percent }
+\newlabel{eq:app_duffing_triple}{{19}{21}{Other specialized systems}{equation.19}{}}
+\newlabel{eq:app_duffing_triple@cref}{{[equation][19][]19}{[1][21][]21}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces The ten Dysts systems used in the \(dt{\times }30\) forecasting benchmark. The ``stored step'' column is \(30\) times the native Dysts integration interval.}}{22}{table.caption.41}\protected@file@percent }
+\newlabel{tab:dysts_inventory_full}{{7}{22}{The ten Dysts systems used in the \(dt{\times }30\) forecasting benchmark. The ``stored step'' column is \(30\) times the native Dysts integration interval}{table.caption.41}{}}
+\newlabel{tab:dysts_inventory_full@cref}{{[table][7][]7}{[1][21][]22}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {D}Dysts benchmark inventory and system definitions}{22}{appendix.D}\protected@file@percent }
+\newlabel{app:dysts_inventory_full}{{D}{22}{Dysts benchmark inventory and system definitions}{appendix.D}{}}
+\newlabel{app:dysts_inventory_full@cref}{{[section][4][]D}{[1][21][]22}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Closed-form convention.}{22}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Chua.}{22}{section*.43}\protected@file@percent }
+\newlabel{eq:app_dysts_chua}{{20}{22}{Chua}{equation.20}{}}
+\newlabel{eq:app_dysts_chua@cref}{{[equation][20][]20}{[1][22][]22}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Dadras.}{22}{section*.44}\protected@file@percent }
+\newlabel{eq:app_dysts_dadras}{{21}{23}{Dadras}{equation.21}{}}
+\newlabel{eq:app_dysts_dadras@cref}{{[equation][21][]21}{[1][22][]23}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Dequan Li.}{23}{section*.45}\protected@file@percent }
+\newlabel{eq:app_dysts_dequan_li}{{22}{23}{Dequan Li}{equation.22}{}}
+\newlabel{eq:app_dysts_dequan_li@cref}{{[equation][22][]22}{[1][23][]23}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Hadley.}{23}{section*.46}\protected@file@percent }
+\newlabel{eq:app_dysts_hadley}{{23}{23}{Hadley}{equation.23}{}}
+\newlabel{eq:app_dysts_hadley@cref}{{[equation][23][]23}{[1][23][]23}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Lu--Chen--Cheng.}{23}{section*.47}\protected@file@percent }
+\newlabel{eq:app_dysts_lu_chen_cheng}{{24}{23}{Lu--Chen--Cheng}{equation.24}{}}
+\newlabel{eq:app_dysts_lu_chen_cheng@cref}{{[equation][24][]24}{[1][23][]23}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Qi--Chen.}{23}{section*.48}\protected@file@percent }
+\newlabel{eq:app_dysts_qi_chen}{{25}{23}{Qi--Chen}{equation.25}{}}
+\newlabel{eq:app_dysts_qi_chen@cref}{{[equation][25][]25}{[1][23][]23}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Sakarya.}{23}{section*.49}\protected@file@percent }
+\newlabel{eq:app_dysts_sakarya}{{26}{23}{Sakarya}{equation.26}{}}
+\newlabel{eq:app_dysts_sakarya@cref}{{[equation][26][]26}{[1][23][]23}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{San--Um--Srisuchinwong.}{24}{section*.50}\protected@file@percent }
+\newlabel{eq:app_dysts_san_um_srisuchinwong}{{27}{24}{San--Um--Srisuchinwong}{equation.27}{}}
+\newlabel{eq:app_dysts_san_um_srisuchinwong@cref}{{[equation][27][]27}{[1][23][]24}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Shimizu--Morioka.}{24}{section*.51}\protected@file@percent }
+\newlabel{eq:app_dysts_shimizu_morioka}{{28}{24}{Shimizu--Morioka}{equation.28}{}}
+\newlabel{eq:app_dysts_shimizu_morioka@cref}{{[equation][28][]28}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Wang--Sun.}{24}{section*.52}\protected@file@percent }
+\newlabel{eq:app_dysts_wang_sun}{{29}{24}{Wang--Sun}{equation.29}{}}
+\newlabel{eq:app_dysts_wang_sun@cref}{{[equation][29][]29}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {E}Support definitions and sensitivity}{24}{appendix.E}\protected@file@percent }
+\newlabel{app:support_definitions}{{E}{24}{Support definitions and sensitivity}{appendix.E}{}}
+\newlabel{app:support_definitions@cref}{{[section][5][]E}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{From a latent vector to an exact support key.}{24}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{From exact supports to support families.}{25}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Support-family creation algorithm.}{25}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Which support object is used where.}{25}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{How to read the diagnostics.}{26}{section*.57}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \(F_{\rm  top8}\) support-family active indices for the LISTA-BD KAE on the three-basin asymmetric wells system. Each row is one displayed \(F_{\rm  top8}\) family prototype from the seed-\(0\) model; thin ticks mark the actual active latent coordinate indices in the prototype top-\(8\) mask on the x-axis. Row labels give the post-hoc dominant evaluation basin, support-family id, and within-basin coverage. The basin names in the labels are evaluation-only annotations and are not used to construct the support families.}}{27}{figure.caption.58}\protected@file@percent }
+\newlabel{fig:support_family_codebook}{{6}{27}{\(F_{\rm top8}\) support-family active indices for the LISTA-BD KAE on the three-basin asymmetric wells system. Each row is one displayed \(F_{\rm top8}\) family prototype from the seed-\(0\) model; thin ticks mark the actual active latent coordinate indices in the prototype top-\(8\) mask on the x-axis. Row labels give the post-hoc dominant evaluation basin, support-family id, and within-basin coverage. The basin names in the labels are evaluation-only annotations and are not used to construct the support families}{figure.caption.58}{}}
+\newlabel{fig:support_family_codebook@cref}{{[figure][6][]6}{[1][26][]27}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {F}Statistical testing protocol}{27}{appendix.F}\protected@file@percent }
+\newlabel{app:statistical_testing}{{F}{27}{Statistical testing protocol}{appendix.F}{}}
+\newlabel{app:statistical_testing@cref}{{[section][6][]F}{[1][26][]27}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Paired effects and alternatives.}{27}{section*.59}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Within-system brackets.}{28}{section*.60}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{System-level support-based routing.}{28}{section*.61}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Support-refresh counts.}{29}{section*.62}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Dysts forecasting table.}{29}{section*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {G}Falsification and partition controls}{29}{appendix.G}\protected@file@percent }
+\newlabel{app:falsification}{{G}{29}{Falsification and partition controls}{appendix.G}{}}
+\newlabel{app:falsification@cref}{{[section][7][]G}{[1][29][]29}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Per-system effect sizes at \(H{=}1000\) versus the Dense MLP baseline. Each point is one benchmark system; the \(x\)-coordinate is the per-system median paired \(\log _{10}\)-MSE difference (candidate minus baseline) over the common completed seeds, up to \(15\) per system, with whiskers showing the \(95\%\) bootstrap interval. Filled markers clear Holm-corrected \(\alpha {=}0.05\). Numerical values are in \cref  {tab:persystem_h1000}.}}{31}{figure.caption.65}\protected@file@percent }
+\newlabel{fig:fixed17_forest}{{7}{31}{Per-system effect sizes at \(H{=}1000\) versus the Dense MLP baseline. Each point is one benchmark system; the \(x\)-coordinate is the per-system median paired \(\log _{10}\)-MSE difference (candidate minus baseline) over the common completed seeds, up to \(15\) per system, with whiskers showing the \(95\%\) bootstrap interval. Filled markers clear Holm-corrected \(\alpha {=}0.05\). Numerical values are in \cref {tab:persystem_h1000}}{figure.caption.65}{}}
+\newlabel{fig:fixed17_forest@cref}{{[figure][7][]7}{[1][31][]31}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {H}Full per-system multibasin tables}{31}{appendix.H}\protected@file@percent }
+\newlabel{app:fixed17_full}{{H}{31}{Full per-system multibasin tables}{appendix.H}{}}
+\newlabel{app:fixed17_full@cref}{{[section][8][]H}{[1][31][]31}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Why the wrong-support denominator is \(11\) and not \(15\).}{32}{section*.70}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {I}Per-seed distributions}{32}{appendix.I}\protected@file@percent }
+\newlabel{app:seed_distributions}{{I}{32}{Per-seed distributions}{appendix.I}{}}
+\newlabel{app:seed_distributions@cref}{{[section][9][]I}{[1][32][]32}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {J}Support-routing robustness}{32}{appendix.J}\protected@file@percent }
+\newlabel{app:routing_robustness}{{J}{32}{Support-routing robustness}{appendix.J}{}}
+\newlabel{app:routing_robustness@cref}{{[section][10][]J}{[1][32][]32}{}{}{}}
+\newlabel{eq:gated_k}{{34}{32}{Support-routing robustness}{equation.34}{}}
+\newlabel{eq:gated_k@cref}{{[equation][34][]34}{[1][32][]32}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Per-(system, seed) forecasting MSE at \(H100\), \(H500\), and \(H1000\) on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon.}}{33}{figure.caption.75}\protected@file@percent }
+\newlabel{fig:fixed17_seed_strips}{{8}{33}{Per-(system, seed) forecasting MSE at \(H100\), \(H500\), and \(H1000\) on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon}{figure.caption.75}{}}
+\newlabel{fig:fixed17_seed_strips@cref}{{[figure][8][]8}{[1][32][]33}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon; histograms are over the \(\log _{10}\) raw MSE.}}{33}{figure.caption.76}\protected@file@percent }
+\newlabel{fig:appfig_fixed17_perseed}{{9}{33}{Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon; histograms are over the \(\log _{10}\) raw MSE}{figure.caption.76}{}}
+\newlabel{fig:appfig_fixed17_perseed@cref}{{[figure][9][]9}{[1][32][]33}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Per-(system, seed) support--basin diagnostic distributions on the deep-state slice. Histograms show \(H(B\mid S_{\rm  abs})\), \(H(S_{\rm  abs}\mid B)\), and exact-support uniqueness for the rows summarized in \cref  {tab:fixed17_alignment}.}}{34}{figure.caption.77}\protected@file@percent }
+\newlabel{fig:appfig_fixed17_entropy}{{10}{34}{Per-(system, seed) support--basin diagnostic distributions on the deep-state slice. Histograms show \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and exact-support uniqueness for the rows summarized in \cref {tab:fixed17_alignment}}{figure.caption.77}{}}
+\newlabel{fig:appfig_fixed17_entropy@cref}{{[figure][10][]10}{[1][32][]34}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Per-(system, seed) forecasting MSE distributions on the Dysts \(dt{\times }30\) benchmark.}}{34}{figure.caption.78}\protected@file@percent }
+\newlabel{fig:appfig_dysts_perseed}{{11}{34}{Per-(system, seed) forecasting MSE distributions on the Dysts \(dt{\times }30\) benchmark}{figure.caption.78}{}}
+\newlabel{fig:appfig_dysts_perseed@cref}{{[figure][11][]11}{[1][32][]34}{}{}{}}
 \citation{schmid_dmd_2010,rowley_2009_spectral,tu_dynamic_2014,williams_datadriven_2015,williams_kernel-based_2016}
-\@writefile{toc}{\contentsline {paragraph}{Multibasin Koopman structure.}{13}{section*.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Sparse coding and LISTA.}{13}{section*.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Switching and local linear models.}{13}{section*.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{13}{section.8}\protected@file@percent }
-\newlabel{sec:discussion}{{8}{13}{Discussion}{section.8}{}}
-\newlabel{sec:discussion@cref}{{[section][8][]8}{[1][13][]13}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {A}Additional background}{13}{appendix.A}\protected@file@percent }
-\newlabel{app:background}{{A}{13}{Additional background}{appendix.A}{}}
-\newlabel{app:background@cref}{{[section][1][]A}{[1][13][]13}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Koopman operators and finite-dimensional approximations}{13}{subsection.A.1}\protected@file@percent }
-\newlabel{app:koopman_background}{{A.1}{13}{Koopman operators and finite-dimensional approximations}{subsection.A.1}{}}
-\newlabel{app:koopman_background@cref}{{[subsection][1][1]A.1}{[1][13][]13}{}{}{}}
-\citation{kalman_general_1960,korda_linear_2018,mayne_constrained_2000}
-\citation{lan_linearization_2013}
-\citation{brunton_koopman_2016}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Why multibasin systems require local structure}{14}{subsection.A.2}\protected@file@percent }
-\newlabel{app:multibasin_background}{{A.2}{14}{Why multibasin systems require local structure}{subsection.A.2}{}}
-\newlabel{app:multibasin_background@cref}{{[subsection][2][1]A.2}{[1][14][]14}{}{}{}}
+\citation{lan_linearization_2013,brunton_koopman_2016,pan_lifting_2024,liu_properties_2025}
+\@writefile{toc}{\contentsline {section}{\numberline {K}Dysts forecasting diagnostics}{35}{appendix.K}\protected@file@percent }
+\newlabel{app:dysts_full}{{K}{35}{Dysts forecasting diagnostics}{appendix.K}{}}
+\newlabel{app:dysts_full@cref}{{[section][11][]K}{[1][32][]35}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {L}Additional background}{35}{appendix.L}\protected@file@percent }
+\newlabel{app:background}{{L}{35}{Additional background}{appendix.L}{}}
+\newlabel{app:background@cref}{{[section][12][]L}{[1][35][]35}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {L.1}Koopman operators and finite-dimensional approximations}{35}{subsection.L.1}\protected@file@percent }
+\newlabel{app:koopman_background}{{L.1}{35}{Koopman operators and finite-dimensional approximations}{subsection.L.1}{}}
+\newlabel{app:koopman_background@cref}{{[subsection][1][12]L.1}{[1][35][]35}{}{}{}}
 \citation{fathi2024course}
 \citation{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003}
+\@writefile{toc}{\contentsline {subsection}{\numberline {L.2}Why multibasin systems require local structure}{36}{subsection.L.2}\protected@file@percent }
+\newlabel{app:multibasin_background}{{L.2}{36}{Why multibasin systems require local structure}{subsection.L.2}{}}
+\newlabel{app:multibasin_background@cref}{{[subsection][2][12]L.2}{[1][35][]36}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {L.3}Koopman autoencoders and periodic re-encoding}{36}{subsection.L.3}\protected@file@percent }
+\newlabel{app:kae_reencoding_background}{{L.3}{36}{Koopman autoencoders and periodic re-encoding}{subsection.L.3}{}}
+\newlabel{app:kae_reencoding_background@cref}{{[subsection][3][12]L.3}{[1][36][]36}{}{}{}}
+\newlabel{eq:KAE-standard-objective}{{41}{36}{Koopman autoencoders and periodic re-encoding}{equation.41}{}}
+\newlabel{eq:KAE-standard-objective@cref}{{[equation][41][]41}{[1][36][]36}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {L.4}Sparse coding and LISTA}{36}{subsection.L.4}\protected@file@percent }
+\newlabel{app:sparse_lista_background}{{L.4}{36}{Sparse coding and LISTA}{subsection.L.4}{}}
+\newlabel{app:sparse_lista_background@cref}{{[subsection][4][12]L.4}{[1][36][]36}{}{}{}}
 \citation{gregor_learning_2010}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Koopman autoencoders and periodic re-encoding}{15}{subsection.A.3}\protected@file@percent }
-\newlabel{app:kae_reencoding_background}{{A.3}{15}{Koopman autoencoders and periodic re-encoding}{subsection.A.3}{}}
-\newlabel{app:kae_reencoding_background@cref}{{[subsection][3][1]A.3}{[1][14][]15}{}{}{}}
-\newlabel{eq:KAE-standard-objective}{{25}{15}{Koopman autoencoders and periodic re-encoding}{equation.25}{}}
-\newlabel{eq:KAE-standard-objective@cref}{{[equation][25][]25}{[1][15][]15}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Sparse coding and LISTA}{15}{subsection.A.4}\protected@file@percent }
-\newlabel{app:sparse_lista_background}{{A.4}{15}{Sparse coding and LISTA}{subsection.A.4}{}}
-\newlabel{app:sparse_lista_background@cref}{{[subsection][4][1]A.4}{[1][15][]15}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {B}Proofs}{16}{appendix.B}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B.1}Piecewise-affine encoders with sparse supports induce local affine Koopman predictors}{16}{subsection.B.1}\protected@file@percent }
-\newlabel{app:pwa-supports}{{B.1}{16}{Piecewise-affine encoders with sparse supports induce local affine Koopman predictors}{subsection.B.1}{}}
-\newlabel{app:pwa-supports@cref}{{[subsection][1][2]B.1}{[1][16][]16}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Scope of the support identity.}{18}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Part 1.}{18}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Part 2.}{18}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Part 3.}{19}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Part 4.}{19}{section*.30}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {C}Additional experimental details}{24}{appendix.C}\protected@file@percent }
-\newlabel{app:experimental_details}{{C}{24}{Additional experimental details}{appendix.C}{}}
-\newlabel{app:experimental_details@cref}{{[section][3][]C}{[1][24][]24}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Training and model rows.}{24}{section*.31}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Dysts forecasting shortlist. These systems are used only for long-horizon forecasting stress tests because basin labels are not available.}}{25}{table.caption.32}\protected@file@percent }
-\newlabel{tab:dysts_inventory}{{4}{25}{Dysts forecasting shortlist. These systems are used only for long-horizon forecasting stress tests because basin labels are not available}{table.caption.32}{}}
-\newlabel{tab:dysts_inventory@cref}{{[table][4][]4}{[1][25][]25}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Training recipe selection.}{26}{section*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Evaluation splits.}{26}{section*.34}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Periodic forecasting.}{26}{section*.35}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Support diagnostics.}{26}{section*.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Routing details.}{26}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Support refresh.}{27}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {C.1}Statistical testing protocol}{27}{subsection.C.1}\protected@file@percent }
-\newlabel{app:statistical_testing}{{C.1}{27}{Statistical testing protocol}{subsection.C.1}{}}
-\newlabel{app:statistical_testing@cref}{{[subsection][1][3]C.1}{[1][27][]27}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Censored routing comparisons.}{28}{section*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {C.2}Compute resources}{28}{subsection.C.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {D}Support definitions and sensitivity}{28}{appendix.D}\protected@file@percent }
-\newlabel{app:support_definitions}{{D}{28}{Support definitions and sensitivity}{appendix.D}{}}
-\newlabel{app:support_definitions@cref}{{[section][4][]D}{[1][28][]28}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {E}Multibasin benchmark inventory}{29}{appendix.E}\protected@file@percent }
-\newlabel{app:fixed17_inventory}{{E}{29}{Multibasin benchmark inventory}{appendix.E}{}}
-\newlabel{app:fixed17_inventory@cref}{{[section][5][]E}{[1][29][]29}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {F}Per-seed distributions}{29}{appendix.F}\protected@file@percent }
-\newlabel{app:seed_distributions}{{F}{29}{Per-seed distributions}{appendix.F}{}}
-\newlabel{app:seed_distributions@cref}{{[section][6][]F}{[1][29][]29}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {G}Full per-system tables}{29}{appendix.G}\protected@file@percent }
-\newlabel{app:fixed17_full}{{G}{29}{Full per-system tables}{appendix.G}{}}
-\newlabel{app:fixed17_full@cref}{{[section][7][]G}{[1][29][]29}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Per-(system, seed) forecasting MSE at $H100$, $H500$, and $H1000$ on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon.}}{30}{figure.caption.42}\protected@file@percent }
-\newlabel{fig:fixed17_seed_strips}{{4}{30}{Per-(system, seed) forecasting MSE at $H100$, $H500$, and $H1000$ on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon}{figure.caption.42}{}}
-\newlabel{fig:fixed17_seed_strips@cref}{{[figure][4][]4}{[1][29][]30}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon ($H100$, $H500$, $H1000$); the top row shows the LISTA finalists with the standard-sampling MLP controls (for completeness), and the bottom row shows the matched boundary-emphasized MLP controls used in the main-text comparison. Histograms are over the $\log _{10}$ raw MSE.}}{30}{figure.caption.43}\protected@file@percent }
-\newlabel{fig:appfig_fixed17_perseed}{{5}{30}{Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon ($H100$, $H500$, $H1000$); the top row shows the LISTA finalists with the standard-sampling MLP controls (for completeness), and the bottom row shows the matched boundary-emphasized MLP controls used in the main-text comparison. Histograms are over the $\log _{10}$ raw MSE}{figure.caption.43}{}}
-\newlabel{fig:appfig_fixed17_perseed@cref}{{[figure][5][]5}{[1][29][]30}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Per-(system, seed) support--basin diagnostic distributions on the deep-state slice. Histograms show \(H(B\mid S_{\rm  abs})\), \(H(S_{\rm  abs}\mid B)\), and exact-support uniqueness for the rows summarized in \cref  {tab:fixed17_alignment}.}}{31}{figure.caption.44}\protected@file@percent }
-\newlabel{fig:appfig_fixed17_entropy}{{6}{31}{Per-(system, seed) support--basin diagnostic distributions on the deep-state slice. Histograms show \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and exact-support uniqueness for the rows summarized in \cref {tab:fixed17_alignment}}{figure.caption.44}{}}
-\newlabel{fig:appfig_fixed17_entropy@cref}{{[figure][6][]6}{[1][29][]31}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Per-(system, seed) forecasting MSE distributions on the Dysts $dt{\times }30$ benchmark.}}{31}{figure.caption.45}\protected@file@percent }
-\newlabel{fig:appfig_dysts_perseed}{{7}{31}{Per-(system, seed) forecasting MSE distributions on the Dysts $dt{\times }30$ benchmark}{figure.caption.45}{}}
-\newlabel{fig:appfig_dysts_perseed@cref}{{[figure][7][]7}{[1][29][]31}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Per-system effect sizes at $H{=}1000$ versus the Dense MLP baseline. Each point is one benchmark system; the $x$-coordinate is the per-system median paired $\log _{10}$-MSE difference (candidate minus baseline) over the common completed seeds, up to $15$ per system, with whiskers showing the $95\%$ bootstrap interval. Filled markers clear Holm-corrected $\alpha {=}0.05$. Numerical values are in \cref  {tab:persystem_h1000}.}}{32}{figure.caption.46}\protected@file@percent }
-\newlabel{fig:fixed17_forest}{{8}{32}{Per-system effect sizes at $H{=}1000$ versus the Dense MLP baseline. Each point is one benchmark system; the $x$-coordinate is the per-system median paired $\log _{10}$-MSE difference (candidate minus baseline) over the common completed seeds, up to $15$ per system, with whiskers showing the $95\%$ bootstrap interval. Filled markers clear Holm-corrected $\alpha {=}0.05$. Numerical values are in \cref {tab:persystem_h1000}}{figure.caption.46}{}}
-\newlabel{fig:fixed17_forest@cref}{{[figure][8][]8}{[1][29][]32}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Why the wrong-support denominator is $11$ and not $15$.}{32}{section*.51}\protected@file@percent }
 \bibstyle{plainnat}
 \bibdata{neurips_sparse_koopman_multibasin}
-\bibcite{azencot_forecasting_2020}{{1}{2020}{{Azencot et~al.}}{{Azencot, Erichson, Lin, and Mahoney}}}
-\bibcite{brunton_koopman_2016}{{2}{2016}{{Brunton et~al.}}{{Brunton, Brunton, Proctor, and Kutz}}}
-\@writefile{toc}{\contentsline {section}{\numberline {H}Support-routing robustness}{33}{appendix.H}\protected@file@percent }
-\newlabel{app:routing_robustness}{{H}{33}{Support-routing robustness}{appendix.H}{}}
-\newlabel{app:routing_robustness@cref}{{[section][8][]H}{[1][33][]33}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {I}Full per-system Dysts tables}{33}{appendix.I}\protected@file@percent }
-\newlabel{app:dysts_full}{{I}{33}{Full per-system Dysts tables}{appendix.I}{}}
-\newlabel{app:dysts_full@cref}{{[section][9][]I}{[1][33][]33}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {J}Falsification: oracle, random, and latent-cluster controls}{33}{appendix.J}\protected@file@percent }
-\newlabel{app:falsification}{{J}{33}{Falsification: oracle, random, and latent-cluster controls}{appendix.J}{}}
-\newlabel{app:falsification@cref}{{[section][10][]J}{[1][33][]33}{}{}{}}
-\bibcite{brunton_modern_2022}{{3}{2022}{{Brunton et~al.}}{{Brunton, Budišić, Kaiser, and Kutz}}}
-\bibcite{chen_atomic_1998}{{4}{1998}{{Chen et~al.}}{{Chen, Donoho, and Saunders}}}
-\bibcite{donoho_optimally_2003}{{5}{2003}{{Donoho and Elad}}{{}}}
-\bibcite{fathi2024course}{{6}{2024}{{Fathi et~al.}}{{Fathi, Gehring, Pilault, Kanaa, Bacon, and Goroshin}}}
-\bibcite{gregor_learning_2010}{{7}{2010}{{Gregor and LeCun}}{{}}}
-\bibcite{grobman1959homeomorphism}{{8}{1959}{{Grobman}}{{}}}
-\bibcite{grune_nonlinear_2017}{{9}{2017}{{Grüne and Pannek}}{{}}}
-\bibcite{hartman1960lemma}{{10}{1960}{{Hartman}}{{}}}
-\bibcite{kalman_general_1960}{{11}{1960}{{Kalman}}{{}}}
-\bibcite{koopman_hamiltonian_1931}{{12}{1931}{{Koopman}}{{}}}
-\bibcite{koopman_dynamical_1932}{{13}{1932}{{Koopman and Neumann}}{{}}}
-\bibcite{korda_linear_2018}{{14}{2018}{{Korda and Mezić}}{{}}}
-\bibcite{kvalheim_existence_2021}{{15}{2021}{{Kvalheim and Revzen}}{{}}}
-\bibcite{lan_linearization_2013}{{16}{2013}{{Lan and Mezić}}{{}}}
-\bibcite{linderman_bayesian_2017}{{17}{2017}{{Linderman et~al.}}{{Linderman, Johnson, Miller, Adams, Blei, and Paninski}}}
-\bibcite{lusch_deep_2018}{{18}{2018}{{Lusch et~al.}}{{Lusch, Kutz, and Brunton}}}
-\bibcite{mamakoukas_local_2019}{{19}{2019}{{Mamakoukas et~al.}}{{Mamakoukas, Castano, Tan, and Murphey}}}
-\bibcite{mayne_constrained_2000}{{20}{2000}{{Mayne et~al.}}{{Mayne, Rawlings, Rao, and Scokaert}}}
-\bibcite{mezic2005spectral}{{21}{2005}{{Mezi{\'c}}}{{}}}
-\bibcite{olshausen_emergence_1996}{{22}{1996}{{Olshausen and Field}}{{}}}
-\bibcite{otto2019linearly}{{23}{2019}{{Otto and Rowley}}{{}}}
-\bibcite{pan_lifting_2024}{{24}{2024}{{Pan and Duraisamy}}{{}}}
-\bibcite{rowley_2009_spectral}{{25}{2009}{{Rowley et~al.}}{{Rowley, Mezić, Bagheri, Schlatter, and Henningson}}}
-\bibcite{schmid_dmd_2010}{{26}{2010}{{Schmid}}{{}}}
-\bibcite{shi_deep_2022}{{27}{2022}{{Shi and Meng}}{{}}}
-\bibcite{takeishi2017learning}{{28}{2017}{{Takeishi et~al.}}{{Takeishi, Kawahara, and Yairi}}}
-\bibcite{torrisi-bemporad-itcst04}{{29}{2004}{{Torrisi and Bemporad}}{{}}}
-\bibcite{tu_dynamic_2014}{{30}{2014}{{Tu et~al.}}{{Tu, Rowley, Luchtenburg, Brunton, and Kutz}}}
-\bibcite{williams_datadriven_2015}{{31}{2015}{{Williams et~al.}}{{Williams, Kevrekidis, and Rowley}}}
-\bibcite{williams_kernel-based_2016}{{32}{2016}{{Williams et~al.}}{{Williams, Rowley, and Kevrekidis}}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Partition-control local forecasting for the top-$8$ support-family comparison. Entries are routed/global MSE ratios, summarized by seed-IQM within each system and arithmetic mean across systems, with within-system Wilcoxon/Holm counts in brackets; lower is better. The LISTA-SB row uses the matched $d_z{=}256$ control artifact.}}{37}{table.caption.38}\protected@file@percent }
-\newlabel{tab:self_routing_partition_controls}{{5}{37}{Partition-control local forecasting for the top-$8$ support-family comparison. Entries are routed/global MSE ratios, summarized by seed-IQM within each system and arithmetic mean across systems, with within-system Wilcoxon/Holm counts in brackets; lower is better. The LISTA-SB row uses the matched $d_z{=}256$ control artifact}{table.caption.38}{}}
-\newlabel{tab:self_routing_partition_controls@cref}{{[table][5][]5}{[1][26][]37}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces The $15$ retained multibasin benchmark systems. Geometry types: \emph  {multiwell} = multistable potential systems; \emph  {gated} = gated local-linear systems with explicit transitions between regions; \emph  {polygonal} = arrangement of point attractors at vertices of a polygon; \emph  {cascade} = depth-cascade variants. Basin counts are revealed only at evaluation.}}{38}{table.caption.41}\protected@file@percent }
-\newlabel{tab:fixed17_inventory}{{6}{38}{The $15$ retained multibasin benchmark systems. Geometry types: \emph {multiwell} = multistable potential systems; \emph {gated} = gated local-linear systems with explicit transitions between regions; \emph {polygonal} = arrangement of point attractors at vertices of a polygon; \emph {cascade} = depth-cascade variants. Basin counts are revealed only at evaluation}{table.caption.41}{}}
-\newlabel{tab:fixed17_inventory@cref}{{[table][6][]6}{[1][29][]38}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=100$ on the $15$-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. $\Delta $ is the per-system median paired $\log _{10}$-MSE difference (candidate $-$ baseline) over the common completed seeds, up to $15$ per system; $p_{\rm  H}$ is the one-sided paired Wilcoxon signed-rank $p$-value, Holm-corrected across the $15$ retained systems within each candidate column. Bold $\Delta $: Holm-corrected $p<0.05$ in favor of the candidate.}}{39}{table.caption.47}\protected@file@percent }
-\newlabel{tab:persystem_h100}{{7}{39}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=100$ on the $15$-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. $\Delta $ is the per-system median paired $\log _{10}$-MSE difference (candidate $-$ baseline) over the common completed seeds, up to $15$ per system; $p_{\rm H}$ is the one-sided paired Wilcoxon signed-rank $p$-value, Holm-corrected across the $15$ retained systems within each candidate column. Bold $\Delta $: Holm-corrected $p<0.05$ in favor of the candidate}{table.caption.47}{}}
-\newlabel{tab:persystem_h100@cref}{{[table][7][]7}{[1][29][]39}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=500$ on the $15$-system multibasin benchmark. Format identical to \cref  {tab:persystem_h100}.}}{39}{table.caption.48}\protected@file@percent }
-\newlabel{tab:persystem_h500}{{8}{39}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=500$ on the $15$-system multibasin benchmark. Format identical to \cref {tab:persystem_h100}}{table.caption.48}{}}
-\newlabel{tab:persystem_h500@cref}{{[table][8][]8}{[1][29][]39}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=1000$ on the $15$-system multibasin benchmark. This is the numerical version of the forest plot in \cref  {fig:fixed17_forest}. Format identical to \cref  {tab:persystem_h100}.}}{40}{table.caption.49}\protected@file@percent }
-\newlabel{tab:persystem_h1000}{{9}{40}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values at $H=1000$ on the $15$-system multibasin benchmark. This is the numerical version of the forest plot in \cref {fig:fixed17_forest}. Format identical to \cref {tab:persystem_h100}}{table.caption.49}{}}
-\newlabel{tab:persystem_h1000@cref}{{[table][9][]9}{[1][29][]40}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(|S_{\rm  abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice, on the $15$-system multibasin benchmark. Alternative: candidate \(|S_{\rm  abs}|<$ baseline \(|S_{\rm  abs}|\). Lower (more negative) is better for the candidate. LISTA-SB denotes the matched $d_z{=}256$ soft-block LISTA ablation.}}{40}{table.caption.52}\protected@file@percent }
-\newlabel{tab:persystem_size}{{10}{40}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(|S_{\rm abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice, on the $15$-system multibasin benchmark. Alternative: candidate \(|S_{\rm abs}|<$ baseline \(|S_{\rm abs}|\). Lower (more negative) is better for the candidate. LISTA-SB denotes the matched $d_z{=}256$ soft-block LISTA ablation}{table.caption.52}{}}
-\newlabel{tab:persystem_size@cref}{{[table][10][]10}{[1][33][]40}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(H(B\mid F_{\rm  abs})\) (basin uncertainty given the support \emph  {family} built from \(S_{\rm  abs}\), deep slice). Alternative: candidate \(H(B\mid F_{\rm  abs})<\) baseline. Lower is better for the candidate.}}{41}{table.caption.53}\protected@file@percent }
-\newlabel{tab:persystem_hbf}{{11}{41}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for \(H(B\mid F_{\rm abs})\) (basin uncertainty given the support \emph {family} built from \(S_{\rm abs}\), deep slice). Alternative: candidate \(H(B\mid F_{\rm abs})<\) baseline. Lower is better for the candidate}{table.caption.53}{}}
-\newlabel{tab:persystem_hbf@cref}{{[table][11][]11}{[1][33][]41}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}1$ (deep slice). Alternative: candidate ratio $>$ baseline. Higher is better for the candidate (using the wrong support hurts the prediction more, indicating the model genuinely uses the support).}}{41}{table.caption.54}\protected@file@percent }
-\newlabel{tab:persystem_freeze_h1}{{12}{41}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}1$ (deep slice). Alternative: candidate ratio $>$ baseline. Higher is better for the candidate (using the wrong support hurts the prediction more, indicating the model genuinely uses the support)}{table.caption.54}{}}
-\newlabel{tab:persystem_freeze_h1@cref}{{[table][12][]12}{[1][33][]41}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}20$. Alternative: candidate $>$ baseline. Higher is better.}}{42}{table.caption.55}\protected@file@percent }
-\newlabel{tab:persystem_freeze_h20}{{13}{42}{Per-system effect sizes and Holm-corrected Wilcoxon $p$-values for the wrong-support-over-base MSE ratio at $h{=}20$. Alternative: candidate $>$ baseline. Higher is better}{table.caption.55}{}}
-\newlabel{tab:persystem_freeze_h20@cref}{{[table][13][]13}{[1][33][]42}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Deep-state support-routed forecasting route-form diagnostics. \(S_{\rm  top8}\) columns use exact eight-index supports; \(F_{\rm  top8}\) columns use merged families of those exact supports. Entries are arithmetic means across systems after within-system seed-IQM summarization, with diagnostic within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched $d_z{=}256$ soft-block LISTA ablation; lower is better.}}{42}{table.caption.56}\protected@file@percent }
-\newlabel{tab:self_routing_deep}{{14}{42}{Deep-state support-routed forecasting route-form diagnostics. \(S_{\rm top8}\) columns use exact eight-index supports; \(F_{\rm top8}\) columns use merged families of those exact supports. Entries are arithmetic means across systems after within-system seed-IQM summarization, with diagnostic within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched $d_z{=}256$ soft-block LISTA ablation; lower is better}{table.caption.56}{}}
-\newlabel{tab:self_routing_deep@cref}{{[table][14][]14}{[1][33][]42}{}{}{}}
-\gdef \@abspage@last{42}
+\bibcite{agarwal2021deep}{{1}{2021}{{Agarwal et~al.}}{{Agarwal, Schwarzer, Castro, Courville, and Bellemare}}}
+\bibcite{azencot_forecasting_2020}{{2}{2020}{{Azencot et~al.}}{{Azencot, Erichson, Lin, and Mahoney}}}
+\bibcite{beck2009fast}{{3}{2009}{{Beck and Teboulle}}{{}}}
+\bibcite{brunton_koopman_2016}{{4}{2016}{{Brunton et~al.}}{{Brunton, Brunton, Proctor, and Kutz}}}
+\bibcite{brunton_modern_2022}{{5}{2022}{{Brunton et~al.}}{{Brunton, Budišić, Kaiser, and Kutz}}}
+\bibcite{chen_atomic_1998}{{6}{1998}{{Chen et~al.}}{{Chen, Donoho, and Saunders}}}
+\bibcite{donoho_optimally_2003}{{7}{2003}{{Donoho and Elad}}{{}}}
+\bibcite{fathi2024course}{{8}{2024}{{Fathi et~al.}}{{Fathi, Gehring, Pilault, Kanaa, Bacon, and Goroshin}}}
+\bibcite{gilpin_chaos_2021}{{9}{2021}{{Gilpin}}{{}}}
+\bibcite{gilpin_model_2023}{{10}{2023}{{Gilpin}}{{}}}
+\bibcite{gregor_learning_2010}{{11}{2010}{{Gregor and LeCun}}{{}}}
+\bibcite{grobman1959homeomorphism}{{12}{1959}{{Grobman}}{{}}}
+\bibcite{grune_nonlinear_2017}{{13}{2017}{{Grüne and Pannek}}{{}}}
+\bibcite{hartigan_clustering_1975}{{14}{1975}{{Hartigan}}{{}}}
+\bibcite{hartman1960lemma}{{15}{1960}{{Hartman}}{{}}}
+\bibcite{jaccard_etude_1901}{{16}{1901}{{Jaccard}}{{}}}
+\bibcite{kalman_general_1960}{{17}{1960}{{Kalman}}{{}}}
+\bibcite{koopman_hamiltonian_1931}{{18}{1931}{{Koopman}}{{}}}
+\bibcite{koopman_dynamical_1932}{{19}{1932}{{Koopman and Neumann}}{{}}}
+\bibcite{korda_linear_2018}{{20}{2018}{{Korda and Mezić}}{{}}}
+\bibcite{kvalheim_existence_2021}{{21}{2021}{{Kvalheim and Revzen}}{{}}}
+\bibcite{lan_linearization_2013}{{22}{2013}{{Lan and Mezić}}{{}}}
+\bibcite{liu_properties_2025}{{23}{2025}{{Liu et~al.}}{{Liu, Ozay, and Sontag}}}
+\bibcite{lusch_deep_2018}{{24}{2018}{{Lusch et~al.}}{{Lusch, Kutz, and Brunton}}}
+\bibcite{mamakoukas_local_2019}{{25}{2019}{{Mamakoukas et~al.}}{{Mamakoukas, Castano, Tan, and Murphey}}}
+\bibcite{mayne_constrained_2000}{{26}{2000}{{Mayne et~al.}}{{Mayne, Rawlings, Rao, and Scokaert}}}
+\bibcite{mezic2005spectral}{{27}{2005}{{Mezi{\'c}}}{{}}}
+\bibcite{olshausen_emergence_1996}{{28}{1996}{{Olshausen and Field}}{{}}}
+\bibcite{otto2019linearly}{{29}{2019}{{Otto and Rowley}}{{}}}
+\bibcite{pan_lifting_2024}{{30}{2024}{{Pan and Duraisamy}}{{}}}
+\bibcite{rowley_2009_spectral}{{31}{2009}{{Rowley et~al.}}{{Rowley, Mezić, Bagheri, Schlatter, and Henningson}}}
+\bibcite{schmid_dmd_2010}{{32}{2010}{{Schmid}}{{}}}
+\bibcite{shi_deep_2022}{{33}{2022}{{Shi and Meng}}{{}}}
+\bibcite{takeishi2017learning}{{34}{2017}{{Takeishi et~al.}}{{Takeishi, Kawahara, and Yairi}}}
+\bibcite{tu_dynamic_2014}{{35}{2014}{{Tu et~al.}}{{Tu, Rowley, Luchtenburg, Brunton, and Kutz}}}
+\bibcite{williams_datadriven_2015}{{36}{2015}{{Williams et~al.}}{{Williams, Kevrekidis, and Rowley}}}
+\bibcite{williams_kernel-based_2016}{{37}{2016}{{Williams et~al.}}{{Williams, Rowley, and Kevrekidis}}}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Partition-control local forecasting for the top-$8$ support-family comparison. Entries are routed/global MSE ratios, summarized by seed-IQM within each system and arithmetic mean across systems; lower is better. Bracketed cells give within-system Wilcoxon/Holm counts when present. The LISTA-SB row uses the matched p256 ($d_z{=}256$) control artifact.}}{41}{table.caption.64}\protected@file@percent }
+\newlabel{tab:self_routing_partition_controls}{{8}{41}{Partition-control local forecasting for the top-$8$ support-family comparison. Entries are routed/global MSE ratios, summarized by seed-IQM within each system and arithmetic mean across systems; lower is better. Bracketed cells give within-system Wilcoxon/Holm counts when present. The LISTA-SB row uses the matched p256 ($d_z{=}256$) control artifact}{table.caption.64}{}}
+\newlabel{tab:self_routing_partition_controls@cref}{{[table][8][]8}{[1][30][]41}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=100\) on the \(15\)-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. \(\Delta \) is the per-system median paired \(\log _{10}\)-MSE difference (candidate \( - \) baseline); \(p_{\rm  H}\) is the one-sided paired Wilcoxon signed-rank \(p\)-value, Holm-corrected across retained systems within each candidate column. Bold \(\Delta \): Holm-corrected \(p<0.05\) in favor of the candidate.}}{42}{table.caption.66}\protected@file@percent }
+\newlabel{tab:persystem_h100}{{9}{42}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=100\) on the \(15\)-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. \(\Delta \) is the per-system median paired \(\log _{10}\)-MSE difference (candidate \( - \) baseline); \(p_{\rm H}\) is the one-sided paired Wilcoxon signed-rank \(p\)-value, Holm-corrected across retained systems within each candidate column. Bold \(\Delta \): Holm-corrected \(p<0.05\) in favor of the candidate}{table.caption.66}{}}
+\newlabel{tab:persystem_h100@cref}{{[table][9][]9}{[1][31][]42}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=500\) on the \(15\)-system multibasin benchmark. Format identical to \cref  {tab:persystem_h100}.}}{42}{table.caption.67}\protected@file@percent }
+\newlabel{tab:persystem_h500}{{10}{42}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=500\) on the \(15\)-system multibasin benchmark. Format identical to \cref {tab:persystem_h100}}{table.caption.67}{}}
+\newlabel{tab:persystem_h500@cref}{{[table][10][]10}{[1][31][]42}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=1000\) on the \(15\)-system multibasin benchmark. This is the numerical version of the forest plot in \cref  {fig:fixed17_forest}. Format identical to \cref  {tab:persystem_h100}.}}{43}{table.caption.68}\protected@file@percent }
+\newlabel{tab:persystem_h1000}{{11}{43}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=1000\) on the \(15\)-system multibasin benchmark. This is the numerical version of the forest plot in \cref {fig:fixed17_forest}. Format identical to \cref {tab:persystem_h100}}{table.caption.68}{}}
+\newlabel{tab:persystem_h1000@cref}{{[table][11][]11}{[1][31][]43}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for \(|S_{\rm  abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice. Alternative: candidate \(|S_{\rm  abs}|<\) baseline \(|S_{\rm  abs}|\).}}{43}{table.caption.71}\protected@file@percent }
+\newlabel{tab:persystem_size}{{12}{43}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for \(|S_{\rm abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice. Alternative: candidate \(|S_{\rm abs}|<\) baseline \(|S_{\rm abs}|\)}{table.caption.71}{}}
+\newlabel{tab:persystem_size@cref}{{[table][12][]12}{[1][32][]43}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for \(H(B\mid F_{\rm  abs})\) on the deep slice. Alternative: candidate \(H(B\mid F_{\rm  abs})<\) baseline.}}{44}{table.caption.72}\protected@file@percent }
+\newlabel{tab:persystem_hbf}{{13}{44}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for \(H(B\mid F_{\rm abs})\) on the deep slice. Alternative: candidate \(H(B\mid F_{\rm abs})<\) baseline}{table.caption.72}{}}
+\newlabel{tab:persystem_hbf@cref}{{[table][13][]13}{[1][32][]44}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for the wrong-support-over-base MSE ratio at \(H1\) on the deep slice. Alternative: candidate ratio \(>\) baseline.}}{44}{table.caption.73}\protected@file@percent }
+\newlabel{tab:persystem_freeze_h1}{{14}{44}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for the wrong-support-over-base MSE ratio at \(H1\) on the deep slice. Alternative: candidate ratio \(>\) baseline}{table.caption.73}{}}
+\newlabel{tab:persystem_freeze_h1@cref}{{[table][14][]14}{[1][32][]44}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for the wrong-support-over-base MSE ratio at \(H20\). Alternative: candidate \(>\) baseline.}}{45}{table.caption.74}\protected@file@percent }
+\newlabel{tab:persystem_freeze_h20}{{15}{45}{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for the wrong-support-over-base MSE ratio at \(H20\). Alternative: candidate \(>\) baseline}{table.caption.74}{}}
+\newlabel{tab:persystem_freeze_h20@cref}{{[table][15][]15}{[1][32][]45}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Deep-state support-routed forecasting route-form diagnostics. \(S_{\rm  top8}\) columns use exact eight-index supports; \(F_{\rm  top8}\) columns use merged families of those exact supports. Entries are arithmetic means across systems after within-system seed-IQM summarization, with diagnostic within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched \(d_z{=}256\) soft-block LISTA ablation; lower is better.}}{45}{table.caption.79}\protected@file@percent }
+\newlabel{tab:self_routing_deep}{{16}{45}{Deep-state support-routed forecasting route-form diagnostics. \(S_{\rm top8}\) columns use exact eight-index supports; \(F_{\rm top8}\) columns use merged families of those exact supports. Entries are arithmetic means across systems after within-system seed-IQM summarization, with diagnostic within-system Wilcoxon/Holm counts in brackets. LISTA-SB is the matched \(d_z{=}256\) soft-block LISTA ablation; lower is better}{table.caption.79}{}}
+\newlabel{tab:self_routing_deep@cref}{{[table][16][]16}{[1][32][]45}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Scale-normalized Dysts forecasting summary. Entries are arithmetic means across systems of the candidate per-system seed-IQM MSE divided by the Dense MLP per-system seed-IQM MSE; lower than \(1\) favors the candidate. This table gives the average-case ratio view corresponding to the actual-MSE table in \cref  {tab:dysts_long}. LISTA-SB is retained as a diagnostic row.}}{45}{table.caption.80}\protected@file@percent }
+\newlabel{tab:dysts_ratio_to_dense}{{17}{45}{Scale-normalized Dysts forecasting summary. Entries are arithmetic means across systems of the candidate per-system seed-IQM MSE divided by the Dense MLP per-system seed-IQM MSE; lower than \(1\) favors the candidate. This table gives the average-case ratio view corresponding to the actual-MSE table in \cref {tab:dysts_long}. LISTA-SB is retained as a diagnostic row}{table.caption.80}{}}
+\newlabel{tab:dysts_ratio_to_dense@cref}{{[table][17][]17}{[1][35][]45}{}{}{}}
+\gdef \@abspage@last{45}

@@ -43,8 +43,8 @@ DEFAULT_HORIZONS = [100, 500, 1000, 1500, 2000, 3000, 4000, 5000]
 DEFAULT_BOOTSTRAP_REPS = 10000
 DEFAULT_BOOTSTRAP_SEED = 20260501
 DEFAULT_EXCLUDED_SYSTEMS = ("dysts:LorenzCoupled", "dysts:MultiChua")
-FORECAST_YLABEL_FONTSIZE = 11.5
-FORECAST_YTICK_LABELSIZE = 9.5
+FORECAST_YLABEL_FONTSIZE = 10.0
+FORECAST_YTICK_LABELSIZE = 8.5
 
 plt.rcParams.update(
     {
@@ -197,6 +197,49 @@ def fixed_system_seed_bootstrap_log_mean(
     )
 
 
+def fixed_system_seed_bootstrap_log_relative_band(
+    system_seed_values: list[np.ndarray],
+    *,
+    center: float,
+    rng: np.random.Generator,
+    n_reps: int,
+) -> tuple[float, float, float]:
+    """Bootstrap typical within-system seed uncertainty on a relative scale.
+
+    The plotted line remains the raw arithmetic mean of per-system seed IQMs.
+    The band rescales each bootstrap draw by that system's observed seed-IQM
+    before averaging log10-relative perturbations across systems. This keeps
+    one high-MSE system from dominating the visual uncertainty band while still
+    measuring seed instability around the paper-facing point estimate.
+    """
+    if n_reps <= 0 or not math.isfinite(center) or center <= 0.0:
+        return float("nan"), float("nan"), float("nan")
+
+    valid = []
+    for values in system_seed_values:
+        values = np.asarray(values, dtype=float)
+        values = values[np.isfinite(values) & (values > 0.0)]
+        system_center = iqm(values)
+        if values.size > 0 and math.isfinite(system_center) and system_center > 0.0:
+            valid.append((values, system_center))
+    if not valid:
+        return float("nan"), float("nan"), float("nan")
+
+    per_system_log_rel = []
+    for values, system_center in valid:
+        indices = rng.integers(0, values.size, size=(n_reps, values.size))
+        draws = row_iqm(values[indices])
+        draws = np.clip(draws, np.finfo(float).tiny, None)
+        per_system_log_rel.append(np.log10(draws) - math.log10(system_center))
+
+    log_rel_draws = np.mean(np.column_stack(per_system_log_rel), axis=1)
+    return (
+        float(center * (10.0 ** np.percentile(log_rel_draws, 2.5))),
+        float(center * (10.0 ** np.percentile(log_rel_draws, 97.5))),
+        float(np.std(log_rel_draws, ddof=1)),
+    )
+
+
 def holm_correct(p_values: list[float]) -> list[float]:
     n = len(p_values)
     order = sorted(range(n), key=lambda i: p_values[i])
@@ -264,6 +307,7 @@ def per_system_summary(
     seed_rng = np.random.default_rng(bootstrap_seed)
     system_rng = np.random.default_rng(bootstrap_seed + 104729)
     log_seed_rng = np.random.default_rng(bootstrap_seed + 130363)
+    log_relative_seed_rng = np.random.default_rng(bootstrap_seed + 155921)
     for root_label, meta in ROOTS.items():
         root_df = df[df["root_label"] == root_label]
         for h in horizons:
@@ -314,6 +358,12 @@ def per_system_summary(
                 n_reps=bootstrap_reps,
             )
             system_mean = mean_finite(system_iqms)
+            rel_ci_low, rel_ci_high, rel_boot_se = fixed_system_seed_bootstrap_log_relative_band(
+                system_seed_values,
+                center=system_mean,
+                rng=log_relative_seed_rng,
+                n_reps=bootstrap_reps,
+            )
             log10_system_mean = mean_finite(system_log10_iqms)
             log_space_center = 10.0**log10_system_mean if math.isfinite(log10_system_mean) else float("nan")
             summary_rows.append(
@@ -333,6 +383,9 @@ def per_system_summary(
                     "seed_bootstrap_ci95_low": ci_low,
                     "seed_bootstrap_ci95_high": ci_high,
                     "seed_bootstrap_se": boot_se,
+                    "log_relative_seed_bootstrap_ci95_low": rel_ci_low,
+                    "log_relative_seed_bootstrap_ci95_high": rel_ci_high,
+                    "log_relative_seed_bootstrap_se_log10": rel_boot_se,
                     "system_bootstrap_ci95_low": system_ci_low,
                     "system_bootstrap_ci95_high": system_ci_high,
                     "system_bootstrap_se": system_boot_se,
@@ -696,8 +749,8 @@ def plot_iqm_horizon(
     horizons: list[int],
     *,
     y_col: str = "cross_system_iqm",
-    ci_low_col: str = "seed_bootstrap_ci95_low",
-    ci_high_col: str = "seed_bootstrap_ci95_high",
+    ci_low_col: str = "log_relative_seed_bootstrap_ci95_low",
+    ci_high_col: str = "log_relative_seed_bootstrap_ci95_high",
     suffix: str = "",
     ylabel: str = "Best-periodic MSE (mean over system seed-IQMs)",
 ) -> None:
@@ -744,8 +797,8 @@ def _draw_forecasting_performance_panel(
     log_scale: bool,
     root_order: list[str] | None = None,
     y_col: str = "cross_system_iqm",
-    ci_low_col: str = "seed_bootstrap_ci95_low",
-    ci_high_col: str = "seed_bootstrap_ci95_high",
+    ci_low_col: str = "log_relative_seed_bootstrap_ci95_low",
+    ci_high_col: str = "log_relative_seed_bootstrap_ci95_high",
     ylabel: str = "MSE (mean over system seed-IQMs)",
 ) -> None:
     style = {
@@ -798,8 +851,8 @@ def plot_forecasting_performance_style(
     horizons: list[int],
     *,
     y_col: str = "cross_system_iqm",
-    ci_low_col: str = "seed_bootstrap_ci95_low",
-    ci_high_col: str = "seed_bootstrap_ci95_high",
+    ci_low_col: str = "log_relative_seed_bootstrap_ci95_low",
+    ci_high_col: str = "log_relative_seed_bootstrap_ci95_high",
     suffix: str = "",
     title_note: str = "",
     ylabel: str = "MSE (mean over system seed-IQMs)",
@@ -1169,6 +1222,15 @@ def main() -> None:
         summary,
         args.fig_dir,
         horizons,
+        ci_low_col="seed_bootstrap_ci95_low",
+        ci_high_col="seed_bootstrap_ci95_high",
+        suffix="_raw_seed_ci",
+        ylabel="Best-periodic MSE (raw seed-bootstrap CI)",
+    )
+    plot_iqm_horizon(
+        summary,
+        args.fig_dir,
+        horizons,
         ci_low_col="system_bootstrap_ci95_low",
         ci_high_col="system_bootstrap_ci95_high",
         suffix="_system_ci",
@@ -1189,6 +1251,16 @@ def main() -> None:
         summary,
         args.fig_dir,
         horizons,
+        ci_low_col="seed_bootstrap_ci95_low",
+        ci_high_col="seed_bootstrap_ci95_high",
+        suffix="_raw_seed_ci",
+        title_note="\n(raw seed CI)",
+        ylabel="MSE (raw seed-bootstrap CI)",
+    )
+    plot_forecasting_performance_style(
+        summary,
+        args.fig_dir,
+        horizons,
         ci_low_col="system_bootstrap_ci95_low",
         ci_high_col="system_bootstrap_ci95_high",
         suffix="_system_ci",
@@ -1203,7 +1275,6 @@ def main() -> None:
         ci_low_col="log_seed_bootstrap_ci95_low",
         ci_high_col="log_seed_bootstrap_ci95_high",
         suffix="_log_seed_bootstrap",
-        title_note="\n(log seed bootstrap)",
         ylabel="MSE (log-space seed bootstrap)",
     )
     plot_perseed_histograms(df, args.fig_dir, horizons)

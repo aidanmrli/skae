@@ -1,0 +1,85 @@
+\section{Support definitions and sensitivity}
+\label{app:support_definitions}
+
+\Cref{sec:method_supports} defines the notation used in the main text. This appendix records the implementation-level objects behind that notation and explains how to read the corresponding diagnostics. All support objects are computed after training from the learned encoder output \(z=\Enc(x)\). Basin labels, basin counts, and trajectory-to-basin assignments are not used to train the model, define a support, or build a support family; when labels appear below they are evaluation-only quantities used to score or display the learned objects.
+
+\paragraph{From a latent vector to an exact support key.}
+The reducers first convert each latent vector into a Boolean mask \(m(x)\in\{0,1\}^{d_z}\). The exact support \(S(x)\) is the index set of the true entries of this mask, but the code compares exact supports by serializing the Boolean mask itself: two states have the same exact support if and only if all \(d_z\) Boolean entries match. The three support rules used in the paper are
+\begin{align}
+  m_{{\rm abs},i}(x)
+  &=\mathbf{1}\{|z_i|>10^{-3}\},
+  &
+  S_{\rm abs}(x)
+  &=\{i:m_{{\rm abs},i}(x)=1\}, \\
+  m_{{\rm top8},i}(x)
+  &=\mathbf{1}\{i\in\operatorname{top}_8(|z|)\},
+  &
+  S_{\rm top8}(x)
+  &=\{i:m_{{\rm top8},i}(x)=1\}, \\
+  m_{{\rm rel},i}(x)
+  &=\mathbf{1}\{|z_i|>0.1\max(\max_j |z_j|,\epsilon)\},
+  &
+  S_{\rm rel}(x)
+  &=\{i:m_{{\rm rel},i}(x)=1\},
+\end{align}
+with \(\epsilon=10^{-12}\) in the implementation. The inequalities are strict. The epsilon only affects the degenerate all-zero relative-threshold case, where \(S_{\rm rel}\) is empty. \(S_{\rm abs}\) is a magnitude-thresholded active set, so \(|S_{\rm abs}|\) is a measured state-dependent statistic rather than a fixed sparsity budget. \(S_{\rm top8}\) instead always begins from eight active coordinates when \(d_z\ge 8\); it ignores absolute scale and gives every state a fixed-size exact key before family merging.
+
+\paragraph{From exact supports to support families.}
+For a chosen support rule and evaluation collection, the implementation counts distinct exact support keys, sorts them from most to least frequent, and uses the serialized key as a deterministic tie-breaker. It then performs the leader-style greedy Jaccard merge described in \cref{sec:method_supports}. Each family stores an actual Boolean support vector as its representative. A new exact mask joins the existing representative with the largest Jaccard similarity if that similarity is at least \(0.5\); otherwise it starts a new family. Representatives are not optimized, averaged, or updated as centroids. Family labels are therefore run- and collection-specific integer identifiers, and only their induced partition of states is meaningful.
+
+\paragraph{Support-family creation algorithm.}
+For completeness, the family construction used for both \(F_{\rm abs}\) and \(F_{\rm top8}\) is:
+\begin{quote}
+\small
+\textbf{Input:} evaluation states \(\mathcal X\), a support rule \(q\), and Jaccard threshold \(\tau=0.5\).\\
+\textbf{Output:} family label \(F_q(x)\) for each \(x\in\mathcal X\), and family representatives \(\{r_f\}\).
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.0em]
+  \item Compute one exact Boolean mask \(m_q(x)\in\{0,1\}^{d_z}\) for every \(x\in\mathcal X\).
+  \item Count the multiplicity \(c(m)\) of each distinct exact mask \(m\).
+  \item Sort the distinct masks in decreasing \(c(m)\), using the serialized Boolean mask as a deterministic tie-breaker.
+  \item Initialize an empty list of families and representatives.
+  \item For each distinct mask \(m\) in the sorted order:
+  \begin{enumerate}[label=\textbf{\alph*.},leftmargin=2.0em]
+    \item If no family exists, create a new family \(f\), set \(r_f\gets m\), and assign \(m\) to \(f\).
+    \item Otherwise compute \(f^\star=\operatorname*{arg\,max}_f J(m,r_f)\) over existing family representatives.
+    \item If \(J(m,r_{f^\star})\ge\tau\), assign every occurrence of \(m\) to family \(f^\star\).
+    \item If \(J(m,r_{f^\star})<\tau\), create a new family \(f\), set \(r_f\gets m\), and assign every occurrence of \(m\) to \(f\).
+  \end{enumerate}
+  \item For each state \(x\), return \(F_q(x)\), the family assigned to its exact mask \(m_q(x)\).
+\end{enumerate}
+\end{quote}
+The representative update \(r_f\gets m\) occurs only when a new family is created. Existing representatives are never averaged, recomputed as majority masks, or moved toward later assigned masks.
+
+For top-eight masks, \(J(m,r)\ge 0.5\) is equivalent to at least six shared active coordinates because both masks have size eight. For \(S_{\rm abs}\), the same threshold is adaptive to mask size through the intersection-over-union denominator. A lower Jaccard threshold merges more exact supports and can collapse distinct basins; a higher threshold separates more masks and can make \(H(B\mid F)\) small by over-fragmenting each basin. We therefore fix \(0.5\) rather than tuning it post hoc and interpret any entropy result together with the corresponding family count.
+
+\paragraph{Which support object is used where.}
+\begin{description}[leftmargin=1.6em,style=nextline]
+  \item[\(S_{\rm abs}\).]
+  This is the strict active-coordinate object. It is used to build \(F_{\rm abs}\), to report exact-support diagnostics such as \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), exact-support uniqueness, and \(|S_{\rm abs}|\), and to form canonical masks for wrong-support interventions. In the intervention code, the canonical mask for basin \(b\) is the most frequent \(S_{\rm abs}\) key among candidate deep-slice states from basin \(b\). The ``wrong'' condition replaces it with canonical masks from other represented basins and holds that mask fixed during the masked latent rollout.
+
+  \item[\(F_{\rm abs}\).]
+  This is the main basin-support alignment object in \cref{tab:fixed17_alignment}. It asks whether the many exact \(S_{\rm abs}\) masks produced by a sparse encoder compress into basin-scale families. The primary directional metric is \(H(B\mid F_{\rm abs})\): low values mean that knowing the support family leaves little uncertainty about the withheld basin label. The count \(\overline{|F_{\rm abs}|}\) is deliberately non-directional and should be compared with the number of basin labels represented in the evaluated slice.
+
+  \item[\(S_{\rm top8}\).]
+  This exact fixed-size support is used for periodic support refresh and for appendix route-form ablations. In the refresh experiment, re-encoding changes \(z\), and \(S_{\rm top8}\) is re-selected from that current latent vector; the reported target-route fraction is computed only after mapping support classes to basins for evaluation.
+
+  \item[\(F_{\rm top8}\).]
+  This is the main label-free routing object in \cref{tab:self_routing}. Local affine predictors are fit on a disjoint fitting set by grouping transitions according to the current state's \(F_{\rm top8}\) label. During rollout, the route is recomputed from the current predicted latent state. If the exact key was seen during fitting, its stored family is used; otherwise it is assigned to the nearest stored family prototype when the Jaccard similarity reaches \(0.5\). If no fitted local map is available, the evaluator falls back to the same model's global Koopman step. \Cref{fig:support_family_codebook} visualizes representative \(F_{\rm top8}\) masks by plotting their active coordinate indices.
+
+  \item[\(S_{\rm rel}\).]
+  This scale-relative support removes global latent-amplitude effects and is useful as a sensitivity rule for centered local-law diagnostics. It is not the main routing object because exact relative-threshold supports fragment the route space more strongly than \(S_{\rm top8}\).
+\end{description}
+
+\paragraph{How to read the diagnostics.}
+A low \(H(B\mid S_{\rm abs})\) or \(H(B\mid F_{\rm abs})\) means that the support object predicts basin identity on the evaluated benchmark states. It does not by itself imply a compact one-support-per-basin code: a model can achieve low \(H(B\mid S_{\rm abs})\) while assigning many different exact masks to the same basin. \(H(S_{\rm abs}\mid B)\), exact-support uniqueness, and \(|S_{\rm abs}|\) diagnose this fragmentation, while \(H(B\mid F_{\rm abs})\) and \(\overline{|F_{\rm abs}|}\) ask whether the fragmented exact masks merge into a basin-scale family structure.
+
+The slice used for this diagnostic matters. The deep-state slice used in the main table is the global top quartile of the basin-depth margin, where the margin is the distance to the second-nearest benchmark attractor center minus the distance to the nearest attractor center. It removes boundary-adjacent states and is the cleanest test of basin-interior structure. On this slice, \(F_{\rm abs}\) family counts are closest to the number of represented basins for the LISTA-style rows, with LISTA-BD giving \(\overline{|F_{\rm abs}|}=3.03\) against a represented-basin mean of \(3.00\). On the all-state slice, which includes boundary and transition states, the closest count match at the fixed \(J=0.5\) threshold instead comes from the sparse MLP controls, but those count matches have substantially higher basin uncertainty than the LISTA rows. Whole-slice count matching should therefore be read as a compression diagnostic, not as the primary evidence for basin-support alignment.
+
+The takeaways are as follows. \(F_{\rm abs}\) is the paper-facing object for the claim that sparse supports identify basin interiors. \(S_{\rm abs}\) is the intervention object for testing whether the active coordinates are functionally used. \(F_{\rm top8}\) is the deployment-facing route object because it provides a fixed-size support key and can be recomputed from predicted latents without oracle labels. \(S_{\rm rel}\) is a sensitivity object, not a headline support definition.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/support_family_codebooks_retained15/support_family_index_codebook_claude_cal_asymmetric_3.pdf}
+\caption{\(F_{\rm top8}\) support-family active indices for the LISTA-BD KAE on the three-basin asymmetric wells system. Each row is one displayed \(F_{\rm top8}\) family prototype from the seed-\(0\) model; thin ticks mark the actual active latent coordinate indices in the prototype top-\(8\) mask on the x-axis. Row labels give the post-hoc dominant evaluation basin, support-family id, and within-basin coverage. The basin names in the labels are evaluation-only annotations and are not used to construct the support families.}
+\label{fig:support_family_codebook}
+\end{figure}

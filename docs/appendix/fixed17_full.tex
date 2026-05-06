@@ -1,0 +1,74 @@
+\section{Full per-system multibasin tables}
+\label{app:fixed17_full}
+
+Tables \ref{tab:persystem_h100}--\ref{tab:persystem_h1000} render the per-(system, candidate) effect sizes and Holm-corrected Wilcoxon \(p\)-values that underlie the \(K/N\) counts in \cref{tab:fixed17_alignment} and the forest plot in \cref{fig:fixed17_forest}. Each cell gives the per-system median paired \(\log_{10}\)-MSE difference (candidate minus matched-sampling Dense MLP, no-shrink baseline) over the common completed seeds, up to \(15\) per system, and the corresponding Holm-corrected one-sided paired Wilcoxon \(p\)-value. Bold entries indicate Holm-corrected \(p<0.05\) in favor of the candidate.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_forest.pdf}
+\caption{Per-system effect sizes at \(H{=}1000\) versus the Dense MLP baseline. Each point is one benchmark system; the \(x\)-coordinate is the per-system median paired \(\log_{10}\)-MSE difference (candidate minus baseline) over the common completed seeds, up to \(15\) per system, with whiskers showing the \(95\%\) bootstrap interval. Filled markers clear Holm-corrected \(\alpha{=}0.05\). Numerical values are in \cref{tab:persystem_h1000}.}
+\label{fig:fixed17_forest}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=100\) on the \(15\)-system multibasin benchmark, against the matched-sampling Dense MLP, no-shrink baseline. \(\Delta\) is the per-system median paired \(\log_{10}\)-MSE difference (candidate \( - \) baseline); \(p_{\rm H}\) is the one-sided paired Wilcoxon signed-rank \(p\)-value, Holm-corrected across retained systems within each candidate column. Bold \(\Delta\): Holm-corrected \(p<0.05\) in favor of the candidate.}
+\label{tab:persystem_h100}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h100.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=500\) on the \(15\)-system multibasin benchmark. Format identical to \cref{tab:persystem_h100}.}
+\label{tab:persystem_h500}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h500.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values at \(H=1000\) on the \(15\)-system multibasin benchmark. This is the numerical version of the forest plot in \cref{fig:fixed17_forest}. Format identical to \cref{tab:persystem_h100}.}
+\label{tab:persystem_h1000}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h1000.tex}}
+\end{table}
+
+\subsection*{Per-system audit of the interpretability columns}
+
+\paragraph{Why the wrong-support denominator is \(11\) and not \(15\).}
+The wrong-support ablation builds, for each system, a dictionary mapping each basin to its canonical support mask, defined as the most-common exact support among the deep-slice states of that basin. The ablated rollout draws a mask from a basin different from the state's own basin and holds that wrong mask fixed, so the test requires at least two distinct deep-slice canonical masks. Four of the \(15\) retained benchmark systems, the arrested spiral, asymmetric three-well, triple-well Duffing, and L-shaped five-well systems, have multiple basins by design but a global top-quartile deep slice concentrated in a single basin. The wrong-support ablation is undefined on those four systems by construction, and the corresponding \(K/N\) denominator in \cref{tab:fixed17_alignment} and \cref{tab:persystem_freeze_h1,tab:persystem_freeze_h20} is \(11\) instead of \(15\). A per-basin top-quartile depth re-evaluation is the appendix robustness analysis for the alternative basin-stratified coverage question, but the global-slice numbers remain the source of the current main table.
+
+Tables \ref{tab:persystem_size}--\ref{tab:persystem_freeze_h20} render the full per-(system, candidate) breakdown of the retained active-count diagnostic and the three directional interpretability columns of \cref{tab:fixed17_alignment}. The alternative direction is ``candidate \(<\) baseline'' for \(|S_{\rm abs}|\) and \(H(B\mid F_{\rm abs})\), and ``candidate \(>\) baseline'' for the wrong-support ablation ratios. The main-text family-count column is intentionally not included in these one-sided tests because \(|F_{\rm abs}|\) is a non-directional count.
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for \(|S_{\rm abs}|\), the mean active-coordinate count under the absolute-threshold support on the deep slice. Alternative: candidate \(|S_{\rm abs}|<\) baseline \(|S_{\rm abs}|\).}
+\label{tab:persystem_size}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_MeanSupportSize.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for \(H(B\mid F_{\rm abs})\) on the deep slice. Alternative: candidate \(H(B\mid F_{\rm abs})<\) baseline.}
+\label{tab:persystem_hbf}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_HBgivenF.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for the wrong-support-over-base MSE ratio at \(H1\) on the deep slice. Alternative: candidate ratio \(>\) baseline.}
+\label{tab:persystem_freeze_h1}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_FreezeWrongH1.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system effect sizes and Holm-corrected Wilcoxon \(p\)-values for the wrong-support-over-base MSE ratio at \(H20\). Alternative: candidate \(>\) baseline.}
+\label{tab:persystem_freeze_h20}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_FreezeWrongH20.tex}}
+\end{table}

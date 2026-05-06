@@ -1,0 +1,322 @@
+\section{Multibasin benchmark inventory and system definitions}
+\label{app:fixed17_inventory}
+
+\Cref{tab:fixed17_inventory} lists the \(15\) two-dimensional multibasin systems used in this paper. 
+Every row contributes to the retained-system aggregate in
+\cref{tab:fixed17_alignment}, \cref{tab:self_routing}, and
+\cref{fig:fixed17_horizon_curves}. Four systems are additionally displayed as
+the main benchmark visual panels in \cref{fig:benchmarks}. The support-refresh
+subtable uses \(12\) retained systems for which the controlled-transfer
+construction produced eligible post-entry comparisons. 
+
+Basin labels are used
+only for benchmark annotation, controlled-transfer construction, and evaluation.
+Basin counts are benchmark metadata; for the
+structured-transition ablation rows, they are also used only to set a fixed
+architecture group count, as described in \cref{app:experimental_details}, and
+not for support extraction, support-family construction, routing, or rollout
+evaluation.
+
+The 15 multibasin benchmark systems were generated procedurally with Claude Opus 4.5. 
+
+\begin{table}[tbp]
+\centering
+\caption{The \(15\) multibasin benchmark systems.}
+\label{tab:fixed17_inventory}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l l l c@{}}
+\toprule
+Display name & System key & Generator family & Basins \\
+\midrule
+Local-linear gates
+  & \texttt{gated\_local\_linear}
+  & piecewise local-linear gates & 3 \\
+Transfer-gated local-linear
+  & \texttt{gated\_transfer\_linear}
+  & piecewise transfer gates & 3 \\
+Arrested spiral
+  & \texttt{arrested\_spiral}
+  & spiral capture with Gaussian traps & 5 \\
+Asymmetric three-well
+  & \texttt{cal\_asymmetric\_3}
+  & Gaussian wells with independent rotation & 3 \\
+High-cross three-well
+  & \texttt{cal\_high\_cross\_3}
+  & Gaussian wells with stronger rotation & 3 \\
+Hexagonal six-well
+  & \texttt{cal\_hexagon\_6}
+  & Gaussian wells with independent rotation & 6 \\
+Octagonal eight-well
+  & \texttt{cal\_octagon\_8}
+  & Gaussian wells with independent rotation & 8 \\
+Pentagonal five-well
+  & \texttt{cal\_pentagon\_5}
+  & Gaussian wells with independent rotation & 5 \\
+Square four-well
+  & \texttt{cal\_square\_4}
+  & Gaussian wells with independent rotation & 4 \\
+Triple-well Duffing
+  & \texttt{duffing\_triple\_well}
+  & triple-well Duffing oscillator & 3 \\
+SNIC multi-attractor
+  & \texttt{snic\_multi}
+  & polar SNIC-like phase dynamics & 3 \\
+Transition-routes four-well
+  & \texttt{transition\_routes\_4}
+  & route-augmented Gaussian wells & 4 \\
+Depth-gradient four-well
+  & \texttt{var\_depth\_gradient\_4}
+  & Gaussian wells with depth gradient & 4 \\
+Diamond four-well
+  & \texttt{var\_diamond\_4}
+  & Gaussian wells on a diamond layout & 4 \\
+L-shaped five-well
+  & \texttt{var\_l\_shape\_5}
+  & Gaussian wells on an L-shaped layout & 5 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\paragraph{Stored-step convention.}
+All retained systems are implemented as continuous-time vector fields
+\(\dot x=f_s(x)\) and integrated with fourth-order Runge--Kutta to produce the
+stored observation map \(F_{\Delta t}\) used in \cref{eq:sampled_map}. The
+training windows contain only stored states \(x_k\), not \(f_s\), integration
+substeps, or basin assignments.
+
+\paragraph{Gaussian-well family.}
+Most retained catalog systems use a common two-dimensional Gaussian potential
+with an independent rotational drift. For \(x=(x_1,x_2)\in\R^2\), let
+\(R x=(x_2,-x_1)\) and
+\[
+  V_s(x)
+  =
+  \sum_{i=1}^{M_s}
+  -a_{s,i}
+  \exp\!\left(-\frac{\norm{x-c_{s,i}}_2^2}{2\sigma_{s,i}^2}\right)
+  +\gamma_s(x_1^4+x_2^4).
+\]
+The implemented vector field is
+\begin{equation}
+  \dot x = -\nabla V_s(x)+\omega_s R x .
+  \label{eq:app_gaussian_well}
+\end{equation}
+Define \(p_i^{(M)}(r,\varphi)
+=r(\cos(2\pi i/M+\varphi),\sin(2\pi i/M+\varphi))\), \(i=0,\ldots,M-1\).
+The retained Gaussian-well systems instantiate \cref{eq:app_gaussian_well} with
+the parameters in \cref{tab:app_gaussian_params}.
+
+\begin{table}[tbp]
+\centering
+\caption{Parameters for retained Gaussian-well systems. Repeated pairs in the
+\((a_i,\sigma_i)\) column apply to every listed center.}
+\label{tab:app_gaussian_params}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+System & \(\{c_i\}\) & \((a_i,\sigma_i)\) & \((\omega,\gamma)\) \\
+\midrule
+High-cross three-well
+  & \(\{p_i^{(3)}(1.8,\pi/2)\}\)
+  & \((3.0,0.5)\) & \((2.0,0.03)\) \\
+Hexagonal six-well
+  & \(\{p_i^{(6)}(1.7,0)\}\)
+  & \((2.0,0.5)\) & \((1.0,0.03)\) \\
+Octagonal eight-well
+  & \(\{p_i^{(8)}(2.2,0)\}\)
+  & \((3.0,0.5)\) & \((0.90,0.02)\) \\
+Pentagonal five-well
+  & \(\{p_i^{(5)}(1.8,\pi/2)\}\)
+  & \((2.0,0.5)\) & \((1.1,0.03)\) \\
+Square four-well
+  & \(\{p_i^{(4)}(1.8,\pi/4)\}\)
+  & \((3.0,0.5)\) & \((1.0,0.03)\) \\
+Diamond four-well
+  & \(\{(0,2.2),(2.2,0),(0,-2.2),(-2.2,0)\}\)
+  & \((2.5,0.5)\) & \((1.0,0.02)\) \\
+L-shaped five-well
+  & \(\{(-1.5,1.5),(-1.5,0),(-1.5,-1.5),(0,-1.5),(1.5,-1.5)\}\)
+  & \((2.5,0.5)\) & \((1.0,0.03)\) \\
+Asymmetric three-well
+  & \(\{(0,1.8),(-1.5,-0.9),(1.5,-0.9)\}\)
+  & \(\{(2.5,0.55),(1.5,0.4),(2.0,0.5)\}\) & \((1.0,0.03)\) \\
+Depth-gradient four-well
+  & \(\{(-1.3,1.3),(1.3,1.3),(1.3,-1.3),(-1.3,-1.3)\}\)
+  & \(\{(2.2,0.55),(2.5,0.5),(3.0,0.5),(3.5,0.5)\}\) & \((1.3,0.03)\) \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The transition-routes system uses the same Gaussian-well form with centers
+\[
+  \{c_i\}
+  =
+  \{(-1.8,1.8),(1.8,1.8),(-1.8,-1.8),(1.8,-1.8)\},
+\]
+\(a_i=3.0\), \(\sigma_i=0.6\), \(\omega=1.0\), and \(\gamma=0.03\), and adds a
+corridor-dependent rotation term:
+\begin{equation}
+  \dot x
+  =
+  -\nabla V_s(x)
+  +
+  \bigl(1.0+0.3\,C_{\rm route}(x_2)\bigr) R x,
+  \qquad
+  C_{\rm route}(x_2)
+  =
+  e^{-(x_2-1.8)^2/0.3}+e^{-(x_2+1.8)^2/0.3}.
+  \label{eq:app_transition_routes}
+\end{equation}
+
+\paragraph{Native gated local-linear systems.}
+Both native gated systems place three centers on a circular layout, but with
+different radii and region definitions. Let
+\(Q(\alpha)=\begin{psmallmatrix}\cos\alpha&-\sin\alpha\\
+\sin\alpha&\cos\alpha\end{psmallmatrix}\) and
+\(\alpha_b=2\pi b/3\), \(b\in\{0,1,2\}\).
+
+For \texttt{gated\_local\_linear}, \(c_b=1.75(\cos\alpha_b,\sin\alpha_b)\).
+Inside the radius-\(1.05\) core of basin \(b\),
+\[
+  \dot x=A_b(x-c_b),\qquad
+  A_b=Q(\alpha_b)\widetilde A_b Q(\alpha_b)^\top,
+\]
+with
+\[
+\widetilde A_0=\begin{psmallmatrix}-0.9&-1.2\\1.2&-0.9\end{psmallmatrix},
+\quad
+\widetilde A_1=\begin{psmallmatrix}-1.35&0.2\\-0.3&-0.7\end{psmallmatrix},
+\quad
+\widetilde A_2=\begin{psmallmatrix}-0.7&-0.1\\0.5&-1.2\end{psmallmatrix}.
+\]
+Outside the cores, the active sector is the nearest angular sector \(s(x)\) and
+the shared gate matrix
+\[
+  G=\begin{psmallmatrix}-1.35&-0.9\\0.9&-1.35\end{psmallmatrix}
+\]
+drives the state as \(\dot x=G(x-c_{s(x)})\).
+
+For \texttt{gated\_transfer\_linear}, \(c_b=1.85(\cos\alpha_b,\sin\alpha_b)\).
+The implemented radii and widths are
+\[
+\begin{aligned}
+  \rho_{\rm core}&=0.30, &
+  \rho_{\rm source}&=0.80, &
+  \rho_{\rm exit}&=0.60, &
+  \beta_{\rm exit}&=0.72,\\
+  w_{\rm chan}&=0.22, &
+  \delta_{\rm lane}&=0.28, &
+  \rho_{\rm hand}&=0.45 .
+\end{aligned}
+\]
+The core matrices use the same rotated form with templates
+\[
+\begin{psmallmatrix}-1.0&-1.1\\1.1&-1.0\end{psmallmatrix},\quad
+\begin{psmallmatrix}-1.4&0.2\\-0.2&-0.7\end{psmallmatrix},\quad
+\begin{psmallmatrix}-0.8&-0.3\\0.5&-1.3\end{psmallmatrix}.
+\]
+For each ordered pair \(p=(s,t)\), \(s\ne t\), define
+\[
+  d_{s\to t}=\frac{c_t-c_s}{\norm{c_t-c_s}_2},\qquad
+  n_{s\to t}=(-d_{s\to t,2},d_{s\to t,1}),\qquad
+  o_t=\frac{c_t}{\norm{c_t}_2},
+\]
+and \(\chi_{s,t}=1\) when \(\sin(\alpha_s-\alpha_t)\ge 0\), otherwise
+\(\chi_{s,t}=-1\). The implemented channel entry and handoff points are
+\[
+\begin{aligned}
+  e_p &= c_s+\rho_{\rm source}d_{s\to t}
+        +\chi_{s,t}\delta_{\rm lane}n_{s\to t},\\
+  h_p &= c_t+\rho_{\rm hand}o_t
+        +\chi_{s,t}\delta_{\rm lane}(-o_{t,2},o_{t,1}),
+\end{aligned}
+\]
+with channel direction \(d_p=(h_p-e_p)/\norm{h_p-e_p}_2\), channel normal
+\(n_p=(-d_{p,2},d_{p,1})\), and channel length
+\(\ell_p=(h_p-e_p)\cdot d_p\).
+
+The vector field is piecewise analytic. Core regions
+\(\norm{x-c_b}_2\le\rho_{\rm core}\) use \(A_b(x-c_b)\). Source annuli use
+\(0.65A_b(x-c_b)\), and other non-channel background regions use
+\(0.50A_b(x-c_b)\) for the nearest center \(c_b\). Exit wedges for
+\(p=(s,t)\) are source-neighborhood states outside the core with
+\(\norm{x-c_s}_2\ge\rho_{\rm exit}\) and
+\((x-c_s)\cdot d_{s\to t}\ge\norm{x-c_s}_2\cos\beta_{\rm exit}\); they use
+\[
+  \dot x = v_{\rm exit}d_{s\to t}
+  -\lambda_{\rm exit}\bigl((x-c_s)\cdot n_{s\to t}\bigr)n_{s\to t},
+  \qquad
+  v_{\rm exit}=1.0,\quad \lambda_{\rm exit}=1.8;
+\]
+and channel rectangles satisfying
+\[
+  0\le (x-e_p)\cdot d_p\le \ell_p,\qquad
+  |(x-e_p)\cdot n_p|\le w_{\rm chan}
+\]
+use
+\[
+  \dot x = v_{\rm chan}d_p
+  -\lambda_{\rm chan}\bigl((x-e_p)\cdot n_p\bigr)n_p,
+  \qquad
+  v_{\rm chan}=1.55,\quad \lambda_{\rm chan}=2.8.
+\]
+
+\paragraph{Other specialized systems.}
+The arrested spiral system has a background spiral flow plus four Gaussian
+traps and an origin trap:
+\[
+  \dot x
+  =
+  -0.3x+2.0Rx
+  -4.0\sum_{i=1}^{4}
+  e^{-\norm{x-c_i}_2^2/(2\cdot0.25)}
+  \frac{x-c_i}{0.25}
+  -1.5e^{-\norm{x}_2^2/0.3}\frac{x}{0.15}
+  -0.02(x_1^3,x_2^3),
+\]
+with \(c_i\in\{(1.5,0),(0,1.8),(-1,-1),(0.8,-1.5)\}\). Its fifth basin is the
+origin trap, matching the benchmark manifest count.
+
+The triple-well Duffing system uses \(x=(q,p)\) and
+\[
+  V(q)=q^6/6-q^4/2+a q^2,\qquad
+  V'(q)=q^5-2q^3+2a q,
+\]
+with \(a=0.3\), damping \(\delta=0.5\), rotation strength \(\omega=1.0\), and
+soft cubic confinement \(-\epsilon u^3/s^3\) with \(\epsilon=0.003\) and
+\(s=4.0\):
+\begin{equation}
+\begin{aligned}
+  \dot q &= (1+\omega)p-\epsilon q^3/s^3,\\
+  \dot p &= -V'(q)-\delta p-\omega q-\epsilon p^3/s^3 .
+\end{aligned}
+\label{eq:app_duffing_triple}
+\end{equation}
+
+The SNIC system is implemented in polar form and then converted to Cartesian
+coordinates. With \(\varepsilon_{\rm num}=10^{-8}\),
+\(r^2=x_1^2+x_2^2+\varepsilon_{\rm num}\), \(r=\sqrt{r^2}\),
+\(\theta=\operatorname{atan2}(x_2,x_1)\),
+\(c_\theta=x_1/(r+\varepsilon_{\rm num})\), and
+\(s_\theta=x_2/(r+\varepsilon_{\rm num})\),
+\[
+  \dot r=r(1-r^2)-0.3\cos(3\theta),\qquad
+  \dot\theta=1-1.2\cos(3\theta).
+\]
+The Cartesian vector field is
+\[
+\begin{aligned}
+  \dot x_1
+  &= \dot r c_\theta-r\dot\theta s_\theta
+     -0.01x_1(x_1^2+x_2^2)+0.5x_2,\\
+  \dot x_2
+  &= \dot r s_\theta+r\dot\theta c_\theta
+     -0.01x_2(x_1^2+x_2^2)-0.5x_1 .
+\end{aligned}
+\]
+These analytic generators define the benchmark trajectories. Held-out
+evaluation annotations are produced by the benchmark label helpers or by
+endpoint-rollout basin labeling, and the learned models observe only stored
+states.

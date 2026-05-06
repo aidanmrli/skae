@@ -1,0 +1,70 @@
+\section{Additional experimental details}
+\label{app:experimental_details}
+
+\paragraph{Training and model rows.}
+The controlled multibasin comparison uses the six model rows reported in \cref{tab:fixed17_alignment}. All use latent dimension \(d_z=256\) and are trained on rollout length \(L=8\) windows (nine adjacent stored states) for \(200{,}000\) optimization steps with minibatches of \(256\) windows, using the prediction, reconstruction, latent-linearity, and sparsity objective described in \cref{sec:method_training}. The multibasin runs use AdamW, with learning rate \(5{\times}10^{-5}\) for the encoder and decoder, learning rate \(5{\times}10^{-6}\) for the latent transition, and weight decay \(10^{-4}\) on the non-transition parameters. In the notation of \cref{eq:training_objective}, the relative weights are \(\lambda_{\rm pred}=1\), \(\lambda_{\rm rec}=0.03\), and \(\lambda_{\rm lin}=1\); sparse rows use \(\lambda_{\rm sp}=3{\times}10^{-3}\), while the Dense MLP row sets \(\lambda_{\rm sp}=0\). The block-diagonal and soft-block rows are architecture diagnostics: they use benchmark generator metadata only to set the fixed number of latent transition groups. Basin labels and trajectory-to-basin assignments are not used by the training objective, support extraction, or routing rules. All six controlled rows use the same boundary-emphasized training-state distribution. 
+Before model training, we build a pool of difficult reset states by probing 4096 candidate initial conditions for 32 steps. Candidates are ranked by short-horizon perturbation sensitivity and residual late-rollout motion, and the top 1024 are retained. 
+During training, 50\% of rollout windows start from this retained pool with small jitter. 
+This helps to ensure states from basin boundaries and transient regions are sufficiently covered in the training set, as otherwise they are rarely seen. This training distribution is deliberately broader than the deep-state evaluation slice: the model must learn a representation over the multibasin state space without being told basin labels, basin counts, or which states lie safely inside a basin. The deep-state slice is used only after training to score whether support families identify clean basin interiors. It is not used to train the encoder or transition, and it is not the forecasting evaluation population.
+
+The saved best checkpoint is chosen by a fixed validation rule during training. Every \(500\) optimization steps, and again at the final step, the current model is rolled out for \(200\) steps from \(16\) held-out initial states using every-step re-encoding. The checkpoint with the lowest final validation error is saved as a checkpoint.
+
+The main Dysts setup serves as a forecasting stress test from an external benchmark of nontrivial systems, and focuses on LISTA, LISTA--BD, Sparse MLP, Sparse MLP--BD, and Dense MLP as the primary models for comparison. 
+Dysts rows use latent dimension \(d_z=256\), \(100{,}000\) optimization steps, minibatches of \(256\) windows, and rollout length \(L=10\) windows. 
+Dysts training trajectories are drawn from native trajectory caches with standardized coordinates, \(200\) cached trajectories, \(30{,}000\) stored observations per trajectory, and a \(2{,}000\)-step warm-up. 
+The current table reports the \(dt{\times}30\) version of this benchmark: the stored Dysts observation interval is set to \(30\) times the intrinsic Dysts timestep for the corresponding system, and evaluation uses reduced horizon indices through \(H=5000\). 
+Initial conditions are based on each Dysts system's default initial condition; the remaining cached trajectories perturb that state with Gaussian noise at scale \(0.2\) times the coordinate-wise Dysts standard deviation. 
+Train, validation, and test caches are split so held-out trajectories are disjoint from training windows and reusable across model seeds. Long-horizon evaluation uses the disjoint held-out test cache, with a batch of \(100\) held-out test windows, equivalently rollout initial states, for each system and seed. 
+LISTA rows use the same learning rates as the multibasin runs, while MLP rows use learning rates \(10^{-4}\) for encoder/decoder parameters and \(10^{-5}\) for the latent transition. 
+Sparse models use \(\lambda_{\rm sp}=6{\times}10^{-3}\), while the Dense MLP baseline sets \(\lambda_{\rm sp}=0\).
+The soft-block diagonal LISTA model outperformed the dense MLP but was not included in the main table due to weaker statistical significance and worse relative performance than the rest of the LISTA models; we do not have a compelling explanation for why. Perhaps soft-block diagonal regularization provides the worst of both worlds in terms of Koopman transition structure for long horizon forecasting.
+
+\begin{table}[tbp]
+\centering
+\caption{Dysts forecasting systems. These systems are used only as external long-horizon forecasting stress tests.}
+\label{tab:dysts_inventory}
+\begin{tabular}{@{}l c@{}}
+\toprule
+System & State dimension \\
+\midrule
+Chua & 3 \\
+Dadras & 3 \\
+Dequan Li & 3 \\
+Hadley & 3 \\
+Lu--Chen--Cheng & 3 \\
+Qi--Chen & 3 \\
+Sakarya & 3 \\
+San--Um--Srisuchinwong & 3 \\
+Shimizu--Morioka & 3 \\
+Wang--Sun & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Dysts systems have system-specific native integration intervals, so the cached sequences should be interpreted as benchmark observation sequences rather than as trajectories normalized to a common physical time. Coordinates are standardized before training and evaluation. The models never observe the vector field, the continuous solver, or the native integration substeps; they receive uniformly spaced stored states and are evaluated in stored-step units.
+
+\paragraph{Training recipe selection.}
+Earlier exploratory sweeps varied LISTA depth, shrinkage scale, sparsity coefficient, sign-split encodings, transition structure, and MLP sparsity controls. Those pilots used shorter budgets or broader system lists, so their numeric grids are not treated as final protocol here. The paper-facing appendix instead reports the fixed model rows, training budgets, validation rule, held-out splits, and statistical units used for the final claims. In particular, staged recipe-discovery sweeps with \(10{,}000\)-step, three-seed cells and one-step training windows were used only to choose candidate recipes. They are not pooled with the final \(200{,}000\)-step, held-out-split evaluations and should not be interpreted as paper evidence.
+
+\paragraph{Evaluation splits.}
+All reported forecasting and interpretability results are evaluated on held-out trajectories or held-out cache windows, not on the training windows. Multibasin forecasting uses \(100\) held-out initial conditions for each system and seed and is evaluated on all held-out rollouts, not restricted to the deep-state slice. Routing fits local predictors on \(256\) disjoint held-out trajectories of length \(256\) and evaluates them on a separate set of \(128\) held-out rollouts. The Dysts long-horizon table uses \(100\) held-out cached test windows for each system and seed. Procedural benchmark annotations define evaluation slices, score support--basin agreement, construct controlled transfer pairs, and compute statistical summaries.
+
+For support--basin diagnostics, the main manuscript uses the global deep-state slice. Given distances from an evaluation state to the closest and second-closest benchmark attractor centers, the basin-depth margin is the difference between those two distances. The global deep-state slice is the top quartile of this margin over all held-out evaluation states in a system. It removes boundary-adjacent and transition states for the static support-alignment question, but it can underrepresent shallower basins when attractor depths are unequal. The per-basin deep-slice robustness check instead takes the top quartile within each basin so every represented basin contributes relative-deep states.
+
+The support-routed operator-fitting split contains \(256\times256=65{,}536\) adjacent latent transitions per trained checkpoint and support definition. At the longest routed horizon reported in \cref{tab:self_routing}, \(h=1000\), the separate forecast split contains \(128\times1000=128{,}000\) one-step target positions along the evaluated rollouts. By comparison, the multibasin training budget samples \(200{,}000\times256\times8=409{,}600{,}000\) one-step transition targets from online rollout length \(L=8\) windows; this is a sampling-budget comparison rather than a fixed finite training-set size, because the procedural training windows are regenerated from the environment.
+
+\paragraph{Periodic forecasting.}
+All forecast horizons \(h\) and re-encoding periods \(m\) are reported in stored observation steps, not in equal physical time across systems. The no-reencoding rollout applies the learned latent transition for the full horizon before decoding. The periodic rollout decodes and re-encodes the model's own predicted state at a fixed period \(m\). The multibasin forecasting tables select the best score over periods \(m\in\{10,25,50,100\}\). The Dysts \(dt{\times}30\) evaluation uses periods \(m\in\{10,25,50,100,150,200\}\). These choices are fixed before aggregation and do not use the true future trajectory.
+
+The fixed re-encoding grid is used only at evaluation time. Checkpoint selection uses the validation proxy described above, not a search over the final test-period grid, and the reported point estimates aggregate all completed seeds rather than selecting the best seed. The best-periodic score should therefore be read as a controlled diagnostic of whether a model benefits from regular support refresh at deployment, not as a training procedure or teacher-forced correction.
+
+\paragraph{Support diagnostics.}
+The wrong-support ablation first constructs, for each basin in a testable system, a canonical deep-slice \(S_{\rm abs}\) mask from the most common exact mask observed in that basin. The ablated rollout replaces the inferred \(S_{\rm abs}\) mask with a canonical mask from a different basin and holds that replacement fixed. \Cref{tab:fixed17_alignment} reports the wrong-support/base error ratio at horizons \(h=1\) and \(h=20\); larger ratios indicate stronger functional dependence on the selected support.
+
+\paragraph{Routing details.}
+Support-routed forecasting uses fixed-size \(S_{\rm top8}\) masks so every encoded state receives an eight-index support key before family merging. The main table reports \(F_{\rm top8}\)-local routing, which merges nearby top-\(8\) masks into support families with Jaccard threshold \(0.5\) and fits centered affine local maps \(T_c(z)=\bar z_c+K_c(z-\bar z_c)\). The ridge penalty is \(10^{-4}\). At evaluation time, a local route is used only if it was observed in at least \(128\) fitted transitions; otherwise the rollout falls back to the global latent transition. The reported routed/global ratio always compares the routed prediction with the same model's own global rollout, not with another model family. Exact gated \(S_{\rm top8}\) and exact \(S_{\rm top8}\)-local routes are retained in \cref{tab:self_routing_deep} as route-form diagnostics rather than as the main paper claim.
+
+The LISTA + local \(K_c\) row in \cref{tab:fixed17_alignment} is a second-stage forecasting variant rather than a separately trained representation. It freezes the Table~\ref{tab:fixed17_alignment} LISTA encoder and decoder, constructs \(F_{\rm top8}\) support-family routes with Jaccard threshold \(0.40\), initializes each family-local transition map from the learned global \(K\), and trains only those local transition maps for \(50{,}000\) rollout-loss optimization steps. Evaluation uses periodic decode/re-encode with period \(5\) and reroutes at each step. Because the encoder is frozen, support-alignment diagnostics such as \(H(B\mid F_{\rm abs})\) and \(\overline{|F_{\rm abs}|}\) are the same representation diagnostics as LISTA; Table~\ref{tab:fixed17_alignment} therefore reports this row as forecasting-only with inherited support diagnostics.
+
+\paragraph{Support refresh.}
+The support-refresh experiment uses exact \(S_{\rm top8}\) supports and the two re-encoding periods reported in \cref{tab:support_refresh}, \(m\in\{1,10\}\). Each comparison starts from a controlled source-to-target transfer with \(32\) pre-transition steps, \(32\) bridge steps, and \(128\) post-transition steps; the displayed benchmark rows score post-start continuation rollouts of horizon \(64\). The frozen-source rollout keeps using the source \(S_{\rm top8}\) mask after target entry, while the refreshed-current rollout periodically decodes, re-encodes, and re-extracts \(S_{\rm top8}\) from its own predicted state. Controlled basin labels are used only to construct and evaluate this benchmark transfer protocol. Benchmark annotations construct valid transfer pairs and score post-entry routing.

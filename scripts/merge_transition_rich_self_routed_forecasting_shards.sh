@@ -14,7 +14,7 @@
 #
 #SBATCH --job-name=tr_self_route_merge
 #SBATCH --ntasks=1
-#SBATCH --partition=long-cpu
+#SBATCH --partition=long
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --time=00:30:00

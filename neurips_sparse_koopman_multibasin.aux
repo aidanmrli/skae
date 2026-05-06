@@ -2,18 +2,75 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
-\citation{kalman_general_1960}
-\citation{mayne_constrained_2000,grune_nonlinear_2017}
+\citation{mayne_constrained_2000,grune_nonlinear_2017,korda_linear_2018,kalman_general_1960,mamakoukas_local_2019}
 \citation{grobman1959homeomorphism,hartman1960lemma}
 \citation{lan_linearization_2013,kvalheim_existence_2021}
 \citation{koopman_hamiltonian_1931,koopman_dynamical_1932,mezic2005spectral,brunton_modern_2022}
 \citation{schmid_dmd_2010,williams_datadriven_2015,williams_kernel-based_2016}
-\citation{korda_linear_2018}
-\citation{mamakoukas_local_2019}
 \citation{takeishi2017learning,lusch_deep_2018,otto2019linearly,azencot_forecasting_2020,shi_deep_2022,fathi2024course}
+\citation{lan_linearization_2013,brunton_koopman_2016,pan_lifting_2024,liu_properties_2025}
+\citation{fathi2024course}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:introduction}{{1}{1}{Introduction}{section.1}{}}
 \newlabel{sec:introduction@cref}{{[section][1][]1}{[1][1][]1}{}{}{}}
-\citation{lan_linearization_2013,brunton_koopman_2016,pan_lifting_2024}
 \citation{olshausen_emergence_1996,chen_atomic_1998,donoho_optimally_2003,gregor_learning_2010}
+\citation{fathi2024course}
+\citation{fathi2024course}
+\@writefile{toc}{\contentsline {paragraph}{Contributions.}{2}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Problem formulation}{2}{section.2}\protected@file@percent }
+\newlabel{sec:problem}{{2}{2}{Problem formulation}{section.2}{}}
+\newlabel{sec:problem@cref}{{[section][2][]2}{[1][2][]2}{}{}{}}
+\newlabel{eq:sampled_map}{{1}{2}{Problem formulation}{equation.1}{}}
+\newlabel{eq:sampled_map@cref}{{[equation][1][]1}{[1][2][]2}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Basins of attraction.}{3}{section*.2}\protected@file@percent }
+\newlabel{eq:basin}{{2}{3}{Basins of attraction}{equation.2}{}}
+\newlabel{eq:basin@cref}{{[equation][2][]2}{[1][3][]3}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Koopman theory.}{3}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Koopman autoencoders.}{3}{section*.4}\protected@file@percent }
+\newlabel{eq:kae_forecast}{{3}{3}{Koopman autoencoders}{equation.3}{}}
+\newlabel{eq:kae_forecast@cref}{{[equation][3][]3}{[1][3][]3}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Training windows.}{3}{section*.5}\protected@file@percent }
+\newlabel{eq:window_rollout}{{4}{3}{Training windows}{equation.4}{}}
+\newlabel{eq:window_rollout@cref}{{[equation][4][]4}{[1][3][]3}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Model discovers basins unsupervised.}{3}{section*.6}\protected@file@percent }
+\citation{beck2009fast}
+\citation{beck2009fast}
+\citation{gregor_learning_2010}
+\citation{olshausen_emergence_1996}
+\citation{gregor_learning_2010}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{4}{section.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{4}{Method}{section.3}{}}
+\newlabel{sec:method@cref}{{[section][3][]3}{[1][3][]4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Sparse supports as local regime variables}{4}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:method_regime_supports}{{3.1}{4}{Sparse supports as local regime variables}{subsection.3.1}{}}
+\newlabel{sec:method_regime_supports@cref}{{[subsection][1][3]3.1}{[1][3][]4}{}{}{}}
+\newlabel{eq:sparse_coding_objective}{{5}{4}{Sparse supports as local regime variables}{equation.5}{}}
+\newlabel{eq:sparse_coding_objective@cref}{{[equation][5][]5}{[1][4][]4}{}{}{}}
+\newlabel{eq:claim_chain}{{6}{4}{Sparse supports as local regime variables}{equation.6}{}}
+\newlabel{eq:claim_chain@cref}{{[equation][6][]6}{[1][4][]4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Koopman autoencoder and sparse encoder}{4}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:method_model}{{3.2}{4}{Koopman autoencoder and sparse encoder}{subsection.3.2}{}}
+\newlabel{sec:method_model@cref}{{[subsection][2][3]3.2}{[1][4][]4}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Sparse encoding.}{4}{section*.7}\protected@file@percent }
+\newlabel{eq:lista}{{7}{5}{Sparse encoding}{equation.7}{}}
+\newlabel{eq:lista@cref}{{[equation][7][]7}{[1][4][]5}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Transition families.}{5}{section*.8}\protected@file@percent }
+\newlabel{eq:block_transition}{{8}{5}{Transition families}{equation.8}{}}
+\newlabel{eq:block_transition@cref}{{[equation][8][]8}{[1][5][]5}{}{}{}}
+\newlabel{eq:offblock_penalty}{{9}{5}{Transition families}{equation.9}{}}
+\newlabel{eq:offblock_penalty@cref}{{[equation][9][]9}{[1][5][]5}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Training objective}{5}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:method_training}{{3.3}{5}{Training objective}{subsection.3.3}{}}
+\newlabel{sec:method_training@cref}{{[subsection][3][3]3.3}{[1][5][]5}{}{}{}}
+\newlabel{eq:loss_state_terms}{{10}{5}{Training objective}{equation.10}{}}
+\newlabel{eq:loss_state_terms@cref}{{[equation][10][]10}{[1][5][]5}{}{}{}}
+\newlabel{eq:loss_latent_terms}{{11}{5}{Training objective}{equation.11}{}}
+\newlabel{eq:loss_latent_terms@cref}{{[equation][11][]11}{[1][5][]5}{}{}{}}
+\newlabel{eq:training_objective}{{12}{5}{Training objective}{equation.12}{}}
+\newlabel{eq:training_objective@cref}{{[equation][12][]12}{[1][5][]5}{}{}{}}
+\citation{jaccard_etude_1901}
+\citation{hartigan_clustering_1975}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Support objects}{6}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:method_supports}{{3.4}{6}{Support objects}{subsection.3.4}{}}
+\newlabel{sec:method_supports@cref}{{[subsection][4][3]3.4}{[1][5][]6}{}{}{}}
 \citation{fathi2024course}

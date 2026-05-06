@@ -1,8 +1,8 @@
 # Experiments (Core)
 
-Date: May 3, 2026
-Evidence organization last refreshed: `2026-05-03`
-Paper-critical live queue status last refreshed: `2026-05-03`
+Date: May 6, 2026
+Evidence organization last refreshed: `2026-05-05`
+Paper-critical live queue status last refreshed: `2026-05-06`
 
 ## Current Status Summary
 
@@ -26,6 +26,13 @@ Current paper-facing approach:
 - Keep training/deployment claims label-free: basin labels and basin counts are
   used only for benchmark evaluation, not for training, model selection, or
   routing.
+- Run the direct support-router comparison before making any empirical claim
+  that the fixed-size \(F_{\rm top8}\) router is better behaved than the
+  absolute-threshold \(F_{\rm abs}\) router for long-horizon forecasting. The
+  matching \(F_{\rm abs}\) stage-2 replay is now queued against the existing
+  \(F_{\rm top8}\) fixed-setting results. Until the replay lands, the current
+  manuscript can cite fixed cardinality and scale invariance of `topk:8` as
+  definitional properties only.
 
 Solution/status:
 - The live documentation is now organized around four evidence buckets:
@@ -34,16 +41,324 @@ Solution/status:
   evidence.
 - [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
   now also contains the recommended main-text and appendix figure/table plan.
-- The main-paper benchmark visual is now generated and wired into
+- May 6 protocol-clarity pass: `docs/neurips_sparse_koopman_multibasin.tex`
+  now explicitly separates the controlled multibasin training distribution,
+  the global deep-state slice used for Table 1 support diagnostics, and the
+  all-held-out-rollout population used for Table 1 forecasting columns. The
+  deep slice is defined as the global top quartile of the basin-depth margin
+  (second-nearest attractor-center distance minus nearest attractor-center
+  distance) and is evaluation-only. The draft now includes the explicit
+  rationale: training stays broad because the deployment problem has no basin
+  labels or clean-interior oracle and must cover boundary/transient states;
+  the deep slice is reserved for static support-purity diagnostics because
+  basin membership is least ambiguous in basin interiors. Table 1 now orders
+  the all-held-out forecasting columns before the global-deep-slice support
+  diagnostics.
+- May 6 per-basin deep-slice correction: the older per-basin robustness packet
+  completed for the earlier root roster, but it does not cover the current
+  manuscript Table 1 roster because it lacks the plain `p256` LISTA row and uses
+  the older `p64` LISTA-SB row. The current Table 1 per-basin re-evaluation is
+  now running via
+  [queue_per_basin_deep_current_table1_eval.sh](/home/mila/l/lia/skae/scripts/queue_per_basin_deep_current_table1_eval.sh):
+  backfill shards `9477837`--`9477840` with merge `9477841`, matched `p256`
+  LISTA-SB shard `9477842` with merge `9477843`, and plain `p256` LISTA shard
+  `9477844` with merge `9477845`. As of `2026-05-06 01:52 EDT`, the shard jobs
+  were still running and merge jobs were dependency-held; partial shard
+  manifests show only the first `25`--`30` runs per root completed with `0`
+  failures. Treat all current-roster per-basin numbers as partial until the
+  merge jobs finish.
+- May 6 \(F_{\rm abs}\) router-comparison launch: the matching stage-2
+  support-family-local replay has been submitted under
+  [results/routed_stage2_local_maps_20260506](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506)
+  with `support_definition=absolute:0.001`, `J=0.40`, period `5`,
+  `reroute_each_step`, `50000` optimizer steps, one GPU per worker, `DEVICE=cuda`,
+  and worker partition `long`. The controlled multibasin seed batches are
+  `9478281`--`9478356 -> 9478357` and `9478359`--`9478433 -> 9478434`, with
+  combined job `9478541`; the Dysts seed batches are `9478436`--`9478485 ->
+  9478486` and `9478488`--`9478537 -> 9478538`, with combined job `9478542`.
+  This is queue state only, not a result.
+- May 6 reviewer-scope experiment launch: the requested oracle/local-K,
+  explicit regime-discovery, and out-of-generator multistability checks are
+  now either found in existing artifacts or queued. The existing compact
+  partition-control audit already contains global-\(K\), learned
+  support-family, latent-k-means, and oracle-basin centered local-\(K\) rows
+  under
+  [results/transition_rich_table2_controls_p256_compact_20260502](/home/mila/l/lia/skae/results/transition_rich_table2_controls_p256_compact_20260502).
+  A plain p256 LISTA oracle-vs-learned add-on is queued under
+  [results/oracle_vs_learned_local_koopman_20260506](/home/mila/l/lia/skae/results/oracle_vs_learned_local_koopman_20260506)
+  with shard jobs `9478597`, `9478599`, `9478601` and merge `9478603`.
+  The new explicit regime-discovery evaluator has been SLURM-validated and is
+  queued under
+  [results/regime_discovery_local_koopman_20260506](/home/mila/l/lia/skae/results/regime_discovery_local_koopman_20260506)
+  with retry shard jobs `9478633`--`9478647` and merge `9478648`. It compares
+  k-means, diagonal GMM, and spectral clustering
+  on raw state, dense latent, sparse latent values, and binary supports, with
+  both evaluation-only basin-count and label-free support-family-count
+  cluster-count settings. A supplemental out-of-generator packet is queued
+  under
+  [results/out_of_generator_multistable_p256_lista_20260506](/home/mila/l/lia/skae/results/out_of_generator_multistable_p256_lista_20260506)
+  for a three-gene toggle, thermal reactor, modified FitzHugh-Nagumo, and
+  buckled beam; training array `9478617` feeds collect `9478618`,
+  interpretability `9478619 -> 9478620`, oracle/local-K `9478621 -> 9478622`,
+  and regime-discovery `9478623 -> 9478624`. This is queue state only, not a
+  result.
+- The Methods schematic has been regenerated and wired into
   `docs/neurips_sparse_koopman_multibasin.tex` as Figure 1:
+  [fig_methods_support_family_pipeline.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_methods_support_family_pipeline.pdf).
+  It replaces the earlier sectorized overview with a cleaner two-panel
+  white-background schematic: a label-free support route from \(x_t\) to
+  support-conditioned prediction, plus a zoomed support-family construction
+  panel showing greedy Jaccard merging without basin labels or basin counts.
+  This is a display/prose alignment artifact, not a new experiment result.
+- May 6 training-dynamics appendix diagnostics: a representative controlled
+  trace and a retained-`10` Dysts companion have been generated and wired into
+  `docs/neurips_sparse_koopman_multibasin.tex` via
+  [appendix/training_dynamics.tex](/home/mila/l/lia/skae/docs/appendix/training_dynamics.tex).
+  The controlled figure is
+  [appfig_training_dynamics_gated_local_seed0.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/appfig_training_dynamics_gated_local_seed0.pdf),
+  with source data and summary under
+  [training_dynamics_gated_local_seed0.csv](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/training_dynamics_gated_local_seed0.csv)
+  and
+  [training_dynamics_gated_local_seed0_summary.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/training_dynamics_gated_local_seed0_summary.json).
+  It shows validation final error, training objective, \(\rho(K)\), and the
+  logged sparsity-ratio diagnostic for all six controlled model rows on
+  `gated_local_linear`, seed `0`. Validation-selected checkpoint dots occur
+  late for the sparse rows and the transition spectra stay close to the unit
+  circle. The Dysts companion is
+  [appfig_training_dynamics_dysts_dt30_seed0.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/appfig_training_dynamics_dysts_dt30_seed0.pdf),
+  with source data and summary under
+  [training_dynamics_dysts_dt30_seed0.csv](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/training_dynamics_dysts_dt30_seed0.csv)
+  and
+  [training_dynamics_dysts_dt30_seed0_summary.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/training_dynamics_dysts_dt30_seed0_summary.json).
+  It aggregates seed-`0` traces across the retained `10` Dysts `dt x30`
+  systems by the median over finite per-system values at each step, showing a
+  noisier chaotic-flow validation proxy but final median \(\rho(K)\) close to
+  one across rows. These figures are appendix diagnostics of
+  optimization/checkpoint behavior, not aggregate benchmark rankings.
+- The main-paper benchmark visual is generated and wired into
+  `docs/neurips_sparse_koopman_multibasin.tex` as the benchmark figure:
   [fig_benchmark_support_dysts_composite.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf).
   It combines controlled multibasin vector fields, evaluation basin maps, and
   LISTA `topk:8` support-family overlays with H5000 Dysts `dt x30` forecast
   portraits for Chua, Dadras, Shimizu-Morioka, and Lu-Chen-Cheng.
-- The per-basin deep-slice interpretability re-evaluation is complete. Shard
-  jobs `9388212`, `9388213`, `9388215`, `9388216`, and `9388217` and merge
-  jobs `9388214` and `9388218` all completed with exit `0:0`; merged
-  per-basin-slice CSVs now exist for the LISTA and boundary-MLP packets.
+- The manuscript companion support-family codebook visual is now the one-panel
+  LISTA-BD Asymmetric wells figure:
+  [support_family_index_codebook_claude_cal_asymmetric_3.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15/support_family_index_codebook_claude_cal_asymmetric_3.pdf).
+  It shows the actual active latent coordinate indices for seed-`0`
+  `d_z=256` LISTA-BD `topk:8` support-family prototypes on an interpretable
+  three-basin system. The numeric active-index column was removed; thin tick
+  positions now carry the coordinate-index information directly on the shared
+  `0..255` axis. Row labels and tick opacity encode each family prototype's
+  within-basin coverage. This is a visualization of existing checkpoint
+  outputs, not a new experiment result.
+- The same active-index codebook style has also been batch-rendered for all
+  `15` retained controlled multibasin systems under
+  [support_family_codebooks_retained15](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15),
+  with one LISTA/LISTA-BD PDF, PNG, and JSON triplet per system plus a manifest
+  and contact sheet. This batch is for visual screening and appendix selection;
+  the Asymmetric wells triplet has since been overwritten as the one-panel
+  LISTA-BD main-paper version.
+- An exploratory \(F_{\rm abs}\) version of the retained-`15` active-index
+  codebook batch is now available under
+  [support_family_codebooks_retained15_fabs](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs).
+  It uses `absolute:0.001` supports for both LISTA and LISTA-BD, with the same
+  renderer and `0..255` latent-coordinate axis. This is for visual inspection;
+  the manuscript figure remains the LISTA-BD Asymmetric wells \(F_{\rm top8}\)
+  codebook unless the display plan changes.
+- A global-deep-slice version of the retained-`15` \(F_{\rm abs}\) codebook
+  screen is now available under
+  [support_family_codebooks_retained15_fabs_deep](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs_deep).
+  It uses generated observation trajectories (`128 x 128`, eval seed `42`) and
+  the global top-quartile basin-margin deep slice, matching the current Table 1
+  interpretability convention. Some systems collapse to one or two represented
+  deep basins under this global criterion, which is expected and is why the
+  per-basin deep-slice robustness packet is tracked separately.
+- May 5 p256 visual-draft status: the Support Barcode Map and Alluvial
+  Basin-to-Support-to-Family drafts have been regenerated from p256
+  LISTA-family checkpoints only. The paper-facing candidates are
+  [fig_support_barcode_map_p256.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_barcode_map_p256.pdf)
+  and
+  [fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.pdf).
+  The barcode map uses p256 dense LISTA on `gated_local_linear` and overlays
+  all three displayed basin-family prototypes on one shared `0..255` barcode.
+  The current alluvial draft uses the same `gated_local_linear`
+  p256 dense LISTA seed `0` setup as the preferred 393-support image, on the
+  global deep slice with `S_abs=10^{-3}` and family Jaccard threshold `0.5`.
+  It has `3` represented evaluation basins, `3` support families, `393` exact
+  supports, family-dominant basin agreement `1.0`, and the original alluvial
+  geometry with normal-weight column headers. The compact polished and
+  all-state `J=0.32` versions remain sensitivity/alternate artifacts; earlier
+  p64 drafts are superseded for the paper-facing figure path.
+- May 5 Jaccard-threshold sensitivity status: the support-family Jaccard sweep
+  is complete under
+  [full_retained15_deep_subsetfit](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit).
+  It covers the retained `15` controlled multibasin systems, the current six
+  paper-facing roots, all available trained seeds, `F_abs` and `F_top8`, and
+  thresholds `0.20/0.32/0.40/0.45/0.50/0.60/0.70/0.80/0.90` on the global
+  deep slice, with `24,210` rows and `0` failures. The result confirms that
+  the Jaccard threshold is a resolution parameter, not a harmless display
+  detail. For `F_abs`, `J=0.5` yields basin-scale family counts for sparse
+  rows (`3.17/3.03/3.05` for LISTA/LISTA-BD/LISTA-SB) with low
+  `H(B|F_abs)` (`0.0385/0.0380/0.0396`), whereas low thresholds merge basins
+  and high thresholds drive entropy to zero by overfragmenting the sparse rows
+  into many families (`~31`--`34` LISTA-family families at `J=0.9`). For
+  `F_top8`, high thresholds also make Dense MLP reach `H(B|F_top8)=0` by
+  `J>=0.8` while using `13.8` families, so entropy must be interpreted with
+  family count. Keep `J=0.5` as a fixed evaluation convention rather than a
+  tuned entropy-minimizing hyperparameter.
+- May 5 routed-forecasting-MSE add-on: the experiment plan is now
+  [ROUTED_FORECASTING_MSE_PLAN.md](/home/mila/l/lia/skae/docs/ROUTED_FORECASTING_MSE_PLAN.md).
+  The raw routed evaluation and aggregation are complete. The run tested
+  whether `F_top8` support-family routed centered local rollouts are superior
+  absolute-MSE forecasters for the existing p256 LISTA rows in Table 1 and the
+  retained `10`-system Dysts Table 3, while reusing the draft's existing
+  best-periodic rows as baselines. It wrote complete merged raw rows: `675`
+  controlled multibasin rows and `450` Dysts rows, both with `0` failures.
+  Aggregation job `9467050` shows a negative result: routed local forecasting
+  wins `0/15` controlled systems and `0/10` Dysts systems against the
+  same-model best-periodic paper-table baseline for every LISTA-family model
+  at every evaluated horizon. Do not add these routed rows to Table 1 or
+  Table 3 as superior forecasting evidence.
+- May 5 periodic routed-forecasting rerun: the evaluator now supports
+  decode/re-encode route refresh with `--reencode_periods`, and the full
+  periods `5,10,20,30` rerun is complete. Compile job `9467340`, smoke jobs
+  `9467341`/`9467342`, controlled shards `9467343`--`9467477` with merge
+  `9467478`, Dysts shards `9467479`--`9467568` with merge `9467569`, and
+  aggregation job `9467598` completed with `0` recorded failures. The merged
+  raw outputs contain `2700` controlled rows and `1800` Dysts rows. Periodic
+  refresh reduces many autonomous blow-ups and gives high controlled-system
+  route coverage, but the aggregate result remains negative against the
+  same-model best-periodic paper-table baseline: every routed/best-periodic
+  aggregate ratio is above `1`, with only isolated system wins in individual
+  cells. Do not promote post-hoc routed local maps as superior Table 1/Table 3
+  forecasters.
+- May 5 stage-2 trained local-map proof of concept: the routed forecasting
+  plan has been overwritten around a new staged-training test in
+  [ROUTED_FORECASTING_MSE_PLAN.md](/home/mila/l/lia/skae/docs/ROUTED_FORECASTING_MSE_PLAN.md).
+  The method freezes the existing p256 LISTA encoder/decoder/global \(K\),
+  builds `F_top8` support-family routes, initializes each trainable \(K_c\)
+  from the global \(K\), and trains only the local maps for `20000`
+  route-balanced optimizer steps using decoded rollout loss at the source
+  checkpoint's short training horizon. The active route-construction threshold
+  for this proof of concept is `J=0.40`, chosen to coarsen the family
+  partition and reduce the number of trained \(K_c\)'s relative to `J=0.5`.
+  It tests re-encoding cadences `1,2,5,10` and both `reroute_each_step` and
+  `freeze_within_segment`, with route-balanced minibatches and no
+  validation-gating, residual-local parametrization, or spectral stability
+  control. Compile job `9469290` and corrected smoke job `9469291` completed
+  with `0` failures after an earlier smoke caught and fixed a truth/prediction
+  shape bug. The original `10000`-step queue from launcher `9469305` was
+  cancelled before producing results after the training budget was revised to
+  `5000` steps. Compile job `9469699` passed after the change. The initial
+  `J=0.5` `5000`-step queue from launcher `9469702` was cancelled before
+  aggregation after the route threshold was revised to `J=0.40`. The initial
+  `J=0.40`, `5000`-step queue was then cancelled before aggregation after the
+  optimization budget was revised to `20000` steps. Compile job `9470492`
+  passed after the `20000`-step change. The first CPU `J=0.40`, `20000`-step
+  queue from launcher `9470519` was cancelled after the GPU timing check below
+  showed that stage-2 training is much faster on CUDA. The `main` GPU queue
+  was then cancelled and migrated to `long` because `main` has a stricter GPU
+  limit; two already completed `arrested_spiral/p1` shards were preserved and
+  skipped during resubmission. The active replacement queue is live under
+  [results/routed_stage2_local_maps_20260505/multibasin_poc_j040_20k_gpu_c1](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260505/multibasin_poc_j040_20k_gpu_c1):
+  GPU worker shards `9472119`--`9472476` on `long`, merge job `9472477`, and
+  aggregation job `9472478`. Its manifest records `SKIP_COMPLETED=1`,
+  `skipped_count=2`, and `submitted_count=358`. A first GPU queue using `4`
+  CPUs per worker (`9471206`--`9471565`) was cancelled immediately because QoS
+  only admitted two workers under the CPU quota; the current queue uses `1` CPU
+  per GPU worker. Live queue check after resubmission showed `5` workers
+  running on `long`, `353` pending on `long`, and merge/aggregation pending on
+  `long-cpu`.
+- A focused GPU timing check completed as job `9471176` under
+  [gpu_benchmark_j040](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260505/gpu_benchmark_j040).
+  Result: the matching `claude:cal_asymmetric_3`, seed-`0`, period-`5`,
+  `reroute_each_step` stage-2 setting completed `3000` CUDA optimizer steps
+  plus a small evaluation in `00:02:17` with exit `0:0` and empty stderr. The
+  concurrently running CPU shard for the same setting, job `9470532`, had
+  reached only step `3000/20000` at roughly `00:24:30` elapsed. Interpretation:
+  despite CPU-side route selection, the stage-2 rollout-loss training loop is
+  GPU-beneficial by about an order of magnitude for this case. Project
+  implication: the full stage-2 proof-of-concept was resubmitted on GPU
+  workers with one GPU, `1` CPU, and `8G` per shard.
+- Documented stage-2 follow-up TODO: after the current one-seed controlled
+  proof completes for all three LISTA-family roots, report and document the
+  result, select the single best LISTA/LISTA-BD root plus routing setting by
+  controlled forecasting MSE, queue controlled seeds `1`--`4` for that fixed
+  setting so seed `0` plus seeds `1`--`4` give a five-seed controlled read,
+  queue the same setting for Dysts seeds `0`--`4`, and then expand both
+  benchmarks to seeds `0`--`14` if the five-seed read remains competitive.
+  This is tracked in
+  [ROUTED_FORECASTING_MSE_PLAN.md](/home/mila/l/lia/skae/docs/ROUTED_FORECASTING_MSE_PLAN.md)
+  as a fixed-setting expansion, not a Dysts-tuned sweep.
+- May 6 fixed-setting stage-2 expansion status: the 10-seed `50000`-step
+  support-family-local \(K_c\) batches have finished for controlled multibasin
+  and Dysts under
+  [results/routed_stage2_local_maps_20260506](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506).
+  Controlled multibasin has complete seed-`0`--`9` raw rows with `0` failures:
+  the seed-IQM aggregation gives routed/best-periodic ratios
+  `1.70/0.91/0.84` at `H100/H500/H1000`, with system wins `4/15`, `5/15`,
+  and `5/15`. This is a mixed result: it improves long-horizon aggregate MSE
+  relative to best-periodic for `H500/H1000`, but not broadly enough to become
+  a claim that stage-2 local maps beat the best periodic sparse-LISTA rollout.
+  Against the current hard-init Dense MLP Table 1 comparator, however, the same
+  controlled stage-2 row is paper-positive: on the same `15` systems and common
+  seed slots `0`--`9`, stage-2/Dense ratios are
+  `0.0866/0.0513/0.0490` at `H100/H500/H1000`; `14/15` systems have lower
+  per-system seed-IQM MSE, the system-level one-sided Wilcoxon p-values are
+  `3.05e-4` at all three horizons, and Holm correction across the three
+  horizons gives `9.16e-4`. The only system-level IQM loss is
+  `claude:duffing_triple_well`. This row is now included in Table 1 as
+  `LISTA + local \(K_c\)` with forecasting values only; the support diagnostic
+  cells are marked as inherited from LISTA because the stage-2 run freezes the
+  LISTA encoder and decoder. The Dysts 50k support-family-local run is clearly
+  negative: routed/best-periodic ratios are `6.9e3` at `H100` and at least
+  `5.9e5` by `H500`, with `0/10` system wins at every horizon. The 100k
+  controlled continuation completed with `0` failures but is worse than 50k
+  against best-periodic (`H100/H500/H1000` ratios about `2.07/1.16/1.04`
+  from the two seed-half aggregations). The Dysts 100k continuation finished
+  shard execution with only `97/100` successful rows and three
+  `LocalMapBundle` class-count mismatch failures; its available rows are
+  again numerically unstable and not paper-positive.
+- May 6 Dysts re-encode-period sweep status: the completed Dysts period-`5`
+  `50000`-step support-family-local rows are being extended to periods
+  `{1,2,5,10,20}` by reusing the existing period-`5` outputs and queuing the
+  missing periods `{1,2,10,20}`. Seed batches `0`--`4` and `5`--`9` were
+  submitted as shard ranges `9477874`--`9478073` and `9478076`--`9478275`,
+  with merge jobs `9478074` and `9478276`; combined analysis job `9478278`
+  will write
+  [combined_best_lista_dysts_j040_50k_period_sweep_labelnone_seed0_9](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/combined_best_lista_dysts_j040_50k_period_sweep_labelnone_seed0_9).
+  This is a period-sensitivity check for the negative Dysts result, not a new
+  main-table claim.
+- May 6 calibrated-global stage-2 ablation status: the matched
+  `stage2_map_mode=global_dense_calibrated` `50000`-step batches also
+  completed for controlled multibasin and Dysts. Controlled multibasin has
+  complete seed-`0`--`9` raw rows with `0` failures and perfect coverage, but
+  the combined arithmetic means show an `H500` blow-up (`H100/H500/H1000`
+  simple means `16.4/6.86e31/0.125`). Dysts calibrated-global has complete
+  seed-`0`--`9` raw rows with `0` failures and perfect coverage, but all
+  horizons are catastrophically unstable (`H100` simple mean `7.27e22`).
+  Aggregation/readout jobs for the combined 100k/local and calibrated-global
+  CSVs hit schema/parser issues, so treat the raw rows and successful
+  seed-half readouts as the current source until the aggregation utility is
+  hardened.
+- Current manuscript layout: the alluvial is paired side-by-side with a cropped
+  seed-distribution display containing only \(H(B\mid F_{\rm abs})\) and
+  \(|F_{\rm abs}|\). The wrong-support strip is no longer in the main-text
+  figure, while the Asymmetric wells active-index codebook remains a separate
+  full-width manuscript figure.
+- May 4 manuscript-editing status: visible `\todo{}` notes in
+  `docs/neurips_sparse_koopman_multibasin.tex` have been resolved. The pass
+  added the method overview diagram, tightened the Koopman/control framing,
+  compressed the methods and experimental procedure, completed related work
+  and conclusion prose, and added an appendix Dysts ratio-to-Dense companion
+  table. This did not introduce new experiment results.
+- The older per-basin deep-slice interpretability re-evaluation is complete.
+  Shard jobs `9388212`, `9388213`, `9388215`, `9388216`, and `9388217` and
+  merge jobs `9388214` and `9388218` all completed with exit `0:0`; merged
+  per-basin-slice CSVs exist for the earlier LISTA/MLP packet roster. Because
+  that roster predates the current matched `p256` LISTA and LISTA-SB Table 1
+  rows, current-roster replacement/appendix numbers must come from the queued
+  `9477837`--`9477845` rerun.
 - The Table 2-4 statistical-testing audit is complete for the current
   manuscript tables. The completed `9388212-9388218` jobs are per-basin
   interpretability rows, not routing/refresh/Dysts seed packets, so they
@@ -241,9 +556,11 @@ Solution/status:
   trend uses a log y-axis because the displayed MSEs span about `4.8e3x`
   from `H100` to `H5000`; linear-scale and side-by-side scale-check versions
   were kept as diagnostics. Trend bands now show fixed-system seed-bootstrap
-  `95%` intervals around the mean-over-systems estimand rather than `25`--`75` percentile
-  heterogeneity across systems; `_system_ci` and `_log_seed_bootstrap`
-  variants were also generated for uncertainty audit. The analysis outputs are under
+  `95%` intervals after system-wise log-relative normalization and are
+  anchored to the displayed arithmetic mean, so they describe seed uncertainty
+  within an average system rather than being dominated by cross-system MSE
+  scale or rare high-MSE resamples. The `_raw_seed_ci`, `_system_ci`, and
+  `_log_seed_bootstrap` variants were also generated for uncertainty audit. The analysis outputs are under
   [docs/figures/neurips_paper_2026/_tables](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables)
   and
   [docs/figures/neurips_paper_2026](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026).
@@ -293,11 +610,46 @@ Solution/status:
   three systems at `H100`, `H500`, and `H1000` system medians.
 
 Outstanding problem:
+- The stage-2 trained-local-map expansion is no longer a queue blocker, and
+  its controlled 50k support-family-local row is paper-positive under the
+  Dense-MLP comparison criterion: it is significantly better than hard-init
+  Dense MLP on the same `15` systems and common seeds `0`--`9`
+  (`H100/H500/H1000` ratios `0.0866/0.0513/0.0490`, Holm-corrected
+  system-level Wilcoxon p `9.16e-4`). It remains mixed against the stronger
+  same-root best-periodic sparse-LISTA baseline (`H500/H1000` aggregate gains
+  but only `5/15` system wins), Dysts 50k is strongly negative, controlled 100k
+  is worse than 50k, and Dysts 100k has three shard failures plus unstable
+  available rows. A focused Dysts re-encode-period sweep is now queued to test
+  whether the Dysts failure is period-specific; unless that materially changes
+  the Dysts read, use stage-2 as a controlled multibasin table/appendix row
+  rather than an external-robust forecasting claim. Budget-only continuation is
+  not justified by the current results.
+- The combined-stage2 aggregation tooling needs a cleanup before any appendix
+  table uses the 100k or calibrated-global combined CSVs: one 100k local-map
+  combined file has a field-count mismatch, and the calibrated-global combined
+  readout jobs hit a `root_label` merge-key error.
+- The training-dynamics appendix diagnostics are complete for the current
+  paper draft. The controlled representative trace and retained-`10` Dysts
+  median companion are now wired into the appendix; any further work should be
+  treated as optional coauthor-requested strengthening, such as a multi-seed
+  or per-system training-dynamics audit.
+- Do not promote the completed routed-forecasting-MSE rows into Table 1 or
+  Table 3 as superior forecasting evidence. The add-on was a forecasting-method
+  test, not an interpretability result, and it lost to the existing same-model
+  best-periodic paper-table rows on every model/system aggregate.
 - Convert the evidence map into final paper prose, tables, and figures while
   keeping the claim calibrated: `F_abs` is the basin-scale alignment object,
   `F_top8` family-local routing is the main non-oracle predictor-selection
   object, exact supports are diagnostics/intervention primitives, and true
   local-geometry recovery remains a secondary mixed diagnostic.
+- New experiment TODO: run a direct long-horizon forecasting comparison of
+  post-hoc local maps selected by \(F_{\rm abs}\) versus \(F_{\rm top8}\) on the
+  same frozen checkpoints and fitting/evaluation splits. Report routed/global
+  MSE, routed/best-periodic MSE where applicable, route coverage/fallback rate,
+  occupied-family counts, transition counts per family, underpopulated route
+  counts, and invalid/blow-up counts. Until this lands, do not describe
+  \(F_{\rm top8}\) as empirically better covered or more stable than
+  \(F_{\rm abs}\).
 - Keep the text from implying that a good basin label is automatically a good
   predictor selector. A support may identify where a state is while prediction
   depends on inactive coordinates, continuous latent coefficients, or
@@ -317,9 +669,13 @@ Outstanding problem:
   learned-map composition count by roughly `30x` and should not be merged
   silently into the old `H<=60000` table.
 - For Table 1, the existing global deep-slice numbers remain the main-text
-  source of truth. The completed per-basin deep-slice packet is an appendix
-  robustness check showing the same diagnostic under a slice where each basin
-  contributes deep states.
+  source of truth unless we intentionally change the estimand to balanced
+  per-basin relative-depth coverage. The old completed per-basin packet is not
+  sufficient for the current manuscript roster; use the in-flight current-roster
+  rerun `9477837`--`9477845` for any appendix robustness table or for any
+  deliberate replacement of the support-diagnostic columns. As of
+  `2026-05-06 01:52 EDT`, those shards were still running and had only partial
+  `25`--`30`-run summaries per root, so they are not final evidence yet.
 - For the routing, refresh, and Dysts displays, the outstanding issue is now
   claim calibration rather than
   matched-artifact completion for the controlled benchmark. Tables 1--3 have
@@ -346,8 +702,8 @@ Outstanding problem:
 - Tables 1--3 are no longer blocked on the dense-K LISTA add-on or the
   expanded Table 3 refresh rows. The clean Table 3 merge and stats rebuild are
   complete, and the manuscript fragments and figures have been regenerated
-  with IQM point estimates and fixed-system seed-bootstrap `95%` bands on the
-  horizon curves. The fixed-`17` horizon curves use all horizons
+  with IQM point estimates and fixed-system, log-relative seed-bootstrap `95%`
+  bands on the horizon curves. The fixed-`17` horizon curves use all horizons
   present in the current collected Table 1 source:
   `H100/H500/H1000`; no fixed-`17` Table 1--3 collected row contains an
   `H3000` forecasting column.
@@ -395,6 +751,573 @@ Outstanding problem:
   and Kuramoto at `H100`, `H500`, and `H1000`. Keep it out of the main
   positive mechanism chain unless the paper needs an explicit hard-system
   limitation paragraph.
+
+### 2026-05-06: stage-2 local-map and calibrated-global expansion results
+
+Concrete results:
+- The stage-2 support-family-local \(K_c\) fixed-setting expansion under
+  [results/routed_stage2_local_maps_20260506](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506)
+  has completed its 10-seed controlled multibasin `50000`-step pass with
+  `150/150` system-seed shards, `1050` raw depth-stratum rows, and `0`
+  failures. The combined seed-IQM aggregation reports routed/best-periodic
+  ratios `1.70`, `0.91`, and `0.84` at `H100`, `H500`, and `H1000`,
+  respectively, with system wins `4/15`, `5/15`, and `5/15`. Mean route
+  coverage is `0.9982` and mean fallback is `0.0018`.
+- The matching 10-seed Dysts `50000`-step support-family-local pass completed
+  `100/100` system-seed shards with `0` failures, but is strongly negative:
+  routed/best-periodic ratios are `6.9e3` at `H100`, `5.9e5` at `H500`,
+  `1.3e14` at `H1000`, and remain far above `1` through `H5000`; system wins
+  are `0/10` at every horizon. Mean route coverage is `0.7138`, with fallback
+  `0.2862`.
+- A direct controlled-stage2 versus Dense MLP comparison was added under
+  [dense_mlp_comparison](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/combined_best_lista_multibasin_j040_50k_seed0_9/dense_mlp_comparison)
+  by CPU job `9478543`. It compares the controlled `50000`-step
+  support-family-local row against the current hard-init Dense MLP Table 1
+  baseline on the same `15` systems and common seed slots `0`--`9`.
+  Stage-2/Dense ratios are `0.0866`, `0.0513`, and `0.0490` at
+  `H100/H500/H1000`; `14/15` systems have lower per-system seed-IQM MSE at
+  every horizon, with `claude:duffing_triple_well` as the exception.
+  System-level one-sided Wilcoxon p-values are `3.05e-4` at all three horizons
+  and Holm-correct to `9.16e-4` across the three-horizon family. Within-system
+  Holm-cleared log-MSE paired Wilcoxon counts are `14/15`, `12/15`, and
+  `14/15`. Table 1 now includes this as `LISTA + local \(K_c\)`, with support
+  diagnostics explicitly marked as the same frozen encoder/support diagnostics
+  as LISTA.
+- The controlled `100000`-step continuation from the 50k support-family-local
+  checkpoints completed `150/150` system-seed shards with `0` failures, but
+  the two successful seed-half readouts are worse than the 50k result against
+  best-periodic. The seed halves give `H100/H500/H1000` routed/best-periodic
+  ratios `2.04/1.12/1.01` and `2.10/1.20/1.07`, each with only `4/15`
+  systems beating best-periodic.
+- The Dysts `100000`-step support-family-local continuation finished shard
+  execution with `97/100` successful rows. Three shards failed with
+  `LocalMapBundle` class-count mismatches: `dysts:Dadras` seed `0`,
+  `dysts:SanUmSrisuchinwong` seed `0`, and `dysts:QiChen` seed `7`. The
+  available rows are numerically unstable, with simple all-row means far above
+  best-periodic at every horizon.
+- The calibrated-global `50000`-step ablation completed controlled and Dysts
+  seed-`0`--`9` raw rows with `0` failures. It has perfect route coverage by
+  construction, but it is not a clean positive control: controlled simple
+  means are `H100/H500/H1000 = 16.4/6.86e31/0.125`, and Dysts simple means
+  are catastrophic from `H100` onward (`7.27e22` at `H100`).
+- Several aggregation/readout jobs exposed tooling issues rather than new
+  model results: `sf_lm_100k_mb10-9476314` hit a combined-CSV parse error
+  because one seed half wrote an extra trailing field, and the combined
+  calibrated-global aggregation jobs `9477239`/`9477240` hit `KeyError:
+  'root_label'` in the comparison script. The raw manifests and successful
+  seed-half readouts remain usable.
+
+Context:
+- This expansion fixed the selected route object and rollout setting from the
+  one-seed proof of concept: `F_top8`, Jaccard threshold `0.40`,
+  re-encode period `5`, and `reroute_each_step`. The only trained objects were
+  second-stage transition maps with the original encoder, decoder, and global
+  \(K\) frozen.
+- The support-family-local \(K_c\) run asks whether support-family routes can
+  select useful trained local transition maps. The calibrated-global ablation
+  asks whether the gain comes from second-stage rollout calibration alone
+  rather than from route-specific local maps.
+- Follow-up period-sensitivity check queued at `2026-05-06 02:02 EDT`: reuse
+  the completed Dysts period-`5` rows and train/evaluate missing periods
+  `{1,2,10,20}` for the same `50000`-step, `F_top8`, `J=0.40`,
+  `reroute_each_step`, `label_mode=none` support-family-local setting. Seed
+  batches `0`--`4` and `5`--`9` use merges `9478074` and `9478276`, and
+  combined analysis job `9478278` will combine the old period-`5` directories
+  with the new missing-period directories.
+
+Interpretation:
+- The controlled 50k support-family-local result is mixed, not decisive:
+  aggregate `H500/H1000` improve over best-periodic, but only one third of the
+  retained systems win and `H100` is worse. This is not strong enough for a
+  claim that stage-2 local maps dominate the same-root best-periodic sparse
+  rollout.
+- Under the more relevant main-table criterion of competitiveness and
+  significance versus Dense MLP, the controlled 50k result is positive. The
+  earlier `4/15`, `5/15`, `5/15` counts should not be used to reject table
+  inclusion, because those counts answer a different question: whether stage-2
+  beats same-root best-periodic on each system.
+- Dysts remains the important stress test and is strongly negative for the
+  stage-2 local-map idea. Increasing the budget to 100k does not repair the
+  instability, and the calibrated-global ablation shows that rollout-loss
+  calibration can itself be unstable.
+
+Project implications:
+- Do not promote stage-2 support-family-local maps into Table 1 or Table 3 as
+  superior forecasting evidence. At most, keep the controlled 50k result as a
+  limitation or mechanism diagnostic showing that local support-family maps can
+  help some long-horizon controlled systems but do not give a robust forecasting
+  method.
+- The controlled multibasin numbers are fairly competitive at `H500/H1000`,
+  and significantly better than hard-init Dense MLP, so it is reasonable to
+  include them in the controlled multibasin table if the row is clearly labeled
+  as a stage-2 trained local-map variant. The negative Dysts stress test still
+  argues against presenting stage-2 local maps as an externally robust
+  forecasting solution until the Dysts period sweep lands.
+- The paper should continue to separate basin-support alignment and
+  support-routed predictor selection from absolute long-horizon forecasting
+  superiority. The current best-periodic global-\(K\) rows remain the
+  manuscript forecasting source of truth.
+
+Next steps:
+- Let the Dysts re-encode-period sweep finish, then compare periods
+  `{1,2,5,10,20}` before making any table/display decision for stage-2
+  local-map rows.
+- Fix the aggregation utility to tolerate the stage-2 CSV schema difference
+  before using combined 100k/calibrated-global readouts in any table.
+- Decide whether to stop the stage-2 forecasting branch as a negative result
+  or explicitly queue a stability-regularized/local-map variant; do not spend
+  more queue time on budget-only continuations without a stability change.
+- Let the current-roster per-basin deep-slice rerun finish before updating any
+  Table 1 appendix robustness numbers.
+
+### 2026-05-06: \(F_{\rm abs}\) versus \(F_{\rm top8}\) long-horizon router comparison queued
+
+- Motivation: recent manuscript wording clarified that \(F_{\rm top8}\) is the
+  main routing object by design because `topk:8` has fixed cardinality and is
+  invariant to global positive rescalings of \(z\) when there are no top-`8`
+  ties. We do not yet have a reported head-to-head result showing that
+  \(F_{\rm top8}\) has better route coverage, fewer fallbacks, or better
+  long-horizon forecasting than \(F_{\rm abs}\).
+- Queue result: the matching \(F_{\rm abs}\)-selected stage-2
+  support-family-local replay has been submitted against the existing
+  \(F_{\rm top8}\) fixed-setting results. It uses the same frozen
+  encoder/decoder/global-\(K\) checkpoint families, fitting/evaluation split,
+  route-population threshold (`50` fitting transitions), fallback rule,
+  held-out long-horizon rollouts, period `5`, `reroute_each_step`, and
+  `50000` route-balanced optimizer steps. It changes only the support selector
+  to `absolute:0.001` while keeping `J=0.40`.
+- Submitted jobs: controlled multibasin uses retained `15` systems and seeds
+  `0`--`9` in two GPU batches,
+  [fabs_lista_multibasin_abs001_j040_50k_seed0_4](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/fabs_lista_multibasin_abs001_j040_50k_seed0_4)
+  (`9478281`--`9478356 -> 9478357`) and
+  [fabs_lista_multibasin_abs001_j040_50k_seed5_9](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/fabs_lista_multibasin_abs001_j040_50k_seed5_9)
+  (`9478359`--`9478433 -> 9478434`), with combined job `9478541`. Dysts uses
+  retained `10` systems and seeds `0`--`9` in
+  [fabs_lista_dysts_abs001_j040_50k_labelnone_seed0_4](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/fabs_lista_dysts_abs001_j040_50k_labelnone_seed0_4)
+  (`9478436`--`9478485 -> 9478486`) and
+  [fabs_lista_dysts_abs001_j040_50k_labelnone_seed5_9](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/fabs_lista_dysts_abs001_j040_50k_labelnone_seed5_9)
+  (`9478488`--`9478537 -> 9478538`), with combined job `9478542`.
+- Execution details: worker jobs request partition `long`, `--gres=gpu:1`,
+  `1` CPU, `8G`, and `DEVICE=cuda`. Each shard writes
+  `train_checkpoint.pt`, `metrics_history.jsonl`, `local_maps.pt`,
+  `route_codebook.json`, `stage2_config.json`, and routed-forecast rows. The
+  launcher manifest is
+  [fabs_abs001_50k_launcher_manifest.json](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/fabs_abs001_50k_launcher_manifest.json).
+- Required metrics: routed/global MSE ratios at the paper horizons,
+  routed/best-periodic MSE ratios if this is run against the forecasting table,
+  route coverage and fallback rate, number of occupied support families,
+  transition-count distribution per family, number of underpopulated routes,
+  and invalid/blow-up counts.
+- Interpretation rule: this is a design-choice audit, not a basin-supervised
+  method. Basin labels and basin counts must not be used to construct either
+  router. If \(F_{\rm abs}\) matches or beats \(F_{\rm top8}\), the methods and
+  results text should stop presenting \(F_{\rm top8}\) as the uniquely natural
+  deployment router and instead report both or explain the tradeoff.
+
+### 2026-05-06: reviewer-requested oracle, clustering, and out-of-generator checks queued
+
+- Concrete result so far: this pass found that the oracle/local-K comparison is
+  already partially covered by the existing compact Table 2 partition-control
+  artifact:
+  [results/transition_rich_table2_controls_p256_compact_20260502](/home/mila/l/lia/skae/results/transition_rich_table2_controls_p256_compact_20260502)
+  contains global-\(K\), learned support-family, latent-k-means, and
+  oracle-basin centered local-\(K\) rows. To make the comparison explicit for
+  the current plain p256 LISTA root, a new p256 oracle-vs-learned local-K
+  add-on has been queued under
+  [results/oracle_vs_learned_local_koopman_20260506](/home/mila/l/lia/skae/results/oracle_vs_learned_local_koopman_20260506)
+  with shard jobs `9478597`, `9478599`, `9478601` and merge `9478603`.
+- Experiment context: the add-on uses the existing self-routed forecasting
+  evaluator and the current p256 LISTA `forecasting_rows.csv`. It compares the
+  base learned global \(K\), exact-support centered local \(K\),
+  support-family centered local \(K\), latent-k-means centered local \(K\), and
+  oracle-basin centered local \(K\) at `H100/H500/H1000` on `all` and `deep`
+  strata with `topk:8` supports.
+- Interpretation: the oracle-basin rows are an evaluation upper bound for
+  basin-aware local linearization. They do not change the training/deployment
+  method because basin labels and basin counts remain unavailable at training
+  and deployment time.
+- Project implication: if learned support families approach the oracle-basin
+  local-\(K\) rows and beat k-means, the paper can state that learned supports
+  recover most of the useful basin-aware local-linear benefit without using
+  basin labels for routing. If they do not, the claim should be narrowed to
+  support-basin alignment plus non-oracle routing on the already reported
+  support-family metrics.
+- Next steps: wait for merge `9478603`, then summarize learned/oracle/k-means
+  gaps by horizon and stratum before changing Table 2 or appendix wording.
+
+- Concrete result so far: a new explicit regime-discovery local-K evaluator was
+  added and SLURM-validated on job `9478592`; validation checked shell syntax,
+  Python bytecode compilation, and supplemental-system dt lookup. The p256
+  run is queued under
+  [results/regime_discovery_local_koopman_20260506](/home/mila/l/lia/skae/results/regime_discovery_local_koopman_20260506)
+  with one seed per shard: retry jobs `9478633`--`9478647`, followed by merge
+  `9478648`. The first submission (`9478598`, `9478600`, `9478602`,
+  `9478604`--`9478615 -> 9478616`) was canceled after shard `9478598` exposed
+  a mixed integer/string support-family-label metric bug; the evaluator now
+  encodes all clustering labels before ARI/NMI/purity scoring, and compile
+  validation job `9478630` completed with exit `0:0`. Runtime smoke job
+  `9478651` then reran the original failure system (`claude:cal_high_cross_3`,
+  seed `0`) at reduced sample size and completed `27` rows with `0` failures.
+- Experiment context: the evaluator freezes each trained checkpoint, generates
+  held-out one-step latent transition pairs, and fits centered local latent
+  operators under learned support-family routes, oracle basin labels, and
+  explicit unsupervised partitions. The unsupervised partitions are k-means,
+  diagonal GMM, and spectral clustering over raw state, dense latent values,
+  sparse latent values, and binary support masks. Cluster counts are run in
+  two modes: evaluation-only basin count and label-free support-family count.
+- Interpretation: raw-state, dense-latent, sparse-latent, and support-binary
+  clustering rows answer whether sparse supports are actually a better regime
+  variable than standard clustering baselines. The basin-count setting is a
+  benchmark-only stress test; the support-family-count setting is the
+  label-free comparison more aligned with deployment.
+- Project implication: if simple clustering matches learned support-family
+  local-\(K\) performance, the paper should describe sparse supports primarily
+  as inspectable structure rather than as uniquely superior regime discovery.
+  If support families win, this directly addresses a likely reviewer request.
+- Next steps: wait for merge `9478648`, then add a compact appendix table
+  grouping by feature view and clustering method. A full temporal SLDS is not
+  yet implemented; the diagonal-GMM-routed local-\(K\) rows are the current
+  mixture-of-Koopman-style baseline.
+
+- Concrete result so far: four supplemental out-of-generator multistable
+  systems were added as an opt-in manifest set without changing the fixed
+  `17`-system default shortlist. The systems are `claude:toggle_switch_3gene`
+  (3 basins), `claude:bistable_reactor` (3), `claude:fitzhugh_nagumo_3eq` (3),
+  and `claude:buckled_beam` (4). The SLURM validation job resolved default dts
+  `0.05`, `0.05`, `0.02`, and `0.03`, respectively.
+- Experiment context: the supplemental p256 LISTA packet is queued under
+  [results/out_of_generator_multistable_p256_lista_20260506](/home/mila/l/lia/skae/results/out_of_generator_multistable_p256_lista_20260506)
+  using the same hard-init p256 dense-\(K\) LISTA recipe as the current paper
+  root, with seeds `0`--`2`. Training array `9478617` has `12` tasks. Dependent
+  jobs are collect `9478618`, interpretability `9478619 -> 9478620`,
+  oracle/local-K `9478621 -> 9478622`, and regime discovery
+  `9478623 -> 9478624`.
+- Interpretation: this packet is not a broadened default benchmark. It is a
+  supplemental generality check on canonical-style multistable systems outside
+  the retained generator-family shortlist. Existing `claude:duffing_triple_well`
+  already covers a triple-well Duffing case inside the retained benchmark.
+- Project implication: positive supplemental results would strengthen
+  perceived generality; negative or mixed results should be reported as a
+  scope/robustness limitation rather than folded into the main retained-system
+  claims.
+- Next steps: wait for the training array and dependent collect/evaluation
+  jobs before updating any paper positioning. If the four-system packet is
+  noisy, expand seeds before drawing a conclusion.
+
+### 2026-05-06: training-dynamics appendix diagnostics generated
+
+- Concrete results: the training-dynamics appendix now contains two four-panel
+  diagnostics generated from existing `metrics_history.jsonl` files. The
+  controlled-system trace covers `gated_local_linear`, seed `0`, and the six
+  controlled model rows. The Dysts companion covers seed `0` for the six
+  Dysts `dt x30` rows and aggregates over the retained `10` Dysts systems by
+  the median over finite per-system metric values at each logged step. CPU
+  allocations `9475203` and `9475445` produced the figures, CSV tables, and
+  JSON summaries; no new model training or evaluation sweep was launched.
+- Context: these diagnostics explain the optimization and checkpoint-selection
+  path behind existing paper-facing rows. Validation final error is the saved
+  checkpoint criterion, while the training objective, transition spectral
+  radius \(\rho(K)\), and sparsity-ratio diagnostic provide auxiliary views of
+  the same runs.
+- Interpretation: on the controlled representative trace, sparse rows improve
+  through most of training and have late validation-selected checkpoints, while
+  \(\rho(K)\) stays close to one. On Dysts, the median validation proxy is
+  noisier and can show large early finite rollout errors, which is expected for
+  chaotic validation rollouts; nevertheless the median traces settle after the
+  initial transient and the final median spectral radii remain close to one.
+- Project implications: the appendix can now address the coauthor question
+  about whether models improve with training and whether the learned global
+  transition approaches the unit circle. The Dysts companion keeps this as an
+  external stress-test diagnostic rather than support-basin evidence or a main
+  benchmark ranking.
+- Next steps: keep these figures appendix-only unless coauthors request a
+  stronger multi-seed or per-system training-dynamics audit.
+
+### 2026-05-05: Routed forecasting MSE add-on completed and aggregated
+
+Concrete results:
+- Added the experiment plan
+  [ROUTED_FORECASTING_MSE_PLAN.md](/home/mila/l/lia/skae/docs/ROUTED_FORECASTING_MSE_PLAN.md)
+  for testing whether non-oracle `F_top8` support-family routed centered local
+  rollouts improve absolute forecasting MSE enough to add rows to Table 1 and
+  Table 3.
+- Updated
+  [tools/evaluate_transition_rich_self_routed_forecasting.py](/home/mila/l/lia/skae/tools/evaluate_transition_rich_self_routed_forecasting.py)
+  and the self-routed SLURM wrappers so shards support three-hour walltimes,
+  SIGUSR1/runtime-budget checkpointing, Dysts val/test native-cache splits,
+  Dysts `label_mode=none`, and the route-use threshold
+  `MIN_OPERATOR_TRANSITIONS=50`.
+- Smoke job `9466086` completed the controlled multibasin path on dense p256
+  LISTA, `gated_local_linear`, seed `0`, `H100`, with `1/1` spec complete and
+  `0` failures.
+- Smoke job `9466087` completed the Dysts path on LISTA, `dysts:Chua`, seed
+  `0`, `H100`, with `label_mode=none`, val-cache fitting, test-cache
+  forecasting, `1/1` spec complete, and `0` failures.
+- The full controlled multibasin routed-MSE grid completed under
+  [results/routed_forecasting_mse_20260505/multibasin](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/multibasin):
+  shard jobs `9466089`--`9466223`, merge `9466224`, `675` rows, `0`
+  failures.
+- The full retained-`10` Dysts routed-MSE grid completed under
+  [results/routed_forecasting_mse_20260505/dysts](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/dysts):
+  shard jobs `9466225`--`9466314`, merge `9466315`, `450` rows, `0`
+  failures.
+- Coverage is complete: controlled multibasin has `45` model-system groups
+  (`3` p256 LISTA-family models x `15` systems), and every group has seeds
+  `0`--`14` exactly once. Dysts has `30` model-system groups (`3` p256
+  LISTA-family models x `10` systems), and every group has seeds `0`--`14`
+  exactly once.
+- Aggregation job `9467050` wrote
+  [routed_forecasting_iqm_summary.csv](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/aggregation/routed_forecasting_iqm_summary.csv),
+  [routed_forecasting_per_system_iqm.csv](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/aggregation/routed_forecasting_per_system_iqm.csv),
+  and
+  [routed_forecasting_iqm_readout.md](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/aggregation/routed_forecasting_iqm_readout.md).
+- Against the current same-model best-periodic paper-table forecasting rows,
+  routed local forecasting wins `0/15` controlled multibasin systems and
+  `0/10` Dysts systems for every LISTA-family model at every evaluated
+  horizon.
+- Controlled multibasin `H100` routed-versus-best-periodic MSEs are:
+  LISTA `5.45` versus `0.0407`, LISTA-BD `73.6` versus `0.0411`, and
+  LISTA-SB `7.05e5` versus `0.0387`. At `H1000`, the routed rows are
+  `1.65e22`, `8.48e30`, and `1.09e31` versus best-periodic `0.166`,
+  `0.135`, and `0.130`.
+- Dysts `H100` routed-versus-best-periodic MSEs are: LISTA `1.51` versus
+  `2.53e-4`, LISTA-BD `1.49` versus `3.38e-4`, and LISTA-SB `1.41` versus
+  `4.85e-4`. At `H5000`, the routed rows are `1.02e25`, `3.56e17`, and
+  `1.51e6` versus best-periodic `0.689`, `0.741`, and `0.997`.
+
+Context:
+- This is an evaluation-only add-on over already trained p256 LISTA-family
+  checkpoints. It does not rerun global \(K\) or best-periodic forecasting;
+  those existing draft-table rows remain the comparison baseline.
+- The controlled grid covers the retained `15` multibasin systems and
+  LISTA/LISTA-BD/LISTA-SB p256 rows at `H100,H500,H1000`. The Dysts grid
+  covers the retained `10` `dt x30` systems at
+  `H100,H500,H1000,H1500,H2000,H3000,H4000,H5000`.
+- All routed rows use only `topk:8`, support-family Jaccard threshold
+  `0.5`, depth stratum `all`, and rollout mode `family_local_centered`.
+
+Interpretation:
+- These results are negative for the proposed Table 1/Table 3 add-on. The
+  support-family local maps can select a different one-step latent update, but
+  autonomous composition of those local updates is much less stable than the
+  current best-periodic decode/re-encode forecasting protocol.
+- On controlled multibasin, routed rows often improve over catastrophic
+  no-reencoding global-\(K\) rollouts, but they still lose to best-periodic at
+  every displayed horizon. On Dysts, routed rows usually lose even to
+  no-reencoding at early horizons and lose decisively to best-periodic
+  throughout.
+
+Project implications:
+- Do not add these routed rows to Table 1 or Table 3 as superior forecasting
+  evidence. Keep Table 2 as the non-oracle predictor-selection/local-law
+  mechanism test, and keep Tables 1 and 3 as standard best-periodic
+  forecasting competitiveness tables.
+- If a future variant is worth testing, the more relevant change is to combine
+  local routing with periodic decode/re-encode refresh and stability guards,
+  not simply to lower the local-route threshold further.
+
+Next steps:
+- Treat this add-on as a negative/diagnostic result unless a revised routed
+  periodic-refresh protocol is explicitly queued.
+
+### 2026-05-05: Jaccard support-family threshold sensitivity sweep
+
+Concrete results:
+- Added
+  [tools/sweep_support_family_jaccard.py](/home/mila/l/lia/skae/tools/sweep_support_family_jaccard.py)
+  and the SLURM wrapper
+  [scripts/run_support_family_jaccard_sweep.sh](/home/mila/l/lia/skae/scripts/run_support_family_jaccard_sweep.sh)
+  to re-score already trained checkpoints across family Jaccard thresholds.
+- The completed focused sweep is archived under
+  [results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit).
+  It covers the retained `15` controlled multibasin systems, the current six
+  paper-facing roots, all available completed seeds, support definitions
+  `absolute:0.001` and `topk:8`, thresholds
+  `0.20/0.32/0.40/0.45/0.50/0.60/0.70/0.80/0.90`, and the global deep-state
+  slice. It wrote `24,210` metric rows with `0` failures.
+- The readout is
+  [jaccard_sweep_readout.md](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit/jaccard_sweep_readout.md),
+  with source tables
+  [jaccard_sweep_rows.csv](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit/jaccard_sweep_rows.csv),
+  [jaccard_sweep_summary.csv](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit/jaccard_sweep_summary.csv),
+  and
+  [jaccard_sweep_threshold_sensitivity.csv](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit/jaccard_sweep_threshold_sensitivity.csv).
+- For `F_abs`, `J=0.5` gives family counts near the represented deep-slice
+  basin scale: LISTA `3.17`, LISTA-BD `3.03`, LISTA-SB `3.05`, Sparse MLP-BD
+  `2.62`, Sparse MLP `2.64`, Dense MLP `1.00`. The corresponding
+  `H(B|F_abs)` values are `0.0385`, `0.0380`, `0.0396`, `0.0683`, `0.0544`,
+  and `0.7648`.
+- Lower `F_abs` thresholds merge supports too aggressively: at `J=0.20`, the
+  sparse rows have only about `1.25`--`1.30` families and `H(B|F_abs)` remains
+  high (`0.625`--`0.686`). Higher thresholds overfragment: at `J=0.90`,
+  LISTA/LISTA-BD/LISTA-SB average `33.77/30.92/33.09` families and drive
+  `H(B|F_abs)` to `0`.
+- For `F_top8`, `J=0.5` yields about `4.19/4.22/4.21` LISTA-family support
+  families with near-zero `H(B|F_top8)`. However, `J>=0.8` also drives Dense
+  MLP to `H(B|F_top8)=0` by splitting it into `13.82` families, showing that
+  entropy alone is gameable by oversegmentation.
+- At the fixed paper threshold `J=0.5`, the whole-slice `F_abs` count match is
+  different from the deep-slice result. Using the existing all-state
+  interpretability rows, Sparse MLP-BD has the closest mean family count to the
+  retained benchmark's mean basin count (`4.217` families versus `4.20`
+  basins), followed by Sparse MLP (`4.244`). These rows have higher whole-slice
+  basin uncertainty (`H(B|F_abs)=0.3373/0.3127`) than the LISTA-family rows,
+  which fragment boundary/transition states into more families
+  (`10.298/8.680/9.293` for LISTA/LISTA-BD/LISTA-SB) while keeping lower
+  whole-slice uncertainty (`0.2039/0.2362/0.2293`).
+
+Context:
+- This is an evaluation-time sensitivity analysis. It reuses trained
+  checkpoints and changes only the support-family merge threshold used after
+  latent codes are computed.
+- The all-state global family construction was too slow for the full grid
+  because highly fragmented absolute masks make representative matching the
+  bottleneck. The completed sweep therefore uses the global deep slice and
+  forms families on that scored subset. This is the right stress test for the
+  Table 1 deep-slice interpretability convention, but it should be described as
+  subset-local threshold sensitivity rather than a replacement for the exact
+  main-table reducer.
+- A smoke check verified that the optimized support-family assignment matches
+  the original reducer on a small `family_fit_scope=all` case.
+
+Interpretation:
+- The user's concern is correct: the Jaccard threshold is a key determinant of
+  how many support families exist at evaluation.
+- The threshold controls resolution. Low thresholds merge nearby supports,
+  often merging distinct basins into one family. High thresholds require
+  nearly identical masks, so they can make every basin look pure by splitting a
+  basin into many small families.
+- `J=0.5` is scientifically defensible because it balances low basin
+  uncertainty with a family count close to the represented basin count. It is
+  not defensible to tune the threshold to minimize `H(B|F)`, because the sweep
+  shows that high thresholds can make `H(B|F)` vanish through fragmentation.
+- For `F_top8`, the threshold grid has plateaus because two top-8 masks can
+  only share integer numbers of coordinates. `J=0.5` and `J=0.6` both require
+  at least six shared coordinates between two top-8 masks; `J=0.8` and
+  `J=0.9` require exact equality.
+
+Project implications:
+- The paper should report `H(B|F_abs)` together with `|F_abs|`, as the current
+  Table 1 display does. Family count is not a cosmetic diagnostic; it prevents
+  overfragmented thresholds from being mistaken for better interpretability.
+- Keep the main paper on the fixed `J=0.5` convention. Do not present a
+  threshold chosen post hoc for best entropy.
+- Treat whole-slice count alignment as a compression diagnostic rather than
+  the primary basin-alignment result. Boundary and transition states can
+  legitimately induce extra support families, so the deep-state slice remains
+  the cleaner test of basin-interior support alignment.
+- If reviewers ask about threshold choice, use this sweep as appendix evidence:
+  the qualitative sparse-versus-dense story at `F_abs, J=0.5` sits in the
+  reasonable basin-scale region between merging and overfragmentation.
+- The `F_top8` result strengthens the warning that support-family purity is
+  insufficient by itself. Dense MLP can become pure under a very strict top-8
+  family threshold, but only by producing many families; this supports the
+  paper's use of both entropy and family-count diagnostics.
+
+Next steps:
+- Keep the new concise appendix sentence in the manuscript explaining that
+  `J=0.5` is fixed before evaluation and that the threshold sweep confirms the
+  expected merge-versus-fragmentation tradeoff.
+- If page budget allows, add an appendix sensitivity table or plot from
+  `jaccard_sweep_summary.csv` with `F_abs` family count and `H(B|F_abs)` over
+  thresholds. This is not needed for the main-text result unless a reviewer
+  challenges threshold selection.
+- Leave training/deployment claims label-free: this sweep uses basin labels
+  only after family construction to score entropy and dominant-basin agreement.
+
+### 2026-05-05: support-family active-index codebook regenerated
+
+Concrete results:
+- Regenerated
+  [fig_support_family_index_codebook.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_family_index_codebook.pdf),
+  [fig_support_family_index_codebook.png](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_family_index_codebook.png),
+  and
+  [fig_support_family_index_codebook.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_family_index_codebook.json)
+  from existing seed-`0` checkpoints.
+- The selected layout compares matched `d_z=256` LISTA and LISTA-BD models on
+  High cross and Asymmetric wells, both three-basin systems, and displays six
+  support families per panel.
+- The previous right-side printed active-coordinate list has been removed.
+  Active coordinates are encoded only by thin tick position on the shared
+  `0..255` latent-coordinate axis; tick opacity and row-label percentages
+  encode within-basin dominance.
+- The same generator now supports `--systems retained15` and
+  `--batch-output-dir`, and has rendered one two-panel LISTA/LISTA-BD codebook
+  for each of the `15` retained controlled multibasin systems under
+  [support_family_codebooks_retained15](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15).
+  The directory contains `15` PDFs, `15` PNGs, `15` per-system JSON sidecars,
+  [manifest.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15/manifest.json),
+  and
+  [contact_sheet.png](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15/contact_sheet.png).
+- After inspecting the retained-system candidates, the Asymmetric wells triplet
+  was regenerated as a one-panel LISTA-BD-only version and wired into
+  [docs/neurips_sparse_koopman_multibasin.tex](/home/mila/l/lia/skae/docs/neurips_sparse_koopman_multibasin.tex):
+  [support_family_index_codebook_claude_cal_asymmetric_3.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15/support_family_index_codebook_claude_cal_asymmetric_3.pdf).
+  The manuscript PDF was rebuilt successfully after the TeX include and caption
+  were updated.
+- Added a sibling exploratory batch using \(F_{\rm abs}\), with support rule
+  `absolute:0.001`, for both LISTA and LISTA-BD on the same retained-`15`
+  systems:
+  [support_family_codebooks_retained15_fabs](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs).
+  The directory contains `15` PDFs, `15` per-system PNGs, `15` per-system JSON
+  sidecars, a manifest, and a contact sheet.
+- Added a second sibling exploratory batch using \(F_{\rm abs}\) on the global
+  deep slice:
+  [support_family_codebooks_retained15_fabs_deep](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs_deep).
+  This batch uses generated observation trajectories with `128` trajectories,
+  length `128`, eval seed `42`, `endpoint_rollout_steps=5000`, support rule
+  `absolute:0.001`, and `depth_slice_mode=global`. It writes `15` PDFs, `15`
+  per-system PNGs, `15` per-system JSON sidecars, a manifest, and a contact
+  sheet.
+
+Context:
+- This figure supports the manuscript claim that learned \(F_{\rm top8}\)
+  support families are inspectable sparse coordinate objects, not just
+  abstract cluster labels.
+- Candidate PNGs were inspected before selection. A three-system layout was
+  rejected because y labels competed across panels at manuscript width; the
+  final two-by-two layout was more readable.
+- The retained-`15` batch excludes `multiwell_strong_transition` and
+  `claude:checkerboard_potential`, matching the current paper-facing controlled
+  benchmark membership. The systems without explicit basin-map helpers in the
+  earlier visual screen use endpoint-rollout basin labels for post-hoc coloring
+  and opacity.
+
+Interpretation:
+- High cross gives a compact reference case with clear basin-colored support
+  families. Asymmetric wells adds a second interpretable three-basin system
+  where dominant families show visually distinct coordinate ranges, especially
+  for the strongest basin-2 family in LISTA-BD.
+- The figure is a display artifact, not a new experiment result; it visualizes
+  prototype masks already implied by the trained models and the existing
+  interpretability rows.
+- The \(F_{\rm abs}\) exploratory batch is visually much denser than
+  \(F_{\rm top8}\), because absolute-threshold prototypes can activate many
+  more than eight coordinates. It is useful for checking threshold-support
+  structure, but it is less clean for pinpointing exact sparse index choices
+  in a compact main-paper figure.
+- The global-deep \(F_{\rm abs}\) batch is cleaner in family count because the
+  deep slice often reduces to the most basin-interior support templates. The
+  tradeoff is coverage: under the global deep-margin criterion, unequal-depth
+  systems can show only one represented basin in the codebook.
+
+Project implications:
+- The paper now has a publication-ready companion visual for actual active
+  coordinate indices. The caption can emphasize that basin labels are used
+  only after training for coloring and annotation.
+- The \(d_z=256\) axis is explicit in the plot, resolving the earlier ambiguity
+  caused by the old p64 LISTA-SB visualization. The May 5 mark-style update
+  changed the active-coordinate glyphs from blocky squares to thinner ticks so
+  individual indices are easier to localize.
+
+Next steps:
+- Keep the one-panel LISTA-BD Asymmetric wells codebook as the main manuscript
+  support-codebook figure unless senior coauthor feedback asks for an explicit
+  LISTA-vs-LISTA-BD comparison. Do not reintroduce the printed active-index
+  column.
+- Use the retained-`15` batch as the screening pool for appendix or replacement
+  subfigure selection; do not include all `15` in the main text without a
+  specific model-comparison or benchmark-coverage argument.
 
 ### 2026-05-03: Table 2 refocused on support-family routing with system-level inference
 
@@ -950,12 +1873,17 @@ Next steps:
   significant through `H4000` but miss the all-comparison `0.05` threshold at
   `H5000`. LISTA-SB still does not survive the all-comparison correction and
   remains appendix-only for Dysts.
-- Added two uncertainty alternatives for the Dysts horizon plots. The
+- Added uncertainty alternatives for the Dysts horizon plots. The unsuffixed
+  paper-facing figures keep the raw arithmetic-mean line but use
+  system-wise log-relative seed-bootstrap bands anchored to that line, which
+  summarize finite-seed uncertainty for an average system without letting one
+  high-MSE system dominate the shaded interval. The `_raw_seed_ci` figures
+  keep the original raw-MSE fixed-system seed-bootstrap interval for audit.
+  The
   `_system_ci` figures resample the fixed per-system seed-IQM estimates across
   systems. The `_log_seed_bootstrap` figures resample seeds within each fixed
   system after transforming MSE to `log10` space, then exponentiate the
-  resulting mean-log interval. The original unsuffixed figures still show the
-  raw-MSE fixed-system seed-bootstrap interval for audit comparison.
+  resulting mean-log interval.
 
 2. Context:
 - The arithmetic-mean switch made the uncertainty bands sensitive to the
@@ -1034,9 +1962,10 @@ Next steps:
   Wilcoxon/Holm protocol used elsewhere in the manuscript.
 - The paper-facing raw-MSE trend uses log scale after checking the all-system
   means: the displayed MSEs run from about `3.02e-4` to `1.27`, so linear scale hides
-  most early-horizon model separation. The shaded bands are uncertainty
-  intervals for the mean-over-systems estimand under finite seed sampling, not
-  cross-system heterogeneity bands.
+  most early-horizon model separation. The shaded bands are fixed-system,
+  log-relative seed-bootstrap intervals anchored to the raw arithmetic-mean
+  line, so they show finite-seed uncertainty for an average system rather than
+  cross-system heterogeneity or raw-scale sensitivity to one large MSE.
 - The phase portraits make the qualitative rollout behavior inspectable at the
   reduced horizons that correspond to the `dt x30` benchmark rather than the
   older `H30000`--`H60000` tiny-step packet.
@@ -1121,9 +2050,11 @@ Next steps:
   Dysts and mark passing cells on the actual-MSE table with `*`/`**`.
   Keep `[K/12]` only in diagnostic CSVs or appendix discussion if needed.
 - Keep confidence intervals as estimation summaries rather than pass/fail
-  tests. The fixed-system seed bootstrap describes finite-seed uncertainty
-  conditional on the `12` systems; the hierarchical bootstrap is more relevant
-  if treating the systems as a sample from a broader chaotic-benchmark family.
+  tests. The main fixed-system log-relative seed bootstrap describes typical
+  finite-seed uncertainty conditional on the benchmark systems; the raw
+  fixed-system seed bootstrap remains an audit for raw-scale sensitivity, and
+  the hierarchical bootstrap is more relevant if treating the systems as a
+  sample from a broader chaotic-benchmark family.
 - Do not foreground raw-MSE standard deviations in the main table. The Dysts
   errors are heavy-tailed and span orders of magnitude, so raw SDs would mostly
   describe outlier scale. If a dispersion number is needed, prefer
@@ -3582,6 +4513,73 @@ Assumption split:
 
 ## Outstanding problems (active)
 
+- **Reviewer-requested oracle/clustering/OOD checks are queued, not landed**:
+  The oracle-vs-learned local-\(K\) p256 add-on, explicit regime-discovery
+  baselines, and four-system out-of-generator packet were submitted on
+  `2026-05-06` and have job dependencies recorded in Queue Status. Do not cite
+  them as results until the merge artifacts land. The remaining unimplemented
+  baseline is a full temporal switching LDS; the current queued substitute is
+  a diagonal-GMM-routed centered local-\(K\) mixture-style comparison.
+- **Stage-2 support-family local-map expansion is complete and mixed/negative**:
+  The dense LISTA `F_top8`, `J=0.40`, `period=5`, `reroute_each_step`
+  support-family-local \(K_c\) expansion completed the 50k controlled and
+  Dysts passes. Controlled multibasin is mixed (`H100/H500/H1000`
+  routed/best-periodic ratios `1.70/0.91/0.84`, with `4/15`, `5/15`, `5/15`
+  system wins), while Dysts is strongly negative (`0/10` wins at every horizon,
+  `6.9e3` routed/best-periodic already at `H100`). The 100k continuation does
+  not rescue the result: controlled gets worse and Dysts has three failed
+  shards plus unstable successful rows. A Dysts period-sensitivity sweep is
+  queued for periods `{1,2,5,10,20}` by reusing period `5` and submitting
+  missing periods `{1,2,10,20}`; this should be treated as the last robustness
+  check before deciding whether the branch is controlled-table-only versus
+  appendix-only evidence. The controlled row is significantly better than the
+  hard-init Dense MLP Table 1 baseline, so the branch should not be described
+  as wholly paper-negative. It should still not be promoted as externally
+  robust forecasting evidence without a materially better Dysts readout.
+- **Stage-2 calibrated-global \(K\) ablation is complete and unstable**:
+  The calibrated-global 50k ablation completed raw-row batches with `0`
+  failures, but simple means show large blow-ups on controlled multibasin and
+  Dysts. It answers the ablation question negatively: second-stage
+  rollout-loss calibration alone is not a reliable fix for long-horizon
+  forecasting.
+- **Routed forecasting MSE add-on is complete and negative for forecasting**:
+  The plan is
+  [ROUTED_FORECASTING_MSE_PLAN.md](/home/mila/l/lia/skae/docs/ROUTED_FORECASTING_MSE_PLAN.md).
+  Smoke jobs `9466086` and `9466087` completed with `0` failures. The full
+  controlled multibasin shards `9466089`--`9466223` merged in `9466224`,
+  writing `675` rows with `0` failures. The Dysts shards `9466225`--`9466314`
+  merged in `9466315`, writing `450` rows with `0` failures. These jobs test
+  only p256 LISTA-family routed rollouts, `F_top8`, `J=0.5`, and the `>=50`
+  fitting-transition route rule. Aggregation job `9467050` wrote
+  [routed_forecasting_iqm_summary.csv](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/aggregation/routed_forecasting_iqm_summary.csv).
+  The result is negative for main-table forecasting: routed rows win `0/15`
+  controlled systems and `0/10` Dysts systems versus the same-model
+  best-periodic baseline at every evaluated horizon. The periodic
+  decode/re-encode follow-up is also complete under
+  [results/routed_periodic_forecasting_mse_20260505](/home/mila/l/lia/skae/results/routed_periodic_forecasting_mse_20260505),
+  with `2700` controlled rows, `1800` Dysts rows, and `0` recorded failures.
+  It improves stability relative to fully autonomous routed rollout, but every
+  aggregate routed/best-periodic ratio remains above `1`.
+- **Jaccard support-family threshold sensitivity is resolved as evidence**:
+  The May 5 sweep confirms that the Jaccard threshold is a core
+  interpretability-resolution parameter. The remaining task is paper
+  positioning, not execution: keep `J=0.5` fixed, report `H(B|F_abs)` together
+  with `|F_abs|`, and decide whether the appendix needs the sensitivity table.
+  Do not tune the threshold to minimize entropy, because high thresholds can
+  make `H(B|F)` vanish by overfragmenting each basin into many families.
+- **Training-dynamics appendix diagnostic is added**:
+  The new appendix figure is a representative `gated_local_linear`, seed-`0`
+  trace across the six controlled rows. It supports the checkpoint-selection
+  and spectral-stability discussion without changing the main evidence order.
+  There is no active execution blocker for this item; optional follow-up would
+  be an aggregate multi-system version only if coauthors request it.
+- **Main forecasting bands now use average-system seed uncertainty**:
+  The controlled multibasin and Dysts horizon panels have been regenerated
+  with fixed-system, log-relative seed-bootstrap bands anchored to the raw
+  arithmetic-mean line. This resolves the Dysts H3000 raw-scale band issue as
+  a display/uncertainty-estimand problem; remaining work is prose polish and
+  deciding where to cite the raw-seed, system-bootstrap, and log-space audit
+  variants.
 - **Matched `d_z=256` Tables 1--3 replacement is complete**:
   Tables 1--3 have been recomputed on allocation `9420481` with matched
   LISTA-SB artifacts where available. The remaining controlled-benchmark work
@@ -3597,14 +4595,22 @@ Assumption split:
   extend `scripts/build_per_system_stats_and_forest.py` against these new CSVs
   and add an appendix table. The existing global-slice numbers in
   `interpretability_final_pass1/` remain the main-text Table 1 source of truth.
-- Documentation-to-manuscript conversion is now the immediate paper blocker:
+- Documentation-to-manuscript conversion is no longer blocked on visible
+  manuscript todos:
   use the evidence order in
   [PAPER_EXPERIMENT_EVIDENCE_MAP.md](/home/mila/l/lia/skae/docs/PAPER_EXPERIMENT_EVIDENCE_MAP.md)
-  to keep the experiments section claim-calibrated. Figure 1 now covers the
-  main basin/support visual and refreshed Dysts portraits, so remaining work is
-  prose/table polish and appendix placement. Keep queue-era chronology, tuning
-  provenance, and superseded result packets out of the main narrative unless
-  they answer a specific objection.
+  to keep the experiments section claim-calibrated. Figure 1 covers the main
+  basin/support visual and refreshed Dysts portraits, and the May 4 pass
+  resolved the abstract/introduction/method/protocol/results/related-work/
+  conclusion todos in the manuscript. The companion active-index codebook is
+  also finalized as a one-panel `d_z=256` LISTA-BD Asymmetric wells display
+  using actual coordinate tick positions rather than a printed coordinate-list
+  column. Remaining
+  work is senior-coauthor review, page-budget tightening, deciding whether the
+  new p256 barcode/alluvial drafts fit the main text or appendix, and deciding
+  which appendix diagnostics are worth preserving. Keep queue-era chronology,
+  tuning provenance, and superseded result packets out of the main narrative
+  unless they answer a specific objection.
 - **Dysts `seq_len=10`, up-to-`15`-seed, H<=60K rerun is collected**:
   Dysts training uses 30K-step source trajectories and windows of length `10`;
   held-out long-horizon evaluation uses a separate `long60` test cache at
@@ -5424,6 +6430,313 @@ Assumption split:
   alignment-aware reducer extensions are implemented.
 
 ## Queue Status
+
+- Current live queue: the direct \(F_{\rm abs}\) versus \(F_{\rm top8}\)
+  long-horizon routing comparison is now queued as a matching \(F_{\rm abs}\)
+  stage-2 replay against the existing \(F_{\rm top8}\) fixed-setting results.
+  The replay uses `absolute:0.001`, `J=0.40`, period `5`,
+  `reroute_each_step`, `50000` steps, `MIN_OPERATOR_TRANSITIONS=50`, and the
+  same retained systems, seeds, horizons, fitting/evaluation split, and
+  fallback rule as the \(F_{\rm top8}\) 50k run. Worker jobs request `long`,
+  `--gres=gpu:1`, `1` CPU, `8G`, and `DEVICE=cuda`, and checkpoint to
+  `train_checkpoint.pt`. Controlled multibasin batches are `9478281`--`9478356
+  -> 9478357` and `9478359`--`9478433 -> 9478434`, with combined job `9478541`.
+  Dysts batches are `9478436`--`9478485 -> 9478486` and `9478488`--`9478537 ->
+  9478538`, with combined job `9478542`. Queue manifests are under
+  [results/routed_stage2_local_maps_20260506](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506);
+  as submitted, worker jobs were pending in `long` due to priority and the
+  dependency-held merge/combine jobs displayed as CPU-only `long-cpu`.
+
+- Current live queue: the reviewer-requested local-K/clustering/OOD additions
+  were submitted on `2026-05-06` after SLURM validation job `9478592`
+  completed with exit `0:0`. The plain p256 oracle-vs-learned local-K add-on
+  uses
+  [results/oracle_vs_learned_local_koopman_20260506](/home/mila/l/lia/skae/results/oracle_vs_learned_local_koopman_20260506):
+  shard jobs `9478597`, `9478599`, and `9478601` feed merge `9478603`.
+  The explicit regime-discovery baseline packet uses
+  [results/regime_discovery_local_koopman_20260506](/home/mila/l/lia/skae/results/regime_discovery_local_koopman_20260506):
+  retry shard jobs `9478633`--`9478647` feed merge `9478648`; the canceled
+  first attempt was `9478598`, `9478600`, `9478602`, and
+  `9478604`--`9478615 -> 9478616`, stopped after a metric-label encoding bug
+  was fixed and revalidated on `9478630`; runtime smoke `9478651` completed
+  the original failure case with `0` failures. The supplemental
+  out-of-generator p256 LISTA packet uses
+  [results/out_of_generator_multistable_p256_lista_20260506](/home/mila/l/lia/skae/results/out_of_generator_multistable_p256_lista_20260506):
+  training array `9478617` (`12` tasks) feeds collect `9478618`,
+  interpretability `9478619 -> 9478620`, oracle/local-K `9478621 -> 9478622`,
+  and regime discovery `9478623 -> 9478624`. As of `2026-05-06 02:52 EDT`,
+  the oracle/local-K shards and retried regime-discovery shards were running,
+  and the OOD training array was still pending on scheduler priority, with
+  downstream jobs dependency-held.
+
+- Training-dynamics appendix generation completed on CPU allocations `9475203`
+  and `9475445`
+  using
+  [tools/make_training_dynamics_appendix.py](/home/mila/l/lia/skae/tools/make_training_dynamics_appendix.py).
+  The job read existing `metrics_history.jsonl` files only and wrote the
+  controlled-system and Dysts appendix PDF/PNG figures plus CSV/JSON
+  summaries; no new training or evaluation queue was launched. The Dysts
+  companion aggregates seed-`0` traces over the retained `10` Dysts `dt x30`
+  systems by the median over finite per-system metric values at each step.
+
+- As of `2026-05-06 01:52 EDT`, the fixed-setting stage-2 local-map expansion
+  has finished its main shard execution under
+  [results/routed_stage2_local_maps_20260506](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506).
+  The `50000`-step support-family-local controlled pass completed `150/150`
+  system-seed shards with `0` failures and combined cleanly. Its seed-IQM
+  readout gives routed/best-periodic ratios `1.70/0.91/0.84` at
+  `H100/H500/H1000`, with `4/15`, `5/15`, and `5/15` system wins. The
+  `50000`-step Dysts pass completed `100/100` shards with `0` failures but is
+  strongly negative, with `0/10` system wins at every horizon and
+  routed/best-periodic ratios already `6.9e3` at `H100`.
+  The controlled `100000`-step continuation completed `150/150` shards with
+  `0` failures, but the two seed-half aggregations are worse than 50k
+  (`H100/H500/H1000` ratios around `2.04/1.12/1.01` and `2.10/1.20/1.07`).
+  The Dysts `100000`-step continuation finished with `97/100` successful rows;
+  `dysts:Dadras` seed `0`, `dysts:SanUmSrisuchinwong` seed `0`, and
+  `dysts:QiChen` seed `7` failed due `LocalMapBundle` family-count mismatches.
+  The remaining Dysts 100k rows are unstable and not paper-positive.
+
+- As of `2026-05-06 02:02 EDT`, a Dysts `50000`-step
+  support-family-local re-encode-period sweep is queued for periods
+  `{1,2,5,10,20}` under the same `F_top8`, `J=0.40`, `reroute_each_step`,
+  `label_mode=none` setting. The completed period-`5` outputs
+  `best_lista_dysts_j040_50k_labelnone_seed0_4` and
+  `best_lista_dysts_j040_50k_labelnone_seed5_9` are being reused; only the
+  missing periods `{1,2,10,20}` were submitted. Seed batch `0`--`4` uses shard
+  jobs `9477874`--`9478073`, merge `9478074`, and aggregation `9478075` under
+  [best_lista_dysts_j040_50k_period_sweep_missing_labelnone_seed0_4](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/best_lista_dysts_j040_50k_period_sweep_missing_labelnone_seed0_4).
+  Seed batch `5`--`9` uses shard jobs `9478076`--`9478275`, merge `9478276`,
+  and aggregation `9478277` under
+  [best_lista_dysts_j040_50k_period_sweep_missing_labelnone_seed5_9](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/best_lista_dysts_j040_50k_period_sweep_missing_labelnone_seed5_9).
+  Combined analysis job `9478278` depends on both merges and will write
+  [combined_best_lista_dysts_j040_50k_period_sweep_labelnone_seed0_9](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/combined_best_lista_dysts_j040_50k_period_sweep_labelnone_seed0_9).
+  Use this as a robustness check for the negative Dysts period-`5` result
+  before deciding whether any stage-2 local-map row belongs in an appendix.
+
+- As of `2026-05-06 02:07 EDT`, CPU comparison job `9478543` completed the
+  controlled stage-2 versus hard-init Dense MLP Table 1 readout under
+  [dense_mlp_comparison](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260506/combined_best_lista_multibasin_j040_50k_seed0_9/dense_mlp_comparison).
+  On the same `15` systems and common seed slots `0`--`9`, the controlled
+  `50000`-step support-family-local row beats Dense MLP in aggregate with
+  stage-2/Dense ratios `0.0866/0.0513/0.0490` at `H100/H500/H1000`.
+  System-level Wilcoxon p-values Holm-correct to `9.16e-4` across the three
+  horizons; `14/15` systems have better per-system IQM at every horizon, with
+  `claude:duffing_triple_well` as the exception.
+
+- As of `2026-05-06 01:52 EDT`, the stage-2 calibrated-global \(K\) ablation
+  has also finished its `50000`-step raw-row batches. Controlled and Dysts
+  both have complete seed-`0`--`9` raw rows with `0` failures and route
+  coverage `1.0`, but the results are unstable rather than paper-positive:
+  controlled simple means are `H100/H500/H1000 = 16.4/6.86e31/0.125`, while
+  Dysts simple means are catastrophic from `H100` onward. Combined
+  calibrated-global readout jobs `9477239` and `9477240` hit a comparison-script
+  `root_label` merge-key error; use the raw rows and seed-half summaries until
+  the aggregation script is hardened.
+
+- Current live queue: the current-roster per-basin deep-slice rerun is running.
+  `squeue` shows shard jobs `9477837`--`9477840`, `9477842`, and `9477844`
+  running, with merge jobs `9477841`, `9477843`, and `9477845` pending on
+  dependencies. Partial shard manifests show `25`--`30` completed runs per
+  root with `0` failures; do not use these as final Table 1 appendix evidence
+  until the merges finish.
+
+- As of `2026-05-05`, the routed forecasting MSE add-on in
+  [ROUTED_FORECASTING_MSE_PLAN.md](/home/mila/l/lia/skae/docs/ROUTED_FORECASTING_MSE_PLAN.md)
+  has passed two SLURM smoke checks and completed the full raw-row evaluation.
+  Smoke jobs `9466086` and `9466087` wrote one row each with `0` failures.
+  The full controlled multibasin grid completed under
+  [results/routed_forecasting_mse_20260505/multibasin](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/multibasin)
+  with shard jobs `9466089`--`9466223` and merge job `9466224`, writing `675`
+  rows with `0` failures. The full Dysts grid completed under
+  [results/routed_forecasting_mse_20260505/dysts](/home/mila/l/lia/skae/results/routed_forecasting_mse_20260505/dysts)
+  with shard jobs `9466225`--`9466314` and merge job `9466315`, writing `450`
+  rows with `0` failures. Both grids
+  request `03:00:00`, `4` CPUs, `24G`, `topk:8`, `family_local_centered`,
+  `J=0.5`, and `MIN_OPERATOR_TRANSITIONS=50`; Dysts additionally uses
+  `label_mode=none`, `FIT_DYSTS_CACHE_SPLIT=val`, and
+  `FORECAST_DYSTS_CACHE_SPLIT=test`. The requested partition was `long`; Mila
+  displayed the CPU-only jobs as `long-cpu`. Aggregation job `9467050`
+  completed the seed-IQM-over-seeds and mean-over-systems comparison against
+  the current Table 1/Table 3 best-periodic rows. The queue blocker is closed,
+  and the paper-facing result is negative: routed forecasting wins `0/15`
+  controlled systems and `0/10` Dysts systems for every LISTA-family model at
+  every evaluated horizon.
+
+- As of `2026-05-05`, the periodic decode/re-encode routed-forecasting rerun
+  is complete under
+  [results/routed_periodic_forecasting_mse_20260505](/home/mila/l/lia/skae/results/routed_periodic_forecasting_mse_20260505).
+  The evaluator and aggregator now track `reencode_period`, with periods
+  `5,10,20,30`. Compile job `9467340` completed with exit `0:0`. Controlled
+  smoke `9467341` and Dysts smoke `9467342` each wrote `4` rows (`1` spec x
+  `4` periods) with `0` failures. The full controlled grid completed as shard
+  jobs `9467343`--`9467477` with merge `9467478`, writing `2700` rows with
+  `0` failures. The full Dysts grid completed as shard jobs
+  `9467479`--`9467568` with merge `9467569`, writing `1800` rows with `0`
+  failures. Aggregation job `9467598` completed the comparison against the
+  same-model best-periodic paper-table rows. These jobs keep the same p256
+  LISTA-family roster, retained systems, `F_top8`, `J=0.5`, and
+  `MIN_OPERATOR_TRANSITIONS=50` rule as the autonomous add-on. The result is
+  still negative for main-table forecasting: all aggregate routed/best-periodic
+  ratios are above `1`, with only isolated system wins in individual cells.
+
+- As of `2026-05-05`, the stage-2 support-family local-map proof of concept is
+  being revised from the cancelled `J=0.5` queue to a fresh `J=0.40` queue.
+  The implementation is
+  [tools/train_support_family_local_maps.py](/home/mila/l/lia/skae/tools/train_support_family_local_maps.py)
+  with SLURM wrappers
+  [run_support_family_local_maps_stage2.sh](/home/mila/l/lia/skae/scripts/run_support_family_local_maps_stage2.sh)
+  and
+  [queue_support_family_local_maps_stage2_poc.sh](/home/mila/l/lia/skae/scripts/queue_support_family_local_maps_stage2_poc.sh).
+  Compile job `9469290` and corrected smoke job `9469291` completed with
+  `0` failures. The first smoke `9469284` found the stage-2 evaluator shape
+  bug and was intentionally superseded by the corrected smoke. The original
+  `10000`-step queue from launcher `9469305` was cancelled before producing
+  results after the training budget changed to `5000` route-balanced optimizer
+  steps. Compile job `9469699` passed after that change. The first `5000`-step
+  queue from launcher `9469702` still used `J=0.5` and was cancelled before
+  aggregation after the route threshold changed to `J=0.40`. The first
+  `J=0.40`, `5000`-step queue was cancelled before aggregation after the
+  optimization budget changed to `20000` steps. Compile job `9470492` passed
+  after that change. The first CPU full queue was submitted by launcher
+  `9470519`, then cancelled after GPU benchmark `9471176` showed a clear
+  turnaround advantage. The queue tooling now forwards `DEVICE` and optional
+  `GRES`, records them in `queue_manifest.json`, logs `nvidia-smi`, and
+  submits the stage-2 aggregation dependency automatically. The GPU `c1` queue
+  was moved from `main` to `long` at the user's request because `main` has a
+  stricter GPU limit. The queue script now skips completed shards before
+  resubmission; two completed `arrested_spiral/p1` shard outputs were kept
+  because their row CSVs were nonempty and their `failures.json` files were
+  empty. The active GPU full queue is under
+  [results/routed_stage2_local_maps_20260505/multibasin_poc_j040_20k_gpu_c1](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260505/multibasin_poc_j040_20k_gpu_c1).
+  It has worker jobs `9472119`--`9472476`, merge `9472477`, and aggregation
+  `9472478`. The new manifest records `partition=long`, `GRES=gpu:1`,
+  `DEVICE=cuda`, `SKIP_COMPLETED=1`, `skipped_count=2`, and
+  `submitted_count=358`. A first GPU queue with `4` CPUs per worker was
+  cancelled before meaningful progress because it hit the CPU QoS limit; a
+  later `main` `c1` queue started cleanly and produced the two preserved
+  shards, then was cancelled to move off `main`. The active queue uses `1` CPU
+  per GPU worker and exports one-thread CPU BLAS settings. A live check after
+  resubmission showed workers `9472119`--`9472123` running, `353` workers
+  pending, and no nonempty `.err` files for the new `9472xxx` jobs; worker
+  `9472119` logged a V100 allocation and progress through `stage2 step
+  500/20000`. The grid covers seed `0` for the three p256 LISTA-family roots, retained
+  `15` controlled multibasin systems, re-encoding periods `1,2,5,10`, and
+  route modes `reroute_each_step`/`freeze_within_segment`; each worker shard
+  requests `03:00:00`, `1` GPU, `1` CPU, and `8G` on `long`. Merge and
+  aggregation were requested on `long` and display as CPU-only `long-cpu`
+  dependency jobs in `squeue`.
+  A focused GPU timing check, job `9471176`, completed the matching
+  `claude:cal_asymmetric_3`, seed-`0`, period-`5`, `reroute_each_step` case
+  for `3000` CUDA training steps plus a small evaluation in `00:02:17` with
+  exit `0:0`; its output is
+  [gpu_benchmark_j040](/home/mila/l/lia/skae/results/routed_stage2_local_maps_20260505/gpu_benchmark_j040).
+  The concurrently running CPU shard for the same setting, job `9470532`, had
+  reached step `3000/20000` at roughly `00:24:30` elapsed. The benchmark shows
+  that stage-2 training should request one GPU, and that `8G` memory was
+  sufficient for this timing case. The first `main` `c1` workers completed two
+  valid shards before the migration; all remaining shards are now queued on
+  `long`.
+  Follow-up TODO: once this active queue, merge, and corrected aggregation
+  finish, use
+  [tools/select_stage2_best_setting.py](/home/mila/l/lia/skae/tools/select_stage2_best_setting.py)
+  to select one LISTA/LISTA-BD root plus one cadence/freezing mode, then queue
+  the fixed-setting controlled seed expansion (`1`--`4`, reusing seed `0`) and
+  the fixed-setting Dysts seed expansion (`0`--`4`). Use
+  [tools/combine_stage2_best_rows.py](/home/mila/l/lia/skae/tools/combine_stage2_best_rows.py)
+  to combine seed batches for five-seed and later fifteen-seed aggregation.
+
+- As of `2026-05-05`, the Jaccard support-family threshold sweep completed on
+  existing trained checkpoints without launching new training. It ran on the
+  user allocation `9461605` via
+  [tools/sweep_support_family_jaccard.py](/home/mila/l/lia/skae/tools/sweep_support_family_jaccard.py)
+  over the retained `15` systems, current six paper-facing roots, all
+  available seeds, `F_abs` and `F_top8`, thresholds
+  `0.20/0.32/0.40/0.45/0.50/0.60/0.70/0.80/0.90`, and the global deep slice
+  with subset-local family formation. The artifact directory is
+  [results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit](/home/mila/l/lia/skae/results/support_family_jaccard_threshold_sweep_20260505/full_retained15_deep_subsetfit);
+  it contains `24,210` rows and `0` failures. The full grid took about
+  `3.7` hours, confirming this is evaluation-time work but still enough to
+  benefit from compute-node execution.
+
+- As of `2026-05-05`, the Support Barcode Map and Alluvial
+  Basin-to-Support-to-Family figure drafts have been regenerated from p256
+  LISTA-family checkpoints without launching new training queues. The Support
+  Barcode Map used allocation `cn-h004` and
+  [tools/make_support_barcode_map.py](/home/mila/l/lia/skae/tools/make_support_barcode_map.py)
+  to write
+  [fig_support_barcode_map_p256.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_barcode_map_p256.pdf),
+  [fig_support_barcode_map_p256.png](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_barcode_map_p256.png),
+  and
+  [fig_support_barcode_map_p256.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_barcode_map_p256.json).
+  The alluvial updates used allocations `9460538`, `9460619`, and `9460724`;
+  the current Image-1-style p256 deep-slice draft uses
+  [tools/make_basin_support_family_alluvial.py](/home/mila/l/lia/skae/tools/make_basin_support_family_alluvial.py)
+  to write
+  [fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.pdf),
+  [fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.png](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.png),
+  and
+  [fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_basin_support_family_alluvial_p256_gated_deep_unbold_headers.json).
+  It is p256 dense LISTA on `gated_local_linear`, seed `0`, global deep slice,
+  `S_abs=10^{-3}`, and family Jaccard threshold `0.5`, giving `393` exact
+  supports merged to `3` support families with family-dominant basin agreement
+  `1.0`. The renderer keeps the original alluvial geometry but sets the
+  column headers to normal weight.
+  These are display-generation updates only; the older p64 draft artifacts are
+  no longer paper-facing candidates.
+
+- As of `2026-05-05`, the companion active-index codebook has been
+  regenerated from existing checkpoints without launching new training or
+  evaluation queues. Compute allocation `9460367` reran
+  [tools/make_support_family_index_codebook.py](/home/mila/l/lia/skae/tools/make_support_family_index_codebook.py)
+  and wrote
+  [fig_support_family_index_codebook.pdf](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_family_index_codebook.pdf),
+  [fig_support_family_index_codebook.png](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_family_index_codebook.png),
+  and
+  [fig_support_family_index_codebook.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_support_family_index_codebook.json).
+  Candidate PNGs were inspected before selecting the intermediate two-by-two layout:
+  LISTA and LISTA-BD across High cross and Asymmetric wells, with six
+  displayed families per panel and no printed active-index list column. This
+  is a display-generation update only.
+- The same allocation also rendered the retained-`15` batch with
+  `--systems retained15 --batch-output-dir`, writing one PDF/PNG/JSON triplet
+  per retained system plus
+  [manifest.json](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15/manifest.json)
+  and
+  [contact_sheet.png](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15/contact_sheet.png).
+  The contact sheet and the high-basin Octagon wells figure were inspected as
+  image QA checks; no broken panels or obvious label collisions were found.
+- The Asymmetric wells retained-batch triplet was then regenerated as the
+  manuscript-facing one-panel LISTA-BD-only figure and inserted into
+  [docs/neurips_sparse_koopman_multibasin.tex](/home/mila/l/lia/skae/docs/neurips_sparse_koopman_multibasin.tex).
+  The rebuilt manuscript PDF includes this figure on page 11.
+- The same renderer now also supports `--support-definition absolute:0.001`.
+  Allocation `9460837` rendered the retained-`15` LISTA/LISTA-BD \(F_{\rm abs}\)
+  screening batch under
+  [support_family_codebooks_retained15_fabs](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs),
+  including a manifest and contact sheet. This did not change the manuscript
+  figure.
+- The renderer now also supports `--subset deep` with `--depth-slice-mode
+  global`, using the same basin-margin deep-slice convention as the
+  interpretability reducer. Allocation `9461437` rendered the retained-`15`
+  LISTA/LISTA-BD \(F_{\rm abs}\) deep-slice screening batch under
+  [support_family_codebooks_retained15_fabs_deep](/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs_deep).
+  The batch was validated as `15` PDFs, `16` PNGs including the contact sheet,
+  and `16` JSON files including the manifest. This did not change the
+  manuscript figure.
+
+- As of `2026-05-04`, the main forecasting horizon bands have been
+  regenerated without launching new training/evaluation queues. Compute
+  allocation `9452021` reran
+  [scripts/build_per_system_stats_and_forest.py](/home/mila/l/lia/skae/scripts/build_per_system_stats_and_forest.py)
+  and
+  [tools/analyze_dysts_dt30_results.py](/home/mila/l/lia/skae/tools/analyze_dysts_dt30_results.py)
+  from existing collected CSVs. The unsuffixed main horizon figures now keep
+  the raw arithmetic-mean line and use fixed-system, log-relative
+  seed-bootstrap `95%` bands; `_raw_seed_ci`, `_system_ci`, and
+  `_log_seed_bootstrap` Dysts variants are retained as audit figures.
+  [docs/neurips_sparse_koopman_multibasin.pdf](/home/mila/l/lia/skae/docs/neurips_sparse_koopman_multibasin.pdf)
+  was rebuilt from the regenerated figures.
 
 - As of `2026-05-03`, the Dysts `dt x30` retained-`10` aggregation is
   complete. At the user's direction, `dysts:LorenzCoupled` is excluded from

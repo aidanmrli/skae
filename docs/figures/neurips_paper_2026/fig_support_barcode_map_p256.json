@@ -1,0 +1,73 @@
+{
+  "system": "gated_local_linear",
+  "title": "Local-linear gates",
+  "root_label": "lista_dense_signsplit_p256_hardinit_basin_partition",
+  "model_family": "p256 dense LISTA",
+  "seed": 0,
+  "run_dir": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_0/20260501-052234",
+  "p256_proof": {
+    "root_label_contains_p256": true,
+    "root_label": "lista_dense_signsplit_p256_hardinit_basin_partition",
+    "run_dir_contains_p256": true
+  },
+  "grid_points": 96,
+  "basin_label_source": "env.basin_label",
+  "figure": {
+    "figure": "support_barcode_map_p256",
+    "output_pdf": "docs/figures/neurips_paper_2026/fig_support_barcode_map_p256.pdf",
+    "output_png": "docs/figures/neurips_paper_2026/fig_support_barcode_map_p256.png",
+    "support_definition": "topk:8",
+    "family_jaccard": 0.5,
+    "latent_dimension": 256,
+    "support_family_count": 44,
+    "dominant_basin_agreement_on_grid": 0.9370659722222222,
+    "label_note": "Basin colors and family-to-basin names are post-hoc evaluation mappings; training uses no basin labels.",
+    "displayed_families": [
+      {
+        "family": 0,
+        "dominant_basin": 0,
+        "grid_fraction": 0.11924913194444445,
+        "prototype_indices": [
+          1,
+          47,
+          51,
+          55,
+          63,
+          71,
+          127,
+          238
+        ]
+      },
+      {
+        "family": 1,
+        "dominant_basin": 1,
+        "grid_fraction": 0.08756510416666667,
+        "prototype_indices": [
+          0,
+          35,
+          43,
+          46,
+          57,
+          60,
+          63,
+          101
+        ]
+      },
+      {
+        "family": 6,
+        "dominant_basin": 2,
+        "grid_fraction": 0.07389322916666667,
+        "prototype_indices": [
+          4,
+          56,
+          66,
+          101,
+          104,
+          119,
+          169,
+          221
+        ]
+      }
+    ]
+  }
+}

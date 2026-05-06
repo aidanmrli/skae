@@ -1,0 +1,76 @@
+\section{Statistical testing protocol}
+\label{app:statistical_testing}
+
+The point estimates and significance annotations answer different questions. In the forecasting and support-diagnostic tables, point estimates usually summarize completed random training seeds within each benchmark system by an interquartile mean (IQM), then average those system summaries across systems. The main exception is the descriptive family-count column \(\overline{|F_{\rm abs}|}\), which averages per-system seed means because it is a count diagnostic rather than a directional performance metric. Routing and support-refresh ratio summaries use the matched log-ratio summaries described below. The statistical annotations ask whether the paired effect is reproducible under the experimental unit matched by the design. We therefore do not pool seeds, trajectories, transfers, and systems into one sample. A seed, controlled transfer instance, or benchmark system is used as the replicate only when that is the unit on which the two conditions are paired.
+
+\paragraph{Paired effects and alternatives.}
+For multibasin forecasting comparisons in \cref{tab:fixed17_alignment}, \(\operatorname{MSE}_{s,r,h}\) is the held-out best-periodic MSE at rollout horizon \(h\). Against the dense-latent MLP baseline (referred to as Dense), the paired effect for system \(s\), seed \(r\), and horizon \(h\) is
+\begin{equation}
+  \delta_{s,r,h}
+  =
+  \log_{10}\operatorname{MSE}^{\rm cand}_{s,r,h}
+  -
+  \log_{10}\operatorname{MSE}^{\rm Dense}_{s,r,h}
+  =
+  \log_{10}\!\left(
+    \operatorname{MSE}^{\rm cand}_{s,r,h}/
+    \operatorname{MSE}^{\rm Dense}_{s,r,h}
+  \right).
+\end{equation}
+The one-sided alternative is \(\delta<0\), matching the table direction that lower MSE is better. The same log-ratio convention is used for \(F_{\rm top8}\) routed/global comparisons in \cref{tab:self_routing} and refreshed/stale-source \(S_{\rm top8}\) comparisons in \cref{tab:support_refresh}. Log ratios are used because MSEs are positive, the observed errors are heavy-tailed across seeds, and the scientific question is usually multiplicative: whether one paired condition reduces error relative to the matched alternative. Tables display ratios or MSEs on the original scale, but the paired tests are performed on the corresponding log differences when the metric is an MSE ratio.
+
+The support-alignment diagnostics use the same support notation as \cref{sec:method_supports,app:support_definitions}: \(S_{\rm abs}\) is the absolute-threshold active-coordinate set, \(F_{\rm abs}\) is the greedy Jaccard family of those exact supports, \(S_{\rm top8}\) is the eight largest-magnitude coordinates, and \(F_{\rm top8}\) is the corresponding top-\(8\) family. For \(H(B\mid F_{\rm abs})\) and the appendix \(|S_{\rm abs}|\) active-coordinate diagnostic, the paired difference is candidate minus Dense MLP with one-sided alternative candidate \(<\) Dense. For wrong-support/base ratios, the alternative is candidate \(>\) Dense, because a larger wrong-support/base ratio means that replacing the active \(S_{\rm abs}\) mask with a different basin's canonical mask is more damaging. The displayed \(\overline{|F_{\rm abs}|}\) family count is intentionally descriptive rather than assigned a one-sided test: its interpretation is closeness to the number of represented deep-slice basins, not monotone increase or decrease.
+
+\paragraph{Within-system brackets.}
+Bracketed \(K/N\) counts in \cref{tab:fixed17_alignment,tab:support_refresh} are within-system reproducibility counts. For multibasin forecasting, \(H(B\mid F_{\rm abs})\), appendix \(|S_{\rm abs}|\), and wrong-support ablations, the paired unit is the training seed \(r\): candidate and Dense MLP values are matched by the same system and seed. For support refresh, the paired unit is the controlled source-to-target transfer instance within a system; all completed training seeds contribute transfer instances to that within-system test.
+
+Within each system and cell, we apply a one-sided paired Wilcoxon signed-rank test to the paired deltas in the prespecified direction. This is the appropriate within-system test because the observations are paired by construction, the per-system sample sizes are modest, and log-MSE or ratio deltas are not well described by a Gaussian paired-error model. The signed-rank test uses the magnitudes and signs of matched differences for a paired location-shift question without imposing a Gaussian error model; the one-sided alternative is fixed by the table arrow before looking at the cell. For each model--metric--horizon-or-period--subset cell, valid per-system \(p\)-values are Holm-corrected across the eligible systems for that cell at \(\alpha=0.05\). The reported \(K/N\) is the number of systems whose Holm-corrected \(p\)-value is below \(0.05\) over the number of systems with an eligible, non-degenerate paired test for that diagnostic.
+
+This denominator convention explains the apparent differences across columns. Forecasting and the appendix active-count diagnostics have the full \(15\)-system denominator when all systems have enough finite paired seeds. \(H(B\mid F_{\rm abs})\) can have a smaller denominator, currently \(11\) or \(12\) depending on the model row, because several systems have degenerate paired entropy deltas on the main deep-state slice. Wrong-support ablations have \(N=11\) because four systems have only one represented basin in the global top-quartile deep slice, so substituting a different basin's canonical \(S_{\rm abs}\) mask is undefined. Support refresh has \(N=12\), the number of systems with valid controlled transfer coverage.
+
+\paragraph{System-level support-based routing.}
+The routing stars in \cref{tab:self_routing} are the main exception to the bracket-count rule. The displayed routing claim is a cross-system claim about whether \(F_{\rm top8}\)-local predictors improve over the same model's global \(K\) rollout on the benchmark. Seeds are nested inside systems, so treating seed-level routed/global ratios from the same dynamical system as independent benchmark systems would overstate the sample size.
+
+For each system, we first compute finite seed-level log ratios
+\[
+  \log_{10}\!\left(
+    \operatorname{MSE}^{\rm routed}_{s,r,h}/
+    \operatorname{MSE}^{\rm global}_{s,r,h}
+  \right)
+\]
+for the \(F_{\rm top8}\)-local route and summarize them by a within-system IQM, denoted \(D_{s,h}\). The table reports \(10^{\operatorname{mean}_s D_{s,h}}\), so values below one indicate lower routed MSE. Significance is tested with a one-sided exact sign-flip test on the finite system-level effects \(D_{s,h}\), using the benchmark system as the independent unit and the alternative \(D_{s,h}<0\). The sign-flip test is appropriate here because, under the paired null, each system-level effect can be assigned either sign while retaining its observed magnitude; the test therefore matches the paired cross-system claim and, with only \(15\) systems, avoids a normal approximation. The resulting \(p\)-values are Holm-corrected across the displayed model--horizon routing cells. The companion ``system wins'' column is a directional diagnostic from the censored per-system comparison, not the confirmatory \(p\)-value. In that diagnostic, systems with finite routed and global rollouts use the same log-ratio direction; a finite routed rollout paired with an invalid same-model global rollout is counted as a routed win, the reverse as a loss, and missing or both-invalid seed slots are neutral before the per-system direction is summarized.
+
+\paragraph{Support-refresh counts.}
+\Cref{tab:support_refresh} reports exact \(S_{\rm top8}\) refresh after controlled source-to-target basin transfer. The target-route fraction is descriptive: it measures how often the periodically re-encoded rollout selects the target-basin support class under the evaluation-only support-to-basin mapping. The significance count is attached only to the refreshed/stale-source support MSE ratio. For each valid controlled transfer instance \(u\) in system \(s\), the paired effect is
+\[
+  \rho_{s,u,m}
+  =
+  \log_{10}\!\left(
+    \operatorname{MSE}^{\rm refreshed}_{s,u,m}/
+    \operatorname{MSE}^{\rm stale}_{s,u,m}
+  \right),
+\]
+where \(m\) is the re-encoding period and ``stale'' denotes the rollout that keeps using the source-basin \(S_{\rm top8}\) mask after target entry. The one-sided alternative is \(\rho_{s,u,m}<0\), because lower refreshed/stale MSE means that re-encoding and re-selecting \(S_{\rm top8}\) helps after transfer. Within each system and period, the paired Wilcoxon signed-rank test uses all valid controlled transfer instances pooled over completed seeds, and Holm correction is applied across the \(12\) eligible systems for that model-period cell.
+
+\paragraph{Dysts forecasting table.}
+The Dysts table in \cref{tab:dysts_long} also uses systems, not seeds, as the independent units because the claim is whether a model improves over Dense MLP across benchmark systems. For each Dysts system and horizon, seeds are summarized within system as
+\[
+  I^{\rm cand}_{s,h}
+  =
+  \operatorname{IQM}_{r}
+  \left\{\operatorname{MSE}^{\rm cand}_{s,r,h}\right\},
+  \qquad
+  I^{\rm Dense}_{s,h}
+  =
+  \operatorname{IQM}_{r}
+  \left\{\operatorname{MSE}^{\rm Dense}_{s,r,h}\right\}.
+\]
+Each non-Dense row then contributes one paired system effect
+\[
+  d_{s,h}
+  =
+  \log_{10} I^{\rm cand}_{s,h}
+  -
+  \log_{10} I^{\rm Dense}_{s,h}.
+\]
+The \(10\) Dysts systems are tested with a one-sided Wilcoxon signed-rank test with alternative \(d_{s,h}<0\). This is the appropriate unit because the Dysts claim is a benchmark-family forecasting claim, and seed variation has already been summarized inside each system. The test remains paired because each candidate system summary is compared with the Dense MLP summary on the same Dysts system and horizon. These \(p\)-values are Holm-corrected across all non-Dense model--horizon comparisons in the Dysts table, and the corrected values determine the displayed superscripts.

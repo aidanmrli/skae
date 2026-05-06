@@ -1,0 +1,24 @@
+\section{Dysts forecasting diagnostics}
+\label{app:dysts_full}
+
+The per-(system, seed) Dysts MSE values are released in the collected \texttt{forecasting\_rows.csv} artifacts. \Cref{tab:dysts_long} reports arithmetic means across systems after first summarizing seeds within each system by IQM. The \(dt{\times}30\) packet is fully finite in median coverage at every reported horizon, but the per-seed distributions remain heavy-tailed on several systems, so the main table and \cref{fig:dysts_long_horizon,fig:appfig_dysts_perseed} should be read together: the table gives actual-MSE point estimates and paired system-level significance markers, while the figures show horizon-scale uncertainty and per-seed dispersion. The soft-block LISTA diagnostic improves on Dense MLP in aggregate but does not match the primary sparse forecasting rows and does not survive the main Dysts significance correction. The older tiny-step \(H{\leq}60000\) packet is useful as a stress-test diagnostic because it exposed divergent block-diagonal LISTA rollouts, but it is not pooled with the coarser-step table.
+
+\begin{table}[tbp]
+\centering
+\caption{Scale-normalized Dysts forecasting summary. Entries are arithmetic means across systems of the candidate per-system seed-IQM MSE divided by the Dense MLP per-system seed-IQM MSE; lower than \(1\) favors the candidate. This table gives the average-case ratio view corresponding to the actual-MSE table in \cref{tab:dysts_long}. LISTA-SB is retained as a diagnostic row.}
+\label{tab:dysts_ratio_to_dense}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l r r r r r r r r@{}}
+\toprule
+Model & H100 & H500 & H1000 & H1500 & H2000 & H3000 & H4000 & H5000 \\
+\midrule
+LISTA & \(0.509\) & \(0.464\) & \(0.459\) & \(0.426\) & \(0.440\) & \(0.489\) & \(0.565\) & \(0.595\) \\
+LISTA-BD & \(0.530\) & \(0.587\) & \(0.502\) & \(0.445\) & \(0.443\) & \(0.498\) & \(0.574\) & \(0.612\) \\
+LISTA-SB & \(0.972\) & \(1.026\) & \(1.019\) & \(1.088\) & \(1.157\) & \(1.264\) & \(1.086\) & \(1.006\) \\
+Sparse MLP & \(0.462\) & \(0.499\) & \(0.501\) & \(0.563\) & \(0.566\) & \(0.610\) & \(0.685\) & \(0.739\) \\
+Sparse MLP-BD & \(0.477\) & \(0.499\) & \(0.497\) & \(0.555\) & \(0.559\) & \(0.617\) & \(0.703\) & \(0.757\) \\
+Dense MLP & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) \\
+\bottomrule
+\end{tabular}
+}
+\end{table}

@@ -1,0 +1,407 @@
+{
+  "output_dir": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs",
+  "manifest_output": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/manifest.json",
+  "systems_requested": [
+    "gated_local_linear",
+    "gated_transfer_linear",
+    "claude:arrested_spiral",
+    "claude:cal_asymmetric_3",
+    "claude:cal_high_cross_3",
+    "claude:cal_hexagon_6",
+    "claude:cal_octagon_8",
+    "claude:cal_pentagon_5",
+    "claude:cal_square_4",
+    "claude:duffing_triple_well",
+    "claude:snic_multi",
+    "claude:transition_routes_4",
+    "claude:var_depth_gradient_4",
+    "claude:var_diamond_4",
+    "claude:var_l_shape_5"
+  ],
+  "system_count": 15,
+  "root_labels": [
+    "lista_dense_signsplit_p256_hardinit_basin_partition",
+    "lista_blockdiag_signsplit_hardinit_basin_partition"
+  ],
+  "support_definition": "absolute:0.001",
+  "support_rule_display": "S_abs",
+  "family_rule_display": "F_abs",
+  "family_jaccard": 0.5,
+  "figures": [
+    {
+      "system": "gated_local_linear",
+      "title": "Local-linear gates",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_gated_local_linear.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_gated_local_linear.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_gated_local_linear.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 15,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6901927437641724,
+          "basin_label_source": "env.basin_label",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 14,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7134353741496599,
+          "basin_label_source": "env.basin_label",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "gated_transfer_linear",
+      "title": "Transfer gates",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_gated_transfer_linear.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_gated_transfer_linear.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_gated_transfer_linear.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 13,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6781462585034014,
+          "basin_label_source": "env.basin_label",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7508503401360545,
+          "basin_label_source": "env.basin_label",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:arrested_spiral",
+      "title": "Arrested spiral",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_arrested_spiral.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_arrested_spiral.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_arrested_spiral.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.729875283446712,
+          "basin_label_source": "endpoint_rollout_360",
+          "bounds_source": "inferred_reset_bounds"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 7,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.9108560090702947,
+          "basin_label_source": "endpoint_rollout_360",
+          "bounds_source": "inferred_reset_bounds"
+        }
+      ]
+    },
+    {
+      "system": "claude:cal_asymmetric_3",
+      "title": "Asymmetric wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_asymmetric_3.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_asymmetric_3.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_asymmetric_3.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7208049886621315,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 11,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6998299319727891,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:cal_high_cross_3",
+      "title": "High cross",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_high_cross_3.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_high_cross_3.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_high_cross_3.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 8,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.8238378684807256,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 8,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.8222789115646258,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:cal_hexagon_6",
+      "title": "Hexagon wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_hexagon_6.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_hexagon_6.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_hexagon_6.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7006802721088435,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 11,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6951530612244898,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:cal_octagon_8",
+      "title": "Octagon wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_octagon_8.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_octagon_8.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_octagon_8.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 11,
+          "displayed_family_count": 8,
+          "displayed_grid_fraction": 0.7653061224489796,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 11,
+          "displayed_family_count": 7,
+          "displayed_grid_fraction": 0.8574263038548753,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:cal_pentagon_5",
+      "title": "Pentagon wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_pentagon_5.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_pentagon_5.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_pentagon_5.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 13,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6252834467120182,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 9,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7512755102040817,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:cal_square_4",
+      "title": "Square wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_square_4.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_square_4.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_cal_square_4.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 11,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6427154195011338,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7558106575963719,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:duffing_triple_well",
+      "title": "Duffing triple well",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_duffing_triple_well.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_duffing_triple_well.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_duffing_triple_well.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 9,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.8154761904761905,
+          "basin_label_source": "endpoint_rollout_360",
+          "bounds_source": "inferred_reset_bounds"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 7,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.9007936507936508,
+          "basin_label_source": "endpoint_rollout_360",
+          "bounds_source": "inferred_reset_bounds"
+        }
+      ]
+    },
+    {
+      "system": "claude:snic_multi",
+      "title": "SNIC multi",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_snic_multi.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_snic_multi.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_snic_multi.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 11,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6848072562358276,
+          "basin_label_source": "endpoint_rollout_360",
+          "bounds_source": "inferred_reset_bounds"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7593537414965986,
+          "basin_label_source": "endpoint_rollout_360",
+          "bounds_source": "inferred_reset_bounds"
+        }
+      ]
+    },
+    {
+      "system": "claude:transition_routes_4",
+      "title": "Transition routes",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_transition_routes_4.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_transition_routes_4.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_transition_routes_4.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 15,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.578514739229025,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 13,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6367630385487528,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:var_depth_gradient_4",
+      "title": "Depth gradient",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_depth_gradient_4.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_depth_gradient_4.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_depth_gradient_4.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 9,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7580782312925171,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7946428571428571,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:var_diamond_4",
+      "title": "Diamond wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_diamond_4.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_diamond_4.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_diamond_4.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 14,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.6262755102040817,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 10,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.8353174603174603,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    },
+    {
+      "system": "claude:var_l_shape_5",
+      "title": "L-shaped wells",
+      "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_l_shape_5.pdf",
+      "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_l_shape_5.png",
+      "metadata": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15_fabs/support_family_index_codebook_claude_var_l_shape_5.json",
+      "panels": [
+        {
+          "model_title": "LISTA",
+          "family_count": 13,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.5827664399092971,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        },
+        {
+          "model_title": "LISTA-BD",
+          "family_count": 9,
+          "displayed_family_count": 6,
+          "displayed_grid_fraction": 0.7482993197278912,
+          "basin_label_source": "benchmark_attractor_centers",
+          "bounds_source": "configured"
+        }
+      ]
+    }
+  ]
+}

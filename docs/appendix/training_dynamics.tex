@@ -1,0 +1,26 @@
+\section{Training-dynamics diagnostic}
+\label{app:training_dynamics}
+
+The main tables report held-out aggregate performance from validation-selected checkpoints. As a diagnostic for the optimization trajectory, \cref{fig:app_training_dynamics} shows the metric histories for the six controlled multibasin model rows on one representative benchmark system, \texttt{gated\_local\_linear}, with seed \(0\). The curves use the same training protocol and validation rule described in \cref{app:experimental_details}: validation rollouts are evaluated every \(500\) optimization steps, and the saved checkpoint is the step with the lowest validation final error. The diagnostic is not used for model ranking; it is intended to show how the reported checkpoints arise along training.
+
+The validation traces generally improve through training for the sparse rows, while the Dense MLP remains separated by a substantially larger validation error. The best validation checkpoints for the sparse rows occur late in training, between \(179{,}500\) and \(193{,}500\) steps in this trace, whereas the Dense MLP reaches its best validation value earlier. The spectral-radius panel shows that the learned transition remains close to the unit circle throughout training. This supports the qualitative reading that long-horizon behavior is tied to both validation error and the stability of the learned Koopman transition, while avoiding the stronger claim that \(\rho(K)\) closest to one is always optimal.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_training_dynamics_gated_local_seed0.pdf}
+\caption{Representative training-dynamics diagnostic on \texttt{gated\_local\_linear}, seed \(0\), for the six controlled multibasin model rows. Validation final error is the held-out rollout error used by the checkpoint-selection rule; dots mark the minimum validation final error for each trace. The training objective, validation error, transition spectral radius \(\rho(K)\), and sparsity-ratio diagnostic are plotted against optimization step. The horizontal dashed line marks \(\rho(K)=1\). These curves are a diagnostic of training progression and checkpoint selection, not an aggregate benchmark comparison.}
+\label{fig:app_training_dynamics}
+\end{figure}
+
+For the external chaotic-flow benchmark, \cref{fig:app_training_dynamics_dysts} gives the same diagnostic in aggregate form. Each curve uses seed \(0\) and summarizes the retained 10 Dysts \(dt{\times}30\) systems by the median over finite per-system metric values at each logged step. We use a system median here rather than a single representative Dysts system because the individual chaotic flows have different scales and occasional very large finite validation rollout errors early in training. The resulting validation traces are therefore visibly noisier than the controlled-system trace, but they still show the checkpoint-selection path and the late-training behavior of the model families.
+
+The Dysts diagnostic should be read more cautiously than the controlled benchmark diagnostic. The validation proxy can spike when a chaotic rollout leaves the attractor or compounds error early in training, and Dysts does not provide the controlled basin-label structure used by the main support-alignment claims. Still, the median traces are useful for checking that the retained \(dt{\times}30\) runs are not selected from isolated early accidents: validation curves generally settle after the initial transient, and the learned transition spectra remain close to the unit circle by the end of training, with final median \(\rho(K)\) values roughly between \(1.0003\) and \(1.0011\) across rows. As above, this supports the qualitative stability diagnostic without making \(\rho(K)\) closest to one a sufficient criterion for forecasting quality.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_training_dynamics_dysts_dt30_seed0.pdf}
+\caption{Dysts \(dt{\times}30\) training-dynamics diagnostic. Curves summarize seed \(0\) over the retained 10 Dysts systems by the median over finite per-system metric values at each logged step. Validation final error is the same held-out rollout proxy used by checkpoint selection; dots mark the minimum median validation final error for each trace. The Dysts validation panel is noisier than the controlled trace because chaotic rollout errors can become very large early in training, so this figure is an appendix diagnostic of optimization and selection behavior rather than a main benchmark ranking.}
+\label{fig:app_training_dynamics_dysts}
+\end{figure}
+
+\clearpage

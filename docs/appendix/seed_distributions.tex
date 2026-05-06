@@ -1,0 +1,32 @@
+\section{Per-seed distributions}
+\label{app:seed_distributions}
+
+\Cref{tab:fixed17_alignment} reports arithmetic means across retained systems after per-system seed-IQM summaries. The corresponding per-(system, seed) distributions are shown below. \Cref{fig:fixed17_seed_strips} shows the paper-facing strip plot for the matched boundary-emphasized rows. \Cref{fig:appfig_fixed17_perseed} plots per-(system, seed) histograms of forecasting MSE at every paper-facing horizon. \Cref{fig:appfig_fixed17_entropy} plots per-(system, seed) histograms of \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and exact-support uniqueness on the deep-state slice. \Cref{fig:appfig_dysts_perseed} plots the same per-seed distributions for the Dysts \(dt{\times}30\) benchmark. The histograms show retained-system and seed-level dispersion around the paper-facing means.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/fig_fixed17_seed_strips_boundary_only.pdf}
+\caption{Per-(system, seed) forecasting MSE at \(H100\), \(H500\), and \(H1000\) on the multibasin benchmark. Black bars mark the mean across per-system seed-IQM values. The Dense MLP has a much heavier upper tail at every horizon.}
+\label{fig:fixed17_seed_strips}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_fixed17_perseed_histograms.pdf}
+\caption{Per-(system, seed) forecasting MSE distributions on the multibasin benchmark. Each row is a horizon; histograms are over the \(\log_{10}\) raw MSE.}
+\label{fig:appfig_fixed17_perseed}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_fixed17_entropy_histograms.pdf}
+\caption{Per-(system, seed) support--basin diagnostic distributions on the deep-state slice. Histograms show \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), and exact-support uniqueness for the rows summarized in \cref{tab:fixed17_alignment}.}
+\label{fig:appfig_fixed17_entropy}
+\end{figure}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/appfig_dysts_dt30_perseed_histograms.pdf}
+\caption{Per-(system, seed) forecasting MSE distributions on the Dysts \(dt{\times}30\) benchmark.}
+\label{fig:appfig_dysts_perseed}
+\end{figure}

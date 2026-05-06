@@ -1,0 +1,828 @@
+{
+  "output_pdf": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15/support_family_index_codebook_claude_var_l_shape_5.pdf",
+  "output_png": "docs/figures/neurips_paper_2026/support_family_codebooks_retained15/support_family_index_codebook_claude_var_l_shape_5.png",
+  "interpretability_csvs": [
+    "results/transition_rich_table2_5model_seed15_backfill_20260428/interpretability_pass0/interpretability_rows.csv",
+    "results/transition_rich_lista_dense_p256_hardinit_table123_20260430/interpretability_pass0/interpretability_rows.csv",
+    "results/transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/interpretability_pass0/interpretability_rows.csv"
+  ],
+  "root_labels": [
+    "lista_dense_signsplit_p256_hardinit_basin_partition",
+    "lista_blockdiag_signsplit_hardinit_basin_partition"
+  ],
+  "support_definition": "topk:8",
+  "family_jaccard": 0.5,
+  "description": "Rows are learned top-k support families for matched dz=256 models. Each row shows the fixed prototype active-coordinate indices created by the greedy Jaccard family construction. Dominant basin labels are used only for post-hoc coloring and annotation; mark opacity encodes within-basin family coverage.",
+  "systems": [
+    {
+      "system": "claude:var_l_shape_5",
+      "title": "L-shaped wells",
+      "model_title": "LISTA",
+      "seed": 0,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_l_shape_5/dt_0p03/seed_0/20260501-043042",
+      "root_label": "lista_dense_signsplit_p256_hardinit_basin_partition",
+      "support_definition": "topk:8",
+      "family_jaccard": 0.5,
+      "grid_points": 84,
+      "xlim": [
+        -3.5,
+        3.5
+      ],
+      "ylim": [
+        -3.5,
+        3.5
+      ],
+      "bounds_source": "configured",
+      "basin_label_source": "benchmark_attractor_centers",
+      "latent_dim": 256,
+      "family_count": 23,
+      "displayed_family_count": 6,
+      "displayed_grid_fraction": 0.6901927437641724,
+      "families": [
+        {
+          "family": 0,
+          "dominant_basin": 2,
+          "count": 855,
+          "fraction": 0.1211734693877551,
+          "basin_fraction": 0.7667584940312213,
+          "prototype_indices": [
+            4,
+            44,
+            56,
+            104,
+            131,
+            147,
+            169,
+            193
+          ],
+          "displayed": true
+        },
+        {
+          "family": 1,
+          "dominant_basin": 0,
+          "count": 1450,
+          "fraction": 0.20549886621315192,
+          "basin_fraction": 0.592328278322926,
+          "prototype_indices": [
+            14,
+            43,
+            46,
+            57,
+            60,
+            90,
+            101,
+            103
+          ],
+          "displayed": true
+        },
+        {
+          "family": 2,
+          "dominant_basin": 4,
+          "count": 806,
+          "fraction": 0.11422902494331066,
+          "basin_fraction": 0.3235427022141889,
+          "prototype_indices": [
+            1,
+            13,
+            71,
+            117,
+            121,
+            150,
+            162,
+            238
+          ],
+          "displayed": true
+        },
+        {
+          "family": 3,
+          "dominant_basin": 4,
+          "count": 926,
+          "fraction": 0.1312358276643991,
+          "basin_fraction": 0.24672390420244011,
+          "prototype_indices": [
+            149,
+            158,
+            168,
+            204,
+            233,
+            239,
+            244,
+            254
+          ],
+          "displayed": true
+        },
+        {
+          "family": 4,
+          "dominant_basin": 4,
+          "count": 766,
+          "fraction": 0.10856009070294785,
+          "basin_fraction": 0.34161771351107095,
+          "prototype_indices": [
+            13,
+            117,
+            149,
+            150,
+            152,
+            204,
+            239,
+            254
+          ],
+          "displayed": false
+        },
+        {
+          "family": 5,
+          "dominant_basin": 1,
+          "count": 549,
+          "fraction": 0.0778061224489796,
+          "basin_fraction": 0.5955497382198953,
+          "prototype_indices": [
+            46,
+            56,
+            90,
+            101,
+            104,
+            113,
+            143,
+            169
+          ],
+          "displayed": true
+        },
+        {
+          "family": 6,
+          "dominant_basin": 0,
+          "count": 333,
+          "fraction": 0.047193877551020405,
+          "basin_fraction": 0.08340767172167707,
+          "prototype_indices": [
+            1,
+            13,
+            55,
+            71,
+            117,
+            160,
+            170,
+            238
+          ],
+          "displayed": false
+        },
+        {
+          "family": 7,
+          "dominant_basin": 0,
+          "count": 290,
+          "fraction": 0.04109977324263039,
+          "basin_fraction": 0.12934879571810884,
+          "prototype_indices": [
+            14,
+            43,
+            51,
+            55,
+            57,
+            60,
+            103,
+            224
+          ],
+          "displayed": false
+        },
+        {
+          "family": 8,
+          "dominant_basin": 3,
+          "count": 284,
+          "fraction": 0.040249433106575964,
+          "basin_fraction": 0.3155080213903743,
+          "prototype_indices": [
+            44,
+            56,
+            131,
+            149,
+            204,
+            233,
+            239,
+            244
+          ],
+          "displayed": true
+        },
+        {
+          "family": 9,
+          "dominant_basin": 2,
+          "count": 109,
+          "fraction": 0.015447845804988663,
+          "basin_fraction": 0.10009182736455463,
+          "prototype_indices": [
+            44,
+            56,
+            100,
+            131,
+            147,
+            149,
+            193,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 10,
+          "dominant_basin": 3,
+          "count": 92,
+          "fraction": 0.013038548752834467,
+          "basin_fraction": 0.08422459893048129,
+          "prototype_indices": [
+            117,
+            149,
+            150,
+            164,
+            204,
+            233,
+            239,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 11,
+          "dominant_basin": 0,
+          "count": 64,
+          "fraction": 0.009070294784580499,
+          "basin_fraction": 0.028545941123996433,
+          "prototype_indices": [
+            1,
+            47,
+            55,
+            60,
+            71,
+            160,
+            170,
+            240
+          ],
+          "displayed": false
+        },
+        {
+          "family": 12,
+          "dominant_basin": 0,
+          "count": 120,
+          "fraction": 0.017006802721088437,
+          "basin_fraction": 0.05352363960749331,
+          "prototype_indices": [
+            1,
+            14,
+            51,
+            55,
+            57,
+            60,
+            63,
+            71
+          ],
+          "displayed": false
+        },
+        {
+          "family": 13,
+          "dominant_basin": 0,
+          "count": 107,
+          "fraction": 0.015164399092970522,
+          "basin_fraction": 0.047725245316681535,
+          "prototype_indices": [
+            1,
+            14,
+            55,
+            60,
+            71,
+            103,
+            121,
+            238
+          ],
+          "displayed": false
+        },
+        {
+          "family": 14,
+          "dominant_basin": 2,
+          "count": 78,
+          "fraction": 0.011054421768707483,
+          "basin_fraction": 0.04132231404958678,
+          "prototype_indices": [
+            4,
+            44,
+            56,
+            75,
+            104,
+            113,
+            143,
+            169
+          ],
+          "displayed": false
+        },
+        {
+          "family": 15,
+          "dominant_basin": 1,
+          "count": 51,
+          "fraction": 0.007227891156462585,
+          "basin_fraction": 0.06544502617801047,
+          "prototype_indices": [
+            12,
+            46,
+            60,
+            101,
+            103,
+            149,
+            239,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 16,
+          "dominant_basin": 1,
+          "count": 58,
+          "fraction": 0.008219954648526076,
+          "basin_fraction": 0.04057591623036649,
+          "prototype_indices": [
+            1,
+            12,
+            60,
+            103,
+            121,
+            149,
+            238,
+            239
+          ],
+          "displayed": false
+        },
+        {
+          "family": 17,
+          "dominant_basin": 0,
+          "count": 11,
+          "fraction": 0.0015589569160997733,
+          "basin_fraction": 0.004906333630686887,
+          "prototype_indices": [
+            43,
+            46,
+            60,
+            90,
+            101,
+            113,
+            119,
+            143
+          ],
+          "displayed": false
+        },
+        {
+          "family": 18,
+          "dominant_basin": 4,
+          "count": 31,
+          "fraction": 0.004393424036281179,
+          "basin_fraction": 0.00858563036601898,
+          "prototype_indices": [
+            13,
+            117,
+            121,
+            149,
+            150,
+            164,
+            238,
+            239
+          ],
+          "displayed": false
+        },
+        {
+          "family": 19,
+          "dominant_basin": 1,
+          "count": 35,
+          "fraction": 0.00496031746031746,
+          "basin_fraction": 0.04581151832460733,
+          "prototype_indices": [
+            56,
+            90,
+            101,
+            103,
+            104,
+            149,
+            169,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 20,
+          "dominant_basin": 3,
+          "count": 20,
+          "fraction": 0.002834467120181406,
+          "basin_fraction": 0.02540106951871658,
+          "prototype_indices": [
+            60,
+            103,
+            121,
+            149,
+            150,
+            164,
+            239,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 21,
+          "dominant_basin": 1,
+          "count": 10,
+          "fraction": 0.001417233560090703,
+          "basin_fraction": 0.006544502617801047,
+          "prototype_indices": [
+            1,
+            12,
+            14,
+            43,
+            46,
+            60,
+            103,
+            121
+          ],
+          "displayed": false
+        },
+        {
+          "family": 22,
+          "dominant_basin": 1,
+          "count": 11,
+          "fraction": 0.0015589569160997733,
+          "basin_fraction": 0.013089005235602094,
+          "prototype_indices": [
+            44,
+            56,
+            60,
+            103,
+            149,
+            169,
+            239,
+            244
+          ],
+          "displayed": false
+        }
+      ]
+    },
+    {
+      "system": "claude:var_l_shape_5",
+      "title": "L-shaped wells",
+      "model_title": "LISTA-BD",
+      "seed": 0,
+      "run_dir": "/network/scratch/l/lia/skae/transition_rich_basin_partition_final_seed10_20260409/transition_rich_basin_partition/lista_blockdiag_signsplit_hardinit_basin_partition/claude_var_l_shape_5/dt_0p03/seed_0/20260409-164328",
+      "root_label": "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "support_definition": "topk:8",
+      "family_jaccard": 0.5,
+      "grid_points": 84,
+      "xlim": [
+        -3.5,
+        3.5
+      ],
+      "ylim": [
+        -3.5,
+        3.5
+      ],
+      "bounds_source": "configured",
+      "basin_label_source": "benchmark_attractor_centers",
+      "latent_dim": 256,
+      "family_count": 19,
+      "displayed_family_count": 6,
+      "displayed_grid_fraction": 0.6013321995464853,
+      "families": [
+        {
+          "family": 0,
+          "dominant_basin": 4,
+          "count": 867,
+          "fraction": 0.12287414965986394,
+          "basin_fraction": 0.34432896520560324,
+          "prototype_indices": [
+            117,
+            149,
+            150,
+            178,
+            204,
+            233,
+            239,
+            244
+          ],
+          "displayed": true
+        },
+        {
+          "family": 1,
+          "dominant_basin": 2,
+          "count": 1084,
+          "fraction": 0.1536281179138322,
+          "basin_fraction": 0.6685032139577594,
+          "prototype_indices": [
+            44,
+            94,
+            104,
+            131,
+            149,
+            169,
+            233,
+            244
+          ],
+          "displayed": true
+        },
+        {
+          "family": 2,
+          "dominant_basin": 4,
+          "count": 940,
+          "fraction": 0.13321995464852607,
+          "basin_fraction": 0.37776773610483505,
+          "prototype_indices": [
+            1,
+            13,
+            71,
+            117,
+            121,
+            150,
+            152,
+            238
+          ],
+          "displayed": true
+        },
+        {
+          "family": 3,
+          "dominant_basin": 0,
+          "count": 600,
+          "fraction": 0.08503401360544217,
+          "basin_fraction": 0.26761819803746656,
+          "prototype_indices": [
+            35,
+            38,
+            43,
+            46,
+            57,
+            60,
+            90,
+            103
+          ],
+          "displayed": false
+        },
+        {
+          "family": 4,
+          "dominant_basin": 2,
+          "count": 365,
+          "fraction": 0.05172902494331066,
+          "basin_fraction": 0.3305785123966942,
+          "prototype_indices": [
+            4,
+            44,
+            94,
+            104,
+            113,
+            131,
+            143,
+            169
+          ],
+          "displayed": false
+        },
+        {
+          "family": 5,
+          "dominant_basin": 0,
+          "count": 660,
+          "fraction": 0.0935374149659864,
+          "basin_fraction": 0.280107047279215,
+          "prototype_indices": [
+            1,
+            13,
+            55,
+            60,
+            63,
+            103,
+            117,
+            121
+          ],
+          "displayed": true
+        },
+        {
+          "family": 6,
+          "dominant_basin": 1,
+          "count": 656,
+          "fraction": 0.09297052154195011,
+          "basin_fraction": 0.5772251308900523,
+          "prototype_indices": [
+            53,
+            90,
+            101,
+            104,
+            113,
+            115,
+            119,
+            143
+          ],
+          "displayed": true
+        },
+        {
+          "family": 7,
+          "dominant_basin": 4,
+          "count": 409,
+          "fraction": 0.05796485260770975,
+          "basin_fraction": 0.09308630817894262,
+          "prototype_indices": [
+            94,
+            149,
+            158,
+            185,
+            204,
+            233,
+            239,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 8,
+          "dominant_basin": 4,
+          "count": 447,
+          "fraction": 0.06335034013605442,
+          "basin_fraction": 0.1789426118391324,
+          "prototype_indices": [
+            13,
+            117,
+            121,
+            149,
+            150,
+            152,
+            233,
+            239
+          ],
+          "displayed": false
+        },
+        {
+          "family": 9,
+          "dominant_basin": 0,
+          "count": 251,
+          "fraction": 0.035572562358276646,
+          "basin_fraction": 0.11195361284567351,
+          "prototype_indices": [
+            35,
+            43,
+            51,
+            55,
+            57,
+            60,
+            63,
+            103
+          ],
+          "displayed": false
+        },
+        {
+          "family": 10,
+          "dominant_basin": 0,
+          "count": 407,
+          "fraction": 0.05768140589569161,
+          "basin_fraction": 0.13425512934879572,
+          "prototype_indices": [
+            12,
+            53,
+            60,
+            90,
+            103,
+            104,
+            113,
+            143
+          ],
+          "displayed": false
+        },
+        {
+          "family": 11,
+          "dominant_basin": 0,
+          "count": 129,
+          "fraction": 0.018282312925170068,
+          "basin_fraction": 0.05753791257805531,
+          "prototype_indices": [
+            12,
+            43,
+            53,
+            55,
+            57,
+            60,
+            90,
+            103
+          ],
+          "displayed": false
+        },
+        {
+          "family": 12,
+          "dominant_basin": 1,
+          "count": 110,
+          "fraction": 0.015589569160997732,
+          "basin_fraction": 0.14397905759162305,
+          "prototype_indices": [
+            53,
+            90,
+            104,
+            113,
+            143,
+            149,
+            169,
+            233
+          ],
+          "displayed": false
+        },
+        {
+          "family": 13,
+          "dominant_basin": 1,
+          "count": 57,
+          "fraction": 0.008078231292517007,
+          "basin_fraction": 0.05235602094240838,
+          "prototype_indices": [
+            13,
+            53,
+            60,
+            90,
+            103,
+            104,
+            117,
+            121
+          ],
+          "displayed": false
+        },
+        {
+          "family": 14,
+          "dominant_basin": 3,
+          "count": 36,
+          "fraction": 0.00510204081632653,
+          "basin_fraction": 0.0427807486631016,
+          "prototype_indices": [
+            94,
+            104,
+            117,
+            121,
+            149,
+            233,
+            239,
+            244
+          ],
+          "displayed": true
+        },
+        {
+          "family": 15,
+          "dominant_basin": 3,
+          "count": 24,
+          "fraction": 0.003401360544217687,
+          "basin_fraction": 0.03208556149732621,
+          "prototype_indices": [
+            94,
+            131,
+            149,
+            193,
+            209,
+            233,
+            239,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 16,
+          "dominant_basin": 1,
+          "count": 11,
+          "fraction": 0.0015589569160997733,
+          "basin_fraction": 0.014397905759162303,
+          "prototype_indices": [
+            53,
+            90,
+            103,
+            104,
+            117,
+            149,
+            233,
+            244
+          ],
+          "displayed": false
+        },
+        {
+          "family": 17,
+          "dominant_basin": 2,
+          "count": 2,
+          "fraction": 0.0002834467120181406,
+          "basin_fraction": 0.0009182736455463728,
+          "prototype_indices": [
+            4,
+            104,
+            113,
+            115,
+            119,
+            131,
+            143,
+            205
+          ],
+          "displayed": false
+        },
+        {
+          "family": 18,
+          "dominant_basin": 0,
+          "count": 1,
+          "fraction": 0.0001417233560090703,
+          "basin_fraction": 0.00044603033006244426,
+          "prototype_indices": [
+            43,
+            46,
+            60,
+            90,
+            103,
+            113,
+            119,
+            143
+          ],
+          "displayed": false
+        }
+      ]
+    }
+  ]
+}

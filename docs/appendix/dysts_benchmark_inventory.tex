@@ -1,0 +1,206 @@
+\section{Dysts benchmark inventory and system definitions}
+\label{app:dysts_inventory_full}
+
+This appendix lists the ten Dysts systems used in the paper-facing
+\(dt{\times}30\) forecasting benchmark. The systems are drawn from Dysts
+\citep{gilpin_chaos_2021,gilpin_model_2023}. We used the continuous-time
+right-hand sides and metadata from the pinned package version resolved in the
+project environment, \texttt{dysts} \(0.96\). All ten systems are
+three-dimensional autonomous flows. The equations below are written in
+unstandardized native Dysts coordinates \((x,y,z)\); the training cache
+standardizes coordinates only after trajectories are generated.
+
+\begin{table}[tbp]
+\centering
+\caption{The ten Dysts systems used in the \(dt{\times}30\) forecasting
+benchmark. The ``stored step'' column is \(30\) times the native Dysts
+integration interval.}
+\label{tab:dysts_inventory_full}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l l c c c@{}}
+\toprule
+Display name & System key & Dimension & Native \(dt\) & Stored step \(30dt\) \\
+\midrule
+Chua & \texttt{Chua} & 3 & \(2.8474745791{\times}10^{-4}\) & \(8.5424237373{\times}10^{-3}\) \\
+Dadras & \texttt{Dadras} & 3 & \(6.5782963827{\times}10^{-4}\) & \(1.9734889148{\times}10^{-2}\) \\
+Dequan Li & \texttt{DequanLi} & 3 & \(1.6763993999{\times}10^{-5}\) & \(5.0291981997{\times}10^{-4}\) \\
+Hadley & \texttt{Hadley} & 3 & \(2.9086847808{\times}10^{-4}\) & \(8.7260543424{\times}10^{-3}\) \\
+Lu--Chen--Cheng & \texttt{LuChenCheng} & 3 & \(1.8469678280{\times}10^{-4}\) & \(5.5409034839{\times}10^{-3}\) \\
+Qi--Chen & \texttt{QiChen} & 3 & \(7.8371061844{\times}10^{-5}\) & \(2.3511318553{\times}10^{-3}\) \\
+Sakarya & \texttt{Sakarya} & 3 & \(9.9704617436{\times}10^{-4}\) & \(2.9911385231{\times}10^{-2}\) \\
+San--Um--Srisuchinwong & \texttt{SanUmSrisuchinwong} & 3 & \(1.4933288881{\times}10^{-3}\) & \(4.4799866644{\times}10^{-2}\) \\
+Shimizu--Morioka & \texttt{ShimizuMorioka} & 3 & \(2.4080013336{\times}10^{-3}\) & \(7.2240040007{\times}10^{-2}\) \\
+Wang--Sun & \texttt{WangSun} & 3 & \(5.3924987498{\times}10^{-3}\) & \(1.6177496249{\times}10^{-1}\) \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\paragraph{Closed-form convention.}
+For each system, the stored observations are generated from \(\dot x=f_s(x)\)
+with observation interval \(\Delta t=30\,dt_{\rm native}\), where
+\(dt_{\rm native}\) is the system-specific Dysts integration interval in
+\cref{tab:dysts_inventory_full}. The learner observes only the resulting stored
+states, not the vector field, continuous-time solver, or substeps. All ten
+systems have explicit closed-form right-hand sides in Dysts. Most are
+polynomial vector fields. The Chua and San--Um--Srisuchinwong systems include
+absolute-value terms, so they are piecewise smooth rather than globally
+analytic at the corresponding switching surfaces.
+
+\paragraph{Chua.}
+The Chua system uses the piecewise-linear diode nonlinearity
+\[
+  h(x)
+  =
+  m_1x+\frac{1}{2}(m_0-m_1)\bigl(|x+1|-|x-1|\bigr),
+\]
+with parameters
+\[
+  \alpha=15.6,\qquad
+  \beta=28,\qquad
+  m_0=-1.142857,\qquad
+  m_1=-0.71429 .
+\]
+The vector field is
+\begin{equation}
+\begin{aligned}
+  \dot x &= \alpha\bigl(y-x-h(x)\bigr),\\
+  \dot y &= x-y+z,\\
+  \dot z &= -\beta y .
+\end{aligned}
+\label{eq:app_dysts_chua}
+\end{equation}
+
+\paragraph{Dadras.}
+With parameters
+\[
+  c=2,\qquad e=9,\qquad o=2.7,\qquad p=3,\qquad r=1.7,
+\]
+the Dadras system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= y-px+oyz,\\
+  \dot y &= ry-xz+z,\\
+  \dot z &= cxy-ez .
+\end{aligned}
+\label{eq:app_dysts_dadras}
+\end{equation}
+
+\paragraph{Dequan Li.}
+With parameters
+\[
+  a=40,\qquad c=1.833,\qquad d=0.16,\qquad
+  \varepsilon=0.65,\qquad f=20,\qquad k=55,
+\]
+the Dequan Li system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= a(y-x)+dxz,\\
+  \dot y &= kx+fy-xz,\\
+  \dot z &= cz+xy-\varepsilon x^2 .
+\end{aligned}
+\label{eq:app_dysts_dequan_li}
+\end{equation}
+
+\paragraph{Hadley.}
+With parameters
+\[
+  a=0.2,\qquad b=4,\qquad f=9,\qquad g=1,
+\]
+the Hadley system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= -y^2-z^2-ax+af,\\
+  \dot y &= xy-bxz-y+g,\\
+  \dot z &= bxy+xz-z .
+\end{aligned}
+\label{eq:app_dysts_hadley}
+\end{equation}
+
+\paragraph{Lu--Chen--Cheng.}
+With parameters
+\[
+  a=-10,\qquad b=-4,\qquad c=18.1,
+\]
+the Lu--Chen--Cheng system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= -\frac{ab}{a+b}x-yz+c,\\
+  \dot y &= ay+xz,\\
+  \dot z &= bz+xy .
+\end{aligned}
+\label{eq:app_dysts_lu_chen_cheng}
+\end{equation}
+
+\paragraph{Qi--Chen.}
+With parameters
+\[
+  a=38,\qquad b=2.666,\qquad c=80,
+\]
+the Qi--Chen system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= a(y-x)+yz,\\
+  \dot y &= cx+y-xz,\\
+  \dot z &= xy-bz .
+\end{aligned}
+\label{eq:app_dysts_qi_chen}
+\end{equation}
+
+\paragraph{Sakarya.}
+With parameters
+\[
+  a=-1,\qquad b=1,\qquad c=1,\qquad h=1,\qquad
+  p=1,\qquad q=0.4,\qquad r=0.3,\qquad s=1,
+\]
+the Sakarya system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= ax+hy+syz,\\
+  \dot y &= -by-px+qxz,\\
+  \dot z &= cz-rxy .
+\end{aligned}
+\label{eq:app_dysts_sakarya}
+\end{equation}
+
+\paragraph{San--Um--Srisuchinwong.}
+With parameter \(a=2\), the San--Um--Srisuchinwong system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= y-x,\\
+  \dot y &= -z\tanh(x),\\
+  \dot z &= -a+xy+|y| .
+\end{aligned}
+\label{eq:app_dysts_san_um_srisuchinwong}
+\end{equation}
+
+\paragraph{Shimizu--Morioka.}
+With parameters
+\[
+  a=0.85,\qquad b=0.5,
+\]
+the Shimizu--Morioka system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= y,\\
+  \dot y &= x-ay-xz,\\
+  \dot z &= -bz+x^2 .
+\end{aligned}
+\label{eq:app_dysts_shimizu_morioka}
+\end{equation}
+
+\paragraph{Wang--Sun.}
+With parameters
+\[
+  a=0.2,\qquad b=-0.01,\qquad d=-0.4,\qquad
+  e=-1,\qquad f=-1,\qquad q=1,
+\]
+the Wang--Sun system is
+\begin{equation}
+\begin{aligned}
+  \dot x &= ax+qyz,\\
+  \dot y &= bx+dy-xz,\\
+  \dot z &= ez+fxy .
+\end{aligned}
+\label{eq:app_dysts_wang_sun}
+\end{equation}

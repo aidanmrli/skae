@@ -30,14 +30,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ROWS_CSV = (
     REPO_ROOT
     / "results"
-    / "transition_rich_table2_controls_20260430"
+    / "transition_rich_table2_controls_p256_compact_20260502"
     / "self_routed_controls"
     / "self_routed_forecasting_rows.csv"
 )
 DEFAULT_TABLE_DIR = REPO_ROOT / "docs" / "figures" / "neurips_paper_2026" / "_tables"
 
 MODEL_DISPLAY = {
-    "lista_dense_softblock_signsplit_p64_hardinit_basin_partition": "LISTA-SB (p64)",
     "lista_dense_softblock_signsplit_p256_hardinit_basin_partition": "LISTA-SB",
     "lista_blockdiag_signsplit_hardinit_basin_partition": "LISTA-BD",
     "mlp_sparse_blockdiag_hardinit_basin_partition_control": "Sparse MLP, BD",
@@ -139,9 +138,9 @@ def _write_compact_tex(summary: pd.DataFrame, path: Path) -> None:
         (
             r"\caption{Partition-control local forecasting for the top-$8$ support-family comparison. "
             r"Entries are routed/global MSE ratios, summarized by seed-IQM within each "
-            r"system and arithmetic mean across systems, with within-system Wilcoxon/Holm "
-            r"counts in brackets; lower is better. The LISTA-SB row uses the matched "
-            r"$d_z{=}256$ control artifact.}"
+            r"system and arithmetic mean across systems; lower is better. Bracketed cells "
+            r"give within-system Wilcoxon/Holm counts when present. The LISTA-SB row "
+            r"uses the matched p256 ($d_z{=}256$) control artifact.}"
         ),
         r"\label{tab:self_routing_partition_controls}",
         r"\setlength{\tabcolsep}{2.5pt}",
