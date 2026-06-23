@@ -1,0 +1,46 @@
+\subsection{Checklist: Crowdsourcing and Research with Human Subjects}
+\label{app:checklist_human_subjects}
+
+\paragraph{Question.}
+For crowdsourcing experiments and research with human subjects, does the paper
+include the full text of instructions given to participants and screenshots, if
+applicable, as well as details about compensation?
+
+\paragraph{Answer (Yes/No/NA).}
+NA.
+
+\paragraph{Justification.}
+The manuscript reports a methodological and empirical study of sparse Koopman
+autoencoders for nonlinear dynamical systems. The reported data are numerical
+trajectory observations from controlled dynamical-system benchmarks: a
+procedurally generated collection of two-dimensional multibasin systems and a
+ten-system chaotic-flow benchmark from Dysts. The models train and evaluate on
+stored state trajectories, reconstruction and forecasting losses, rollout mean
+squared error, support-coordinate interventions, and post-hoc support-basin
+alignment diagnostics.
+
+No part of the reported study recruits people, assigns tasks to crowdworkers or
+annotators, runs a user study or survey, collects participant responses, or
+uses human-generated labels. The benchmark basin labels discussed in the paper
+come from dynamical-system generator metadata and known attractor geometry, and
+are used only for benchmark evaluation or explicitly described diagnostic
+purposes. They are not labels supplied by human subjects or crowdworkers.
+
+A current source search of the manuscript and repository code paths used for
+models, tools, tests, experiments, and scripts found no evidence of
+human-subject protocols, participant recruitment, informed consent, IRB review,
+crowdsourcing platforms, surveys, user studies, annotators, or personal data.
+The work therefore does not trigger the crowdsourcing or human-subject reporting
+requirements for the experiments described in the current paper.
+
+\paragraph{Caveats.}
+This answer is limited to the current manuscript and current repository
+contents. If a later version adds real-world measurements from people,
+human-generated annotations, behavioral data, medical or biological human data,
+private records, user studies, surveys, or crowdworker tasks, this checklist
+item should be changed and the paper should report the relevant ethics review,
+consent process, participant protections, compensation, task instructions, data
+handling, privacy safeguards, and release restrictions. External benchmark
+licensing and artifact-release checks remain separate reproducibility and open
+science issues; they do not by themselves make the reported experiments
+human-subject research.

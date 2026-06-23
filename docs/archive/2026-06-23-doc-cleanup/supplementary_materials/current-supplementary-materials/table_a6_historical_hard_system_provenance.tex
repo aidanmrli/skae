@@ -1,0 +1,130 @@
+\section{Historical benchmark and hard-system provenance}
+\label{sec:supp_table_a6_historical_hard_system_provenance}
+
+This appendix table keeps the repaired fair-\(200k\) benchmark, hard-system
+stress tests, and historical comparator-selection provenance in one place. These
+results are useful for calibration and limitations, but they are not the main
+basin-support alignment evidence. All rows below use labels, system identities,
+or fixed system families only for evaluation and provenance; they should not be
+read as training-time assumptions about known basin counts or basin labels.
+
+\begin{table}[tbp]
+\centering
+\caption{Fair-\(200k\) cross-system benchmark summary. Entries are
+best-periodic cross-system medians over the repaired \(29\)-system packet;
+lower is better. The result is intentionally a three-way benchmark read:
+Sparse MLP is best at \(H100\) and \(H1000\), dense LISTA is best at \(H500\)
+and \(H1500\)--\(H3000\), and the zero-sparsity MLP broadens late-horizon
+finite/good coverage without becoming the median winner.}
+\label{tab:a6_fair_200k_benchmark}
+\scriptsize
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Model & H100 & H500 & H1000 & H1500 & H2000 & H2500 & H3000 \\
+\midrule
+Sparse MLP & \(2.947{\times}10^{-4}\) & \(0.0051\) & \(0.0240\) & \(0.0795\) & \(0.1123\) & \(0.1591\) & \(0.2201\) \\
+Zero-sparsity MLP & \(3.021{\times}10^{-4}\) & \(0.0063\) & \(0.0353\) & \(0.1067\) & \(0.1351\) & \(0.1738\) & \(0.1951\) \\
+Dense LISTA & \(3.440{\times}10^{-4}\) & \(0.0047\) & \(0.0250\) & \(0.0449\) & \(0.0627\) & \(0.0880\) & \(0.1039\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Hard-system and stress-test provenance. The hard-system family is
+retained as selective support and limitation evidence: smaller step size helps,
+block structure gives targeted Kuramoto gains, Hopfield remains mostly
+MLP-better, and the corrected \(d_z=1024\) redo favors the tanh Dense MLP
+baseline across the evaluated hard systems.}
+\label{tab:a6_hard_system_provenance}
+\scriptsize
+\begin{tabular}{@{}p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}@{}}
+\toprule
+Packet & Concrete read & Calibrated role \\
+\midrule
+Kuramoto smaller-\(dt\) rescue &
+At \(dt=0.00625\), \texttt{lista\_blockdiag} rescues \(N=16\) and \(N=32\)
+relative to the sparse anchor, but the benefit is selective and does not hold
+uniformly across the full family. &
+Targeted structured positive; do not generalize to a global LISTA or
+block-diagonal win. \\
+\addlinespace
+Repaired Kuramoto block-\(K\) MLP controls &
+Uniform-spread \(N=16\) \texttt{generic\_sparse\_blockdiag}:
+\(8.13/24.76/91.23/399.74/1724.45\) at
+\(H1000/H1500/H2000/H2500/H3000\). Dimension sweep \(H1000\),
+\(N=8/16/24/32/64\): \(10.61/6.51/5.79/5.16/208.54\). The \(N=64\) row has
+only \(2/5\) good seeds. &
+Valid replacement for invalid historical MLP \(+\) block-\(K\) controls; the
+\(N=64\) failure is a real seed-fragile limit rather than a provenance bug. \\
+\addlinespace
+Hopfield hard-system packet &
+Smaller \(dt\) improves absolute errors, but sparse MLP remains best through
+\(H2000\) at \(N=16\), and the quarter-step \(N=64\) probe remains strongly
+negative for LISTA-family claims. &
+Limitation case: report as MLP-better, not as sparse-support alignment
+evidence. \\
+\addlinespace
+Corrected \(d_z=1024\) tanh dense-baseline redo &
+Six recipes, \(d_z=1024\), sequence length \(8\), \(100k\) steps, \(15\)
+seeds on fixed 8-basin CLV, Hopfield \(N=16/P=16\), and Kuramoto identical
+\(N=16\). After the \texttt{n\_16} wrapper grouping fix, the collector has the
+expected \(270\) rows; tanh Dense MLP wins every system-median comparison at
+\(H100\), \(H500\), and \(H1000\). &
+Dense-baseline hard-system stress test; keep in appendix or limitations rather
+than as a main evidence pillar. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Historical provenance and artifact locations. Rows without complete
+paper-facing numeric summaries are retained as provenance only.}
+\label{tab:a6_historical_artifacts}
+\scriptsize
+\begin{tabular}{@{}p{0.22\textwidth}p{0.43\textwidth}p{0.27\textwidth}@{}}
+\toprule
+Item & Artifact or source & Role in the paper \\
+\midrule
+Fair \(200k\) benchmark &
+\texttt{results/paper\_zero\_sparse\_benchmark\_200k\_20260321};
+table-facing files documented as
+\texttt{collect/forecasting\_rows.csv},
+\texttt{collect/paper\_benchmark\_summary.json}, and
+\texttt{fixed\_cadence\_periodic\_100/fixed\_cadence\_summary.json}. &
+Supporting benchmark anchor; not the lead interpretability result. \\
+\addlinespace
+Canonical Kuramoto alignment &
+\texttt{results/kuramoto\_dt0p01\_200k\_canonical\_20260323}. &
+Aligned hard-system companion for the repaired \(200k\) benchmark. \\
+\addlinespace
+Dense LISTA recipe selection &
+Stage 1:
+\texttt{results/dense\_lista\_easy\_parity\_stage1\_20260308};
+Stage 3:
+\texttt{results/dense\_lista\_recipe\_validation\_stage3\_20260309};
+Stage 4:
+\texttt{results/dense\_lista\_paper\_rerun\_stage4\_20260309}. &
+Comparator-selection provenance. The promoted recipe is fixed before the
+paper-facing fair-\(200k\) read; do not present this tuning chain as a main
+experiment. \\
+\addlinespace
+Matched \(50k\) audit &
+Historical matched four-model \(v4\) audit retained in the experiment archive
+and status notes. Exact table values are not repeated here because the packet
+is superseded by the repaired \(200k\) and fixed-system packets. &
+Historical sanity check only; cite as provenance if explaining why older
+visual packets or queues differ from the current paper-facing benchmark. \\
+\addlinespace
+Invalid historical block-\(K\) controls &
+Historical MLP \(+\) block-diagonal \(K\) rows from before the March repair. &
+Retired provenance. Do not reuse for causal claims; use repaired March
+block-\(K\) controls instead. \\
+\addlinespace
+Corrected \(d_z=1024\) hard-system redo &
+\texttt{results/hard\_system\_sparse\_kae\_redo\_p1024\_seq8\_100k\_halflr\_sc6em3\_tanh\_dense\_20260429}. &
+Negative dense-baseline stress test for hard systems. \\
+\bottomrule
+\end{tabular}
+\end{table}

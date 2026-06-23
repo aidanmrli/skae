@@ -1,0 +1,37 @@
+\subsection{Checklist: Broader impacts}
+\label{app:checklist_broader_impacts}
+
+\paragraph{Question.}
+Does the paper discuss both potential positive societal impacts and negative societal impacts of the work performed?
+
+\paragraph{Answer (Yes/No/NA).}
+Yes.
+
+\paragraph{Justification.}
+This work studies representation learning for nonlinear dynamical systems with multiple basins of attraction. The method is intended to learn forecasting representations from trajectory data without being given basin labels, basin counts, or trajectory-to-basin assignments during training or deployment. Its main output is a sparse latent representation whose active-coordinate support can be inspected after training as a model-produced regime variable. The empirical claims are limited to controlled multibasin benchmarks, an external chaotic-flow forecasting stress test, support-coordinate interventions, and post-hoc basin-support alignment diagnostics. The work is therefore not a deployed decision system and does not directly involve human subjects, personal data, or social classification. Broader impacts arise primarily through possible downstream use in scientific modeling, forecasting, and control.
+
+\paragraph{Potential positive impacts.}
+\begin{itemize}
+  \item The method may improve learned forecasting models for multistable scientific and engineering systems by avoiding a single dense latent representation that collapses incompatible local dynamics.
+  \item The sparse support object gives practitioners an inspectable regime variable, which can make learned dynamical models easier to diagnose than purely dense latent rollouts.
+  \item Because the intended training and deployment setting does not assume known basin counts or labeled trajectories, the approach may be useful in settings where regime annotations are unavailable or expensive to obtain.
+  \item Better local forecasting and regime inspection could support safer model development for downstream tools such as world models, monitoring systems, and local control design, provided those tools include independent validation.
+\end{itemize}
+
+\paragraph{Negative and misuse considerations.}
+\begin{itemize}
+  \item Forecasting errors in multistable systems can be most consequential near basin boundaries, rare transitions, partial-observation regimes, or high-dimensional physical systems. The paper explicitly does not establish reliable behavior in all of these settings.
+  \item A learned support family may be overinterpreted as a true physical basin or causal regime. In the experiments, ground-truth basin labels are used only after training to evaluate alignment on benchmark systems; the model itself does not prove that a support family is a real-world regime.
+  \item If used inside autonomous control, robotics, or physical infrastructure pipelines without additional safeguards, incorrect forecasts or support switches could lead to unsafe actions.
+  \item More accurate forecasting methods for dynamical systems can be dual use in the ordinary sense that they may improve both beneficial and harmful planning in physical domains.
+  \item The experiments require training many neural models across systems and random seeds, so they carry ordinary computational cost and energy-use impacts, although the paper does not train or deploy a large foundation model.
+\end{itemize}
+
+\paragraph{Mitigations and caveats.}
+\begin{itemize}
+  \item The paper narrows its claims to label-free representation learning, forecasting, support-coordinate intervention evidence, and post-hoc basin-support alignment on held-out benchmark states.
+  \item Basin labels and known basin counts are treated as evaluation-only information for benchmark diagnostics, not as assumptions available to the training-time method.
+  \item The discussion identifies important limitations: behavior near separatrices, rare transitions, partial observation, and high-dimensional physical systems remains unresolved.
+  \item Downstream deployments should validate forecasts on held-out trajectories from the target system, monitor support changes and uncertainty near regime boundaries, and use independent safety constraints rather than treating the learned support as an oracle.
+  \item For safety-critical control applications, this method should be used only as one component of a validated pipeline with conservative fallback behavior and domain-specific review.
+\end{itemize}

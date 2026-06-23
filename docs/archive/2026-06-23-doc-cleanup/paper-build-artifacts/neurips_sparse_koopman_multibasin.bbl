@@ -1,0 +1,325 @@
+\begin{thebibliography}{48}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abbasi et~al.(2022)Abbasi, Nooralinejad, Braverman, Pirsiavash, and Kolouri]{abbasi_sparsity_2022}
+Ali Abbasi, Parsa Nooralinejad, Vladimir Braverman, Hamed Pirsiavash, and Soheil Kolouri.
+\newblock Sparsity and {Heterogeneous} {Dropout} for {Continual} {Learning} in the {Null} {Space} of {Neural} {Activations}.
+\newblock In \emph{Proceedings of {The} 1st {Conference} on {Lifelong} {Learning} {Agents}}, pages 617--628. PMLR, November 2022.
+\newblock URL \url{https://proceedings.mlr.press/v199/abbasi22a.html}.
+
+\bibitem[Agarwal et~al.(2021)Agarwal, Schwarzer, Castro, Courville, and Bellemare]{agarwal2021deep}
+Rishabh Agarwal, Max Schwarzer, Pablo~Samuel Castro, Aaron~C Courville, and Marc Bellemare.
+\newblock Deep reinforcement learning at the edge of the statistical precipice.
+\newblock \emph{Advances in Neural Information Processing Systems}, 34, 2021.
+
+\bibitem[Azencot et~al.(2020)Azencot, Erichson, Lin, and Mahoney]{azencot_forecasting_2020}
+Omri Azencot, N.~Benjamin Erichson, Vanessa Lin, and Michael Mahoney.
+\newblock Forecasting {Sequential} {Data} {Using} {Consistent} {Koopman} {Autoencoders}.
+\newblock In \emph{Proceedings of the 37th {International} {Conference} on {Machine} {Learning}}, pages 475--485. PMLR, November 2020.
+
+\bibitem[Beck and Teboulle(2009)]{beck2009fast}
+Amir Beck and Marc Teboulle.
+\newblock A fast iterative shrinkage-thresholding algorithm for linear inverse problems.
+\newblock \emph{SIAM Journal on Imaging Sciences}, 2\penalty0 (1):\penalty0 183--202, 2009.
+\newblock \doi{10.1137/080716542}.
+
+\bibitem[Brunton et~al.(2016)Brunton, Brunton, Proctor, and Kutz]{brunton_koopman_2016}
+Steven~L. Brunton, Bingni~W. Brunton, Joshua~L. Proctor, and J.~Nathan Kutz.
+\newblock Koopman {Invariant} {Subspaces} and {Finite} {Linear} {Representations} of {Nonlinear} {Dynamical} {Systems} for {Control}.
+\newblock \emph{PLOS ONE}, 11\penalty0 (2), February 2016.
+\newblock ISSN 1932-6203.
+\newblock \doi{10.1371/journal.pone.0150171}.
+\newblock URL \url{https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0150171}.
+
+\bibitem[Brunton et~al.(2022)Brunton, Budišić, Kaiser, and Kutz]{brunton_modern_2022}
+Steven~L. Brunton, Marko Budišić, Eurika Kaiser, and J.~Nathan Kutz.
+\newblock Modern {Koopman} {Theory} for {Dynamical} {Systems}.
+\newblock \emph{SIAM Review}, 64\penalty0 (2):\penalty0 229--340, May 2022.
+\newblock ISSN 0036-1445.
+\newblock \doi{10.1137/21M1401243}.
+\newblock URL \url{https://doi.org/10.1137/21M1401243}.
+
+\bibitem[Chen et~al.(1998)Chen, Donoho, and Saunders]{chen_atomic_1998}
+Scott~Shaobing Chen, David~L. Donoho, and Michael~A. Saunders.
+\newblock Atomic {Decomposition} by {Basis} {Pursuit}.
+\newblock \emph{SIAM Journal on Scientific Computing}, 20\penalty0 (1):\penalty0 33--61, 1998.
+\newblock \doi{10.1137/S1064827596304010}.
+\newblock URL \url{https://doi.org/10.1137/S1064827596304010}.
+
+\bibitem[Cunningham et~al.(2023)Cunningham, Ewart, Riggs, Huben, and Sharkey]{cunningham_sparse_2023}
+Hoagy Cunningham, Aidan Ewart, Logan Riggs, Robert Huben, and Lee Sharkey.
+\newblock Sparse autoencoders find highly interpretable features in language models, 2023.
+\newblock URL \url{https://arxiv.org/abs/2309.08600}.
+
+\bibitem[Donoho and Elad(2003)]{donoho_optimally_2003}
+David~L. Donoho and Michael Elad.
+\newblock Optimally sparse representation in general (nonorthogonal) dictionaries via {$\ell_1$} minimization.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 100\penalty0 (5):\penalty0 2197--2202, March 2003.
+\newblock \doi{10.1073/pnas.0437847100}.
+\newblock URL \url{https://doi.org/10.1073/pnas.0437847100}.
+
+\bibitem[Elhage et~al.(2022)Elhage, Hume, Olsson, Schiefer, Henighan, Kravec, Hatfield-Dodds, Lasenby, Drain, Chen, Grosse, McCandlish, Kaplan, Amodei, Wattenberg, and Olah]{elhage_toy_2022}
+Nelson Elhage, Tristan Hume, Catherine Olsson, Nicholas Schiefer, Tom Henighan, Shauna Kravec, Zac Hatfield-Dodds, Robert Lasenby, Dawn Drain, Carol Chen, Roger Grosse, Sam McCandlish, Jared Kaplan, Dario Amodei, Martin Wattenberg, and Christopher Olah.
+\newblock Toy models of superposition, 2022.
+\newblock URL \url{https://arxiv.org/abs/2209.10652}.
+
+\bibitem[Fathi et~al.(2024)Fathi, Gehring, Pilault, Kanaa, Bacon, and Goroshin]{fathi2024course}
+Mahan Fathi, Clement Gehring, Jonathan Pilault, David Kanaa, Pierre-Luc Bacon, and Ross Goroshin.
+\newblock Course correcting koopman representations.
+\newblock In \emph{The Twelfth International Conference on Learning Representations}, 2024.
+\newblock URL \url{https://openreview.net/forum?id=A18gWgc5mi}.
+
+\bibitem[Gao et~al.(2024)Gao, Dupr{\'e}~la Tour, Tillman, Goh, Troll, Radford, Sutskever, Leike, and Wu]{gao_scaling_2024}
+Leo Gao, Tom Dupr{\'e}~la Tour, Henk Tillman, Gabriel Goh, Rajan Troll, Alec Radford, Ilya Sutskever, Jan Leike, and Jeffrey Wu.
+\newblock Scaling and evaluating sparse autoencoders, 2024.
+\newblock URL \url{https://arxiv.org/abs/2406.04093}.
+
+\bibitem[Gilpin(2021)]{gilpin_chaos_2021}
+William Gilpin.
+\newblock Chaos as an interpretable benchmark for forecasting and data-driven modelling.
+\newblock In \emph{Advances in {Neural} {Information} {Processing} {Systems} ({NeurIPS}) 2021}, 2021.
+\newblock URL \url{http://arxiv.org/abs/2110.05266}.
+
+\bibitem[Gilpin(2023)]{gilpin_model_2023}
+William Gilpin.
+\newblock Model scale versus domain knowledge in statistical forecasting of chaotic systems.
+\newblock \emph{Physical Review Research}, 5\penalty0 (4):\penalty0 043252, December 2023.
+\newblock \doi{10.1103/PhysRevResearch.5.043252}.
+\newblock URL \url{https://link.aps.org/doi/10.1103/PhysRevResearch.5.043252}.
+
+\bibitem[Gregor and LeCun(2010)]{gregor_learning_2010}
+Karol Gregor and Yann LeCun.
+\newblock Learning {Fast} {Approximations} of {Sparse} {Coding}.
+\newblock In \emph{Proceedings of the 27th {International} {Conference} on {Machine} {Learning}}, {ICML}'10, pages 399--406, Haifa, Israel, 2010. Omnipress.
+\newblock ISBN 978-1-60558-907-7.
+\newblock \doi{10.5555/3104322.3104374}.
+\newblock URL \url{https://dl.acm.org/doi/abs/10.5555/3104322.3104374}.
+
+\bibitem[Grobman(1959)]{grobman1959homeomorphism}
+D.~M. Grobman.
+\newblock Homeomorphism of systems of differential equations.
+\newblock \emph{Doklady Akademii Nauk SSSR}, 128:\penalty0 880--881, 1959.
+
+\bibitem[Grüne and Pannek(2017)]{grune_nonlinear_2017}
+Lars Grüne and Jürgen Pannek.
+\newblock \emph{Nonlinear {Model} {Predictive} {Control}}.
+\newblock Communications and {Control} {Engineering}. Springer International Publishing, Cham, 2017.
+\newblock ISBN 978-3-319-46023-9 978-3-319-46024-6.
+\newblock \doi{10.1007/978-3-319-46024-6}.
+\newblock URL \url{http://link.springer.com/10.1007/978-3-319-46024-6}.
+
+\bibitem[Hartman(1960)]{hartman1960lemma}
+Philip Hartman.
+\newblock A lemma in the theory of structural stability of differential equations.
+\newblock \emph{Proceedings of the American Mathematical Society}, 11\penalty0 (4):\penalty0 610--620, 1960.
+\newblock \doi{10.1090/S0002-9939-1960-0121542-7}.
+
+\bibitem[Kalman(1960)]{kalman_general_1960}
+R.E. Kalman.
+\newblock On the general theory of control systems.
+\newblock \emph{1st International IFAC Congress on Automatic and Remote Control, Moscow, USSR, 1960}, 1\penalty0 (1):\penalty0 491--502, August 1960.
+\newblock ISSN 1474-6670.
+\newblock \doi{10.1016/S1474-6670(17)70094-8}.
+\newblock URL \url{https://www.sciencedirect.com/science/article/pii/S1474667017700948}.
+
+\bibitem[Karvonen et~al.(2025)Karvonen, Rager, Lin, Tigges, Bloom, Chanin, Lau, Farrell, McDougall, Ayonrinde, Till, Wearden, Conmy, Marks, and Nanda]{karvonen_saebench_2025}
+Adam Karvonen, Can Rager, Johnny Lin, Curt Tigges, Joseph Bloom, David Chanin, Yeu-Tong Lau, Eoin Farrell, Callum McDougall, Kola Ayonrinde, Demian Till, Matthew Wearden, Arthur Conmy, Samuel Marks, and Neel Nanda.
+\newblock {SAEBench}: A comprehensive benchmark for sparse autoencoders in language model interpretability.
+\newblock In \emph{Proceedings of the 42nd International Conference on Machine Learning}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2503.09532}.
+
+\bibitem[Koopman(1931)]{koopman_hamiltonian_1931}
+B.~O. Koopman.
+\newblock Hamiltonian {Systems} and {Transformation} in {Hilbert} {Space}.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 17\penalty0 (5):\penalty0 315--318, May 1931.
+\newblock \doi{10.1073/pnas.17.5.315}.
+\newblock URL \url{https://www.pnas.org/doi/10.1073/pnas.17.5.315}.
+
+\bibitem[Koopman and Neumann(1932)]{koopman_dynamical_1932}
+B.~O. Koopman and J.~v. Neumann.
+\newblock Dynamical {Systems} of {Continuous} {Spectra}.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 18\penalty0 (3):\penalty0 255--263, March 1932.
+\newblock \doi{10.1073/pnas.18.3.255}.
+\newblock URL \url{https://www.pnas.org/doi/abs/10.1073/pnas.18.3.255}.
+
+\bibitem[Korda and Mezić(2018)]{korda_linear_2018}
+Milan Korda and Igor Mezić.
+\newblock Linear predictors for nonlinear dynamical systems: {Koopman} operator meets model predictive control.
+\newblock \emph{Automatica}, 93:\penalty0 149--160, July 2018.
+\newblock ISSN 00051098.
+\newblock \doi{10.1016/j.automatica.2018.03.046}.
+\newblock URL \url{http://arxiv.org/abs/1611.03537}.
+
+\bibitem[Kvalheim and Revzen(2021)]{kvalheim_existence_2021}
+Matthew~D. Kvalheim and Shai Revzen.
+\newblock Existence and uniqueness of global {Koopman} eigenfunctions for stable fixed points and periodic orbits.
+\newblock \emph{Physica D: Nonlinear Phenomena}, 425:\penalty0 132959, November 2021.
+\newblock ISSN 0167-2789.
+\newblock \doi{10.1016/j.physd.2021.132959}.
+\newblock URL \url{https://www.sciencedirect.com/science/article/pii/S0167278921001160}.
+
+\bibitem[Lan and Mezić(2013)]{lan_linearization_2013}
+Yueheng Lan and Igor Mezić.
+\newblock Linearization in the large of nonlinear systems and {Koopman} operator spectrum.
+\newblock \emph{Physica D: Nonlinear Phenomena}, 242\penalty0 (1):\penalty0 42--53, January 2013.
+\newblock ISSN 0167-2789.
+\newblock \doi{10.1016/j.physd.2012.08.017}.
+
+\bibitem[Lin et~al.(2025)Lin, Zettlemoyer, Ghosh, Yih, Markosyan, Berges, and Oguz]{lin_sparse_memory_2025}
+Jessy Lin, Luke Zettlemoyer, Gargi Ghosh, Wen-Tau Yih, Aram Markosyan, Vincent-Pierre Berges, and Barlas Oguz.
+\newblock Continual learning via sparse memory finetuning, 2025.
+\newblock URL \url{https://arxiv.org/abs/2510.15103}.
+
+\bibitem[Liu et~al.(2025)Liu, Ozay, and Sontag]{liu_properties_2025}
+Zexiang Liu, Necmiye Ozay, and Eduardo~D. Sontag.
+\newblock Properties of immersions for systems with multiple limit sets with implications to learning {Koopman} embeddings.
+\newblock \emph{Automatica}, 176:\penalty0 112226, June 2025.
+\newblock ISSN 0005-1098.
+\newblock \doi{10.1016/j.automatica.2025.112226}.
+\newblock URL \url{https://www.sciencedirect.com/science/article/pii/S0005109825001189}.
+
+\bibitem[Lusch et~al.(2018)Lusch, Kutz, and Brunton]{lusch_deep_2018}
+Bethany Lusch, J.~Nathan Kutz, and Steven~L. Brunton.
+\newblock Deep learning for universal linear embeddings of nonlinear dynamics.
+\newblock \emph{Nature Communications}, 9\penalty0 (1):\penalty0 4950, November 2018.
+\newblock ISSN 2041-1723.
+\newblock \doi{10.1038/s41467-018-07210-0}.
+
+\bibitem[Makelov et~al.(2024)Makelov, Lange, and Nanda]{makelov_principled_2024}
+Aleksandar Makelov, George Lange, and Neel Nanda.
+\newblock Towards principled evaluations of sparse autoencoders for interpretability and control, 2024.
+\newblock URL \url{https://arxiv.org/abs/2405.08366}.
+
+\bibitem[Mallya and Lazebnik(2018)]{mallya_packnet_2018}
+Arun Mallya and Svetlana Lazebnik.
+\newblock {PackNet}: Adding multiple tasks to a single network by iterative pruning.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}, 2018.
+\newblock URL \url{https://arxiv.org/abs/1711.05769}.
+
+\bibitem[Mamakoukas et~al.(2019)Mamakoukas, Castano, Tan, and Murphey]{mamakoukas_local_2019}
+Giorgos Mamakoukas, Maria Castano, Xiaobo Tan, and Todd Murphey.
+\newblock Local {Koopman} {Operators} for {Data}-{Driven} {Control} of {Robotic} {Systems}.
+\newblock In \emph{Robotics: {Science} and {Systems} {XV}}. Robotics: Science and Systems Foundation, June 2019.
+\newblock ISBN 978-0-9923747-5-4.
+\newblock \doi{10.15607/RSS.2019.XV.054}.
+\newblock URL \url{http://www.roboticsproceedings.org/rss15/p54.pdf}.
+
+\bibitem[Mayne et~al.(2000)Mayne, Rawlings, Rao, and Scokaert]{mayne_constrained_2000}
+D.~Q. Mayne, J.~B. Rawlings, C.~V. Rao, and P.~O.~M. Scokaert.
+\newblock Constrained model predictive control: {Stability} and optimality.
+\newblock \emph{Automatica}, 36\penalty0 (6):\penalty0 789--814, June 2000.
+\newblock ISSN 0005-1098.
+\newblock \doi{10.1016/S0005-1098(99)00214-9}.
+\newblock URL \url{https://www.sciencedirect.com/science/article/pii/S0005109899002149}.
+
+\bibitem[Mezi{\'c}(2005)]{mezic2005spectral}
+Igor Mezi{\'c}.
+\newblock Spectral properties of dynamical systems, model reduction and decompositions.
+\newblock \emph{Nonlinear Dynamics}, 41\penalty0 (1--3):\penalty0 309--325, 2005.
+\newblock \doi{10.1007/s11071-005-2824-x}.
+
+\bibitem[Ohana et~al.(2024)Ohana, McCabe, Meyer, Morel, Agocs, et~al.]{ohana_well_2024}
+Ruben Ohana, Michael McCabe, Lucas Meyer, Rudy Morel, Fruzsina~J. Agocs, et~al.
+\newblock The well: A large-scale collection of diverse physics simulations for machine learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2412.00568}.
+
+\bibitem[Olshausen and Field(1996)]{olshausen_emergence_1996}
+Bruno~A. Olshausen and David~J. Field.
+\newblock Emergence of simple-cell receptive field properties by learning a sparse code for natural images.
+\newblock \emph{Nature}, 381\penalty0 (6583):\penalty0 607--609, June 1996.
+\newblock ISSN 1476-4687.
+\newblock \doi{10.1038/381607a0}.
+\newblock URL \url{https://doi.org/10.1038/381607a0}.
+
+\bibitem[Otto and Rowley(2019)]{otto2019linearly}
+Samuel~E. Otto and Clarence~W. Rowley.
+\newblock Linearly recurrent autoencoder networks for learning dynamics.
+\newblock \emph{SIAM Journal on Applied Dynamical Systems}, 18\penalty0 (1):\penalty0 558--593, 2019.
+\newblock \doi{10.1137/18M1177846}.
+
+\bibitem[Pan and Duraisamy(2024)]{pan_lifting_2024}
+Shaowu Pan and Karthik Duraisamy.
+\newblock On the lifting and reconstruction of nonlinear systems with multiple invariant sets.
+\newblock \emph{Nonlinear Dynamics}, 112\penalty0 (12):\penalty0 10157--10165, June 2024.
+\newblock ISSN 1573-269X.
+\newblock \doi{10.1007/s11071-024-09581-0}.
+\newblock URL \url{https://doi.org/10.1007/s11071-024-09581-0}.
+
+\bibitem[Rowley et~al.(2009)Rowley, Mezić, Bagheri, Schlatter, and Henningson]{rowley_2009_spectral}
+Clarence~W. Rowley, Igor Mezić, Shervin Bagheri, Philipp Schlatter, and Dan~S. Henningson.
+\newblock Spectral analysis of nonlinear flows.
+\newblock \emph{Journal of Fluid Mechanics}, 641:\penalty0 115–127, 2009.
+\newblock \doi{10.1017/S0022112009992059}.
+
+\bibitem[Schmid(2010)]{schmid_dmd_2010}
+Peter~J. Schmid.
+\newblock Dynamic mode decomposition of numerical and experimental data.
+\newblock \emph{Journal of Fluid Mechanics}, 656:\penalty0 5--28, 2010.
+\newblock ISSN 0022-1120.
+\newblock \doi{10.1017/S0022112010001217}.
+
+\bibitem[Serr{\`a} et~al.(2018)Serr{\`a}, Sur{\'i}s, Miron, and Karatzoglou]{serra_hard_2018}
+Joan Serr{\`a}, D{\'i}dac Sur{\'i}s, Marius Miron, and Alexandros Karatzoglou.
+\newblock Overcoming catastrophic forgetting with hard attention to the task, 2018.
+\newblock URL \url{https://arxiv.org/abs/1801.01423}.
+
+\bibitem[Shi and Meng(2022)]{shi_deep_2022}
+Haojie Shi and Max Q.-H. Meng.
+\newblock Deep {Koopman} {Operator} {With} {Control} for {Nonlinear} {Systems}.
+\newblock \emph{IEEE Robotics and Automation Letters}, 7\penalty0 (3):\penalty0 7700--7707, July 2022.
+\newblock ISSN 2377-3766.
+\newblock \doi{10.1109/LRA.2022.3184036}.
+
+\bibitem[Takamoto et~al.(2022)Takamoto, Praditia, Leiteritz, MacKinlay, Alesiani, Pfl{\"u}ger, and Niepert]{takamoto_pdebench_2022}
+Makoto Takamoto, Timothy Praditia, Raphael Leiteritz, Dan MacKinlay, Francesco Alesiani, Dirk Pfl{\"u}ger, and Mathias Niepert.
+\newblock {PDEBench}: An extensive benchmark for scientific machine learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2022.
+\newblock URL \url{https://arxiv.org/abs/2210.07182}.
+
+\bibitem[Takeishi et~al.(2017)Takeishi, Kawahara, and Yairi]{takeishi2017learning}
+Naoya Takeishi, Yoshinobu Kawahara, and Takehisa Yairi.
+\newblock Learning koopman invariant subspaces for dynamic mode decomposition.
+\newblock In \emph{Advances in Neural Information Processing Systems 30}, volume~30, 2017.
+\newblock URL \url{https://papers.nips.cc/paper/6713-learning-koopman-invariant-subspaces-for-dynamic-mode-decomposition}.
+
+\bibitem[Tao et~al.(2024)Tao, Xiang, Shukla, Qin, Hinrichsen, Yuan, Bao, Lin, Liu, Chan, et~al.]{tao_maniskill3_2024}
+Stone Tao, Fanbo Xiang, Arth Shukla, Yuzhe Qin, Xander Hinrichsen, Xiaodi Yuan, Chen Bao, Xinsong Lin, Yulin Liu, Tse-kai Chan, et~al.
+\newblock {ManiSkill3}: {GPU} parallelized robotics simulation and rendering for generalizable embodied {AI}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2410.00425}.
+
+\bibitem[Tu et~al.(2014)Tu, Rowley, Luchtenburg, Brunton, and Kutz]{tu_dynamic_2014}
+Jonathan~H. Tu, Clarence~W. Rowley, Dirk~M. Luchtenburg, Steven~L. Brunton, and J.~Nathan Kutz.
+\newblock On dynamic mode decomposition: {Theory} and applications.
+\newblock \emph{Journal of Computational Dynamics}, 1\penalty0 (2):\penalty0 391--421, December 2014.
+\newblock ISSN 2158-2491.
+\newblock \doi{10.3934/jcd.2014.1.391}.
+\newblock URL \url{https://www.aimsciences.org/en/article/doi/10.3934/jcd.2014.1.391}.
+
+\bibitem[Williams et~al.(2015)Williams, Kevrekidis, and Rowley]{williams_datadriven_2015}
+Matthew~O. Williams, Ioannis~G. Kevrekidis, and Clarence~W. Rowley.
+\newblock A {Data}–{Driven} {Approximation} of the {Koopman} {Operator}: {Extending} {Dynamic} {Mode} {Decomposition}.
+\newblock \emph{Journal of Nonlinear Science}, 25\penalty0 (6):\penalty0 1307--1346, December 2015.
+\newblock ISSN 1432-1467.
+\newblock \doi{10.1007/s00332-015-9258-5}.
+\newblock URL \url{https://doi.org/10.1007/s00332-015-9258-5}.
+
+\bibitem[Williams et~al.(2016)Williams, Rowley, and Kevrekidis]{williams_kernel-based_2016}
+Matthew~O. Williams, Clarence~W. Rowley, and Ioannis~G. Kevrekidis.
+\newblock A kernel-based method for data-driven koopman spectral analysis.
+\newblock \emph{Journal of Computational Dynamics}, 2\penalty0 (2):\penalty0 247--265, May 2016.
+\newblock ISSN 2158-2491.
+\newblock \doi{10.3934/jcd.2015005}.
+\newblock URL \url{https://www.aimsciences.org/article/doi/10.3934/jcd.2015005}.
+
+\bibitem[Wortsman et~al.(2020)Wortsman, Ramanujan, Liu, Kembhavi, Rastegari, Yosinski, and Farhadi]{wortsman_supermasks_2020}
+Mitchell Wortsman, Vivek Ramanujan, Rosanne Liu, Aniruddha Kembhavi, Mohammad Rastegari, Jason Yosinski, and Ali Farhadi.
+\newblock Supermasks in superposition.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2006.14769}.
+
+\end{thebibliography}

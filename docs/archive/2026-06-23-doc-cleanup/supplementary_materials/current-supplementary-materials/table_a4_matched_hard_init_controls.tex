@@ -1,0 +1,46 @@
+\section{Matched hard-init controls}
+\label{sec:supp_table_a4_matched_hard_init_controls}
+
+\begin{table}[tbp]
+\centering
+\caption{Matched near-boundary hard-init MLP controls on the fixed multibasin benchmark.
+All rows use the same hard-init oversampling regime, so the comparison isolates the
+effect of induced latent sparsity from the LISTA architecture. Forecasting entries
+are system-median best-periodic raw rollout MSE at horizons \(H=100,500,1000\).
+Support diagnostics use the \(S_{\rm abs}\) rule with threshold \(10^{-3}\) on the
+deep evaluation slice. Basin labels and basin counts are used only after training
+for benchmark evaluation. The Sparse MLP-BD row is shown only as a stale/provisional
+block-diagonal-control value because the May 6 audit found that GenericKM ignored
+\texttt{MODEL.K\_STRUCTURE} and trained dense transitions for affected
+\texttt{generic\_sparse --k\_structure block\_diagonal} rows.}
+\label{tab:a4_matched_hard_init_controls}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccccc}
+\toprule
+Control & \(H100\) & \(H500\) & \(H1000\) & good systems & \(H(B\mid S_{\rm abs})\) & \(H(S_{\rm abs}\mid B)\) & \(U_{\rm exact}\) \\
+\midrule
+Sparse MLP & 0.0082 & 0.0260 & 0.0273 & 17 & 0.0000 & 0.2068 & 0.9805 \\
+Sparse MLP-BD\textsuperscript{a} & 0.0082 & 0.0252 & 0.0264 & 17 & 0.0000 & 0.2068 & 0.9822 \\
+Dense MLP, no shrink & 0.5704 & 2.6733 & 3.8044 & 16 & 0.0000 & 0.1246 & 0.9818 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\parbox{0.98\linewidth}{\small
+\textsuperscript{a}Stale/provisional for any block-diagonal-control claim:
+the values come from the April hard-init control packet, but the May 6
+GenericKM \texttt{K\_STRUCTURE} bug means these cells should not be cited as
+validated hard block-diagonal MLP evidence until the repaired rerun replaces
+them.}
+\end{table}
+
+\paragraph{Interpretation.}
+The matched hard-init controls rule out a LISTA-only interpretation of the
+basin-support result. Under the same near-boundary sampling protocol, the sparse
+MLP control has basin-pure absolute-threshold supports on the deep evaluation
+slice and strong short-horizon forecasting, while the dense no-shrink MLP is
+much worse functionally despite also producing non-mixing thresholded supports
+on this selected slice. The causal guardrail is therefore that induced latent
+sparsity, not the LISTA unrolling architecture alone, is sufficient to produce
+support objects that align with evaluation basin labels and remain useful for
+forecasting. Standard-sampling and near-boundary-sampling rows should remain
+separate in the paper tables.

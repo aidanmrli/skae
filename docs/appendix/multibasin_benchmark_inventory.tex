@@ -3,9 +3,8 @@
 
 \Cref{tab:fixed17_inventory} lists the \(15\) two-dimensional multibasin systems used in this paper. 
 Every row contributes to the retained-system aggregate in
-\cref{tab:fixed17_alignment}, \cref{tab:self_routing}, and
-\cref{fig:fixed17_horizon_curves}. Four systems are additionally displayed as
-the main benchmark visual panels in \cref{fig:benchmarks}. The support-refresh
+\cref{tab:forecasting_main}, \cref{tab:fixed17_alignment}, and
+\cref{fig:fixed17_horizon_curves}. The support-refresh
 subtable uses \(12\) retained systems for which the controlled-transfer
 construction produced eligible post-entry comparisons. 
 
@@ -84,6 +83,151 @@ All retained systems are implemented as continuous-time vector fields
 stored observation map \(F_{\Delta t}\) used in \cref{eq:sampled_map}. The
 training windows contain only stored states \(x_k\), not \(f_s\), integration
 substeps, or basin assignments.
+
+\paragraph{Ground-truth vector-field visualizations.}
+\Cref{fig:app_ground_truth_vector_fields_retained15} shows the continuous-time
+ground-truth vector fields for all \(15\) retained two-dimensional multibasin
+systems. Streamlines show the direction of \(f_s(x)\), and black crosses mark
+the generator attractor centers or analytic equilibrium references used for
+benchmark annotation. The streamline colors use a panel-local
+\(\log_{10}\norm{f_s(x)}_2\) scale to reveal structure within each system; they
+should not be read as comparable speed scales across panels. Detailed panels
+with per-system colorbars are provided in
+\cref{fig:app_ground_truth_vector_fields_detail_a,fig:app_ground_truth_vector_fields_detail_b,fig:app_ground_truth_vector_fields_detail_c,fig:app_ground_truth_vector_fields_detail_d,fig:app_ground_truth_vector_fields_detail_e}.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf}
+\caption{Ground-truth vector fields for the retained \(15\)-system multibasin
+benchmark. The models are trained only on stored state trajectories; these
+continuous-time vector fields and attractor annotations are shown here only to
+document the benchmark geometry and are not provided to the learner.}
+\label{fig:app_ground_truth_vector_fields_retained15}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_local_linear.pdf}
+  \caption{Local-linear gates.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_transfer_linear.pdf}
+  \caption{Transfer-gated local-linear.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.pdf}
+  \caption{Arrested spiral.}
+\end{subfigure}
+\caption{Detailed ground-truth vector-field panels for the first three retained
+multibasin systems. Colorbars report the panel-local
+\(\log_{10}\norm{f_s(x)}_2\) scale.}
+\label{fig:app_ground_truth_vector_fields_detail_a}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.pdf}
+  \caption{Asymmetric three-well.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.pdf}
+  \caption{High-cross three-well.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.pdf}
+  \caption{Hexagonal six-well.}
+\end{subfigure}
+\caption{Detailed ground-truth vector-field panels for retained Gaussian-well
+systems. Colorbars report the panel-local \(\log_{10}\norm{f_s(x)}_2\) scale.}
+\label{fig:app_ground_truth_vector_fields_detail_b}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.pdf}
+  \caption{Octagonal eight-well.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.pdf}
+  \caption{Pentagonal five-well.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.pdf}
+  \caption{Square four-well.}
+\end{subfigure}
+\caption{Detailed ground-truth vector-field panels for retained polygonal
+Gaussian-well systems. Colorbars report the panel-local
+\(\log_{10}\norm{f_s(x)}_2\) scale.}
+\label{fig:app_ground_truth_vector_fields_detail_c}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.pdf}
+  \caption{Triple-well Duffing.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.pdf}
+  \caption{SNIC multi-attractor.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.pdf}
+  \caption{Transition-routes four-well.}
+\end{subfigure}
+\caption{Detailed ground-truth vector-field panels for specialized retained
+systems. Colorbars report the panel-local \(\log_{10}\norm{f_s(x)}_2\) scale.}
+\label{fig:app_ground_truth_vector_fields_detail_d}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.pdf}
+  \caption{Depth-gradient four-well.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.pdf}
+  \caption{Diamond four-well.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.pdf}
+  \caption{L-shaped five-well.}
+\end{subfigure}
+\caption{Detailed ground-truth vector-field panels for retained geometry
+variants. Colorbars report the panel-local \(\log_{10}\norm{f_s(x)}_2\) scale.}
+\label{fig:app_ground_truth_vector_fields_detail_e}
+\end{figure}
+
+\clearpage
 
 \paragraph{Gaussian-well family.}
 Most retained catalog systems use a common two-dimensional Gaussian potential

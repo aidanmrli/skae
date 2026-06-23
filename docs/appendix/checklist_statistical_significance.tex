@@ -1,0 +1,54 @@
+\subsection{Checklist: statistical significance}
+\label{app:checklist_statistical_significance}
+
+\paragraph{Question.}
+Do the experiments report point estimates, uncertainty bands or error bars, statistical tests, multiple-comparison corrections, and the assumptions needed to interpret them?
+
+\paragraph{Answer (Yes/No/NA).}
+Yes.
+
+\paragraph{Justification.}
+The main forecasting and support-alignment claims compare trained models under matched systems and, when possible, matched random seeds. The paper does not pool trajectories, seeds, and systems as if they were independent samples. Instead, seeds are summarized within a benchmark system for point estimates, and formal tests use the paired unit appropriate to the claim: the training seed within a controlled multibasin system, or the benchmark system for cross-system Dysts and routing claims. Dense MLP is the reference baseline for the main forecasting and support-diagnostic table. Descriptive tables such as support refresh and support-coordinate intervention summaries report their uncertainty summaries but do not attach confirmatory \(p\)-values.
+
+\paragraph{Point estimates.}
+For the main controlled multibasin forecasting columns, each model is trained for \(15\) random seeds on each of \(15\) retained systems. For a model \(a\), system \(s\), horizon \(h\), and completed seeds \(r\), the displayed MSE point estimate is
+\[
+  \frac{1}{|\mathcal S|}
+  \sum_{s\in\mathcal S}
+  \operatorname{IQM}_{r}\!\left\{\operatorname{MSE}_{a,s,r,h}\right\},
+\]
+where \(\operatorname{IQM}\) is the empirical interquartile mean: the mean of finite values lying between the \(25\)th and \(75\)th percentiles, with a plain mean fallback for very small samples. The Dysts \(dt{\times}30\) forecasting columns use the same seed-IQM-within-system, arithmetic-mean-across-systems estimator on \(10\) retained Dysts systems. The scale-normalized Dysts appendix table reports the arithmetic mean across systems of \(\operatorname{IQM}_{r}(\operatorname{MSE}^{\rm cand}_{s,r,h}) / \operatorname{IQM}_{r}(\operatorname{MSE}^{\rm Dense}_{s,r,h})\).
+
+For the main support-alignment metric \(H(B\mid F_{\rm abs})\), the point estimate is again a per-system seed IQM followed by an arithmetic mean across systems, evaluated on the per-basin deep slice. The family-count column \(\overline{|F_{\rm abs}|}\) is descriptive: it averages per-system seed means because closeness to the represented basin count, not monotone increase or decrease, is the relevant interpretation. For appendix support-conditioned routing, the \(F_{\rm top8}\) ratio is \(10^{\operatorname{mean}_s D_{s,h}}\), where \(D_{s,h}\) is the within-system IQM over finite seed-level \(\log_{10}(\operatorname{MSE}^{\rm routed}/\operatorname{MSE}^{\rm global})\) values. Values below \(1\) favor the support-routed rollout.
+
+The support-coordinate intervention table is descriptive. It reports mean \(\pm\) sample standard deviation and median \([25\%,75\%]\) accumulated MSE at \(H=21\). Coordinate dropping uses \(100\) held-out basin-interior starts. Random support shuffling uses \(20\) inactive-coordinate reassignments for each of the same \(100\) starts.
+
+\paragraph{Bands and error bars.}
+Forecasting horizon curves use the same point estimates as the tables. Their shaded bands are fixed-system seed-bootstrap \(95\%\) intervals after system-wise log-relative normalization, anchored to the displayed mean. Concretely, for each fixed system the implementation resamples seeds with replacement, recomputes the seed IQM, converts that draw to a \(\log_{10}\)-relative perturbation around that system's observed seed IQM, averages those perturbations across systems, and maps the \(2.5\)th and \(97.5\)th percentiles back onto the displayed mean. The default implementation uses \(10{,}000\) bootstrap replicates. These bands summarize finite-seed uncertainty for an average fixed benchmark system; they are not confidence intervals over a newly sampled population of dynamical systems.
+
+The multibasin forest plot reports per-system paired \(\log_{10}\)-MSE effects at \(H=1000\). Points are per-system median paired seed differences, candidate minus Dense MLP, and whiskers are \(95\%\) bootstrap intervals over the common seeds for that system. Filled markers denote systems that pass the Holm-corrected Wilcoxon test. The \(H(B\mid F_{\rm abs})\) strip plot shows system--seed points, gray first-to-third quartile bars, and black IQM summary bars. The coordinate-dropping intervention curves use bootstrap \(95\%\) intervals over the \(100\) initial states; random-support intervention curves show the interquartile range over shuffles, with median and mean curves shown separately.
+
+\paragraph{Formal tests.}
+For controlled multibasin forecasting against Dense MLP, the tested paired effect is
+\[
+  \delta_{s,r,h}
+  =
+  \log_{10}\operatorname{MSE}^{\rm cand}_{s,r,h}
+  -
+  \log_{10}\operatorname{MSE}^{\rm Dense}_{s,r,h}.
+\]
+Within each system and model--horizon cell, the test is a one-sided paired Wilcoxon signed-rank test on common finite positive seed pairs with alternative \(\delta<0\), because lower MSE is better. System tests with fewer than four valid paired seeds or degenerate signed-rank inputs are omitted from that cell's denominator. The displayed main-table stars and appendix \(K/N\) counts use Holm-corrected Wilcoxon \(p\)-values at \(\alpha=0.05\).
+
+For \(H(B\mid F_{\rm abs})\) and \(|S_{\rm abs}|\), the paired unit is again the matched training seed within a system, and the one-sided Wilcoxon alternative is candidate \(<\) Dense MLP. For wrong-support/base ablation ratios in the appendix, the alternative is candidate \(>\) Dense MLP, because a larger ratio means that replacing the active support is more damaging. The \(\overline{|F_{\rm abs}|}\) count is not assigned a \(p\)-value.
+
+For the Dysts \(dt{\times}30\) actual-MSE table, each system first contributes one seed-IQM MSE for the candidate and one for Dense MLP. The formal effect is the system-level \(\log_{10}\) ratio of those two IQMs. Main-table Dysts superscripts use an exact one-sided sign test across the \(10\) systems, with alternative that more than half of systems have ratio below \(1\). Wilcoxon and paired \(t\)-test results are retained in sidecar outputs as audit diagnostics but are not used for the compact table stars.
+
+For appendix \(F_{\rm top8}\) support-conditioned routing, seeds are nested inside systems, so significance is tested at the system level. The test enumerates exact sign flips of the finite system-level log effects \(D_{s,h}\) while retaining their magnitudes, with alternative \(D_{s,h}<0\). The displayed routing stars use Holm-corrected sign-flip \(p\)-values; the adjacent ``system wins'' count is a directional diagnostic, not the confirmatory \(p\)-value.
+
+\paragraph{Holm corrections.}
+All formal families use Holm step-down correction. The implementation sorts valid raw \(p\)-values, multiplies the \(i\)th smallest by the number of remaining hypotheses, enforces monotonicity by a running maximum, and clips at \(1\). Controlled multibasin forecasting and support-diagnostic tests correct across eligible systems within the corresponding model--metric--horizon cell. Dysts compact-table stars correct the exact sign-test \(p\)-values across the non-Dense model--horizon comparisons in the Dysts table. Routing stars correct across the displayed all-state \(F_{\rm top8}\)-routing model--horizon cells. No Holm correction is applied to descriptive quantities without a formal \(p\)-value.
+
+\paragraph{Assumptions and caveats.}
+The one-sided alternatives are fixed by metric direction: lower MSE and lower \(H(B\mid F_{\rm abs})\) are better; larger wrong-support/base ratios are better. Log tests require finite positive MSEs or ratios. The paired Wilcoxon tests assume the matched seed differences within a system are the relevant exchangeable paired observations for that system; the Dysts and routing sign tests assume benchmark systems are the independent units for their cross-system claims. The fixed-system bootstrap bands condition on the chosen benchmark systems and quantify seed variability, not uncertainty over all possible dynamical systems. Basin labels, basin counts, and basin-depth slices are used only for benchmark evaluation and scoring, not for training the models or constructing support families at deployment.
+
+The support-refresh table is a descriptive mechanism diagnostic: each cell reports the target-family fraction before re-encoding \(\to\) after re-encoding for controlled transfer, and the no-transfer column reports a false-target control. The support-coordinate intervention figure and table are also descriptive: their bands, standard deviations, and interquartile ranges show the scale and dispersion of the perturbation effect, but no formal \(p\)-value or Holm correction is attached to those intervention panels.

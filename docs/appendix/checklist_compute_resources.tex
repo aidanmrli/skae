@@ -1,0 +1,67 @@
+\subsection{Checklist: Compute Resources}
+\label{app:checklist_compute_resources}
+
+\paragraph{Question.}
+For each experiment, did we report the amount of compute and the type of
+resources used?
+
+\paragraph{Answer.}
+Yes.
+
+\paragraph{Justification.}
+The paper-facing experiments consist of the \(15\)-system controlled
+multibasin benchmark, the \(10\)-system Dysts \(dt{\times}30\) benchmark, and
+several post-training evaluation diagnostics.  The main training jobs used the
+cluster SLURM runners with CUDA enabled.  The scripts request one GPU for
+training jobs, but do not pin a GPU model or constraint; the exact GPU type is
+therefore cluster-assigned and should be treated as unspecified.  CPU-only
+post-training analyses use SLURM CPU partitions or CPU-mode jobs.  The
+estimates below are allocation upper bounds derived from the paper protocol
+and the current SLURM resource requests, not measured wall-clock usage.
+
+\paragraph{Hardware and resource details.}
+Training jobs load CUDA \(12.6.0\) and request one cluster GPU, \(4\) CPU cores,
+and \(16\) GB host memory per active training allocation.  Controlled
+multibasin training uses single-run GPU allocations with a \(24\)-hour time
+limit.  Dysts \(dt{\times}30\) training uses packed GPU allocations with up to
+\(12\) runs per allocation, one GPU, \(4\) CPU cores, \(16\) GB memory, and a
+\(72\)-hour time limit per packed allocation.  Dysts cache construction uses
+CPU allocations with \(4\) CPU cores, \(16\) GB memory, and a \(24\)-hour time
+limit.  Dysts long-horizon evaluation uses CPU allocations with \(4\) CPU
+cores, \(24\) GB memory, and a \(6\)-hour time limit for the paper-facing
+\(dt{\times}30\) evaluation queue.  Controlled support diagnostics and
+support-routed analyses use CPU allocations with \(4\) CPU cores, \(16\)--\(24\)
+GB memory, and \(8\)--\(12\)-hour time limits, depending on the diagnostic.
+
+\paragraph{Per-run and total-compute estimates.}
+\begin{center}
+\begin{tabular}{|p{0.24\linewidth}|p{0.22\linewidth}|p{0.25\linewidth}|p{0.20\linewidth}|}
+\hline
+\textbf{Experiment} & \textbf{Paper-facing count} & \textbf{Per-run or per-allocation request} & \textbf{Allocation upper bound} \\
+\hline
+Controlled multibasin training & \(15\) systems \(\times\) \(6\) model rows \(\times\) \(15\) seeds \(=1350\) training runs & One GPU, \(4\) CPU cores, \(16\) GB memory, \(24\) h per run; \(200{,}000\) optimization steps, batch size \(256\), rollout length \(L=8\), latent dimension \(d_z=256\) & \(\le 32{,}400\) GPU-hours and \(\le 129{,}600\) allocated CPU-core-hours \\
+\hline
+Dysts \(dt{\times}30\) training & \(10\) systems \(\times\) \(6\) model rows \(\times\) \(15\) seeds \(=900\) training runs & Packed allocations: one GPU, \(4\) CPU cores, \(16\) GB memory, \(72\) h for up to \(12\) runs; \(100{,}000\) optimization steps, batch size \(256\), rollout length \(L=10\), latent dimension \(d_z=256\) & \(\le 5400\) GPU-hours and \(\le 21{,}600\) allocated CPU-core-hours when packs are full \\
+\hline
+Dysts cache construction and long-horizon evaluation & \(10\) retained systems; evaluation rows match the \(900\) trained Dysts runs & Cache jobs: \(4\) CPU cores, \(16\) GB, \(24\) h. Evaluation packs: \(4\) CPU cores, \(24\) GB, \(6\) h for up to \(12\) evaluation rows, plus one validation row and one collector & Approximately \(\le 4700\) CPU-core-hours for train/validation/test cache construction, packed evaluation, validation, and collection \\
+\hline
+Controlled support diagnostics for the main table & \(6\) model rows on the retained \(15\)-system benchmark & CPU reducer shards: \(4\) CPU cores, \(16\) GB, \(12\) h per model row; merge jobs: \(1\) CPU core, \(4\) GB, \(0.5\) h & Approximately \(\le 290\) CPU-core-hours for the six-row per-basin deep-slice support diagnostic pass \\
+\hline
+Appendix routed forecasting and support refresh diagnostics & Run on saved checkpoints; shard count depends on selected model rows and seed splits & CPU shards: \(4\) CPU cores, \(24\) GB, \(12\) h per model-row/seed-split shard; merges: \(1\) CPU core, \(4\) GB, \(0.5\) h & For \(6\) rows and three \(5\)-seed splits, \(\le 864\) CPU-core-hours per diagnostic family, plus merge overhead \\
+\hline
+Support-coordinate intervention figure & One representative trained checkpoint & One GPU, \(1\) CPU core, \(8\) GB memory, \(3\) h; plotting uses \(1\) CPU core, \(2\) GB, \(10\) min & \(\le 3\) GPU-hours, plus negligible CPU plotting time \\
+\hline
+\end{tabular}
+\end{center}
+
+\paragraph{Caveats.}
+The totals above are conservative allocation ceilings.  Actual consumed compute
+can be lower because SLURM jobs may finish before their time limits, completed
+runs may be skipped, and packed jobs share one allocation across several
+sequential runs.  Conversely, the repository contains older and supplemental
+launchers for \(17\)-system controlled packets and \(12\)-system Dysts packets;
+those extra runs are not included in the paper-facing totals above because the
+manuscript reports the retained \(15\)-system controlled benchmark and the
+retained \(10\)-system Dysts benchmark.  The scripts do not specify a GPU model,
+so the hardware type is reported only as a single cluster-assigned CUDA GPU per
+training allocation.

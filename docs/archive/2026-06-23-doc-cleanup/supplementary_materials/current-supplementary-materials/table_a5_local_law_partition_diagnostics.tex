@@ -1,0 +1,56 @@
+\section{Local-law and partition diagnostics}
+\label{sec:supp_table_a5_local_law_partition_diagnostics}
+
+\begin{table}[tbp]
+\centering
+\caption{Appendix Table A5: local-law and partition diagnostics. The table is a calibration audit, not a main-text claim. Centered local laws are useful as post-hoc diagnostics, zero-intercept local laws are the wrong fit class, true-geometry recovery is mixed, and support families are not explained by random count-matched partitions alone.}
+\label{tab:app_a5_local_law_partition_diagnostics}
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{@{}p{0.20\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.20\textwidth}@{}}
+\toprule
+Diagnostic & Protocol & Result & Paper-safe interpretation \\
+\midrule
+Centered support-conditioned local law
+&
+Freeze the trained encoder, decoder, and learned global \(K\). Fit ridge local slopes in centered latent charts,
+\(\;z_{t+1}-\bar z_c \approx A_c(z_t-\bar z_c)\;\), using support-selected classes on held-out one-step latent transitions.
+&
+On deep \(q4\) states with relative-threshold exact supports, centered support-conditioned slopes beat learned global \(K\) on \(93.1\%\) of block-diagonal LISTA rows (\(130\) evaluated rows), \(98.6\%\) of dense LISTA rows (\(141\)), and \(100\%\) of dense no-sparsity MLP rows (\(140\)).
+&
+Useful local laws exist in centered charts, especially away from basin boundaries. This supports the local-dynamics framing, but it is not LISTA-specific because the dense no-sparsity MLP also shows the effect.
+\\
+\addlinespace
+Zero-intercept local operator selection
+&
+Fit raw latent operators of the form \(z_{t+1}\approx A_c z_t\), compare against a global zero-intercept operator, and include oracle basin partitions as controls.
+&
+The fixed-\(17\) packet is negative for the strong local-law claim: the best deep LISTA family rows fail to beat the global operator, and even oracle basin fits fail in this zero-intercept read. Representative toy positives also collapse when the comparator is upgraded from zero-intercept linear to affine.
+&
+The failure diagnoses chart-origin and comparator mismatch, not absence of local dynamics. Zero-intercept results should justify the centered diagnostic and should not be used as evidence for exact operator recovery.
+\\
+\addlinespace
+True-geometry projection near attractors
+&
+Project fitted local latent slopes through encoder/decoder Jacobians at recovered fixed points and compare projected state-space Jacobian error against count-matched random support objects.
+&
+The audited seed-\(0\) packet is mixed. LISTA family partitions often beat random near attractors; for block-diagonal LISTA at radius \(0.15\), family relative-Frobenius error is \(0.1169\) vs. \(0.1979\) random for \(S_{\rm abs}\), \(0.1205\) vs. \(0.1872\) for \(S_{\rm rel}\), and \(0.1114\) vs. \(0.1955\) for \(S_{\rm top8}\). At larger radii some block-diagonal family rows lose to random, and the dense no-sparsity MLP can have lower absolute projected-Jacobian error.
+&
+Support objects can select non-random local slopes in learned charts, but chart validity and representation geometry matter. This is a falsification/limitation diagnostic, not a headline true-Jacobian recovery claim.
+\\
+\addlinespace
+Random count-matched partition control
+&
+For H100 routed forecasting controls, fit the same centered local maps while changing only the selector: oracle basin labels, learned \(F_{\rm top8}\) support families, latent clusters, or random count-matched partitions. Report routed/global MSE ratios; lower is better.
+&
+On deep states, LISTA-SB \(F_{\rm top8}\) routing is \(0.0374\) vs. \(0.869\) random, and LISTA-BD is \(0.135\) vs. \(0.887\) random. Sparse MLP rows are more mixed: learned support families improve over global (\(0.779\), \(0.443\)) but latent clusters are stronger (\(0.230\), \(0.221\)). Dense MLP support-family and random rows both fail.
+&
+Support families are not merely arbitrary random partitions for the LISTA-style rows, but generic latent geometry can also support local maps in some controls. The appropriate claim is comparative and appendix-only: \(F_{\rm top8}\) is an interpretable label-free selector, not the unique possible route selector.
+\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\paragraph{Scope.}
+This table calibrates the mechanism story used in the supplement. The main paper should continue to foreground basin-support alignment, support-family refresh, and forecasting. Local-law routing remains a post-hoc diagnostic: centered laws can expose useful local dynamics, but zero-intercept fits overstate or obscure the mechanism, true-geometry recovery is chart-dependent, and random or latent-cluster controls prevent treating support-family routing as a unique explanation.

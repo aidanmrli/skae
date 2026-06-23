@@ -1,0 +1,54 @@
+\subsection{Checklist: Code of Ethics}
+\label{app:checklist_code_of_ethics}
+
+\paragraph{Question.}
+Does the research conducted in the paper conform, in every respect, with the
+NeurIPS Code of Ethics?
+
+\paragraph{Answer (Yes/No/NA).}
+Yes.
+
+\paragraph{Justification.}
+The paper studies sparse Koopman autoencoders for forecasting and interpreting
+nonlinear dynamical systems. The experiments reported in the manuscript use
+simulation and benchmark trajectory data: a procedurally generated collection
+of two-dimensional multibasin dynamical systems, and a ten-system
+three-dimensional Dysts forecasting benchmark from the pinned project
+environment. The models observe stored trajectory states. They do not collect,
+process, infer from, or release human-subject data, personal information,
+private records, medical data, demographic attributes, user-generated content,
+or sensitive social data.
+
+The manuscript also separates training-time assumptions from benchmark-only
+evaluation information. In the intended training and deployment setting, the
+method is not given basin labels, the number of basins, or trajectory-to-basin
+assignments. When benchmark basin labels or attractor metadata are available,
+they are used after training for evaluation slices, diagnostic scoring,
+controlled-transfer construction, and architecture diagnostics, not as ordinary
+training supervision for the support-selection mechanism. This keeps the paper's
+claims focused on label-free representation learning from simulated dynamical
+trajectories rather than on decisions about people or protected groups.
+
+\paragraph{Anonymization and ethics considerations.}
+The manuscript is prepared under anonymous authorship. Because the experiments
+use synthetic or public benchmark dynamical-system trajectories rather than
+participant data, no participant de-identification, consent process, or
+institutional human-subject review is implicated by the reported experiments.
+The procedural benchmark construction and the Dysts source should remain
+clearly disclosed and cited, including the package version used for the
+paper-facing benchmark. Any released code, logs, tables, or supplementary
+artifacts should be checked before submission for accidental disclosure of
+author identity, local filesystem paths, usernames, cluster job metadata, or
+other non-anonymous provenance.
+
+\paragraph{Caveats.}
+The paper is methodological and simulation-based. Its forecasting and
+interpretability results should not be presented as validated evidence for
+safety-critical control, clinical decision support, surveillance, or other
+deployment contexts where prediction errors could cause direct harm. If future
+versions add real-world datasets, human-generated measurements, proprietary
+data, biological or medical data, or safety-critical deployment claims, the
+ethics analysis should be revisited for consent, privacy, licensing,
+dual-use risk, and domain-specific review requirements. If code or artifacts
+are released, the authors should also verify external benchmark licensing and
+venue disclosure requirements for generated benchmark content and compute use.

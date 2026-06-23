@@ -1,0 +1,63 @@
+\section{Support object definitions and sensitivity}
+\label{sec:supp_table_a1_support_object_definitions}
+
+All support objects in \Cref{tab:support_object_definitions_sensitivity}
+are computed after training from the learned encoder output
+\(z=\Enc(x)\). Basin labels, known basin counts, and trajectory-to-basin
+assignments are evaluation-only metadata on benchmark systems. They are not
+used to train the encoder or transition model, define \(S_{\rm abs}\),
+\(S_{\rm top8}\), or \(S_{\rm rel}\), choose active coordinates, or construct
+support families such as \(F_{\rm abs}\) and \(F_{\rm top8}\). When the table
+mentions a dominant support or dominant group, that dominance is a post-hoc
+display or scoring annotation against withheld benchmark labels.
+
+\begin{table}[tbp]
+\centering
+\small
+\caption{Appendix Table A1: support object definitions and sensitivity. The
+objects separate thresholded exact supports, fixed-size exact supports, merged
+support families, and evaluation-only dominant-label annotations.}
+\label{tab:support_object_definitions_sensitivity}
+\begin{tabular}{p{0.18\linewidth}p{0.31\linewidth}p{0.31\linewidth}p{0.13\linewidth}}
+\toprule
+Object or rule & Definition & Role in the paper & Uses basin labels? \\
+\midrule
+\texttt{absolute:0.001} & Boolean mask
+\(m_{{\rm abs},i}(x)=\mathbf{1}\{|z_i|>10^{-3}\}\), with exact support
+\(S_{\rm abs}(x)=\{i:m_{{\rm abs},i}(x)=1\}\). & Main thresholded active-coordinate
+rule. Used for exact-support diagnostics, canonical wrong-support
+interventions, and as the input to \(F_{\rm abs}\). & No. \\
+\addlinespace
+\texttt{relative:0.1} & Boolean mask
+\(m_{{\rm rel},i}(x)=\mathbf{1}\{|z_i|>0.1\max(\max_j |z_j|,\epsilon)\}\),
+with \(\epsilon=10^{-12}\), and exact support \(S_{\rm rel}(x)\). & Sensitivity
+rule that removes global latent-amplitude effects. Used as an appendix
+diagnostic rather than a headline support definition. & No. \\
+\addlinespace
+top-\(8\) & Fixed-size Boolean mask selecting the eight largest coordinates of
+\(|z|\), with exact support \(S_{\rm top8}(x)\). & Scale-free exact support
+key for fixed-size routing and refresh diagnostics; every state begins with
+the same number of active coordinates when \(d_z\ge 8\). & No. \\
+\addlinespace
+Exact support & The serialized Boolean active-coordinate mask from one support
+rule, equivalently the active-index set \(S(x)\). Exact examples include
+\(S_{\rm abs}\), \(S_{\rm top8}\), and \(S_{\rm rel}\). & Tests whether a
+single active-coordinate pattern is basin-informative, but can overfragment a
+basin into many nearby masks. & No. \\
+\addlinespace
+Support family & A merged label \(F(x)\) obtained by grouping exact supports
+with a deterministic frequency-ordered greedy Jaccard rule. The main family
+objects are \(F_{\rm abs}\) and \(F_{\rm top8}\), using threshold \(0.5\). &
+Compresses brittle exact masks into basin-scale support objects. \(F_{\rm abs}\)
+is the main basin-support alignment object; \(F_{\rm top8}\) is the main
+fixed-size refresh and routing object. & No. \\
+\addlinespace
+Dominant support/group & For an exact support or support family, the dominant
+evaluation group is the most frequent withheld benchmark basin label among
+states assigned to that support object. We also refer to the resulting
+representative as a dominant support/group annotation. & Used only to label
+plots, alluvial/codebook displays, and agreement summaries; it is not part of
+support construction or deployment-time routing. & Evaluation only. \\
+\bottomrule
+\end{tabular}
+\end{table}

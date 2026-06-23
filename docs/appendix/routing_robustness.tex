@@ -1,14 +1,14 @@
 \section{Support-routing robustness}
 \label{app:routing_robustness}
 
-\Cref{tab:self_routing_deep} reports route-form diagnostics that are not the main table. The deep slice removes boundary-adjacent states, so it is useful as a robustness check rather than the primary deployment setting. The exact \(S_{\rm top8}\) columns should be read as ablations of the support-family router rather than as the headline routing object.
+\Cref{tab:self_routing_deep} reports appendix route-form diagnostics. The deep slice removes boundary-adjacent states, so it is useful as a robustness check rather than the primary deployment setting. The exact \(S_{\rm top8}\) columns should be read as ablations of the support-family router rather than as the headline routing object.
 
 For the gated exact-support diagnostic, let \(m_c\in\{0,1\}^{d_z}\) be the eight-coordinate mask of the exact route \(c=S_{\rm top8}(z_t)\), and let \(\bar z_c\) be the corresponding fitting-set mean. The gated rule masks the centered latent state before applying the learned global transition:
 \begin{equation}
   \hat z_{t+1}=\bar z_c+K\bigl(m_c\odot (z_t-\bar z_c)\bigr).
   \label{eq:gated_k}
 \end{equation}
-This diagnostic asks whether the active coordinates select useful columns or subspaces of the learned transition. The family-local route in the main text asks a different question: whether the same support family can key a post-hoc local linear map.
+This diagnostic asks whether the active coordinates select useful columns or subspaces of the learned transition. The family-local route in \cref{app:support_conditioned_predictors} asks a different question: whether the same support family can key a post-hoc local linear map.
 
 \begin{table}[tbp]
 \centering
@@ -20,7 +20,7 @@ This diagnostic asks whether the active coordinates select useful columns or sub
 \resizebox{\linewidth}{!}{
 \begin{tabular}{@{}l rrr@{}}
 \toprule
-Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:local_fit}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:local_fit}} \\
+Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:family_local_map}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:family_local_map}} \\
 \midrule
 LISTA          & \(0.783\,[4/15]\)           & \(0.771\,[5/15]\)           & \(0.165\,[9/15]\) \\
 LISTA-SB       & \(0.861\,[1/15]\)           & \(0.861\,[1/15]\)           & \(0.00372\,[13/15]\) \\
@@ -38,7 +38,7 @@ Dense MLP      & \(0.991\,[0/15]\)           & \(0.990\,[0/15]\)           & \(1
 \resizebox{\linewidth}{!}{
 \begin{tabular}{@{}l rrr@{}}
 \toprule
-Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:local_fit}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:local_fit}} \\
+Model & \shortstack{Gated \(S_{\rm top8}\)\\\cref{eq:gated_k}} & \shortstack{\(S_{\rm top8}\)-local\\\cref{eq:family_local_map}} & \shortstack{\(F_{\rm top8}\)-local\\\cref{eq:family_local_map}} \\
 \midrule
 LISTA          & \(0.681\,[8/15]\)           & \(0.676\,[7/15]\)           & \(\mathbf{8.03{\times}10^{-14}}\,[11/15]\) \\
 LISTA-SB       & \(0.817\,[7/15]\)           & \(0.809\,[6/15]\)           & \(6.30{\times}10^{-11}\,[13/15]\) \\

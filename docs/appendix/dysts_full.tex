@@ -1,7 +1,23 @@
 \section{Dysts forecasting diagnostics}
 \label{app:dysts_full}
 
-The per-(system, seed) Dysts MSE values are released in the collected \texttt{forecasting\_rows.csv} artifacts. \Cref{tab:dysts_long} reports arithmetic means across systems after first summarizing seeds within each system by IQM. The \(dt{\times}30\) packet is fully finite in median coverage at every reported horizon, but the per-seed distributions remain heavy-tailed on several systems, so the main table and \cref{fig:dysts_long_horizon,fig:appfig_dysts_perseed} should be read together: the table gives actual-MSE point estimates and paired system-level significance markers, while the figures show horizon-scale uncertainty and per-seed dispersion. The soft-block LISTA diagnostic improves on Dense MLP in aggregate but does not match the primary sparse forecasting rows and does not survive the main Dysts significance correction. The older tiny-step \(H{\leq}60000\) packet is useful as a stress-test diagnostic because it exposed divergent block-diagonal LISTA rollouts, but it is not pooled with the coarser-step table.
+The per-(system, seed) Dysts MSE values are released in the collected \texttt{forecasting\_rows.csv} artifacts. \Cref{tab:dysts_long} reports arithmetic means across systems after first summarizing seeds within each system by IQM. The \(dt{\times}30\) packet is fully finite in median coverage at every reported horizon, but the per-seed distributions remain heavy-tailed on several systems, so the main table and \cref{fig:dysts_long_horizon,fig:appfig_dysts_perseed} should be read together: the table gives actual-MSE point estimates and paired system-level exact sign-test markers, while the figures show horizon-scale uncertainty and per-seed dispersion. The soft-block LISTA diagnostic improves on Dense MLP in aggregate but does not match the primary sparse forecasting rows and does not survive the main Dysts significance correction. The older tiny-step \(H{\leq}60000\) packet is useful as a stress-test diagnostic because it exposed divergent block-diagonal LISTA rollouts, but it is not pooled with the coarser-step table.
+
+As a robustness check on the cross-system aggregation, \cref{tab:dysts_iqm_over_iqm,fig:dysts_iqm_over_iqm} replace the final arithmetic mean across systems with an IQM across the retained systems, after the same within-system seed IQM used by the main table. This IQM-over-IQM view asks for the typical retained-system performance and trims both unusually easy and unusually hard chaotic-flow systems. With the repaired block-diagonal Sparse MLP run, Sparse MLP-BD has the lowest MSE at every displayed horizon from \(H100\) through \(H5000\). This should be read as an aggregation-sensitivity result for the external forecasting benchmark, not as a replacement for the average-case Dysts table in the main text.
+
+\begin{table}[tbp]
+\centering
+\caption{Robust Dysts \(dt{\times}30\) forecasting aggregation. Entries are IQMs across retained systems of each system's seed-IQM best-periodic MSE; lower is better. \textbf{Bold} marks the best row in each horizon column.}
+\label{tab:dysts_iqm_over_iqm}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_dysts_dt30_iqm_over_iqm.tex}}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{neurips_paper_2026/fig_dysts_dt30_iqm_over_iqm_horizon.pdf}
+\caption{Dysts \(dt{\times}30\) IQM-over-IQM horizon sensitivity. Lines show IQM across retained systems after first summarizing seeds within each system by IQM. Shaded bands show the inter-system IQR of the per-system seed-IQM MSE values, not a confidence interval. With the repaired block-diagonal Sparse MLP run, Sparse MLP-BD is the best robust aggregate at every displayed horizon.}
+\label{fig:dysts_iqm_over_iqm}
+\end{figure}
 
 \begin{table}[tbp]
 \centering
@@ -16,7 +32,7 @@ LISTA & \(0.509\) & \(0.464\) & \(0.459\) & \(0.426\) & \(0.440\) & \(0.489\) & 
 LISTA-BD & \(0.530\) & \(0.587\) & \(0.502\) & \(0.445\) & \(0.443\) & \(0.498\) & \(0.574\) & \(0.612\) \\
 LISTA-SB & \(0.972\) & \(1.026\) & \(1.019\) & \(1.088\) & \(1.157\) & \(1.264\) & \(1.086\) & \(1.006\) \\
 Sparse MLP & \(0.462\) & \(0.499\) & \(0.501\) & \(0.563\) & \(0.566\) & \(0.610\) & \(0.685\) & \(0.739\) \\
-Sparse MLP-BD & \(0.477\) & \(0.499\) & \(0.497\) & \(0.555\) & \(0.559\) & \(0.617\) & \(0.703\) & \(0.757\) \\
+Sparse MLP-BD & \(0.580\) & \(0.601\) & \(0.497\) & \(0.396\) & \(0.395\) & \(0.431\) & \(0.495\) & \(0.527\) \\
 Dense MLP & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) & \(1.000\) \\
 \bottomrule
 \end{tabular}

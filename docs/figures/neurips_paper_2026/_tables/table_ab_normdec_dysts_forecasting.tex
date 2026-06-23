@@ -1,0 +1,15 @@
+\begin{tabular}[t]{@{}l rrr rrr rrr@{}}
+\toprule
+& \multicolumn{3}{c}{Current table} & \multicolumn{3}{c}{Norm. decoder, rollout-\(z\) sparsity} & \multicolumn{3}{c}{Norm. decoder, encoded-\(z\) sparsity} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-10}
+Model & H100 & H2000 & H4000 & H100 & H2000 & H4000 & H100 & H2000 & H4000 \\
+\midrule
+LISTA & $2.53{\times}10^{-4}$ & $0.0972$ & $0.452$ & $2.89{\times}10^{-4}$ & $0.0909$ & $0.460$ & $2.89{\times}10^{-4}$ & $0.117$ & $0.459$ \\
+LISTA-BD & $3.38{\times}10^{-4}$ & $0.117$ & $0.485$ & $3.72{\times}10^{-4}$ & $0.135$ & $0.522$ & $3.88{\times}10^{-4}$ & $0.140$ & $0.554$ \\
+LISTA-SB & $4.85{\times}10^{-4}$ & $0.165$ & $0.686$ & $4.00{\times}10^{-4}$ & $0.162$ & $0.532$ & $2.84{\times}10^{-4}$ & $0.115$ & $0.499$ \\
+Sparse MLP, BD & $3.96{\times}10^{-4}$ & $0.113$ & $0.436$ & $3.11{\times}10^{-4}$ & $0.0900$ & $0.433$ & $2.66{\times}10^{-4}$ & $0.0878$ & $0.472$ \\
+Sparse MLP & $2.32{\times}10^{-4}$ & $0.120$ & $0.497$ & $3.31{\times}10^{-4}$ & $0.130$ & $0.572$ & $3.15{\times}10^{-4}$ & $0.114$ & $0.510$ \\
+\midrule
+Dense MLP & $0.00110$ & $0.224$ & $0.754$ & $0.00248$ & $0.292$ & $0.888$ & $0.00245$ & $0.293$ & $0.865$ \\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,97 @@
+\section{Fixed-17 benchmark system inventory}
+\label{sec:supp_table_a2_fixed17_inventory}
+
+\Cref{tab:supp_fixed17_inventory} lists the fixed-17 controlled multibasin
+systems used to define the benchmark roster before the current retained-15
+paper aggregation. Basin counts and basin-label sources are evaluation
+metadata: they are used to annotate basins, audit support--basin alignment, and
+construct benchmark diagnostics after training. They are not training inputs
+for the sparse encoders, support extraction, support-family construction, or
+deployment-facing routing. The current main retained-system summaries exclude
+\texttt{multiwell\_strong\_transition} and
+\texttt{claude:checkerboard\_potential}; these two remain useful as stress or
+falsification diagnostics for the broader fixed-17 inventory.
+
+\begin{table}[tbp]
+\centering
+\caption{Appendix Table A2: fixed-17 benchmark system inventory. The basin
+count and label-source column reports benchmark evaluation metadata, not
+training-time supervision.}
+\label{tab:supp_fixed17_inventory}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+System & Evaluation basins and source & Stress/orientation & Main display usage \\
+\midrule
+Strong-transition multiwell
+  & 5; native multiwell endpoint labels
+  & transition-rich; boundary-stress; secondary falsification
+  & excluded from retained-15 aggregates; diagnostic candidate grid \\
+Local-linear gates
+  & 3; native basin labels plus environment centers
+  & clean interior; mechanistic positive
+  & Fig.~1 panel; Table~1; horizon and support-family appendices \\
+Transfer-gated local-linear
+  & 3; native basin labels plus environment centers
+  & transition-rich; explicit-transfer stress
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Arrested spiral
+  & 5; estimated attractor centers
+  & mechanism-oriented spiral capture
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Asymmetric three-well
+  & 3; estimated attractor centers
+  & clean interior; asymmetric control
+  & Table~1; support codebook appendix \\
+High-cross three-well
+  & 3; estimated attractor centers
+  & transition-rich; high-crossing boundary stress
+  & Fig.~1 panel; Table~1; retained-15 diagnostics \\
+Hexagonal six-well
+  & 6; estimated attractor centers
+  & clean interior; higher-basin control
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Octagonal eight-well
+  & 8; estimated attractor centers
+  & boundary-stress; high-basin-count control
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Pentagonal five-well
+  & 5; estimated attractor centers
+  & clean interior; mid-count polygon control
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Square four-well
+  & 4; estimated attractor centers
+  & clean interior; four-basin baseline
+  & Fig.~1 panel; Table~1; retained-15 diagnostics \\
+Checkerboard potential
+  & 4; estimated attractor centers
+  & boundary-stress; grid-like falsification control
+  & excluded from retained-15 aggregates; diagnostic candidate grid \\
+Triple-well Duffing
+  & 3; estimated attractor centers
+  & mechanism-oriented physical control
+  & Table~1; retained-15 forecasting and support diagnostics \\
+SNIC multi-attractor
+  & 3; estimated attractor centers
+  & mechanism/falsification-oriented non-well outlier
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Transition-routes four-well
+  & 4; estimated attractor centers
+  & transition-rich; route-choice benchmark
+  & Fig.~1 panel; Table~1; retained-15 diagnostics \\
+Depth-gradient four-well
+  & 4; estimated attractor centers
+  & boundary-stress; occupancy-skew stress
+  & Table~1; retained-15 forecasting and support diagnostics \\
+Diamond four-well
+  & 4; estimated attractor centers
+  & boundary-stress; rotated-separatrix geometry
+  & Table~1; retained-15 forecasting and support diagnostics \\
+L-shaped five-well
+  & 5; estimated attractor centers
+  & boundary-stress; non-convex geometry
+  & Table~1; retained-15 forecasting and support diagnostics \\
+\bottomrule
+\end{tabular}
+}
+\end{table}

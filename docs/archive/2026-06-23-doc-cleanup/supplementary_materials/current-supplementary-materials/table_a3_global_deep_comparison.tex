@@ -1,0 +1,52 @@
+\section{Global-deep comparison}
+\label{sec:supp_table_a3_global_deep_comparison}
+
+\begin{table}[tbp]
+\centering
+\caption{Appendix Table A3: global-deep comparison for support diagnostics. The
+main manuscript table uses the evaluation-only per-basin deep-state slice for
+the support diagnostics, while forecasting remains evaluated on all held-out
+rollouts. This appendix preserves the older global-deep support columns only as
+a robustness comparison: those columns should not be used as the main
+basin-support alignment claim.}
+\label{tab:a3_global_deep_comparison}
+\begin{tabular}{@{}l rrr rrr@{}}
+\toprule
+& \multicolumn{3}{c}{Main Table 1 slice: per-basin deep} &
+  \multicolumn{3}{c}{Older slice: global deep} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Model &
+$H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ &
+wr.\,$h{=}1$\,$\uparrow$ &
+wr.\,$h{=}20$\,$\uparrow$ &
+$H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ &
+wr.\,$h{=}1$\,$\uparrow$ &
+wr.\,$h{=}20$\,$\uparrow$ \\
+\midrule
+LISTA &
+$0.130$ & $2.15{\times}10^{4}$ & $93.6$ &
+$0.0391$ & $2.19{\times}10^{4}$ & $110$ \\
+LISTA-BD &
+$0.156$ & $2.20{\times}10^{4}$ & $84.0$ &
+$0.0456$ & $2.10{\times}10^{4}$ & $99.0$ \\
+LISTA-SB &
+$0.153$ & $2.53{\times}10^{4}$ & $129$ &
+$0.0442$ & $2.60{\times}10^{4}$ & $156$ \\
+Dense MLP &
+$1.28$ & $17.7$ & $2.29$ &
+$0.765$ & $20.0$ & $2.37$ \\
+\bottomrule
+\end{tabular}
+\vspace{0.5ex}
+\begin{minipage}{0.96\linewidth}
+\footnotesize
+The per-basin deep values are the current Table~1 replacement values from the
+current-roster rerun: jobs 9477837--9477845 completed with zero failures and
+wrote the \texttt{interpretability\_per\_basin\_deep\_current\_table1\_pass0}
+outputs in the current Table~1 source packets. The older global-deep columns
+are the previous \texttt{table1\_fixed17\_alignment.tex} support-diagnostic
+entries before the per-basin deep replacement. The Dense MLP row is included
+as the support-diagnostic baseline; its support-family count is one in both
+displayed slices.
+\end{minipage}
+\end{table}

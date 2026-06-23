@@ -1,0 +1,16 @@
+\subsection{Checklist: Theory assumptions and proofs}
+\label{app:checklist_theory_assumptions_proofs}
+
+\paragraph{Question.}
+For the theory-assumptions-and-proofs checklist item, are there original theoretical results for which the manuscript must state complete assumptions and proofs?
+
+\paragraph{Answer.}
+NA.
+
+\paragraph{Justification.}
+The current manuscript does not state any original theorem, lemma, proposition, corollary, or proof. The theory-facing material is used to frame the empirical study: it defines the stored-step dynamical map, basins of attraction, Koopman operators, Koopman autoencoders, sparse codes, LISTA-style encoders, support sets, support families, training losses, and re-encoding rollouts. The claims about local linearization, Koopman eigenfunction constructions, and the obstruction to a single finite-dimensional global linearization in multibasin systems are attributed to prior work rather than presented as new results proved in this paper.
+
+The paper's original contribution is therefore methodological and empirical: it proposes sparse supports as inspectable, label-free regime variables for sparse Koopman autoencoders, then evaluates forecasting quality, support-coordinate interventions, and basin-support alignment on benchmark systems. These contributions are supported by experiment protocols, diagnostics, and statistical tests, not by new formal proof obligations.
+
+\paragraph{Caveats.}
+This answer relies on the current manuscript text. The preamble defines theorem-like environments, but they are not used in the current paper or included appendices. If a later revision adds a formal theorem, proposition, identifiability statement, convergence guarantee, recovery guarantee, or impossibility result, this checklist item should be revisited and the paper should provide all assumptions and complete proofs. Methodological statements such as sparse supports ``can act'' as regime variables or sparsity ``encourages'' local support separation should remain framed as modeling motivation or empirically tested hypotheses unless they are converted into formal claims with proofs.

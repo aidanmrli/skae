@@ -1,0 +1,85 @@
+\subsection{Checklist: Open access to data and code}
+\label{app:checklist_open_data_code}
+
+\paragraph{Question.}
+Does the paper provide open access to the data and code needed to reproduce the
+main experimental results?
+
+\paragraph{Answer (Yes/No/NA).}
+Yes.
+
+\paragraph{Justification.}
+The empirical setting uses generated dynamical-system observations rather than a
+restricted or proprietary dataset. The controlled multibasin benchmark consists
+of procedurally specified two-dimensional systems with known attractor geometry,
+and the Dysts benchmark uses public chaotic-flow systems from the external
+\texttt{dysts} package. The released artifact will include the implementation
+used to generate observations, train sparse and dense Koopman autoencoders,
+evaluate held-out rollouts, compute support diagnostics, and build the
+paper-facing tables and figures. Basin labels, basin counts, and attractor
+coordinates are included only as benchmark metadata for evaluation and
+diagnostics; the training code does not require them for sparse-support
+selection.
+
+\paragraph{Exactly what will be released and included.}
+\begin{itemize}
+  \item The core source package, including model definitions, sparse encoders,
+  Koopman transition variants, configuration presets, dynamical-system
+  environments, benchmark adapters, and evaluation utilities.
+  \item Command-line tools and batch scripts for training, checkpoint
+  evaluation, benchmark task construction, result collection, statistical
+  summaries, and figure/table generation.
+  \item Environment and reproducibility metadata, including
+  \texttt{pyproject.toml}, \texttt{uv.lock}, the project README, and the
+  package entry points for training and evaluation.
+  \item The paper source and paper-facing generated artifacts needed to inspect
+  the reported claims, including the LaTeX tables, figure files, aggregate
+  summaries, and collected CSV/JSON metric files used to produce the main
+  forecasting and support-diagnostic displays.
+  \item Benchmark definitions for the 15 controlled multibasin systems and the
+  10 Dysts \(dt{\times}30\) forecasting systems, including system keys,
+  dimensions, stored-step conventions, and the evaluation-only metadata needed
+  to score basin-support alignment on the controlled benchmark.
+  \item Instructions for regenerating trajectories, rerunning the training and
+  evaluation pipeline, and rebuilding the paper summaries from released
+  artifacts.
+\end{itemize}
+
+\paragraph{Data generation and access.}
+For the controlled multibasin benchmark, there is no separate private dataset.
+Training, validation, and test windows are generated from released vector-field
+implementations by applying the stored observation map with fourth-order
+Runge--Kutta integration. The learner observes stored states only; it does not
+observe continuous-time vector fields, integration substeps, basin labels, or
+trajectory-to-basin assignments during training. Evaluation-only basin metadata
+is used after training to define diagnostic slices, controlled transfer pairs,
+and support--basin agreement scores.
+
+For the Dysts benchmark, trajectories are generated from public Dysts systems
+through the released adapter code and the dependency version resolved by the
+project environment. The paper-facing setup uses standardized coordinates,
+native Dysts trajectory generation, deterministic train/validation/test cache
+split namespaces, 200 cached trajectories, 30,000 stored observations per
+trajectory, and a 2,000-step warm-up before cached observations are used. The
+released code can rebuild these caches from the public Dysts right-hand sides;
+the cache files themselves are generated artifacts rather than required external
+data.
+
+\paragraph{Anonymization.}
+The experiments do not use human-subject data, personal data, private text,
+images, medical records, user logs, or other sensitive data. The generated
+states, labels, checkpoints, and metrics contain only synthetic dynamical-system
+values and model outputs. During anonymous review, the release will remove or
+neutralize author-identifying metadata, local usernames, private scratch paths,
+and cluster-specific job records that are not needed for reproduction. The final
+public release can restore standard project attribution and licensing.
+
+\paragraph{What is not released.}
+The release will not include private cluster scratch directories, raw SLURM
+stdout/stderr logs, queue bookkeeping, editor/agent state, exploratory planning
+notes, failed pilot runs, or the full \texttt{runs/} tree of transient training
+outputs. Large generated Dysts cache tensors and exhaustive checkpoint files for
+exploratory sweeps are not required for access to the benchmark data, because
+they can be regenerated from the released code and public dependencies. The
+paper-facing aggregate CSV/JSON summaries, tables, figures, and scripts needed
+to audit the reported results will be included.

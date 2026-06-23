@@ -1,0 +1,107 @@
+\subsection{Checklist: New Assets}
+\label{app:checklist_new_assets}
+
+\paragraph{Question.}
+Does the paper introduce new assets, such as code, datasets, benchmark
+systems, trained models, generated data, figures, tables, or other artifacts
+that are intended for release or reuse?
+
+\paragraph{Answer (Yes/No/NA).}
+Yes.
+
+\paragraph{Justification.}
+The paper introduces and uses several paper-specific assets. The primary asset
+is the source code for sparse Koopman autoencoders, including sparse LISTA-style
+encoders, dense and structured Koopman transitions, training entry points,
+evaluation utilities, benchmark adapters, result collectors, statistical
+summaries, and figure/table generation scripts. These assets are represented in
+the current repository by the core package, command-line tools, batch scripts,
+tests, dependency metadata, and paper source.
+
+The paper also introduces a controlled 15-system two-dimensional multibasin
+benchmark. The manuscript describes these systems as procedurally generated
+with Claude Opus 4.5 and documents their system keys, generator families, basin
+counts, stored-step convention, and analytic vector-field definitions. The
+benchmark includes basin labels, basin counts, and attractor metadata only as
+evaluation annotations. In the intended training and deployment setting, the
+models are not given basin labels, basin counts, or trajectory-to-basin
+assignments.
+
+The paper additionally uses a 10-system Dysts $dt{\times}30$ forecasting
+benchmark. The Dysts equations and metadata come from the external
+\texttt{dysts} package version resolved in the project environment, documented
+as \texttt{dysts} 0.96 in the paper appendix. These public Dysts systems are not
+new assets introduced by this paper, but the stored-step protocol, cache
+construction settings, split conventions, evaluation scripts, and collected
+paper summaries are paper-specific generated artifacts.
+
+Current repository search also identifies generated paper-facing figures,
+LaTeX tables, CSV/JSON metric sidecars, manifests, and support-family codebook
+artifacts under paths such as \texttt{docs/figures/neurips\_paper\_2026} and
+its \texttt{\_tables} subdirectory. The training code writes best and latest
+model checkpoint files named \texttt{checkpoint.pt} and \texttt{last.pt}. In
+this checkout, \texttt{ls runs} reported no entries, but generated
+\texttt{results/} artifacts include some \texttt{.pt} stage-two local-map and
+checkpoint files from routed diagnostics. These checkpoint-like files are
+derived experiment artifacts and should be treated separately from the minimal
+paper release unless the authors explicitly select them for archival release.
+
+\paragraph{Documentation, release, and anonymization status.}
+\begin{itemize}
+  \item \textbf{Code release.} The releasable code asset should include the
+  core package, benchmark definitions and adapters, training and evaluation
+  tools, paper-facing collection and plotting scripts, tests, the README,
+  \texttt{pyproject.toml}, and \texttt{uv.lock}. The current repository includes
+  an MIT license file, but the checkout's license metadata contains an author
+  name; an anonymous-review release must either use venue-approved anonymous
+  licensing metadata or defer identity-revealing attribution until the public
+  de-anonymized release.
+
+  \item \textbf{Benchmark release.} The 15 procedural multibasin systems should
+  be released as explicit code and documentation, not as an opaque generated
+  dataset. The release should preserve the disclosure that Claude Opus 4.5 was
+  used for procedural benchmark generation. Generated training, validation, and
+  test trajectories can be regenerated from the released vector fields and
+  stored-step protocol. Evaluation-only basin metadata should be clearly marked
+  as unavailable to training-time support selection.
+
+  \item \textbf{Dysts protocol release.} The Dysts benchmark should be released
+  as adapter code, system lists, pinned dependency metadata, stored-step
+  settings, cache split conventions, and evaluation commands. Because the
+  underlying Dysts systems are external public assets, the release should cite
+  Dysts and respect its license rather than redistributing it as a new dataset.
+
+  \item \textbf{Generated figures and tables.} The paper-facing figure files,
+  LaTeX tables, and compact CSV/JSON summaries used by the manuscript should be
+  released or archived with enough metadata to trace each display to the
+  corresponding benchmark, model row, seed aggregation rule, and statistical
+  test. Exploratory figures, failed pilot outputs, and scratch manifests are not
+  required assets unless they support a reported claim.
+
+  \item \textbf{Checkpoints and large generated files.} Exhaustive training
+  runs, private scratch directories, large Dysts cache tensors, and all
+  exploratory checkpoints do not need to be released if the code and protocols
+  regenerate them. If any model checkpoints or second-stage local-map files are
+  released, each file should be paired with its model configuration, system,
+  seed, training budget, checkpoint-selection rule, evaluation command, and
+  checksum.
+
+  \item \textbf{Anonymization.} The anonymous artifact should remove or
+  neutralize author names, local usernames, absolute private paths, private
+  scratch locations, SLURM job logs, queue records, and other cluster-specific
+  provenance that is not necessary for reproduction. No human-subject data,
+  personal data, user logs, images of people, medical records, or proprietary
+  datasets are introduced by the paper assets.
+\end{itemize}
+
+\paragraph{Caveats.}
+This checklist item records that new assets exist; it does not by itself verify
+that a final public archive, DOI, or anonymous review URL has been prepared.
+Before submission, the authors should make an explicit release decision for
+model checkpoints and generated cache tensors, because the paper can be
+reproduced from code and protocols but reviewers may still value selected
+paper-facing checkpoints for auditability. The distinction between benchmark
+metadata used for evaluation and information unavailable during training should
+remain visible in the release documentation. If future versions add real-world
+datasets, human-generated measurements, proprietary data, or safety-critical
+deployment artifacts, this answer should be revisited.

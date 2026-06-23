@@ -1,0 +1,47 @@
+\subsection{Checklist: Institutional review board approval}
+\label{app:checklist_irb}
+
+\paragraph{Question.}
+Does the paper describe potential risks incurred by study participants, whether
+such risks were disclosed to the subjects, and whether Institutional Review
+Board approvals or an equivalent approval/review were obtained?
+
+\paragraph{Answer (Yes/No/NA).}
+NA.
+
+\paragraph{Justification.}
+The reported work does not involve human subjects. The manuscript studies
+sparse Koopman autoencoders on numerical dynamical-system trajectory data. The
+main benchmark consists of procedurally generated two-dimensional multibasin
+systems with known attractor geometry, and the additional forecasting benchmark
+uses public chaotic-flow systems from the Dysts package. The observations are
+simulated state vectors, generated trajectories, basin metadata used only for
+benchmark evaluation, model checkpoints, and aggregate forecasting or
+support-diagnostic metrics.
+
+No part of the described experimental protocol recruits, observes, surveys,
+intervenes on, or collects data from people. The experiments do not use
+participant records, medical or clinical data, user logs, demographic
+attributes, private text, images, audio, biometric measurements, or other
+personally identifiable or sensitive human-subject data. A search of the current
+manuscript and source/script/test files for human-subjects terms such as IRB,
+institutional review, participant, patient, survey, consent, privacy, and
+personally identifiable data did not identify any human-subjects component.
+Institutional review board approval is therefore not applicable to the current
+paper.
+
+\paragraph{Caveats.}
+This answer applies only to the current manuscript and current experimental
+code. Benchmark basin labels, attractor coordinates, and basin counts are labels
+for simulated dynamical systems, not labels for people or protected groups. The
+external Dysts dependency should still be disclosed, cited, and checked for
+licensing requirements, but its use does not by itself create a human-subjects
+review requirement.
+
+If a later revision adds a user study, human-generated data, medical or
+clinical measurements, user logs, private records, demographic attributes,
+biometric data, surveys, interviews, safety-critical deployment with observed
+people, or any dataset whose subjects are people, this checklist answer should
+be changed and the authors should obtain and report the appropriate human-
+subjects review, consent, privacy, and data-governance approvals before
+submission.

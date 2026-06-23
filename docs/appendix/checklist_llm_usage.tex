@@ -1,0 +1,69 @@
+\subsection{Checklist: Declaration of LLM Usage}
+\label{app:checklist_llm_usage}
+
+\paragraph{Question.}
+Does the paper describe the usage of LLMs if they are an important, original,
+or non-standard component of the core methods in this research, while
+distinguishing any writing, editing, or formatting assistance from the
+scientific methodology?
+
+\paragraph{Answer.}
+Yes.
+
+\paragraph{Justification.}
+The current manuscript describes the proposed method as a sparse Koopman
+autoencoder: an encoder, linear decoder, latent Koopman transition, sparse
+training objective, and post-hoc support-family diagnostics. The paper does not
+describe an LLM as part of the learned predictor, training loss, inference
+procedure, rollout evaluation, support-family construction, or statistical
+testing protocol.
+
+The manuscript does disclose LLM involvement in benchmark construction. In the
+multibasin benchmark appendix, the \(15\) two-dimensional multibasin benchmark
+systems are described as having been generated procedurally with Claude Opus
+4.5. Current source inspection also finds Claude-specific benchmark catalog
+adapters, manifests, plotting utilities, validation utilities, and queueing
+scripts. These artifacts support benchmark definition and experiment
+infrastructure; they do not make an LLM a runtime component of the SKAE models
+or of the reported forecasting and support-alignment evaluations.
+
+\paragraph{Distinction between core methodology and assistance.}
+\begin{itemize}
+  \item \textbf{Core methodology: No LLM component.}
+  The core method is the sparse Koopman autoencoder and its associated
+  support-based evaluation. Model training and evaluation use numerical
+  trajectory data, PyTorch model components, deterministic benchmark code, and
+  post-hoc metrics. No LLM is used to encode states, choose supports, advance
+  rollouts, assign support families, compute losses, select basin labels, or
+  produce the reported experimental measurements.
+
+  \item \textbf{Benchmark construction: LLM-assisted.}
+  Claude Opus 4.5 was used to procedurally generate the multibasin benchmark
+  systems reported in the benchmark inventory. These systems are subsequently
+  represented as explicit dynamical-system code and benchmark metadata. Basin
+  labels and basin counts are used only as benchmark metadata for evaluation and
+  diagnostic slicing, except where the manuscript explicitly notes their use to
+  set fixed architecture group counts for structured-transition ablations.
+
+  \item \textbf{Writing and editing assistance: LLM-assisted.}
+  LLM assistance was used to draft and edit this checklist declaration. Such
+  assistance is language-level documentation support and is separate from the
+  scientific method, model implementation, experiment execution, and numerical
+  results.
+\end{itemize}
+
+\paragraph{Caveats.}
+\begin{itemize}
+  \item This declaration is based on the current manuscript and current code and
+  documentation search, with the manuscript treated as the source of truth.
+
+  \item The search confirms named Claude-related benchmark and infrastructure
+  artifacts, but it is not a broader provenance audit of unpublished drafting
+  records or external notebooks.
+
+  \item The LLM-assisted benchmark-generation disclosure should be retained in
+  any final submission version that uses these \(15\) multibasin systems. If
+  additional LLM assistance is used later for manuscript text, code generation,
+  experiment design, or artifact preparation, this declaration should be updated
+  before submission.
+\end{itemize}
