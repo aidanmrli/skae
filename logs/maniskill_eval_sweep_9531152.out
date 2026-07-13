@@ -1,0 +1,432 @@
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.004469917750374509,
+      "contact_phase_family_nmi": 0.15988922429339325,
+      "contact_phase_family_purity": 0.9806322031466692,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.05707716369925141,
+      "h_family_given_contact_phase": 3.6745827491982688,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 64.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 64,
+    "mean_family_similarity": 0.5486695170402527,
+    "mean_support_size": 50.33647362632107,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 2.4612851375243068,
+      "h_outcome_given_family": 0.41927900526739603,
+      "outcome_family_ari": 0.014111470203251245,
+      "outcome_family_nmi": 0.17167129657171154,
+      "outcome_family_purity": 0.7666666666666667,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 30.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.1
+}
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.00143393259050235,
+      "contact_phase_family_nmi": 0.1703167215597622,
+      "contact_phase_family_purity": 0.9886184304911291,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.025238695972288012,
+      "h_family_given_contact_phase": 4.92181957581846,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 244.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 250,
+    "mean_family_similarity": 0.6147280335426331,
+    "mean_support_size": 50.33647362632107,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 3.5083655617440366,
+      "h_outcome_given_family": 0.21007376047653895,
+      "outcome_family_ari": 0.01116376175475656,
+      "outcome_family_nmi": 0.27284993736053204,
+      "outcome_family_purity": 0.8933333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 65.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.1
+}
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0028435944233417,
+      "contact_phase_family_nmi": 0.17474790049479058,
+      "contact_phase_family_purity": 0.985031801444216,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.03245290858027961,
+      "h_family_given_contact_phase": 4.27152971511094,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 130.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 131,
+    "mean_family_similarity": 0.5526203513145447,
+    "mean_support_size": 35.99502654105495,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 3.0983510247870845,
+      "h_outcome_given_family": 0.1855267790141708,
+      "outcome_family_ari": 0.04586951183266002,
+      "outcome_family_nmi": 0.3034480877957729,
+      "outcome_family_purity": 0.9,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 51.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.2
+}
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.001118199504251492,
+      "contact_phase_family_nmi": 0.16668102754707256,
+      "contact_phase_family_purity": 0.9896226866242648,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.022669960138684372,
+      "h_family_given_contact_phase": 5.305976923744641,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 400.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 415,
+    "mean_family_similarity": 0.6105228066444397,
+    "mean_support_size": 35.99502654105495,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 3.3496870909912313,
+      "h_outcome_given_family": 0.18639728915640089,
+      "outcome_family_ari": 0.017244963420014144,
+      "outcome_family_nmi": 0.29274544810206965,
+      "outcome_family_purity": 0.9066666666666666,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 65.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.2
+}
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0021281655921270366,
+      "contact_phase_family_nmi": 0.1645217422892309,
+      "contact_phase_family_purity": 0.985127444885467,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.03693088614700385,
+      "h_family_given_contact_phase": 4.572361674517836,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 192.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 192,
+    "mean_family_similarity": 0.5478682518005371,
+    "mean_support_size": 25.703887905886855,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 2.968101911504826,
+      "h_outcome_given_family": 0.2553806339530979,
+      "outcome_family_ari": 0.03510928539132538,
+      "outcome_family_nmi": 0.2649074014294918,
+      "outcome_family_purity": 0.88,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 43.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.3
+}
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0008482947236569879,
+      "contact_phase_family_nmi": 0.1639208327742739,
+      "contact_phase_family_purity": 0.991152981684281,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.021458447090269065,
+      "h_family_given_contact_phase": 5.570776496982438,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 528.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 546,
+    "mean_family_similarity": 0.612110435962677,
+    "mean_support_size": 25.703887905886855,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 3.492734106973254,
+      "h_outcome_given_family": 0.1038075398705097,
+      "outcome_family_ari": 0.021354808282886963,
+      "outcome_family_nmi": 0.3356260113057878,
+      "outcome_family_purity": 0.94,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 74.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.3
+}
+output_root=runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/eval_threshold_sweep_compressed
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Tue May 12 16:36:37 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:B2:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 3644225
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 60167 ms
+            Is Running                    : 0
+        Process ID                        : 3646325
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 27630 ms
+            Is Running                    : 0
+        Process ID                        : 3646420
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 75805 ms
+            Is Running                    : 0
+
+Tue May 12 16:36:38 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Quadro RTX 8000                On  |   00000000:B2:00.0 Off |                    0 |
+| 33%   29C    P8             39W /  260W |       1MiB /  46080MiB |      9%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

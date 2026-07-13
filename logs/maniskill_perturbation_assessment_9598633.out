@@ -1,0 +1,131 @@
+date=Tue May 19 13:27:07 EDT 2026
+host=cn-g002.server.mila.quebec
+commit=b5ea99e
+Tue May 19 13:27:07 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   32C    P0             64W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+{
+  "combined_output": "data/maniskill/perturbation_assessment_seed0/all_setups.npz",
+  "demo_h5": "/home/mila/l/lia/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.h5",
+  "demo_json": "/home/mila/l/lia/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.json",
+  "episode_id": 0,
+  "episode_index": 0,
+  "labels_used_for_training": false,
+  "seed": 0,
+  "setups": [
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0/success.npz",
+      "setup": "success",
+      "steps": 100,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0/jam.npz",
+      "setup": "jam",
+      "steps": 100,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0/miss.npz",
+      "setup": "miss",
+      "steps": 100,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0/drop.npz",
+      "setup": "drop",
+      "steps": 100,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0/partial.npz",
+      "setup": "partial",
+      "steps": 100,
+      "target_outcome_label": 5
+    }
+  ]
+}
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Tue May 19 13:28:16 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:01:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 12147
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 39 MiB
+            Time                          : 7060 ms
+            Is Running                    : 0
+        Process ID                        : 12202
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 422 MiB
+            Time                          : 1690 ms
+            Is Running                    : 0
+
+Tue May 19 13:28:16 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   30C    P0             94W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

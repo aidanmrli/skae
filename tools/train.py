@@ -54,6 +54,59 @@ print("Model loaded.")
 print("All core imports loaded.")
 
 
+def _supports_device_sequence_generation(vector_env: VectorWrapper, device: str) -> bool:
+    if device not in {"cuda", "mps"}:
+        return False
+    if bool(getattr(vector_env, "_device_sequence_generation_failed", False)):
+        return False
+    base_env = getattr(vector_env, "unwrapped", vector_env)
+    module = str(base_env.__class__.__module__).lower()
+    class_name = str(base_env.__class__.__name__).lower()
+    if "dysts" in module or class_name == "dystsenv":
+        return False
+    return True
+
+
+def generate_sequence_batch_for_device(
+    vector_env: VectorWrapper,
+    rng: torch.Generator,
+    *,
+    window_length: int,
+    device: str,
+) -> torch.Tensor:
+    """Generate a training sequence directly on accelerator when safe.
+
+    Most built-in environments are pure PyTorch, so their step functions can
+    advance a CUDA batch once reset states are moved to the target device.
+    Dysts and other NumPy-backed environments stay on the existing CPU path.
+    """
+
+    if _supports_device_sequence_generation(vector_env, device):
+        try:
+            init_states = vector_env.reset(rng).to(device)
+            trajectories = generate_trajectory(
+                vector_env.step,
+                init_states,
+                length=window_length,
+            )
+            if trajectories.device.type != torch.device(device).type:
+                raise RuntimeError(
+                    f"environment trajectory stayed on {trajectories.device}, expected {device}"
+                )
+            return torch.cat(
+                [init_states.unsqueeze(0), trajectories],
+                dim=0,
+            ).transpose(0, 1)
+        except Exception as exc:
+            setattr(vector_env, "_device_sequence_generation_failed", True)
+            print(
+                "[train] accelerator-side sequence generation failed once; "
+                f"falling back to CPU batches ({exc})",
+                flush=True,
+            )
+    return vector_env.generate_sequence_batch(rng, window_length=window_length).to(device)
+
+
 class MetricsLogger:
     """Simple file-based metrics logger.
     
@@ -62,13 +115,15 @@ class MetricsLogger:
     Uses buffered writes to reduce I/O overhead.
     """
     
-    def __init__(self, log_dir: Path, flush_interval: int = 100):
+    def __init__(self, log_dir: Path, flush_interval: int = 100, save_history: bool = False):
         self.log_dir = log_dir
+        self.save_history = bool(save_history)
         self.metrics_file = log_dir / 'metrics_history.jsonl'
         self.metrics_history: List[Dict] = []
         self.buffer: List[str] = []
         self.flush_interval = flush_interval
         self.step_count = 0
+        self._summary_state: Dict[str, Dict[str, Any]] = {}
     
     def log_scalar(self, name: str, value: float, step: int):
         """Log a scalar metric."""
@@ -77,9 +132,11 @@ class MetricsLogger:
             'name': name,
             'value': value,
         }
-        # Buffer writes to reduce I/O overhead
-        self.buffer.append(json.dumps(entry) + '\n')
-        self.metrics_history.append(entry)
+        if self.save_history:
+            # Buffer writes to reduce I/O overhead.
+            self.buffer.append(json.dumps(entry) + '\n')
+            self.metrics_history.append(entry)
+        self._update_summary(name, value)
         self.step_count += 1
         
         # Flush buffer periodically
@@ -88,7 +145,7 @@ class MetricsLogger:
     
     def flush(self):
         """Flush buffered metrics to disk."""
-        if self.buffer:
+        if self.save_history and self.buffer:
             with open(self.metrics_file, 'a') as f:
                 f.writelines(self.buffer)
             self.buffer.clear()
@@ -105,35 +162,43 @@ class MetricsLogger:
         self.flush()
         
         summary_file = self.log_dir / 'metrics_summary.json'
-        
-        # Compute summary statistics
-        summary = {}
-        metrics_by_name = {}
-        for entry in self.metrics_history:
-            name = entry['name']
-            if name not in metrics_by_name:
-                metrics_by_name[name] = []
-            metrics_by_name[name].append(entry['value'])
-        
-        for name, values in metrics_by_name.items():
-            numeric_values = [
-                float(value)
-                for value in values
-                if isinstance(value, (int, float)) and math.isfinite(float(value))
-            ]
-            comparable_values = []
-            first_type = type(values[0]) if values else None
-            if first_type is not None and all(isinstance(value, first_type) for value in values):
-                comparable_values = values
-            summary[name] = {
-                'final': values[-1] if values else None,
-                'min': min(comparable_values) if comparable_values else (min(numeric_values) if numeric_values else None),
-                'max': max(comparable_values) if comparable_values else (max(numeric_values) if numeric_values else None),
-                'mean': (sum(numeric_values) / len(numeric_values)) if numeric_values else None,
+        summary = {
+            name: {
+                "final": state["final"],
+                "min": state["min"],
+                "max": state["max"],
+                "mean": (
+                    state["sum"] / state["count"]
+                    if state["count"] > 0
+                    else None
+                ),
             }
+            for name, state in self._summary_state.items()
+        }
         
         with open(summary_file, 'w') as f:
             json.dump(summary, f, indent=2)
+
+    def _update_summary(self, name: str, value: float):
+        state = self._summary_state.setdefault(
+            name,
+            {"final": None, "min": None, "max": None, "sum": 0.0, "count": 0},
+        )
+        state["final"] = value
+        if isinstance(value, (int, float)) and math.isfinite(float(value)):
+            numeric_value = float(value)
+            state["sum"] += numeric_value
+            state["count"] += 1
+            state["min"] = (
+                numeric_value
+                if state["min"] is None
+                else min(float(state["min"]), numeric_value)
+            )
+            state["max"] = (
+                numeric_value
+                if state["max"] is None
+                else max(float(state["max"]), numeric_value)
+            )
 
 
 def parse_optional_bool(value: str) -> bool:
@@ -224,6 +289,19 @@ def train_step(
         c_hat = model.get_homogeneous_coord(z_pred.reshape(batch_size * horizon, -1))
         homogeneous_loss = torch.mean((c_hat - 1.0) ** 2)
 
+    sparsity_target = getattr(model.cfg.MODEL, "SPARSITY_TARGET", "rollout")
+    if sparsity_target == "rollout":
+        sparsity_latent = z_pred
+    elif sparsity_target == "encoded":
+        sparsity_latent = z_true
+    elif sparsity_target == "encoded_rollout":
+        sparsity_latent = 0.5 * (z_true.abs() + z_pred.abs())
+    else:
+        raise ValueError(
+            "Unknown MODEL.SPARSITY_TARGET "
+            f"{sparsity_target!r}; expected rollout, encoded, or encoded_rollout"
+        )
+
     loss, metrics = model.loss(
         x_pred=x_pred,
         x_true=x_true,
@@ -232,7 +310,7 @@ def train_step(
         z_pred=z_pred,
         z_true=z_true,
         reconstruction_error=torch.norm(x_true - x_recon_true, dim=-1).mean(),
-        sparsity_latent=z_pred,
+        sparsity_latent=sparsity_latent,
         homogeneous_loss=homogeneous_loss,
         block_losses=block_losses,
         structured_latent=structured_latent,
@@ -348,6 +426,13 @@ def train(
     eval_event_trigger_support_threshold: float = 1e-3,
     eval_event_trigger_min_dwell: int = 0,
     eval_event_trigger_max_interval: int = 0,
+    save_metrics_history: bool = False,
+    save_training_plot: bool = False,
+    save_last_checkpoint: bool = False,
+    save_eval_rollout_artifacts: bool = False,
+    save_eval_plots: bool = False,
+    save_eval_per_ic_values: bool = False,
+    save_eval_error_curves: bool = False,
 ) -> nn.Module:
     """Main training function.
 
@@ -380,7 +465,7 @@ def train(
     run_dir.mkdir(parents=True, exist_ok=True)
     cfg.to_json(str(run_dir / 'config.json'))
     
-    logger = MetricsLogger(run_dir)
+    logger = MetricsLogger(run_dir, save_history=save_metrics_history or save_training_plot)
     
     print("Setting random seed...")
     torch.manual_seed(cfg.SEED)
@@ -422,7 +507,11 @@ def train(
     if checkpoint_path is not None:
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        optimizer_state = checkpoint.get('optimizer_state_dict')
+        if optimizer_state is not None:
+            optimizer.load_state_dict(optimizer_state)
+        else:
+            print("Checkpoint has no optimizer state; resuming with a fresh optimizer.")
         start_step = checkpoint.get('step', 0)
         print(f"Resumed from checkpoint at step {start_step}")
     
@@ -482,7 +571,12 @@ def train(
             device=device,
         )
     else:
-        val_seq = eval_env.generate_sequence_batch(val_rng, window_length=val_window).to(device)
+        val_seq = generate_sequence_batch_for_device(
+            eval_env,
+            val_rng,
+            window_length=val_window,
+            device=device,
+        )
     val_x = val_seq[:16, 0, :]
     
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
@@ -522,6 +616,7 @@ def train(
 
     best_eval_final_error = float('inf')
     
+    last_checkpoint_dict: Optional[Dict[str, Any]] = None
     for step in range(start_step, cfg.TRAIN.NUM_STEPS):
         # Generate batch
         rng = rngs[step % num_batches]
@@ -534,7 +629,12 @@ def train(
                 device=device,
             )
         else:
-            x_seq = train_env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH).to(device)
+            x_seq = generate_sequence_batch_for_device(
+                train_env,
+                rng,
+                window_length=cfg.TRAIN.SEQUENCE_LENGTH,
+                device=device,
+            )
 
         metrics = train_step(model, optimizer, x_seq, step=step)
         
@@ -591,43 +691,48 @@ def train(
             checkpoint_dict = {
                 'step': step,
                 'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict() if save_last_checkpoint else None,
                 'config': cfg.to_dict(),
                 'metrics': metrics,
             }
+            last_checkpoint_dict = checkpoint_dict
             
-            # Save latest checkpoint
-            torch.save(checkpoint_dict, run_dir / 'last.pt')
+            if save_last_checkpoint:
+                torch.save(checkpoint_dict, run_dir / 'last.pt')
             
             # Save best checkpoint if eval error improved
             if eval_results['final_error'] < best_eval_final_error:
                 best_eval_final_error = eval_results['final_error']
                 torch.save(checkpoint_dict, run_dir / 'checkpoint.pt')
                 print(f"  Saved best checkpoint (final eval error: {best_eval_final_error:.4f})")
-    
+
+    if not (run_dir / 'checkpoint.pt').exists() and last_checkpoint_dict is not None:
+        torch.save(last_checkpoint_dict, run_dir / 'checkpoint.pt')
+        print("  Saved final checkpoint to checkpoint.pt (no finite best eval was found)")
+
     # Save final metrics and close logger
     with open(run_dir / 'final_metrics.json', 'w') as f:
         json.dump(metrics, f, indent=2)
     
     logger.close()
 
-    # Plot training metrics
-    print("-" * 80)
-    print("Plotting training metrics...")
-    try:
-        from tools.plot_training_metrics import plot_metrics
-    except ImportError:
-        from plot_training_metrics import plot_metrics
-    try:
-        plot_metrics(
-            log_dir=run_dir,
-            metrics_to_plot=None,  # Plot all metrics
-            save_path=run_dir / 'training_metrics.png'
-        )
-        print(f"Training metrics plot saved to {run_dir / 'training_metrics.png'}")
-    except Exception as e:
-        print(f"Warning: Failed to plot training metrics: {e}")
-        print("Continuing with evaluation...")
+    if save_training_plot:
+        print("-" * 80)
+        print("Plotting training metrics...")
+        try:
+            from tools.plot_training_metrics import plot_metrics
+        except ImportError:
+            from plot_training_metrics import plot_metrics
+        try:
+            plot_metrics(
+                log_dir=run_dir,
+                metrics_to_plot=None,  # Plot all metrics
+                save_path=run_dir / 'training_metrics.png'
+            )
+            print(f"Training metrics plot saved to {run_dir / 'training_metrics.png'}")
+        except Exception as e:
+            print(f"Warning: Failed to plot training metrics: {e}")
+            print("Continuing with evaluation...")
 
     if not skip_eval:
         print("-" * 80)
@@ -665,7 +770,10 @@ def train(
             # Create evaluation settings
             eval_settings = EvaluationSettings()
             eval_settings.systems = [cfg.ENV.ENV_NAME]
-            eval_settings.save_rollout_artifacts = True
+            eval_settings.save_rollout_artifacts = bool(save_eval_rollout_artifacts)
+            eval_settings.save_plots = bool(save_eval_plots)
+            eval_settings.include_per_ic_values = bool(save_eval_per_ic_values)
+            eval_settings.include_error_curves = bool(save_eval_error_curves)
             if eval_profile == "smoke":
                 # Keep H1000 for compatibility checks, but reduce expensive eval breadth.
                 eval_settings.batch_size = 32
@@ -785,7 +893,8 @@ def train(
             print(f"  Evaluation artifacts saved to {eval_dir}")
             return eval_results
 
-        # Evaluate both checkpoints
+        # Evaluate the compact best checkpoint by default. last.pt is optional
+        # because it duplicates weights and evaluation output for most runs.
         last_checkpoint = run_dir / 'last.pt'
         best_checkpoint = run_dir / 'checkpoint.pt'
 
@@ -801,7 +910,9 @@ def train(
             )
             shutil.copy2(last_checkpoint, best_checkpoint)
 
-        eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
+        eval_results_last = None
+        if save_last_checkpoint:
+            eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
         eval_results_best = evaluate_checkpoint(best_checkpoint, "best")
 
         # Also save a combined summary
@@ -987,8 +1098,10 @@ def get_device(device_arg: str) -> str:
         if torch.cuda.is_available():
             return 'cuda'
         else:
-            print("CUDA not available, falling back to CPU")
-            return 'cpu'
+            raise RuntimeError(
+                "Requested --device cuda, but CUDA is not available. "
+                "Use --device auto or --device cpu for CPU fallback."
+            )
     
     # Auto-detect: prefer MPS on macOS, then CUDA, then CPU
     if device_arg == 'auto' or device_arg == 'cuda':
@@ -1152,6 +1265,9 @@ Examples:
                         help='Latent dimension (overrides config default)')
     parser.add_argument('--sparsity_coeff', type=float, default=None,
                         help='Sparsity loss weight (overrides config default)')
+    parser.add_argument('--sparsity_target', type=str, default=None,
+                        choices=['rollout', 'encoded', 'encoded_rollout'],
+                        help='Latent tensor for L1 sparsity: rollout, encoded, or average of both')
     parser.add_argument('--reconst_coeff', type=float, default=None,
                         help='Reconstruction loss weight (overrides config default)')
     parser.add_argument('--pred_coeff', type=float, default=None,
@@ -1192,6 +1308,8 @@ Examples:
                         help='Keep only the top-k latent groups before within-group thresholding (0 disables)')
     parser.add_argument('--decoder_coherence_weight', type=float, default=None,
                         help='Weight for the normalized decoder coherence penalty')
+    parser.add_argument('--normalize_decoder_atoms', type=parse_optional_bool, default=None,
+                        help='Normalize GenericKM linear decoder atoms at decode time')
 
     # Koopman matrix structure
     parser.add_argument('--k_structure', type=str, default=None,
@@ -1237,6 +1355,8 @@ Examples:
                         help='HyperLISTA momentum scaling C_BETA (overrides config default)')
     parser.add_argument('--hyperlista_c_ss', type=float, default=None,
                         help='HyperLISTA support-selection scaling C_SS (overrides config default)')
+    parser.add_argument('--hyperlista_step_scale', type=float, default=None,
+                        help='HyperLISTA gradient step multiplier applied to 1/L')
     parser.add_argument('--hyperlista_use_ss', type=parse_optional_bool, default=None,
                         help='Enable or disable HyperLISTA support selection')
     parser.add_argument('--hyperlista_use_momentum', type=parse_optional_bool, default=None,
@@ -1300,6 +1420,20 @@ Examples:
                         help='Minimum number of steps between event-triggered resets during standardized evaluation')
     parser.add_argument('--eval_event_trigger_max_interval', type=int, default=0,
                         help='Maximum steps allowed between event-triggered resets during standardized evaluation (0 disables)')
+    parser.add_argument('--save_metrics_history', action='store_true',
+                        help='Write raw per-step metrics_history.jsonl. Off by default; metrics_summary.json is always written.')
+    parser.add_argument('--save_training_plot', action='store_true',
+                        help='Render training_metrics.png after training. Implies --save_metrics_history.')
+    parser.add_argument('--save_last_checkpoint', action='store_true',
+                        help='Also save last.pt for resumability/debugging. checkpoint.pt is always saved.')
+    parser.add_argument('--save_eval_rollout_artifacts', action='store_true',
+                        help='Save raw standardized-evaluation rollout tensors.')
+    parser.add_argument('--save_eval_plots', action='store_true',
+                        help='Render standardized-evaluation qualitative plots.')
+    parser.add_argument('--save_eval_per_ic_values', action='store_true',
+                        help='Include per-initial-condition metric arrays in evaluation JSON.')
+    parser.add_argument('--save_eval_error_curves', action='store_true',
+                        help='Include long per-step error curves in evaluation JSON.')
 
     # Support monitoring (for basin-support correspondence diagnostics)
     parser.add_argument('--monitor_support', action='store_true',
@@ -1488,6 +1622,10 @@ Examples:
         cfg.MODEL.ENCODER.HYPERLISTA.TOPK_GROUPS = args.encoder_topk_groups
     if args.decoder_coherence_weight is not None:
         cfg.MODEL.DECODER_COHERENCE_WEIGHT = args.decoder_coherence_weight
+    if args.normalize_decoder_atoms is not None:
+        cfg.MODEL.DECODER.NORMALIZE_ATOMS = args.normalize_decoder_atoms
+    if args.sparsity_target is not None:
+        cfg.MODEL.SPARSITY_TARGET = args.sparsity_target
     if args.k_structure is not None:
         cfg.MODEL.K_STRUCTURE = args.k_structure
         print(f"Using Koopman matrix structure: {args.k_structure}")
@@ -1536,6 +1674,8 @@ Examples:
         cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = args.hyperlista_c_beta
     if args.hyperlista_c_ss is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_SS = args.hyperlista_c_ss
+    if args.hyperlista_step_scale is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.STEP_SCALE = args.hyperlista_step_scale
     if args.hyperlista_use_ss is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = args.hyperlista_use_ss
     if args.hyperlista_use_momentum is not None:
@@ -1682,6 +1822,13 @@ Examples:
         eval_event_trigger_support_threshold=args.eval_event_trigger_support_threshold,
         eval_event_trigger_min_dwell=args.eval_event_trigger_min_dwell,
         eval_event_trigger_max_interval=args.eval_event_trigger_max_interval,
+        save_metrics_history=args.save_metrics_history,
+        save_training_plot=args.save_training_plot,
+        save_last_checkpoint=args.save_last_checkpoint,
+        save_eval_rollout_artifacts=args.save_eval_rollout_artifacts,
+        save_eval_plots=args.save_eval_plots,
+        save_eval_per_ic_values=args.save_eval_per_ic_values,
+        save_eval_error_curves=args.save_eval_error_curves,
     )
 
 

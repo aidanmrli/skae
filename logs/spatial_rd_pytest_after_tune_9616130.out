@@ -1,0 +1,57 @@
+....F                                                                    [100%]
+=================================== FAILURES ===================================
+_____________________ test_spatialized_task_builder_matrix _____________________
+
+    def test_spatialized_task_builder_matrix():
+        args = Namespace(
+            output_tsv="unused.tsv",
+            output_manifest_json=None,
+            base_out="/tmp/spatial-rd",
+            systems_csv="cal_square_4,transition_routes_4",
+            model_variants_csv="conv_lista,conv_dense",
+            seeds_csv="0,1",
+            grid_size=16,
+            diffusion=0.01,
+            rk4_dt=0.005,
+            substeps_per_observation=5,
+            trajectory_length=12,
+            label_extra_observations=12,
+            train_trajectories=16,
+            val_trajectories=4,
+            test_trajectories=4,
+            laplacian_scaling="continuum",
+            target_size=128,
+            hidden_channels=16,
+            num_blocks=2,
+            num_steps=100,
+            batch_size=8,
+            sequence_length=4,
+            lista_num_loops=2,
+            lista_alpha=1e-3,
+            sparsity_coeff=0.0,
+            support_threshold=1e-4,
+            family_jaccard=0.7,
+            max_validation_reps=128,
+            deep_threshold=0.7,
+            eval_horizons="1,4",
+            eval_horizon=4,
+        )
+    
+>       rows = _build_rows(args)
+
+tests/test_spatialized_reaction_diffusion.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = Namespace(output_tsv='unused.tsv', output_manifest_json=None, base_out='/tmp/spatial-rd', systems_csv='cal_square_4,tr...threshold=0.0001, family_jaccard=0.7, max_validation_reps=128, deep_threshold=0.7, eval_horizons='1,4', eval_horizon=4)
+
+    def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
+        systems = _parse_csv_strings(args.systems_csv) or list(DEFAULT_SYSTEMS)
+        model_variants = _parse_csv_strings(args.model_variants_csv) or list(DEFAULT_MODELS)
+        seeds = _parse_csv_ints(args.seeds_csv) or list(DEFAULT_SEEDS)
+>       lista_alphas = _parse_csv_floats(args.lista_alpha_csv) or [float(args.lista_alpha)]
+E       AttributeError: 'Namespace' object has no attribute 'lista_alpha_csv'. Did you mean: 'lista_alpha'?
+
+tools/build_spatialized_reaction_diffusion_tasks.py:59: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_spatialized_reaction_diffusion.py::test_spatialized_task_builder_matrix
+1 failed, 4 passed in 3.03s

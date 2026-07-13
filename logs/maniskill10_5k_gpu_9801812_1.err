@@ -1,0 +1,2 @@
+/home/mila/l/lia/skae/.venv/lib/python3.10/site-packages/sklearn/metrics/cluster/_supervised.py:50: UserWarning: The number of unique classes is greater than 50% of the number of samples. `y` could represent a regression problem, not a classification problem.
+  type_pred = type_of_target(labels_pred)

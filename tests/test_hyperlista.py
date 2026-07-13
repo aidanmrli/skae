@@ -141,6 +141,34 @@ class TestHyperLISTA:
         z = hyperlista(torch.randn(4, xdim))
         assert z.shape == (4, 32)
 
+    def test_step_scale_controls_single_step_magnitude(self):
+        cfg = get_config("hyperlista")
+        cfg.MODEL.TARGET_SIZE = 32
+        cfg.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 1
+        cfg.MODEL.ENCODER.HYPERLISTA.C_THETA = 0.0
+        cfg.MODEL.ENCODER.HYPERLISTA.CONSTRAIN_C_THETA = False
+        cfg.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS = False
+        cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = False
+        cfg.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = False
+        cfg.MODEL.ENCODER.HYPERLISTA.STEP_SCALE = 0.5
+
+        cfg_full = get_config("hyperlista")
+        cfg_full.MODEL.TARGET_SIZE = 32
+        cfg_full.MODEL.ENCODER.HYPERLISTA.NUM_LOOPS = 1
+        cfg_full.MODEL.ENCODER.HYPERLISTA.C_THETA = 0.0
+        cfg_full.MODEL.ENCODER.HYPERLISTA.CONSTRAIN_C_THETA = False
+        cfg_full.MODEL.ENCODER.HYPERLISTA.LEARN_HYPERPARAMS = False
+        cfg_full.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = False
+        cfg_full.MODEL.ENCODER.HYPERLISTA.USE_MOMENTUM = False
+        cfg_full.MODEL.ENCODER.HYPERLISTA.STEP_SCALE = 1.0
+
+        dict_param = torch.nn.Parameter(torch.randn(32, 5))
+        half_step = HyperLISTA(cfg, 5, dict_param)
+        full_step = HyperLISTA(cfg_full, 5, dict_param)
+
+        x = torch.randn(4, 5)
+        assert torch.allclose(half_step(x) * 2.0, full_step(x), rtol=1e-5, atol=1e-6)
+
 
 class TestUnifiedHyperLISTAModel:
     """Test unified LISTAKM behavior in hyperlista mode."""

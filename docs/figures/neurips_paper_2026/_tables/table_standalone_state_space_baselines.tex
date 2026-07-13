@@ -1,0 +1,16 @@
+\begin{tabular}{@{}l rrr rrr@{}}
+\toprule
+& \multicolumn{3}{c}{Multibasin, 15 systems} & \multicolumn{3}{c}{Dysts \(dt{\times}30\), 10 systems} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Baseline & H100 & H500 & H1000 & H100 & H2000 & H4000 \\
+\midrule
+DMD & $2.58$ & $2.14$ & $1.7$ & $2.85$ & $4.19$ & $3.83$ \\
+Polynomial EDMD & $0.864$ & $0.968$ & $0.887$ & $2.32$ & $3.93$ & $3.61$ \\
+RBF-dictionary EDMD & $0.66$ & $0.808$ & $0.751$ & $0.89$ & $2.84$ & $2.91$ \\
+$k$-means local linear & $1.4$ & $3.04$ & $138$ & $2.29$ & $1.5{\times}10^{150}$ & $3.2{\times}10^{140}$ \\
+GMM local linear & $1.65$ & $3.57$ & $3.93$ & $10.6$ & $7.8{\times}10^{18}$ & $4.5{\times}10^{44}$ \\
+Soft-gated GMM local linear & $1.66$ & $3.71$ & $4.07$ & $5.77$ & $3{\times}10^{13}$ & $4.1{\times}10^{34}$ \\
+Local polynomial EDMD & $0.15$ & $0.252$ & $0.275$ & $5{\times}10^{-4}$ & $2.17$ & $2.97$ \\
+Local RBF-EDMD & $1.7{\times}10^{55}$ & $4.4{\times}10^{18}$ & $6.8{\times}10^{42}$ & $4.3{\times}10^{15}$ & $5.6{\times}10^{15}$ & $2.7{\times}10^{280}$ \\
+\bottomrule
+\end{tabular}

@@ -275,8 +275,27 @@ def normalize_system_key(system: str) -> str:
     return f"dysts:{system}"
 
 
-def load_rows(path: Path, *, excluded_systems: set[str]) -> pd.DataFrame:
+def load_rows(
+    path: Path,
+    *,
+    excluded_systems: set[str],
+    replacement_csvs: list[Path] | None = None,
+    replacement_root_labels: set[str] | None = None,
+) -> pd.DataFrame:
     df = pd.read_csv(path, low_memory=False)
+    for replacement_csv in replacement_csvs or []:
+        replacement = pd.read_csv(replacement_csv, low_memory=False)
+        if replacement_root_labels:
+            roots_to_replace = set(replacement_root_labels)
+        else:
+            roots_to_replace = set(replacement["root_label"].dropna().unique().tolist())
+        replacement = replacement[replacement["root_label"].isin(roots_to_replace)].copy()
+        if replacement.empty:
+            raise RuntimeError(
+                f"No replacement rows for roots {sorted(roots_to_replace)} in {replacement_csv}"
+            )
+        df = df[~df["root_label"].isin(roots_to_replace)].copy()
+        df = pd.concat([df, replacement], ignore_index=True, sort=False)
     df = df[df["status"] == "complete"].copy()
     df = df[df["root_label"].isin(ROOTS)].copy()
     if excluded_systems:
@@ -730,7 +749,9 @@ def write_latex_table(
             if root_label != BASELINE_ROOT:
                 aggregate_row = aggregate_lookup.get((root_label, h))
                 if aggregate_row is not None:
-                    p_holm = float(aggregate_row["p_system_wilcoxon_holm_all"])
+                    # Main-table stars mark directionally reproducible system wins.
+                    # Wilcoxon p-values are retained in the CSV sidecars for audit.
+                    p_holm = float(aggregate_row["p_system_sign_holm_all"])
                     suffix = significance_suffix(p_holm)
                     if suffix:
                         value_tex = rf"{{{value_tex}}}{suffix}"
@@ -876,7 +897,7 @@ def plot_forecasting_performance_style(
     fig.savefig(fig_dir / f"fig_dysts_dt30_forecasting_performance{suffix}.png", bbox_inches="tight")
     plt.close(fig)
 
-    primary_roots = ["lista", "lista_bd", "sparse_mlp_bd", "sparse_mlp", "dense_mlp_tanh"]
+    primary_roots = ["lista", "lista_bd", "lista_sb", "sparse_mlp_bd", "sparse_mlp", "dense_mlp_tanh"]
     fig, ax = plt.subplots(figsize=(4.2, 3.2), constrained_layout=True)
     _draw_forecasting_performance_panel(
         ax,
@@ -1172,9 +1193,29 @@ def plot_perseed_histograms(df: pd.DataFrame, fig_dir: Path, horizons: list[int]
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--forecasting-csv", type=Path, default=DEFAULT_FORECASTING_CSV)
+    parser.add_argument(
+        "--replacement-forecasting-csv",
+        action="append",
+        type=Path,
+        default=[],
+        help="Optional forecasting_rows.csv whose root_label rows replace matching roots from --forecasting-csv.",
+    )
+    parser.add_argument(
+        "--replacement-root-labels",
+        nargs="*",
+        default=[],
+        help="Root labels to replace from replacement CSVs. Defaults to all root_label values present in each replacement CSV.",
+    )
     parser.add_argument("--fig-dir", type=Path, default=DEFAULT_FIG_DIR)
     parser.add_argument("--table-dir", type=Path, default=DEFAULT_TABLE_DIR)
     parser.add_argument("--horizons", nargs="+", type=int, default=DEFAULT_HORIZONS)
+    parser.add_argument(
+        "--table-horizons",
+        nargs="+",
+        type=int,
+        default=None,
+        help="Subset/order of horizons for table4_dysts_dt30_iqm.tex. Defaults to --horizons.",
+    )
     parser.add_argument("--bootstrap-reps", type=int, default=DEFAULT_BOOTSTRAP_REPS)
     parser.add_argument("--bootstrap-seed", type=int, default=DEFAULT_BOOTSTRAP_SEED)
     parser.add_argument(
@@ -1192,13 +1233,22 @@ def main() -> None:
     args.fig_dir.mkdir(parents=True, exist_ok=True)
     args.table_dir.mkdir(parents=True, exist_ok=True)
     horizons = list(dict.fromkeys(int(h) for h in args.horizons))
+    table_horizons = list(
+        dict.fromkeys(int(h) for h in (args.table_horizons or args.horizons))
+    )
     excluded_systems = {
         normalize_system_key(system)
         for system in args.exclude_systems
         if normalize_system_key(system)
     }
 
-    df = load_rows(args.forecasting_csv, excluded_systems=excluded_systems)
+    replacement_root_labels = set(args.replacement_root_labels)
+    df = load_rows(
+        args.forecasting_csv,
+        excluded_systems=excluded_systems,
+        replacement_csvs=list(args.replacement_forecasting_csv),
+        replacement_root_labels=replacement_root_labels,
+    )
     included_systems = sorted(df["system_key"].dropna().unique().tolist())
     per_system, summary = per_system_summary(
         df,
@@ -1278,7 +1328,7 @@ def main() -> None:
         ylabel="MSE (log-space seed bootstrap)",
     )
     plot_perseed_histograms(df, args.fig_dir, horizons)
-    write_latex_table(summary, aggregate_tests, args.table_dir, horizons)
+    write_latex_table(summary, aggregate_tests, args.table_dir, table_horizons)
 
     per_system.to_csv(args.table_dir / "dysts_dt30_per_system_iqm.csv", index=False)
     summary.to_csv(args.table_dir / "dysts_dt30_iqm_summary.csv", index=False)
@@ -1291,7 +1341,10 @@ def main() -> None:
 
     payload = {
         "forecasting_csv": str(args.forecasting_csv),
+        "replacement_forecasting_csvs": [str(path) for path in args.replacement_forecasting_csv],
+        "replacement_root_labels": sorted(replacement_root_labels),
         "horizons": horizons,
+        "table_horizons": table_horizons,
         "included_systems": included_systems,
         "excluded_systems": sorted(excluded_systems),
         "n_systems": len(included_systems),
@@ -1341,7 +1394,7 @@ def main() -> None:
                 f"    H{int(row['horizon'])}: ratio-mean={row['ratio_mean']:.3g}; "
                 f"systems={int(row['systems_with_ratio_lt_1'])}/{int(row['n_systems'])}; "
                 f"p_w={row['p_system_wilcoxon_raw']:.4g}; "
-                f"p_w_holm40={row['p_system_wilcoxon_holm_all']:.4g}"
+                f"p_sign_holm40={row['p_system_sign_holm_all']:.4g}"
             )
 
 

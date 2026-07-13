@@ -1,0 +1,241 @@
+date=2026-05-12T16:11:19-04:00
+hostname=cn-b002.server.mila.quebec
+git_commit=b5ea99e
+Tue May 12 16:11:19 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-SXM2-32GB           On  |   00000000:16:00.0 Off |                    0 |
+| N/A   36C    P0             43W /  300W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Skipping dataset generation; using DATASET_PATH=runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt
+{
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "run_dir": "runs/spatialized_reaction_diffusion/tuning_alpha0p005_sp1em4_seed0/lista",
+  "device": "cuda",
+  "train_shape": [
+    48,
+    25,
+    2048
+  ],
+  "val_shape": [
+    12,
+    25,
+    2048
+  ],
+  "observation_size": 2048,
+  "target_size": 512,
+  "num_steps": 1000,
+  "sequence_length": 4,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training."
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+step=0 loss=0.494873 align=0.0427459 recon=0.300963 sparsity=0.5149 sr=1.0000
+step=50 loss=0.467481 align=0.0137854 recon=0.302328 sparsity=0.8254 sr=1.0019
+step=100 loss=0.457107 align=0.00783103 recon=0.299447 sparsity=0.9318 sr=1.0021
+eval step=100 val_mse=1.33223 val_final_mse=1.45997 best_val_mse=1.33223
+step=150 loss=0.458538 align=0.00276916 recon=0.303742 sparsity=0.9367 sr=1.0037
+step=200 loss=0.445597 align=0.00745446 recon=0.291781 sparsity=0.9178 sr=1.0034
+eval step=200 val_mse=1.26797 val_final_mse=1.39302 best_val_mse=1.26797
+step=250 loss=0.378778 align=0.0134863 recon=0.242453 sparsity=0.8900 sr=1.0028
+step=300 loss=0.367562 align=0.0124686 recon=0.235579 sparsity=0.8963 sr=1.0026
+eval step=300 val_mse=0.901753 val_final_mse=1.01579 best_val_mse=0.901753
+step=350 loss=0.358488 align=0.0114935 recon=0.230186 sparsity=0.8962 sr=1.0032
+step=400 loss=0.375137 align=0.023766 recon=0.233196 sparsity=0.8913 sr=1.0035
+eval step=400 val_mse=0.899271 val_final_mse=1.01265 best_val_mse=0.899271
+step=450 loss=0.383262 align=0.00769554 recon=0.24944 sparsity=0.8982 sr=1.0039
+step=500 loss=0.339741 align=0.0101414 recon=0.218486 sparsity=0.8859 sr=1.0049
+eval step=500 val_mse=0.901559 val_final_mse=1.01456 best_val_mse=0.899271
+step=550 loss=0.351055 align=0.00729005 recon=0.228022 sparsity=0.8870 sr=1.0053
+step=600 loss=0.358557 align=0.00677516 recon=0.233392 sparsity=0.8885 sr=1.0054
+eval step=600 val_mse=0.895079 val_final_mse=1.00817 best_val_mse=0.895079
+step=650 loss=0.340186 align=0.0134396 recon=0.216572 sparsity=0.8848 sr=1.0062
+step=700 loss=0.356275 align=0.00889664 recon=0.230495 sparsity=0.8928 sr=1.0070
+eval step=700 val_mse=0.889451 val_final_mse=1.00207 best_val_mse=0.889451
+step=750 loss=0.368176 align=0.00726845 recon=0.239594 sparsity=0.8913 sr=1.0072
+step=800 loss=0.305153 align=0.00882813 recon=0.196055 sparsity=0.8672 sr=1.0077
+eval step=800 val_mse=0.889405 val_final_mse=1.0022 best_val_mse=0.889405
+step=850 loss=0.319971 align=0.0208253 recon=0.197881 sparsity=0.8779 sr=1.0088
+step=900 loss=0.286256 align=0.0259949 recon=0.171688 sparsity=0.8701 sr=1.0096
+eval step=900 val_mse=0.885523 val_final_mse=0.996761 best_val_mse=0.885523
+step=950 loss=0.317574 align=0.00741943 recon=0.205274 sparsity=0.8856 sr=1.0098
+eval step=999 val_mse=0.890418 val_final_mse=1.00013 best_val_mse=0.885523
+{
+  "status": "completed",
+  "best_val_mse": 0.8855228424072266,
+  "last_metrics": {
+    "loss": 0.23253031075000763,
+    "alignment_loss": 0.011811970733106136,
+    "residual_loss": 0.011811970733106136,
+    "reconst_loss_raw": 6.572592735290527,
+    "reconst_loss": 0.14523515105247498,
+    "prediction_loss_raw": 6.5708723068237305,
+    "prediction_loss": 0.14519713819026947,
+    "sparsity_loss": 29.036224365234375,
+    "sequence_term_scale": 0.25,
+    "obs_loss_dim_scale": 45.25483322143555,
+    "obs_loss_dim_normalization": "sqrt_dim",
+    "A_max_eigenvalue": 1.0099310874938965,
+    "spectral_radius": 1.0099310874938965,
+    "sparsity_ratio": 0.87469482421875
+  },
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p005_sp1em4_seed0/lista/checkpoint.pt",
+  "last_checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p005_sp1em4_seed0/lista/last.pt"
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p005_sp1em4_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 900,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7516748110453287,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7516748110453287,
+      "gradient_mse": 0.11364542941252391,
+      "predicted_final_majority_fraction_mean": 0.7718098759651184
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0417686038547092,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1422905921936035,
+      "gradient_mse": 0.29207493199242485,
+      "predicted_final_majority_fraction_mean": 0.7711588740348816
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.9022936820983887,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.019972801208496,
+      "gradient_mse": 0.18040713667869568,
+      "predicted_final_majority_fraction_mean": 0.7715657353401184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9957733154296875,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.11420472462972,
+      "gradient_mse": 0.2496162255605062,
+      "predicted_final_majority_fraction_mean": 0.7715657353401184
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.22535211267605634,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.111641288952863,
+      "mean_state_to_rep_jaccard": 0.7686669367794865,
+      "nmi": 0.6640415979752067,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 105,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      7,
+      1,
+      3,
+      2,
+      3
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 105
+  }
+}
+dataset=runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt
+run_dir=runs/spatialized_reaction_diffusion/tuning_alpha0p005_sp1em4_seed0/lista
+evaluation=runs/spatialized_reaction_diffusion/tuning_alpha0p005_sp1em4_seed0/evaluation.json
+date=2026-05-12T16:12:46-04:00
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Tue May 12 16:12:46 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:16:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 2455338
+            GPU Utilization               : 3 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 484 MiB
+            Time                          : 63609 ms
+            Is Running                    : 0
+        Process ID                        : 2455469
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 424 MiB
+            Time                          : 2053 ms
+            Is Running                    : 0
+
+Tue May 12 16:12:46 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-SXM2-32GB           On  |   00000000:16:00.0 Off |                    0 |
+| N/A   38C    P0             59W /  300W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

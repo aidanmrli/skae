@@ -1,0 +1,3 @@
+/network/scratch/l/lia/cache_storage/uv/archive-v0/rbpGCdzJtIFU6UWIHBfJN/lib/python3.10/site-packages/sapien/_vulkan_tricks.py:42: UserWarning: Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.
+  warn("Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.")
+0.00it [00:00, ?it/s]  0%|          | 0.00/29.5M [00:00<?, ?it/s] 21%|██▏       | 6.29M/29.5M [00:00<00:00, 55.6Mit/s] 68%|██████▊   | 20.0M/29.5M [00:00<00:00, 101Mit/s]  99%|█████████▉| 29.1M/29.5M [00:00<00:00, 82.0Mit/s]29.5Mit [00:00, 53.2Mit/s]                           

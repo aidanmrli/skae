@@ -1,0 +1,20 @@
+{
+  "source_csvs": [
+    "/home/mila/l/lia/skae/results/transition_rich_table2_5model_seed15_backfill_20260428/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+    "/home/mila/l/lia/skae/results/transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+    "/home/mila/l/lia/skae/results/transition_rich_lista_dense_p256_hardinit_table123_20260430/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv"
+  ],
+  "excluded_systems": [
+    "claude:checkerboard_potential",
+    "claude_checkerboard_potential",
+    "multiwell_strong_transition"
+  ],
+  "support_scheme": "absolute:0.001",
+  "subset": "deep",
+  "family_jaccard_threshold": 0.5,
+  "basin_count_reference": 4.2,
+  "output_pdf": "/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_basin_identification.pdf",
+  "output_png": "/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_basin_identification.png",
+  "tradeoff_output_pdf": "/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_utility_tradeoff.pdf",
+  "tradeoff_output_png": "/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_utility_tradeoff.png"
+}

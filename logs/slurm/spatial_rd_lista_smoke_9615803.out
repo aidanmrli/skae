@@ -1,0 +1,222 @@
+date=2026-05-21T17:42:35-04:00
+hostname=cn-h004.server.mila.quebec
+git_commit=b5ea99e
+{
+  "output": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/dataset.pt",
+  "fields_shape": [
+    12,
+    7,
+    8,
+    8,
+    2
+  ],
+  "source_system": "cal_square_4",
+  "stored_dt": 0.025,
+  "label_horizon_time": 0.30000000000000004,
+  "laplacian_scaling": "continuum",
+  "laplacian_scale": 64.0,
+  "split_counts": {
+    "train": 8,
+    "val": 2,
+    "test": 2
+  },
+  "global_basin_label_counts": {
+    "0": 4,
+    "1": 3,
+    "2": 2,
+    "3": 3
+  },
+  "majority_fraction_mean": 0.5598958134651184,
+  "majority_fraction_min": 0.484375,
+  "observed_majority_fraction_mean": 0.52734375,
+  "observed_majority_fraction_min": 0.453125,
+  "invalid_value_count_total": 0,
+  "clipped_value_count_total": 0,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training."
+}
+{
+  "dataset": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/dataset.pt",
+  "run_dir": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/conv_lista",
+  "device": "cpu",
+  "model_variant": "conv_lista",
+  "train_shape": [
+    8,
+    7,
+    128
+  ],
+  "val_shape": [
+    2,
+    7,
+    128
+  ],
+  "model_config": {
+    "grid_size": 8,
+    "channels": 2,
+    "z_dim": 32,
+    "hidden_channels": 8,
+    "num_blocks": 2,
+    "encoder_kind": "lista",
+    "lista_loops": 2,
+    "lista_alpha": 0.001,
+    "decoder_kind": "upsample",
+    "k_init_scale": 0.01
+  },
+  "loss_weights": {
+    "prediction": 1.0,
+    "reconstruction": 0.25,
+    "latent": 0.1,
+    "sparsity": 0.0,
+    "k_stability": 0.0001,
+    "gradient": 0.05
+  },
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training."
+}
+step=0 loss=1.54418 pred=1.21343 recon=1.20885 grad=0.567314 sparse=0.0000
+eval step=9 val_mse=0.823706 val_final_mse=0.818732 best=0.823706
+{
+  "best_val_mse": 0.823705792427063,
+  "checkpoint": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/conv_lista/checkpoint.pt",
+  "last_checkpoint": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/conv_lista/last.pt",
+  "last_metrics": {
+    "gradient_loss": 0.6375287771224976,
+    "k_fro_sqrt": 1.0003918409347534,
+    "k_stability_loss": 0.0,
+    "latent_loss": 0.0010274486849084496,
+    "loss": 1.1681103706359863,
+    "prediction_loss": 0.9107745289802551,
+    "reconstruction_loss": 0.901426374912262,
+    "sparsity_loss": 0.29003816843032837,
+    "sparsity_ratio_1e-4": 0.0
+  },
+  "model_variant": "conv_lista",
+  "status": "completed"
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/conv_lista/checkpoint.pt",
+  "checkpoint_step": 9,
+  "dataset": "runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/dataset.pt",
+  "device": "cpu",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 1.09017813205719,
+      "final_basin_consistency": 0.5,
+      "final_fate_basin_consistency": 0.5,
+      "final_field_mse": 1.09017813205719,
+      "fourier_high_mse": 22.70700454711914,
+      "fourier_low_mse": 559.8538818359375,
+      "fourier_mid_mse": 63.50535583496094,
+      "gradient_mse": 0.5664670467376709,
+      "majority_fraction_mae": 0.0859375,
+      "pixel_basin_accuracy": 0.2421875,
+      "pixel_basin_mean_iou": 0.11058789090101548,
+      "predicted_final_majority_fraction_mean": 0.5,
+      "same_horizon_modal_basin_consistency": 0.0,
+      "true_horizon_majority_fraction_mean": 0.4921875
+    },
+    "12": {
+      "effective_horizon": 6,
+      "field_mse": 1.1098821957906086,
+      "final_basin_consistency": 0.0,
+      "final_fate_basin_consistency": 0.0,
+      "final_field_mse": 1.1299384832382202,
+      "fourier_high_mse": 23.358556747436523,
+      "fourier_low_mse": 565.3783569335938,
+      "fourier_mid_mse": 65.98741149902344,
+      "gradient_mse": 0.58844522635142,
+      "majority_fraction_mae": 0.046875,
+      "pixel_basin_accuracy": 0.2578125,
+      "pixel_basin_mean_iou": 0.11686422536494273,
+      "predicted_final_majority_fraction_mean": 0.4765625,
+      "same_horizon_modal_basin_consistency": 0.0,
+      "true_horizon_majority_fraction_mean": 0.4921875
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 1.1017853021621704,
+      "final_basin_consistency": 0.0,
+      "final_fate_basin_consistency": 0.0,
+      "final_field_mse": 1.1139920949935913,
+      "fourier_high_mse": 23.08911895751953,
+      "fourier_low_mse": 562.9088134765625,
+      "fourier_mid_mse": 65.1029281616211,
+      "gradient_mse": 0.5795684456825256,
+      "majority_fraction_mae": 0.046875,
+      "pixel_basin_accuracy": 0.234375,
+      "pixel_basin_mean_iou": 0.10452296161331733,
+      "predicted_final_majority_fraction_mean": 0.4921875,
+      "same_horizon_modal_basin_consistency": 0.0,
+      "true_horizon_majority_fraction_mean": 0.4609375
+    },
+    "8": {
+      "effective_horizon": 6,
+      "field_mse": 1.1098821957906086,
+      "final_basin_consistency": 0.0,
+      "final_fate_basin_consistency": 0.0,
+      "final_field_mse": 1.1299384832382202,
+      "fourier_high_mse": 23.358556747436523,
+      "fourier_low_mse": 565.3783569335938,
+      "fourier_mid_mse": 65.98741149902344,
+      "gradient_mse": 0.58844522635142,
+      "majority_fraction_mae": 0.046875,
+      "pixel_basin_accuracy": 0.2578125,
+      "pixel_basin_mean_iou": 0.11686422536494273,
+      "predicted_final_majority_fraction_mean": 0.4765625,
+      "same_horizon_modal_basin_consistency": 0.0,
+      "true_horizon_majority_fraction_mean": 0.4921875
+    }
+  },
+  "grid_size": 8,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatial_conv_koopman",
+    "lista_num_loops": 2,
+    "model_family": "spatial_conv_koopman",
+    "model_name": "SpatialConvKoopman",
+    "target_size": 32
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.025,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.6931471805599453,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9955357142857143,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 2,
+      "purity": 0.5
+    },
+    "deep_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.6931471805599453,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9955357142857143,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 2,
+      "purity": 0.5
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.0001,
+    "test_support_size_mean": 31.857142857142858,
+    "test_support_size_median": 32.0,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 64,
+    "validation_representative_top_counts": [
+      14
+    ],
+    "validation_state_count": 14,
+    "validation_support_size_mean": 32.0,
+    "validation_support_size_median": 32.0,
+    "validation_unique_supports_before_cap": 1
+  }
+}
+dataset=runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/dataset.pt
+run_dir=runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/conv_lista
+evaluation=runs/spatialized_reaction_diffusion/conv_smoke_maincpu_short_20260521/cal_square_4_seed0_grid8/evaluation.json
+date=2026-05-21T17:43:09-04:00

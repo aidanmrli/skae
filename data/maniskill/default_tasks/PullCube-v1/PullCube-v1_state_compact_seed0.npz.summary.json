@@ -1,0 +1,57 @@
+{
+  "action_dim": 4,
+  "contact_phase_available": true,
+  "max_transitions": 50,
+  "metadata": {
+    "action_dim": 4,
+    "append_prev_action": true,
+    "contact_phase_available": true,
+    "contact_phase_names": [
+      "free_space_or_no_contact",
+      "contact_or_near",
+      "inserted_or_success"
+    ],
+    "env_id": "PullCube-v1",
+    "env_kwargs": {
+      "control_mode": "pd_ee_delta_pos",
+      "human_render_camera_configs": {
+        "shader_pack": "default"
+      },
+      "num_envs": 1024,
+      "obs_mode": "state",
+      "reconfiguration_freq": 1,
+      "render_mode": "rgb_array",
+      "sim_backend": "physx_cuda"
+    },
+    "labels_are_evaluation_only": true,
+    "max_steps": 50,
+    "max_transitions": 50,
+    "min_steps": 2,
+    "num_episodes": 1024,
+    "obs_dim": 74,
+    "obs_key": "env_states",
+    "outcome_available": true,
+    "outcome_names": [
+      "unknown",
+      "success",
+      "failure_flag",
+      "timeout_or_partial"
+    ],
+    "source": "maniskill_insertion_compact_v1",
+    "source_json_path": "/home/mila/l/lia/.maniskill/demos/PullCube-v1/rl/trajectory.none.pd_ee_delta_pos.physx_cuda.json",
+    "source_traj_path": "/home/mila/l/lia/.maniskill/demos/PullCube-v1/rl/trajectory.none.pd_ee_delta_pos.physx_cuda.h5",
+    "split_seed": 0,
+    "train_fraction": 0.7,
+    "val_fraction": 0.15
+  },
+  "num_episodes": 1024,
+  "obs_dim": 74,
+  "outcome_available": true,
+  "output": "data/maniskill/default_tasks/PullCube-v1/PullCube-v1_state_compact_seed0.npz",
+  "source_traj_path": "/home/mila/l/lia/.maniskill/demos/PullCube-v1/rl/trajectory.none.pd_ee_delta_pos.physx_cuda.h5",
+  "split_counts": {
+    "test": 153,
+    "train": 717,
+    "val": 154
+  }
+}

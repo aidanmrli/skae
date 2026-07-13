@@ -1,0 +1,132 @@
+{
+  "config": {
+    "bootstrap_resamples": 2000,
+    "device": "cpu",
+    "lorenz96": {
+      "dimension": 64,
+      "forcing": 8.0,
+      "horizons": [
+        1,
+        5,
+        10
+      ],
+      "latent_dims": [
+        16
+      ],
+      "n_test": 2,
+      "n_train": 4,
+      "n_val": 2,
+      "noise_fraction": 0.0,
+      "observed_fraction": 1.0,
+      "seeds": [
+        0
+      ],
+      "sparsity_coefficients": [
+        0.0,
+        0.0001
+      ],
+      "time_points": 40,
+      "training": {
+        "batch_size": 8,
+        "decoder_layers": 1,
+        "epochs": 3,
+        "grad_clip": 1.0,
+        "hidden_dim": 64,
+        "lr": 0.0003,
+        "num_layers": 2,
+        "patience": 2,
+        "train_horizon": 5,
+        "weight_decay": 1e-06
+      },
+      "truncated_dmd_rank": 8
+    },
+    "notes": [
+      "This config is a resource-aware smoke profile, not the full requested scientific grid.",
+      "Official PDEBench SWE uses 2D_rdb_NA_NA.h5 from DaRUS DOI 10.18419/DARUS-2986; set pdebench_swe.data_path to the downloaded file for official runs.",
+      "Silverbox uses nonlinear_benchmarks.Silverbox when available; the fixture is explicitly marked non-official."
+    ],
+    "output_root": ".",
+    "pdebench_swe": {
+      "allow_smoke_fixture": true,
+      "data_path": "data/pdebench/2D_rdb_NA_NA.h5",
+      "fixture_time_points": 24,
+      "fixture_trajectories": 6,
+      "grid_size": 16,
+      "hidden_channels": 8,
+      "history": 4,
+      "horizons": [
+        1,
+        5,
+        10
+      ],
+      "latent_dim": 16,
+      "max_trajectories": 8,
+      "seed": 0,
+      "sparsity_coefficients": [
+        0.0,
+        0.0001
+      ],
+      "training": {
+        "batch_size": 2,
+        "epochs": 3,
+        "grad_clip": 1.0,
+        "lr": 0.0003,
+        "train_horizon": 5,
+        "weight_decay": 1e-06
+      }
+    },
+    "profile": "smoke_explicit_reductions",
+    "silverbox": {
+      "allow_smoke_fixture": true,
+      "batch_size": 16,
+      "epochs": 3,
+      "grad_clip": 1.0,
+      "guard": 32,
+      "hidden_dim": 64,
+      "history": 16,
+      "horizons": [
+        10,
+        50,
+        100
+      ],
+      "latent_dim": 8,
+      "lr": 0.0003,
+      "seed": 0,
+      "sparsity_coefficients": [
+        0.0,
+        0.0001
+      ],
+      "train_horizon": 10,
+      "weight_decay": 1e-06
+    }
+  },
+  "config_path": "configs/skae_benchmark_suite.yaml",
+  "failures": [
+    {
+      "benchmark": "silverbox",
+      "reason": "Official nonlinear_benchmarks loader unavailable; ran explicit non-official smoke fixture.",
+      "status": "official_data_omitted"
+    },
+    {
+      "benchmark": "pdebench_swe",
+      "reason": "Official file missing at data/pdebench/2D_rdb_NA_NA.h5; ran explicit non-official smoke fixture.",
+      "status": "official_data_omitted"
+    }
+  ],
+  "git": {
+    "commit": "7e93a7239991a17eb24d5968cc09f012a88a4435",
+    "status_short": "M .claude_resources.json\n M docs/appendix/benchmark_extensions.tex\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_aggregate_tests_vs_dense.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_iqm_and_tests.json\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_iqm_summary.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_per_system_iqm.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_per_system_ratio_to_dense.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_per_system_wilcoxon_vs_dense.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_ratio_to_dense_summary.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_wilcoxon_summary_vs_dense.csv\n M docs/figures/neurips_paper_2026/_tables/dysts_dt30_winner_systems.csv\n M docs/figures/neurips_paper_2026/_tables/table1_fixed17_alignment.tex\n M docs/figures/neurips_paper_2026/_tables/table4_dysts_dt30_iqm.tex\n M docs/figures/neurips_paper_2026/appfig_dysts_dt30_perseed_histograms.png\n M docs/figures/neurips_paper_2026/fig_benchmark_support_dysts_composite.json\n M docs/figures/neurips_paper_2026/fig_benchmark_support_dysts_composite.pdf\n M docs/figures/neurips_paper_2026/fig_benchmark_support_dysts_composite.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear_log_seed_bootstrap.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear_log_seed_bootstrap.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear_raw_seed_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear_system_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_linear_system_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_log_seed_bootstrap.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_log_seed_bootstrap.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb_log_seed_bootstrap.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb_log_seed_bootstrap.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb_raw_seed_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb_raw_seed_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb_system_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_no_lista_sb_system_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_raw_seed_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_raw_seed_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check_log_seed_bootstrap.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check_log_seed_bootstrap.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check_raw_seed_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check_raw_seed_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check_system_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_scale_check_system_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_system_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_forecasting_performance_system_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon_log_seed_bootstrap.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon_log_seed_bootstrap.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon_raw_seed_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon_raw_seed_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon_system_ci.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_horizon_system_ci.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_ratio_to_dense.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_ratio_to_dense.png\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_winner_counts.pdf\n M docs/figures/neurips_paper_2026/fig_dysts_dt30_winner_counts.png\n M docs/figures/neurips_paper_2026/fig_fixed17_entropy_strips_alt2.pdf\n M docs/figures/neurips_paper_2026/fig_fixed17_entropy_strips_alt2.png\n M docs/figures/neurips_paper_2026/manifest.json\n M pyproject.toml\n D results/lqr_decision_no_excl_vs_bd/final_decision.md\n D results/lqr_decision_no_excl_vs_bd/lqr_readiness_summary.json\n D results/lqr_decision_no_excl_vs_bd/summary_decision_table.csv\n M scripts/build_paper_seed_stats_and_figures.py\n M scripts/build_per_system_stats_and_forest.py\n M scripts/queue_dysts_long_horizon_eval.sh\n M scripts/queue_paper_benchmark_chain.sh\n M scripts/resolve_paper_benchmark_dt.sh\n M scripts/run_dysts_long_horizon_eval_array.sh\n M scripts/run_paper_benchmark_array.sh\n M scripts/run_paper_benchmark_packed_array.sh\n M scripts/run_regime_discovery_local_koopman.sh\n M scripts/run_support_family_local_maps_stage2.sh\n M skae/config.py\n M skae/evaluation.py\n M skae/model.py\n M tests/test_evaluation.py\n M tests/test_hyperlista.py\n M tests/test_model.py\n M tests/test_train.py\n M tools/analyze_dysts_dt30_results.py\n M tools/analyze_k_eigenvalues.py\n M tools/build_paper_benchmark_tasks.py\n M tools/build_table1_per_basin_deep.py\n M tools/collect_forecasting_roots.py\n M tools/evaluate_checkpoints.py\n M tools/evaluate_dysts_long_horizon_run.py\n M tools/evaluate_regime_discovery_local_koopman.py\n M tools/make_benchmark_support_dysts_composite.py\n M tools/train.py\n M tools/train_support_family_local_maps.py\n M uv.lock\n?? configs/\n?? data/\n?? diagnostics/\n?? docs/archive/control_world_model_state_suite_20260623.md\n?? docs/figures/neurips_paper_2026/_tables/dysts_dt30_iqm_over_iqm_summary.csv\n?? docs/figures/neurips_paper_2026/_tables/fabs_vs_sabs_basin_identification_metadata.json\n?? docs/figures/neurips_paper_2026/_tables/fabs_vs_sabs_basin_identification_summary.csv\n?? docs/figures/neurips_paper_2026/_tables/paper_baseline_dysts_per_system.csv\n?? docs/figures/neurips_paper_2026/_tables/paper_baseline_dysts_summary.csv\n?? docs/figures/neurips_paper_2026/_tables/paper_baseline_multibasin_per_system.csv\n?? docs/figures/neurips_paper_2026/_tables/paper_baseline_multibasin_summary.csv\n?? docs/figures/neurips_paper_2026/_tables/paper_baseline_suite_summary_metadata.json\n?? docs/figures/neurips_paper_2026/_tables/table1_fixed17_alignment_per_basin_deep.csv\n?? docs/figures/neurips_paper_2026/_tables/table1_fixed17_alignment_per_basin_deep.tex\n?? docs/figures/neurips_paper_2026/_tables/table1_fixed17_alignment_per_basin_deep_metadata.json\n?? docs/figures/neurips_paper_2026/_tables/table1_forecasting_support_diagnostics.tex\n?? docs/figures/neurips_paper_2026/_tables/table2_support_diagnostics_per_basin_deep.tex\n?? docs/figures/neurips_paper_2026/_tables/table_standalone_state_space_baselines.tex\n?? docs/figures/neurips_paper_2026/fig_dysts_dt30_iqm_over_iqm_horizon.png\n?? docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_basin_identification.pdf\n?? docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_basin_identification.png\n?? docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_utility_tradeoff.pdf\n?? docs/figures/neurips_paper_2026/fig_fabs_vs_sabs_utility_tradeoff.png\n?? docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting.pdf\n?? docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting.png\n?? docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting_best_periodic.pdf\n?? docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting_best_periodic.png\n?? docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting_fine.pdf\n?? docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting_fine.png\n?? docs/figures/neurips_paper_2026/fig_maniskill_h220_forecasting_best_periodic.pdf\n?? docs/figures/neurips_paper_2026/fig_maniskill_h220_forecasting_best_periodic.png\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_dropping_accumulated_mse.png\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_dropping_horizon_mse.pdf\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_dropping_horizon_mse.png\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_random_shuffle_accumulated_mse.png\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_random_shuffle_horizon_mse.pdf\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_random_shuffle_horizon_mse.png\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_trajectories_drop_top10.pdf\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_trajectories_drop_top10.png\n?? docs/figures/neurips_paper_2026/fig_support_coordinate_trajectories_random_support_19.png\n?? docs/figures/neurips_paper_2026/fig_support_family_value_diagram.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_local_linear.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_local_linear.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_transfer_linear.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_transfer_linear.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.png\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.svg\n?? docs/figures/neurips_paper_2026/ground_truth_vector_fields/manifest.json\n?? docs/figures/neurips_paper_2026/spatial_alluvial_prototypes/\n?? experiments/benchmark_suite/\n?? experiments/maniskill10_default_tasks.tsv\n?? experiments/run_suite.py\n?? logs/\n?? reports/\n?? results\n?? scripts/evaluate_maniskill_5k_tuning_existing_cpu.sh\n?? scripts/merge_transition_rich_controlled_support_refresh_shards.sh\n?? scripts/plot_support_coordinate_interventions.sh\n?? scripts/queue_control_world_model_state_pilot.sh\n?? scripts/queue_dysts_sparse_mlp_decoder_norm_pilot.sh\n?? scripts/queue_hyperlista_dz256_10k_all_systems.sh\n?? scripts/queue_paper_baseline_suite.sh\n?? scripts/queue_regime_support_family_hparam_sweep_p256.sh\n?? scripts/queue_sparse_mlp_bd_repaired_table1.sh\n?? scripts/queue_spatialized_reaction_diffusion_benchmark.sh\n?? scripts/queue_spatialized_reaction_diffusion_controlled_expansion.sh\n?? scripts/queue_spatialized_reaction_diffusion_long_horizon_pilot.sh\n?? scripts/queue_spatialized_reaction_diffusion_support_sweep_existing.sh\n?? scripts/queue_staged_cstab_local_k_dysts_dt30.sh\n?? scripts/queue_staged_cstab_route_baselines_table1.sh\n?? scripts/queue_staged_support_family_local_k_table1.sh\n?? scripts/queue_table_kae_normdec_controlled.sh\n?? scripts/queue_table_kae_normdec_dysts.sh\n?? scripts/queue_transition_rich_controlled_support_refresh.sh\n?? scripts/reevaluate_staged_vs_global_wide_periodic.sh\n?? scripts/refresh_dysts_curves_repaired_sparse_mlp_bd.sh\n?? scripts/run_control_world_model_state_array.sh\n?? scripts/run_fabs_vs_sabs_basin_identification_figure.sh\n?? scripts/run_maniskill10_5k_forecast_smoke_gpu.sh\n?? scripts/run_maniskill10_eval_cpu_array.sh\n?? scripts/run_maniskill10_prepare_array.sh\n?? scripts/run_maniskill_50k_long_horizon_eval_cpu.sh\n?? scripts/run_maniskill_50k_matched_array_cpu.sh\n?? scripts/run_maniskill_5k_lista_tuning_gpu.sh\n?? scripts/run_maniskill_env_smoke.sh\n?? scripts/run_maniskill_eval_threshold_sweep.sh\n?? scripts/run_maniskill_h125_forecast_figure.sh\n?? scripts/run_maniskill_insertion_one_seed.sh\n?? scripts/run_maniskill_insertion_one_seed_cpu.sh\n?? scripts/run_maniskill_insertion_prepare.sh\n?? scripts/run_maniskill_perturbation_assessment.sh\n?? scripts/run_maniskill_perturbation_label_audit.sh\n?? scripts/run_paper_baseline_suite.sh\n?? scripts/run_spatialized_reaction_diffusion_array.sh\n?? scripts/run_spatialized_reaction_diffusion_array_cpu.sh\n?? scripts/run_spatialized_reaction_diffusion_dataset_array.sh\n?? scripts/run_spatialized_reaction_diffusion_eval_threshold_sweep.sh\n?? scripts/run_spatialized_reaction_diffusion_one_seed.sh\n?? scripts/run_spatialized_reaction_diffusion_packed_array.sh\n?? scripts/run_spatialized_reaction_diffusion_paper_support_eval.sh\n?? scripts/run_spatialized_reaction_diffusion_support_sweep_array.sh\n?? scripts/run_spatialized_reaction_diffusion_support_sweep_array_cpu.sh\n?? scripts/run_staged_support_family_local_k_array.sh\n?? scripts/run_support_coordinate_interventions.sh\n?? scripts/run_transition_rich_controlled_support_refresh.sh\n?? scripts/slurm_gpu_guard.sh\n?? scripts/submit_dense_latent_fate_retained15_array.sh\n?? scripts/submit_stable_support_retained15_sparse_array.sh\n?? scripts/summarize_maniskill_5k_lista_tuning.sh\n?? scripts/summarize_regime_support_family_hparam_sweep.sh\n?? skae/benchmarks/control_world_model.py\n?? skae/benchmarks/maniskill_controlled_lista.py\n?? skae/benchmarks/maniskill_insertion_dataset.py\n?? skae/benchmarks/spatialized_conv_koopman.py\n?? skae/benchmarks/spatialized_reaction_diffusion.py\n?? tests/test_benchmark_suite.py\n?? tests/test_control_world_model.py\n?? tests/test_local_edmd_koopman_baselines.py\n?? tests/test_maniskill_controlled_lista_activation.py\n?? tests/test_spatialized_reaction_diffusion.py\n?? tools/audit_maniskill_perturbation_labels.py\n?? tools/build_control_world_model_tasks.py\n?? tools/build_paper_baseline_tasks.py\n?? tools/build_spatialized_reaction_diffusion_support_sweep_tasks.py\n?? tools/build_spatialized_reaction_diffusion_tasks.py\n?? tools/build_table1_forecasting_support.py\n?? tools/evaluate_classical_koopman_baselines.py\n?? tools/evaluate_latent_fate_components.py\n?? tools/evaluate_local_edmd_koopman_baselines.py\n?? tools/evaluate_maniskill_controlled_lista.py\n?? tools/evaluate_mixture_local_linear_baselines.py\n?? tools/evaluate_spatialized_reaction_diffusion.py\n?? tools/evaluate_stable_support_components.py\n?? tools/evaluate_support_coordinate_interventions.py\n?? tools/evaluate_transition_rich_controlled_support_refresh.py\n?? tools/generate_dm_control_state_dataset.py\n?? tools/generate_spatialized_reaction_diffusion.py\n?? tools/make_dysts_iqm_over_iqm_appendix.py\n?? tools/make_fabs_vs_sabs_basin_identification.py\n?? tools/make_maniskill_h125_forecast_figure.py\n?? tools/make_per_basin_entropy_strips.py\n?? tools/make_spatial_alluvial_prototypes.py\n?? tools/maniskill_generate_perturbed_rollouts.py\n?? tools/maniskill_prepare_insertion_dataset.py\n?? tools/merge_latent_fate_component_shards.py\n?? tools/merge_stable_support_component_shards.py\n?? tools/merge_transition_rich_controlled_support_refresh_shards.py\n?? tools/plot_multibasin_ground_truth_vector_fields.py\n?? tools/plot_support_coordinate_interventions.py\n?? tools/plot_support_coordinate_trajectories.py\n?? tools/reevaluate_staged_vs_global_wide_periodic.py\n?? tools/summarize_control_world_model_runs.py\n?? tools/summarize_maniskill_5k_tuning.py\n?? tools/summarize_normdec_dysts_results.py\n?? tools/summarize_paper_baseline_suite.py\n?? tools/summarize_regime_support_family_hparam_sweep.py\n?? tools/summarize_spatialized_reaction_diffusion_paper_support.py\n?? tools/summarize_spatialized_reaction_diffusion_support_sweeps.py\n?? tools/sweep_spatialized_reaction_diffusion_support.py\n?? tools/train_control_world_model.py\n?? tools/train_maniskill_controlled_lista.py\n?? tools/train_spatialized_reaction_diffusion_conv.py\n?? tools/train_spatialized_reaction_diffusion_lista.py\n?? tools/train_staged_support_family_local_k.py"
+  },
+  "raw_rows": 368,
+  "system": {
+    "cpu": "x86_64",
+    "cuda_available": false,
+    "cuda_version": null,
+    "gpu_name": null,
+    "numpy": "2.1.2",
+    "pandas": "2.3.3",
+    "platform": "Linux-5.15.0-177-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "torch": "2.9.1+cu128"
+  }
+}

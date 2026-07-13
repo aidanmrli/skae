@@ -1,0 +1,2321 @@
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.99984375,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      258
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 26
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.99984375,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      258
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 26
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9998502604166667,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 26,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      258,
+      10,
+      8,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 26
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9983984375,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.001,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      123
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 132
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9983984375,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.001,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      123
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 132
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.9992213538182184,
+      "h_family_given_basin": 0.18744504820626942,
+      "mean_state_to_rep_jaccard": 0.9986585356531311,
+      "nmi": 0.14347837718429376,
+      "num_test_families": 2,
+      "num_test_trajectories": 12,
+      "purity": 0.4166666666666667
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.001,
+    "validation_representative_count": 132,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      123,
+      12,
+      11,
+      10,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 132
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9653235070283822,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.01,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      15
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 217
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9653235070283822,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.01,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      15
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 217
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.9992213538182184,
+      "h_family_given_basin": 0.18744504820626942,
+      "mean_state_to_rep_jaccard": 0.9740399147569702,
+      "nmi": 0.14347837718429376,
+      "num_test_families": 2,
+      "num_test_trajectories": 12,
+      "purity": 0.4166666666666667
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.01,
+    "validation_representative_count": 217,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      15,
+      14,
+      12,
+      11,
+      9,
+      8,
+      4,
+      4,
+      3,
+      3
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 217
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.8211142835676214,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.05,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      13
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 224
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.8211142835676214,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.05,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      13
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 224
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.08695652173913043,
+      "h_basin_given_family": 0.39594605801384775,
+      "h_family_given_basin": 0.9961167588595389,
+      "mean_state_to_rep_jaccard": 0.8471354332609264,
+      "nmi": 0.5023717857355792,
+      "num_test_families": 7,
+      "num_test_trajectories": 12,
+      "purity": 0.75
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.05,
+    "validation_representative_count": 224,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      13,
+      11,
+      11,
+      9,
+      7,
+      7,
+      4,
+      3,
+      2,
+      2
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 224
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.6970413463800829,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.1,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      13
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 224
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0058309037900874635,
+      "h_basin_given_family": 0.8086717106532694,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7033554831524164,
+      "nmi": 0.2785613406685095,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.5833333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.1,
+    "validation_representative_count": 9,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      13,
+      12,
+      8,
+      3,
+      2,
+      2,
+      1,
+      1,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 224
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.1926605504587156,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 1.111641288952863,
+      "mean_state_to_rep_jaccard": 0.7158111940695014,
+      "nmi": 0.6157110406154965,
+      "num_test_families": 9,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.1,
+    "validation_representative_count": 224,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      13,
+      12,
+      9,
+      9,
+      8,
+      8,
+      4,
+      4,
+      3,
+      3
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 224
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 1.0986122886681096,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.46835598127972616,
+      "nmi": 0.0,
+      "num_test_families": 1,
+      "num_test_trajectories": 12,
+      "purity": 0.3333333333333333
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.2,
+    "validation_representative_count": 1,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      14
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 217
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.023668639053254437,
+      "h_basin_given_family": 0.6931471805599452,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.5352952911026077,
+      "nmi": 0.36907024642854264,
+      "num_test_families": 5,
+      "num_test_trajectories": 12,
+      "purity": 0.6666666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.2,
+    "validation_representative_count": 13,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      14,
+      13,
+      12,
+      11,
+      8,
+      8,
+      2,
+      2,
+      2,
+      2
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 217
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": -0.06140350877192982,
+      "h_basin_given_family": 0.3465735902799726,
+      "h_family_given_basin": 1.2707698310265663,
+      "mean_state_to_rep_jaccard": 0.5438641000956176,
+      "nmi": 0.4818566558097357,
+      "num_test_families": 9,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.2,
+    "validation_representative_count": 217,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      14,
+      13,
+      12,
+      11,
+      8,
+      8,
+      4,
+      4,
+      4,
+      3
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 217
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": -0.023255813953488372,
+      "h_basin_given_family": 0.6269951182004962,
+      "h_family_given_basin": 1.111641288952863,
+      "mean_state_to_rep_jaccard": 0.2493318202420375,
+      "nmi": 0.3517076061952224,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.6666666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.5,
+    "validation_representative_count": 11,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      17,
+      13,
+      13,
+      12,
+      4,
+      4,
+      4,
+      3,
+      3,
+      2
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 181
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.511470588107172,
+      "h_family_given_basin": 1.111641288952863,
+      "mean_state_to_rep_jaccard": 0.2673781928514238,
+      "nmi": 0.41977743019751873,
+      "num_test_families": 7,
+      "num_test_trajectories": 12,
+      "purity": 0.75
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.5,
+    "validation_representative_count": 23,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      17,
+      15,
+      13,
+      13,
+      12,
+      9,
+      4,
+      4,
+      4,
+      3
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 181
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": -0.029556650246305417,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 1.3862943611198906,
+      "mean_state_to_rep_jaccard": 0.27740888764319166,
+      "nmi": 0.566948871776811,
+      "num_test_families": 11,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.5,
+    "validation_representative_count": 181,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      17,
+      15,
+      13,
+      13,
+      12,
+      9,
+      5,
+      4,
+      4,
+      4
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 181
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.05221932114882506,
+      "h_basin_given_family": 0.795642710368516,
+      "h_family_given_basin": 0.41849410839291784,
+      "mean_state_to_rep_jaccard": 0.13769841269841268,
+      "nmi": 0.33291970489261014,
+      "num_test_families": 3,
+      "num_test_trajectories": 12,
+      "purity": 0.5833333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 1.0,
+    "validation_representative_count": 17,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      91,
+      24,
+      22,
+      20,
+      19,
+      19,
+      18,
+      16,
+      11,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 28
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.05221932114882506,
+      "h_basin_given_family": 0.795642710368516,
+      "h_family_given_basin": 0.41849410839291784,
+      "mean_state_to_rep_jaccard": 0.14744444444444446,
+      "nmi": 0.33291970489261014,
+      "num_test_families": 3,
+      "num_test_trajectories": 12,
+      "purity": 0.5833333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 1.0,
+    "validation_representative_count": 27,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      91,
+      24,
+      22,
+      20,
+      19,
+      19,
+      18,
+      16,
+      11,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 28
+  }
+}
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/model/checkpoint.pt",
+  "checkpoint_step": 999,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.6448586384455363,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.6448586384455363,
+      "gradient_mse": 0.14574313163757324,
+      "predicted_final_majority_fraction_mean": 0.6806640625
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 0.8846675025092231,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9744787216186523,
+      "gradient_mse": 0.3204319344626533,
+      "predicted_final_majority_fraction_mean": 0.6807454228401184
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.7649176915486654,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.8618491490681967,
+      "gradient_mse": 0.20985268553098044,
+      "predicted_final_majority_fraction_mean": 0.6812337040901184
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.8441387812296549,
+      "final_basin_consistency": 1.0,
+      "final_field_mse": 0.9462931156158447,
+      "gradient_mse": 0.27811749776204425,
+      "predicted_final_majority_fraction_mean": 0.68115234375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "GenericKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.05221932114882506,
+      "h_basin_given_family": 0.795642710368516,
+      "h_family_given_basin": 0.41849410839291784,
+      "mean_state_to_rep_jaccard": 0.14744444444444446,
+      "nmi": 0.33291970489261014,
+      "num_test_families": 3,
+      "num_test_trajectories": 12,
+      "purity": 0.5833333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 1.0,
+    "validation_representative_count": 28,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      91,
+      24,
+      22,
+      20,
+      19,
+      19,
+      18,
+      16,
+      11,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 28
+  }
+}
+output_root=runs/spatialized_reaction_diffusion/dense_no_shrink_seed0_grid32/eval_threshold_sweep
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Thu May 14 17:17:42 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:B2:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 1592006
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 3180 ms
+            Is Running                    : 0
+        Process ID                        : 1592075
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1314 ms
+            Is Running                    : 0
+        Process ID                        : 1592095
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1333 ms
+            Is Running                    : 0
+        Process ID                        : 1592144
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1267 ms
+            Is Running                    : 0
+        Process ID                        : 1592164
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1285 ms
+            Is Running                    : 0
+        Process ID                        : 1592187
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1356 ms
+            Is Running                    : 0
+        Process ID                        : 1592212
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1221 ms
+            Is Running                    : 0
+        Process ID                        : 1592238
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1260 ms
+            Is Running                    : 0
+        Process ID                        : 1592263
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1451 ms
+            Is Running                    : 0
+        Process ID                        : 1592307
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1294 ms
+            Is Running                    : 0
+        Process ID                        : 1592331
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1175 ms
+            Is Running                    : 0
+        Process ID                        : 1592350
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1445 ms
+            Is Running                    : 0
+        Process ID                        : 1592370
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1330 ms
+            Is Running                    : 0
+        Process ID                        : 1592418
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1310 ms
+            Is Running                    : 0
+        Process ID                        : 1592446
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1369 ms
+            Is Running                    : 0
+        Process ID                        : 1592517
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1229 ms
+            Is Running                    : 0
+        Process ID                        : 1592537
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1188 ms
+            Is Running                    : 0
+        Process ID                        : 1592551
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1315 ms
+            Is Running                    : 0
+        Process ID                        : 1592565
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1234 ms
+            Is Running                    : 0
+        Process ID                        : 1592583
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1274 ms
+            Is Running                    : 0
+        Process ID                        : 1592608
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1406 ms
+            Is Running                    : 0
+        Process ID                        : 1592652
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1344 ms
+            Is Running                    : 0
+        Process ID                        : 1592675
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1221 ms
+            Is Running                    : 0
+        Process ID                        : 1592695
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 404 MiB
+            Time                          : 1216 ms
+            Is Running                    : 0
+
+Thu May 14 17:17:42 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-SXM2-32GB           On  |   00000000:B2:00.0 Off |                    0 |
+| N/A   30C    P0             51W /  300W |       0MiB /  32768MiB |      8%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

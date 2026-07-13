@@ -399,6 +399,7 @@ class HyperListaConfig:
     C_THETA: float = 5e-3            # Threshold scaling hyperparameter (c₁)
     C_BETA: float = 5e-3             # Momentum hyperparameter (c₂)
     C_SS: float = 0.5                # Support selection hyperparameter (c₃)
+    STEP_SCALE: float = 1.0          # Multiplier on the 1/L HyperLISTA gradient step
     C_THETA_MIN: float = 1e-6        # Minimum threshold scale when constraining c_theta
     CONSTRAIN_C_THETA: bool = True   # Reparameterize c_theta to stay strictly positive
     USE_SUPPORT_SELECTION: bool = True  # Enable adaptive support selection
@@ -481,6 +482,7 @@ class DecoderConfig:
     USE_BIAS: bool = False
     ACTIVATION: str = "relu"
     AFFINE_BIAS: bool = False  # Add learnable bias to decoder output (useful for LISTA)
+    NORMALIZE_ATOMS: bool = False  # Normalize linear decoder atoms at decode time
 
 
 @dataclass
@@ -496,6 +498,7 @@ class ModelConfig:
     RECONST_COEFF: float = 0.02  # reconstruction loss weight
     PRED_COEFF: float = 0.0  # prediction loss weight
     SPARSITY_COEFF: float = 1e-3  # sparsity loss weight (L1 regularization)
+    SPARSITY_TARGET: str = "rollout"  # latent L1 target: "rollout", "encoded", or "encoded_rollout"
     HOMOGENEOUS_COEFF: float = 1.0  # homogeneous coordinate consistency loss weight
     DECODER_COHERENCE_WEIGHT: float = 0.0  # weight on normalized dictionary off-diagonal Gram penalty
     

@@ -560,7 +560,7 @@ def _compute_horizon_metric_stats(
     horizon = min(horizon, per_step_values.size(0))
     horizon_errors = per_step_values[:horizon]
 
-    # Average over time, ignoring NaNs (exploding rollouts)
+    # Mean over rollout time first, ignoring NaNs from exploding rollouts.
     per_ic = torch.nanmean(horizon_errors, dim=0)
     valid_mask = torch.isfinite(per_ic)
 
@@ -568,6 +568,7 @@ def _compute_horizon_metric_stats(
         return float("nan"), float("nan"), [], 0
 
     valid_errors = per_ic[valid_mask]
+    # Then mean over initial conditions that retained a finite time average.
     mean = valid_errors.mean().item()
     std = valid_errors.std(unbiased=False).item() if valid_errors.numel() > 1 else 0.0
     return mean, std, valid_errors.tolist(), int(valid_mask.sum().item())
@@ -624,6 +625,7 @@ def _cumulative_mse_curve(per_step_values: torch.Tensor) -> List[float]:
     steps = torch.arange(1, time_steps + 1, dtype=torch.float32, device=per_step_values.device)
     cumulative = torch.cumsum(per_step_values, dim=0)
     with torch.no_grad():
+        # Divide by elapsed time, then mean over initial conditions.
         curve = torch.nanmean(cumulative / steps.view(-1, 1), dim=1)
     return curve.cpu().tolist()
 
@@ -1422,7 +1424,9 @@ class EvaluationSettings:
     event_trigger_min_dwell: int = 0
     event_trigger_max_interval: int = 0
     save_rollout_artifacts: bool = False
-    save_plots: bool = True
+    save_plots: bool = False
+    include_per_ic_values: bool = False
+    include_error_curves: bool = False
 
 
 def _save_rollout_artifacts(
@@ -1477,6 +1481,8 @@ def _save_rollout_artifacts(
             "seed_offset": int(settings.seed_offset),
             "save_rollout_artifacts": bool(settings.save_rollout_artifacts),
             "save_plots": bool(settings.save_plots),
+            "include_per_ic_values": bool(settings.include_per_ic_values),
+            "include_error_curves": bool(settings.include_error_curves),
         },
         "periodic_periods_used": list(periodic_periods),
         "init_states": init_states.detach().cpu().contiguous(),
@@ -1514,8 +1520,8 @@ def evaluate_model(
         cfg: Configuration used during training (provides baseline hyper-params).
         device: Device for model inference.
         settings: Optional evaluation settings. Defaults to the research spec.
-        output_dir: Optional path to save metrics and plots. When provided, the
-            function writes ``metrics.json``, phase portraits, and MSE curves.
+        output_dir: Optional path to save ``metrics.json`` and any explicitly
+            requested artifacts or plots.
 
     Returns:
         Nested dictionary with metrics for each system and rollout mode.
@@ -1684,11 +1690,12 @@ def evaluate_model(
 
             l2_error = torch.norm(pred_cpu - true_future_cpu, dim=-1)
             per_step_error = l2_error.mean(dim=1)
-            per_step_errors[mode_name] = per_step_error
             per_step_error_per_dim = (l2_error / obs_dim_sqrt).mean(dim=1)
 
+            # Raw MSE sums squared error over state dimensions.
             squared_diff = torch.sum((pred_cpu - true_future_cpu) ** 2, dim=-1)
             squared_diff = torch.where(torch.isfinite(squared_diff), squared_diff, torch.nan)
+            # Per-dimension MSE divides the raw state-summed value once.
             squared_diff_per_dim = squared_diff / float(obs_dim)
             squared_diff_per_dim = torch.where(
                 torch.isfinite(squared_diff_per_dim), squared_diff_per_dim, torch.nan
@@ -1710,7 +1717,7 @@ def evaluate_model(
                 )
                 finite_coverage = _finite_coverage_stats(pred_cpu, horizon)
                 num_initial_conditions = int(finite_coverage["num_initial_conditions"])
-                horizons_metrics[str(horizon)] = {
+                horizon_metrics = {
                     "mean": mean,
                     "std": std,
                     "num_valid": num_valid,
@@ -1719,7 +1726,6 @@ def evaluate_model(
                         if num_initial_conditions > 0
                         else float("nan")
                     ),
-                    "values": per_ic,
                     "per_dim_mean": per_dim_mean,
                     "per_dim_std": per_dim_std,
                     "per_dim_num_valid": per_dim_num_valid,
@@ -1728,7 +1734,6 @@ def evaluate_model(
                         if num_initial_conditions > 0
                         else float("nan")
                     ),
-                    "per_dim_values": per_dim_ic,
                     "rmse_per_dim_mean": rmse_per_dim_mean,
                     "rmse_per_dim_std": rmse_per_dim_std,
                     "rmse_per_dim_num_valid": rmse_per_dim_num_valid,
@@ -1737,20 +1742,34 @@ def evaluate_model(
                         if num_initial_conditions > 0
                         else float("nan")
                     ),
-                    "rmse_per_dim_values": rmse_per_dim_ic,
                     **finite_coverage,
                 }
+                if settings.include_per_ic_values:
+                    horizon_metrics.update(
+                        {
+                            "values": per_ic,
+                            "per_dim_values": per_dim_ic,
+                            "rmse_per_dim_values": rmse_per_dim_ic,
+                        }
+                    )
+                horizons_metrics[str(horizon)] = horizon_metrics
 
                 if mode_name.startswith("periodic_") and num_valid > 0:
                     periodic_summary[str(horizon)][mode_name] = mean
 
-            mode_metrics[mode_name] = {
-                "horizons": horizons_metrics,
-                "mse_curve": _cumulative_mse_curve(squared_diff),
-                "mse_curve_per_dim": _cumulative_mse_curve(squared_diff_per_dim),
-                "l2_error_curve": per_step_error.cpu().tolist(),
-                "l2_error_curve_per_dim": per_step_error_per_dim.cpu().tolist(),
-            }
+            mode_entry = {"horizons": horizons_metrics}
+            if settings.include_error_curves or settings.save_plots:
+                mode_entry.update(
+                    {
+                        "mse_curve": _cumulative_mse_curve(squared_diff),
+                        "mse_curve_per_dim": _cumulative_mse_curve(squared_diff_per_dim),
+                        "l2_error_curve": per_step_error.cpu().tolist(),
+                        "l2_error_curve_per_dim": per_step_error_per_dim.cpu().tolist(),
+                    }
+                )
+            mode_metrics[mode_name] = mode_entry
+            if settings.save_plots:
+                per_step_errors[mode_name] = per_step_error
             diagnostics = mode_diagnostics.get(mode_name)
             if diagnostics:
                 reset_mask = diagnostics["reset_mask"].float()
@@ -1854,7 +1873,8 @@ def evaluate_model(
         files: Dict[str, str] = {}
         if output_dir is not None:
             system_dir = output_dir / system
-            system_dir.mkdir(parents=True, exist_ok=True)
+            if settings.save_rollout_artifacts or settings.save_plots:
+                system_dir.mkdir(parents=True, exist_ok=True)
 
             if settings.save_rollout_artifacts:
                 artifact_path = system_dir / "rollout_artifacts.pt"

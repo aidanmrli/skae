@@ -1,0 +1,80 @@
+date=Wed Jun  3 16:35:27 EDT 2026
+host=cn-m003.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9731003
+slurm_array_task_id=11
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+checkpoint=runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/sparse_mlp_sp0p003/seed2/checkpoint.pt
+output_dir=runs/maniskill_insertion/perturbation_e20_50k_fine_h125_eval_20260603/sparse_mlp_sp0p003/seed2/eval_test_long
+setting=sparse_mlp_sp0p003
+seed=2
+horizons=10
+support_threshold=0.2
+family_jaccard=0.4
+{
+  "checkpoint": "runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/sparse_mlp_sp0p003/seed2/checkpoint.pt",
+  "checkpoint_step": 40500,
+  "dataset": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "device": "cpu",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 15,
+    "h10/episode_count": 15,
+    "h10/final_state_mse": 0.001063786612616645,
+    "h10/outcome_drop_episode_count": 3,
+    "h10/outcome_drop_final_state_mse": 0.0006375195446357228,
+    "h10/outcome_drop_state_mse": 0.0009450850923076954,
+    "h10/outcome_jam_episode_count": 3,
+    "h10/outcome_jam_final_state_mse": 0.0006054583936929703,
+    "h10/outcome_jam_state_mse": 0.0009881279047797707,
+    "h10/outcome_miss_episode_count": 3,
+    "h10/outcome_miss_final_state_mse": 0.0027885972674376045,
+    "h10/outcome_miss_state_mse": 0.007182786043952493,
+    "h10/outcome_partial_episode_count": 3,
+    "h10/outcome_partial_final_state_mse": 0.0006422477476055326,
+    "h10/outcome_partial_state_mse": 0.0009455095708759782,
+    "h10/outcome_success_episode_count": 3,
+    "h10/outcome_success_final_state_mse": 0.0006451106818965058,
+    "h10/outcome_success_state_mse": 0.0009465932456496494,
+    "h10/state_mse": 0.0022016203637216605,
+    "max_requested_horizon": 10
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 3.76095124142942e-06,
+      "contact_phase_family_nmi": 0.010087591806218647,
+      "contact_phase_family_purity": 0.9996668887408394,
+      "contact_phase_sample_count": 3002.0,
+      "h_contact_phase_given_family": 0.0020163405425571573,
+      "h_family_given_contact_phase": 3.1700914901605035,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 44.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 3017,
+    "family_count": 62,
+    "mean_family_similarity": 0.3483172059059143,
+    "mean_support_size": 61.35498839907193,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 1.0061926645934502,
+      "h_outcome_given_family": 0.46209812037329684,
+      "outcome_family_ari": -0.013793103448275862,
+      "outcome_family_nmi": 0.616281642732217,
+      "outcome_family_purity": 0.7333333333333333,
+      "outcome_sample_count": 15.0,
+      "unique_family_count": 10.0,
+      "unique_outcome_count": 5.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 2346
+  },
+  "support_threshold": 0.2
+}
+summary=runs/maniskill_insertion/perturbation_e20_50k_fine_h125_eval_20260603/sparse_mlp_sp0p003/seed2/eval_test_long/metrics_summary.json

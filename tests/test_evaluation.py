@@ -204,6 +204,7 @@ def test_evaluate_model_generates_outputs(tmp_path):
         batch_size=4,
         phase_portrait_samples=2,
         save_rollout_artifacts=True,
+        save_plots=True,
     )
 
     results = evaluate_model(

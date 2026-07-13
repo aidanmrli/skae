@@ -546,6 +546,72 @@ class TestGenericKM:
         y = torch.randn(4, 16)
         ny = model.step_latent(y)
         assert ny.shape == y.shape
+
+    def test_diagonal_k_respects_config(self):
+        """GenericKM should honor diagonal Koopman structure."""
+        cfg = get_config("generic_sparse")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "diagonal"
+        model = GenericKM(cfg, observation_size=2)
+
+        assert model._k_structure == "diagonal"
+        assert not hasattr(model, "kmat")
+        with torch.no_grad():
+            model.kmat_diag.copy_(torch.tensor([1.0, 2.0, 3.0, 4.0]))
+
+        z = torch.ones(2, 4)
+        stepped = model.step_latent(z)
+        expected = torch.tensor([[1.0, 2.0, 3.0, 4.0]]).repeat(2, 1)
+        assert torch.allclose(stepped, expected)
+        assert torch.allclose(model.kmatrix(), torch.diag(model.kmat_diag))
+
+    def test_block_diagonal_k_respects_explicit_block_count(self):
+        """GenericKM block-diagonal K should support an exact requested block count."""
+        cfg = get_config("generic_sparse")
+        cfg.MODEL.TARGET_SIZE = 10
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 3
+        model = GenericKM(cfg, observation_size=2)
+
+        assert model._k_structure == "block_diagonal"
+        assert model._k_block_sizes == [4, 3, 3]
+        assert len(model.kmat_blocks) == 3
+        assert not hasattr(model, "kmat")
+
+        with torch.no_grad():
+            for scale, block in zip((2.0, 3.0, 4.0), model.kmat_blocks):
+                block.copy_(scale * torch.eye(block.shape[0]))
+
+        z = torch.ones(2, 10)
+        stepped = model.step_latent(z)
+        expected = torch.tensor(
+            [[2.0] * 4 + [3.0] * 3 + [4.0] * 3]
+        ).repeat(2, 1)
+        assert torch.allclose(stepped, expected)
+
+        kmat = model.kmatrix()
+        assert kmat.shape == (10, 10)
+        assert torch.count_nonzero(kmat[:4, 4:]).item() == 0
+        assert torch.count_nonzero(kmat[4:, :4]).item() == 0
+
+    def test_normalized_linear_decoder_atoms(self):
+        """GenericKM can normalize linear decoder atoms at decode time."""
+        cfg = get_config("generic_sparse")
+        cfg.MODEL.TARGET_SIZE = 2
+        cfg.MODEL.DECODER.NORMALIZE_ATOMS = True
+        model = GenericKM(cfg, observation_size=2)
+
+        with torch.no_grad():
+            linear = model._linear_decoder
+            assert linear is not None
+            linear.weight.copy_(torch.tensor([[3.0, 0.0], [4.0, 2.0]]))
+            if linear.bias is not None:
+                linear.bias.zero_()
+
+        z = torch.tensor([[1.0, 1.0]])
+        decoded = model.decode(z)
+        expected = torch.tensor([[0.6, 0.8]]) + torch.tensor([[0.0, 1.0]])
+        assert torch.allclose(decoded, expected, atol=1e-6)
     
     def test_step_env(self):
         """Test stepping in observation space via Koopman operator."""

@@ -1,0 +1,14 @@
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrr}
+\toprule
+Mode & Horizon & LISTA setting & Tuned LISTA & Original LISTA & Dense Conv-KAE & Sparse-MLP Conv-KAE \\
+\midrule
+No re-encoding & H50 & \(q=1,\alpha=10^{-2}\) & \textbf{0.590} & 0.687 & 0.597 & 0.596 \\
+No re-encoding & H100 & \(q=4,\alpha=3{\times}10^{-4}\) & \textbf{0.889} & 0.942 & 0.896 & 0.897 \\
+No re-encoding & H200 & \(q=1,\alpha=10^{-4}\) & \textbf{1.063} & 1.096 & 1.068 & 1.073 \\
+Period 20 & H50 & \(q=1,\alpha=3{\times}10^{-4}\) & 0.538 & 0.655 & 0.531 & \textbf{0.499} \\
+Period 20 & H100 & \(q=1,\alpha=10^{-2}\) & 0.723 & 0.828 & 0.717 & \textbf{0.670} \\
+Period 20 & H200 & \(q=1,\alpha=10^{-2}\) & 0.922 & 1.003 & 0.928 & \textbf{0.876} \\
+\bottomrule
+\end{tabular}
+}

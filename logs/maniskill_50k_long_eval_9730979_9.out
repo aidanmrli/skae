@@ -1,0 +1,13 @@
+date=Wed Jun  3 16:34:32 EDT 2026
+host=cn-h004.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9730993
+slurm_array_task_id=9
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+checkpoint=runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/sparse_mlp_sp0p003/seed0/checkpoint.pt
+output_dir=runs/maniskill_insertion/perturbation_e20_50k_fine_h125_eval_20260603/sparse_mlp_sp0p003/seed0/eval_test_long
+setting=sparse_mlp_sp0p003
+seed=0
+horizons=10
+support_threshold=0.2
+family_jaccard=0.4

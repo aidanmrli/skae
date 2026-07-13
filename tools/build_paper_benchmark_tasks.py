@@ -38,6 +38,71 @@ def _parse_csv_list(raw: str | None) -> List[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def _tagify(value: object) -> str:
+    raw = str(value)
+    return raw.replace("-", "m").replace(".", "p")
+
+
+def _paper_benchmark_seed_dir(base_out: Path, row: Dict[str, object]) -> Path:
+    log_root = base_out / str(row["phase"]) / str(row["model_variant"])
+    for key in (
+        "kuramoto_num_oscillators",
+        "hopfield_num_neurons",
+        "competitive_lv_num_species",
+    ):
+        value = str(row.get(key, "")).strip()
+        if value:
+            log_root = log_root / f"n_{value}"
+    return (
+        log_root
+        / str(row["system_slug"])
+        / f"dt_{_tagify(row['env_dt'])}"
+        / f"seed_{row['seed']}"
+    )
+
+
+def _completed_run(seed_dir: Path) -> Path | None:
+    if not seed_dir.is_dir():
+        return None
+    candidates = [
+        path
+        for path in seed_dir.glob("20*")
+        if path.is_dir() and (path / "evaluation_summary.json").is_file()
+    ]
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda path: (path.name, str(path)))[-1]
+
+
+def _filter_completed_rows(
+    rows: Sequence[Dict[str, object]],
+    *,
+    base_out: Path,
+) -> tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+    kept: List[Dict[str, object]] = []
+    skipped: List[Dict[str, object]] = []
+    for row in rows:
+        seed_dir = _paper_benchmark_seed_dir(base_out, row)
+        completed = _completed_run(seed_dir)
+        if completed is None:
+            kept.append(dict(row))
+            continue
+        skipped.append(
+            {
+                "task_id": row.get("task_id"),
+                "phase": row.get("phase"),
+                "model_variant": row.get("model_variant"),
+                "system_key": row.get("system_key"),
+                "seed": row.get("seed"),
+                "env_dt": row.get("env_dt"),
+                "completed_run": str(completed),
+            }
+        )
+    for task_id, row in enumerate(kept):
+        row["task_id"] = task_id
+    return kept, skipped
+
+
 def _read_dt_table(path: Path, value_column: str) -> Dict[str, float]:
     dt_map: Dict[str, float] = {}
     with path.open("r", newline="") as handle:
@@ -133,12 +198,18 @@ def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
     return rows
 
 
-def _write_tsv(path: Path, rows: Sequence[Dict[str, object]]) -> None:
+def _write_tsv(
+    path: Path,
+    rows: Sequence[Dict[str, object]],
+    *,
+    fieldnames: Sequence[str] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
+    if not rows and not fieldnames:
         path.write_text("")
         return
-    fieldnames = list(rows[0].keys())
+    if fieldnames is None:
+        fieldnames = list(rows[0].keys())
     with path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
@@ -162,6 +233,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional TSV with per-system dt values. Uses requested_dt for rescue and selected_dt for full.",
     )
+    parser.add_argument("--base_out", default=None, help="Output root used to detect completed runs.")
+    parser.add_argument(
+        "--skip_completed",
+        action="store_true",
+        help="Omit task rows that already have evaluation_summary.json under --base_out.",
+    )
+    parser.add_argument(
+        "--skip_report_json",
+        default=None,
+        help="Optional JSON report of rows skipped by --skip_completed.",
+    )
     return parser.parse_args()
 
 
@@ -170,13 +252,35 @@ def main() -> None:
     if args.phase_label is None:
         args.phase_label = args.phase
     rows = _build_rows(args)
+    fieldnames = list(rows[0].keys()) if rows else []
+    skipped_rows: List[Dict[str, object]] = []
+    if args.skip_completed:
+        if args.base_out is None:
+            raise SystemExit("--skip_completed requires --base_out")
+        rows, skipped_rows = _filter_completed_rows(rows, base_out=Path(args.base_out))
     output_tsv = Path(args.output_tsv)
-    _write_tsv(output_tsv, rows)
+    _write_tsv(output_tsv, rows, fieldnames=fieldnames)
+    if args.skip_report_json:
+        skip_report_path = Path(args.skip_report_json)
+        skip_report_path.parent.mkdir(parents=True, exist_ok=True)
+        skip_report_path.write_text(
+            json.dumps(
+                {
+                    "output_tsv": str(output_tsv),
+                    "kept_count": len(rows),
+                    "skipped_count": len(skipped_rows),
+                    "skipped_rows": skipped_rows,
+                },
+                indent=2,
+            )
+        )
 
     if args.output_manifest_json:
         Path(args.output_manifest_json).write_text(json.dumps(paper_benchmark_manifest_jsonable(), indent=2))
 
     print(f"Wrote {len(rows)} paper benchmark tasks to {output_tsv}")
+    if skipped_rows:
+        print(f"Skipped {len(skipped_rows)} completed paper benchmark tasks")
 
 
 if __name__ == "__main__":

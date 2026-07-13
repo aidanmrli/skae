@@ -1,0 +1,28 @@
+date=Wed Jun  3 16:16:28 EDT 2026
+host=cn-f003.server.mila.quebec
+commit=b5ea99e
+{
+  "eligible_test_episodes": "15 per seed for all plotted horizons",
+  "error_bar": "standard error over 3 seeds",
+  "figure_pdf": "docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting.pdf",
+  "figure_png": "docs/figures/neurips_paper_2026/fig_maniskill_h125_forecasting.png",
+  "horizons": [
+    10,
+    25,
+    50,
+    100,
+    125
+  ],
+  "input_root": "runs/maniskill_insertion/perturbation_e20_50k_long_eval_20260603",
+  "output_dir": "docs/figures/neurips_paper_2026",
+  "per_seed_csv": "results/maniskill_h125_forecast_20260603/maniskill_h125_forecast_per_seed.csv",
+  "results_dir": "results/maniskill_h125_forecast_20260603",
+  "rollout_metric": "held-out state MSE",
+  "settings": {
+    "dense_sp0": "Dense",
+    "lista_a0p03_sp0p003": "LISTA, alpha=0.03, l1=0.003",
+    "lista_a0p03_sp0p01": "LISTA, alpha=0.03, l1=0.01",
+    "sparse_mlp_sp0p003": "Sparse MLP, l1=0.003"
+  },
+  "summary_csv": "results/maniskill_h125_forecast_20260603/maniskill_h125_forecast_summary.csv"
+}

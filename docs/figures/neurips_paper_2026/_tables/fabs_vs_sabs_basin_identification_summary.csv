@@ -1,0 +1,13 @@
+root_label,model,support_object,num_rows,num_systems,num_seeds,basin_entropy_mean_over_systems,basin_entropy_row_median,fragment_entropy_mean_over_systems,fragment_entropy_row_median,count_mean_over_systems,count_row_median
+lista_dense_signsplit_p256_hardinit_basin_partition,LISTA,S_abs,225,15,15,0.0,0.0,1.1114638074948744,0.0353632924105737,659.3155555555556,9.0
+lista_dense_signsplit_p256_hardinit_basin_partition,LISTA,F_abs,225,15,15,0.1304568942190955,0.0,0.10660267791971134,0.0,3.9600000000000004,4.0
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,S_abs,225,15,15,0.0,0.0,1.095844773213302,0.028576096304649,638.7466666666667,8.0
+lista_blockdiag_signsplit_hardinit_basin_partition,LISTA-BD,F_abs,225,15,15,0.1561326224482301,0.0,0.10676194451157958,0.0,3.764444444444444,3.0
+lista_dense_softblock_signsplit_p256_hardinit_basin_partition,LISTA-SB,S_abs,225,15,15,0.0,0.0,1.1181401772760684,0.0428859443495197,655.2622222222222,9.0
+lista_dense_softblock_signsplit_p256_hardinit_basin_partition,LISTA-SB,F_abs,225,15,15,0.15331958762321396,0.0,0.0985625626893675,0.0,3.8133333333333335,4.0
+mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",S_abs,220,15,15,0.0,0.0,0.8886921953543679,0.0111396936768044,458.7811233211233,7.0
+mlp_sparse_blockdiag_hardinit_basin_partition_control,"Sparse MLP, BD",F_abs,220,15,15,0.2566463494454708,0.0,0.08592660703184692,0.0,3.2663492063492066,3.0
+mlp_sparse_hardinit_basin_partition_control,Sparse MLP,S_abs,225,15,15,0.0,0.0,0.8925031771969931,0.0119338020395978,461.4311111111111,7.0
+mlp_sparse_hardinit_basin_partition_control,Sparse MLP,F_abs,225,15,15,0.22335355831728015,0.0,0.08716567172159076,0.0,3.302222222222222,3.0
+mlp_zero_sparse_hardinit_basin_partition_control,Dense MLP,S_abs,225,15,15,0.04099621372023879,0.0,0.814747847871789,0.0143710516344766,463.9822222222222,6.0
+mlp_zero_sparse_hardinit_basin_partition_control,Dense MLP,F_abs,225,15,15,1.280980109783693,1.3636492627882333,0.0,0.0,1.0,1.0

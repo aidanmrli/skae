@@ -1,7 +1,10 @@
 {
   "fixed17_horizon_curves": "fig_fixed17_horizon_curves.pdf",
   "fixed17_seed_strips": "fig_fixed17_seed_strips.pdf",
-  "fixed17_entropy_strips": "fig_fixed17_entropy_strips.pdf",
+  "fixed17_entropy_strips": "fig_fixed17_entropy_strips_alt2.pdf",
+  "fabs_vs_sabs_basin_identification": "fig_fabs_vs_sabs_basin_identification.pdf",
+  "fabs_vs_sabs_utility_tradeoff": "fig_fabs_vs_sabs_utility_tradeoff.pdf",
+  "support_family_value_diagram": "fig_support_family_value_diagram.svg",
   "routing_ratios": "fig_routing_ratios.pdf",
   "dysts_long_horizon": "fig_dysts_long_horizon.pdf",
   "appfig_fixed17_perseed_histograms": "appfig_fixed17_perseed_histograms.pdf",
@@ -26,13 +29,17 @@
     "table1_boundary_only.csv",
     "dysts_dt30_aggregate_tests_vs_dense.csv",
     "dysts_per_system_iqm_vs_dense.csv",
+    "fabs_vs_sabs_basin_identification_summary.csv",
     "table3_support_refresh_matched_summary.csv",
     "table1_main_iqm.csv",
     "dysts_dt30_per_system_ratio_to_dense.csv",
-    "dysts_dt30_per_system_wilcoxon_vs_dense.csv"
+    "dysts_dt30_per_system_wilcoxon_vs_dense.csv",
+    "table_dysts_dt30_iqm_over_iqm.tex",
+    "dysts_dt30_iqm_over_iqm_summary.csv"
   ],
   "wilcoxon": [
     "wilcoxon_significance_main.json",
     "wilcoxon_significance_hardinit.json"
-  ]
+  ],
+  "dysts_iqm_over_iqm": "fig_dysts_dt30_iqm_over_iqm_horizon.pdf"
 }

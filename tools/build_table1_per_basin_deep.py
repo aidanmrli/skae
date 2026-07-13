@@ -165,10 +165,6 @@ def fmt_num(value: float, sig: int = 3) -> str:
         exponent = int(math.floor(math.log10(abs_value)))
         mantissa = value / (10**exponent)
         return rf"{mantissa:.{sig - 1}f}{{\times}}10^{{{exponent}}}"
-    if abs_value < 0.1:
-        return f"{value:.3f}"
-    if abs_value < 10:
-        return f"{value:.3g}"
     if abs_value < 100:
         return f"{value:.3g}"
     return f"{value:.0f}"
@@ -294,7 +290,7 @@ lines = [
     r"\toprule",
     r"& \multicolumn{2}{c}{Forecasting (all held-out)} & \multicolumn{4}{c}{Support diagnostics (per-basin deep slice)} \\",
     r"\cmidrule(lr){2-3}\cmidrule(l){4-7}",
-    r"Model & H100\,$\downarrow$ & H1000\,$\downarrow$ & $H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ & wr.\,$h{=}1$\,$\uparrow$ & wr.\,$h{=}20$\,$\uparrow$ & $\overline{|F_{\rm abs}|}$ \\",
+    r"Model & H100\,$\downarrow$ & H1000\,$\downarrow$ & $H(B\!\mid\!F_{\rm abs})$\,$\downarrow$ & $\overline{|F_{\rm abs}|}$ & wr.\,$h{=}1$\,$\uparrow$ & wr.\,$h{=}20$\,$\uparrow$ \\",
     r"\midrule",
 ]
 
@@ -344,7 +340,7 @@ for idx, row in summary.iterrows():
     if is_baseline:
         family_cell += r"\,\emph{[baseline]}"
     lines.append(
-        f"{row['label']} & {' & '.join(forecast_cells)} & {hbf} & {fw1} & {fw20} & {family_cell} \\\\"
+        f"{row['label']} & {' & '.join(forecast_cells)} & {hbf} & {family_cell} & {fw1} & {fw20} \\\\"
     )
 
 lines.extend([r"\bottomrule", r"\end{tabular}"])

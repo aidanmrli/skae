@@ -1,0 +1,127 @@
+output_root: "results/lorenz96_sparsity_mechanism_long_seed0_cpu_20260625"
+device: "cpu"
+bootstrap_resamples: 2000
+profile: "lorenz96_D128_sparsity_mechanism_seed0_cpu_long"
+notes:
+  - "Longer seed-0 training-budget comparison for noisy Lorenz-96 D=128."
+  - "Same 16-row sparsity-mechanism grid as the 300-update screen, but with a 1000-update cap and patience 200."
+  - "All neural rows use overcomplete dz=512 latents, dense K, no K regularization, and training windows of length 20."
+
+x_dense_base: &dense_base
+  family: "dense_mlp_tanh"
+  preset: "generic_no_shrink"
+  latent_dim: 512
+  sparsity_coefficient: 0.0
+  sparsity_target: "latent_rollout"
+  encoder_activation: "tanh"
+  decoder_activation: "tanh"
+  encoder_last_relu: false
+  encoder_use_bias: true
+  k_structure: "dense"
+
+x_sparse_mlp_base: &sparse_mlp_base
+  family: "sparse_mlp_relu"
+  preset: "generic_sparse"
+  latent_dim: 512
+  sparsity_target: "latent_rollout"
+  encoder_activation: "relu"
+  encoder_last_relu: true
+  encoder_use_bias: true
+  k_structure: "dense"
+
+x_lista_relu_base: &lista_relu_base
+  family: "lista_relu"
+  preset: "lista_parity_generic_sparse"
+  latent_dim: 512
+  sparsity_coefficient: 0.0
+  sparsity_target: "latent_rollout"
+  lista_final_op: "relu"
+  lista_num_loops: 5
+  use_homogeneous: false
+  k_structure: "dense"
+
+x_lista_shrink_base: &lista_shrink_base
+  family: "lista_shrink"
+  preset: "lista_parity_generic_sparse"
+  latent_dim: 512
+  sparsity_coefficient: 0.0
+  sparsity_target: "latent_rollout"
+  lista_final_op: "shrink"
+  lista_num_loops: 5
+  use_homogeneous: false
+  k_structure: "dense"
+
+lorenz96:
+  seeds: [0]
+  dimension: 128
+  forcing: 8.0
+  n_train: 64
+  n_val: 16
+  n_test: 16
+  train_sizes: [64]
+  time_points: 160
+  observed_fraction: 1.0
+  noise_fraction: 0.05
+  horizons: [1, 5, 10, 25, 50, 100]
+  train_horizons: [20]
+  latent_dims: [512]
+  truncated_dmd_rank: 32
+  training:
+    epochs: 1000
+    patience: 200
+    batch_size: 64
+    hidden_dim: 128
+    num_layers: 2
+    decoder_layers: 1
+    lr: 0.0003
+    weight_decay: 0.000001
+    grad_clip: 1.0
+    sparsity_target: "latent_rollout"
+  model_variants:
+    - <<: *dense_base
+      label: "dense_mlp_tanh"
+    - <<: *sparse_mlp_base
+      label: "sparse_mlp_relu_l1_0p003"
+      sparsity_coefficient: 0.003
+    - <<: *sparse_mlp_base
+      label: "sparse_mlp_relu_l1_0p01"
+      sparsity_coefficient: 0.01
+    - <<: *sparse_mlp_base
+      label: "sparse_mlp_relu_l1_0p03"
+      sparsity_coefficient: 0.03
+    - <<: *sparse_mlp_base
+      label: "sparse_mlp_relu_l1_0p1"
+      sparsity_coefficient: 0.1
+    - <<: *sparse_mlp_base
+      label: "sparse_mlp_relu_l1_0p3"
+      sparsity_coefficient: 0.3
+    - <<: *lista_relu_base
+      label: "lista_relu_alpha_0p03"
+      lista_alpha: 0.03
+    - <<: *lista_relu_base
+      label: "lista_relu_alpha_0p1"
+      lista_alpha: 0.1
+    - <<: *lista_relu_base
+      label: "lista_relu_alpha_0p3"
+      lista_alpha: 0.3
+    - <<: *lista_relu_base
+      label: "lista_relu_alpha_1"
+      lista_alpha: 1.0
+    - <<: *lista_relu_base
+      label: "lista_relu_alpha_3"
+      lista_alpha: 3.0
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p03"
+      lista_alpha: 0.03
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p1"
+      lista_alpha: 0.1
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p3"
+      lista_alpha: 0.3
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_1"
+      lista_alpha: 1.0
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_3"
+      lista_alpha: 3.0

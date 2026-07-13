@@ -105,6 +105,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--progress_every_runs", type=int, default=1)
     parser.add_argument("--flush_every_runs", type=int, default=1)
     parser.add_argument("--max_runtime_seconds", type=int, default=0)
+    parser.add_argument(
+        "--skip_state_decode",
+        action="store_true",
+        help="skip decoded state MSE for support-family hyperparameter sweeps that only use latent metrics",
+    )
     parser.add_argument("--no_resume", action="store_true")
     return parser.parse_args()
 
@@ -466,6 +471,7 @@ def evaluate_run(
     cluster_fit_max_samples: int,
     spectral_neighbors: int,
     decode_batch_size: int,
+    skip_state_decode: bool,
 ) -> List[Dict[str, object]]:
     checkpoint_path = Path(spec.run_dir) / "checkpoint.pt"
     _cfg, env, model = REDUCER._load_checkpoint_model(checkpoint_path, spec.system_key, device)
@@ -531,14 +537,16 @@ def evaluate_run(
     rows: List[Dict[str, object]] = []
     global_pred_z = z_test @ global_k
     global_latent_mse = float(_prediction_mse(global_pred_z, z_next_test).mean())
-    decoded_global = _decode_array(
-        model,
-        global_pred_z,
-        device=device,
-        dtype=trajectories.dtype,
-        batch_size=decode_batch_size,
-    )
-    global_state_mse = float(_prediction_mse(decoded_global, state_next_test).mean())
+    global_state_mse = None
+    if not skip_state_decode:
+        decoded_global = _decode_array(
+            model,
+            global_pred_z,
+            device=device,
+            dtype=trajectories.dtype,
+            batch_size=decode_batch_size,
+        )
+        global_state_mse = float(_prediction_mse(decoded_global, state_next_test).mean())
     rows.append(
         {
             **common,
@@ -559,7 +567,7 @@ def evaluate_run(
             "partition_over_global_on_covered": 1.0,
             "partition_over_global_full": 1.0,
             "partition_state_mse": global_state_mse,
-            "partition_state_over_global": 1.0,
+            "partition_state_over_global": 1.0 if global_state_mse is not None else None,
             "basin_ari": None,
             "basin_nmi": None,
             "basin_purity": None,
@@ -771,6 +779,7 @@ def _flush(
                 "trajectory_length": args.trajectory_length,
                 "train_fraction": args.train_fraction,
                 "cluster_fit_max_samples": args.cluster_fit_max_samples,
+                "skip_state_decode": bool(args.skip_state_decode),
                 "num_runs": specs_total,
                 "completed_runs": specs_completed,
                 "remaining_runs": max(0, specs_total - specs_completed),
@@ -847,6 +856,7 @@ def main() -> None:
                 cluster_fit_max_samples=args.cluster_fit_max_samples,
                 spectral_neighbors=args.spectral_neighbors,
                 decode_batch_size=args.decode_batch_size,
+                skip_state_decode=args.skip_state_decode,
             )
             rows.extend(run_rows)
             completed_keys.add(key)

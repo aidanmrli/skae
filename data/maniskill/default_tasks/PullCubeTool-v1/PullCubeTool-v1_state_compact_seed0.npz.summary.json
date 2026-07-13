@@ -1,0 +1,62 @@
+{
+  "action_dim": 8,
+  "contact_phase_available": true,
+  "max_transitions": 100,
+  "metadata": {
+    "action_dim": 8,
+    "append_prev_action": true,
+    "contact_phase_available": true,
+    "contact_phase_names": [
+      "free_space_or_no_contact",
+      "contact_or_near",
+      "inserted_or_success"
+    ],
+    "env_id": "PullCubeTool-v1",
+    "env_kwargs": {
+      "control_mode": "pd_joint_pos",
+      "human_render_camera_configs": {
+        "shader_pack": "default"
+      },
+      "obs_mode": "none",
+      "render_mode": "rgb_array",
+      "reward_mode": "dense",
+      "sensor_configs": {
+        "shader_pack": "default"
+      },
+      "sim_backend": "auto",
+      "viewer_camera_configs": {
+        "shader_pack": "default"
+      }
+    },
+    "labels_are_evaluation_only": true,
+    "max_steps": 100,
+    "max_transitions": 100,
+    "min_steps": 2,
+    "num_episodes": 1000,
+    "obs_dim": 78,
+    "obs_key": "env_states",
+    "outcome_available": true,
+    "outcome_names": [
+      "unknown",
+      "success",
+      "failure_flag",
+      "timeout_or_partial"
+    ],
+    "source": "maniskill_insertion_compact_v1",
+    "source_json_path": "/home/mila/l/lia/.maniskill/demos/PullCubeTool-v1/motionplanning/trajectory.json",
+    "source_traj_path": "/home/mila/l/lia/.maniskill/demos/PullCubeTool-v1/motionplanning/trajectory.h5",
+    "split_seed": 0,
+    "train_fraction": 0.7,
+    "val_fraction": 0.15
+  },
+  "num_episodes": 1000,
+  "obs_dim": 78,
+  "outcome_available": true,
+  "output": "data/maniskill/default_tasks/PullCubeTool-v1/PullCubeTool-v1_state_compact_seed0.npz",
+  "source_traj_path": "/home/mila/l/lia/.maniskill/demos/PullCubeTool-v1/motionplanning/trajectory.h5",
+  "split_counts": {
+    "test": 150,
+    "train": 700,
+    "val": 150
+  }
+}

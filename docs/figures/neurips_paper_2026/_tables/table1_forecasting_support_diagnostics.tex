@@ -1,0 +1,17 @@
+\begin{tabular}{@{}l rrr rrr@{\hspace{0.9em}}rr@{}}
+\toprule
+& \multicolumn{6}{c}{Forecasting MSE\(\downarrow\)} & \multicolumn{2}{c}{Support diagnostics on multibasin systems} \\
+\cmidrule(lr){2-7}\cmidrule(l){8-9}
+& \multicolumn{3}{c}{Multibasin, 15 systems} & \multicolumn{3}{c}{Dysts \(dt{\times}30\), 10 systems} & \multicolumn{2}{c}{Per-basin deep slice} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-9}
+Model & H100 & H500 & H1000 & H100 & H2000 & H4000 & $H(B\!\mid\!F_{\rm abs})\downarrow$ & $\overline{|F_{\rm abs}|}$ \\
+\midrule
+LISTA & ${0.0407}^{\ast}$ & ${0.144}^{\ast}$ & ${0.166}^{\ast}$ & ${2.53{\times}10^{-4}}^{\ast}$ & ${\mathbf{0.0972}}^{\ast}$ & ${0.452}^{\ast}$ & ${\mathbf{0.130}}^{\ast}$ & $\mathbf{4.0}$ \\
+LISTA-BD & ${0.0411}^{\ast}$ & ${0.118}^{\ast}$ & ${0.135}^{\ast}$ & $3.38{\times}10^{-4}$ & ${0.117}^{\ast}$ & ${0.485}^{\ast}$ & ${0.156}^{\ast}$ & $3.8$ \\
+LISTA-SB & ${\mathbf{0.0387}}^{\ast}$ & ${0.114}^{\ast}$ & ${0.130}^{\ast}$ & $4.85{\times}10^{-4}$ & $0.165$ & $0.686$ & ${0.153}^{\ast}$ & $3.8$ \\
+Sparse MLP, BD & ${0.0473}^{\ast}$ & ${0.136}^{\ast}$ & ${0.159}^{\ast}$ & $3.96{\times}10^{-4}$ & ${0.113}^{\ast}$ & ${\mathbf{0.436}}^{\ast}$ & ${0.358}^{\ast}$ & $3.0$ \\
+Sparse MLP \citep{fathi2024course} & ${0.0397}^{\ast}$ & ${\mathbf{0.0940}}^{\ast}$ & ${\mathbf{0.107}}^{\ast}$ & ${\mathbf{2.32{\times}10^{-4}}}^{\ast}$ & ${0.120}^{\ast}$ & $0.497$ & ${0.223}^{\ast}$ & $3.3$ \\
+\midrule
+Dense MLP \citep{lusch_deep_2018} \emph{[baseline]} & $0.830$ & $2.68$ & $2.93$ & $0.00110$ & $0.224$ & $0.754$ & $1.28$\,\emph{[baseline]} & $1.0$\,\emph{[baseline]} \\
+\bottomrule
+\end{tabular}

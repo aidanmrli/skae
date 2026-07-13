@@ -1,0 +1,106 @@
+#!/bin/bash
+#
+# Run initial-latent support coordinate interventions on one checkpoint.
+#
+# Required env vars:
+#   ROWS_CSV=<forecasting_rows.csv>
+#   OUT_DIR=<output directory>
+#
+# Optional env vars:
+#   ROOT_LABEL=<model root label>
+#   SYSTEM=<system_key>
+#   SEED=<training seed>
+#   NUM_INITIAL_POINTS=15
+#   NUM_CANDIDATE_TRAJECTORIES=256
+#   TRAJECTORY_LENGTH=64
+#   SUPPORT_DEFINITION=absolute:0.001
+#   HORIZONS=1,3,5,7,9,11,13,15,17,19,21
+#   MAX_DROP=10
+#   RANDOM_SUPPORT_REPEATS=20
+#   DEVICE=cuda
+#
+#SBATCH --job-name=support_coord_int
+#SBATCH --ntasks=1
+#SBATCH --partition=main
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=03:00:00
+#SBATCH -o /network/scratch/l/lia/skae/support-coordinate-interventions-%A.out
+#SBATCH -e /network/scratch/l/lia/skae/support-coordinate-interventions-%A.err
+
+set -euo pipefail
+
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+  ROOT_DIR="${SLURM_SUBMIT_DIR}"
+else
+  ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+cd "${ROOT_DIR}"
+
+source .venv/bin/activate
+
+echo "Host: $(hostname)"
+echo "Repo: ${ROOT_DIR}"
+echo "Git commit: $(git rev-parse HEAD)"
+
+ROWS_CSV="${ROWS_CSV:?ROWS_CSV is required}"
+OUT_DIR="${OUT_DIR:?OUT_DIR is required}"
+ROOT_LABEL="${ROOT_LABEL:-lista_dense_signsplit_p256_hardinit_basin_partition}"
+SYSTEM="${SYSTEM:-gated_local_linear}"
+SEED="${SEED:-0}"
+NUM_INITIAL_POINTS="${NUM_INITIAL_POINTS:-15}"
+NUM_CANDIDATE_TRAJECTORIES="${NUM_CANDIDATE_TRAJECTORIES:-256}"
+TRAJECTORY_LENGTH="${TRAJECTORY_LENGTH:-64}"
+EVAL_SEED="${EVAL_SEED:-42}"
+ENDPOINT_ROLLOUT_STEPS="${ENDPOINT_ROLLOUT_STEPS:-5000}"
+SUPPORT_DEFINITION="${SUPPORT_DEFINITION:-absolute:0.001}"
+HORIZONS="${HORIZONS:-1,3,5,7,9,11,13,15,17,19,21}"
+MAX_DROP="${MAX_DROP:-10}"
+RANDOM_SUPPORT_REPEATS="${RANDOM_SUPPORT_REPEATS:-20}"
+RANDOM_SEED="${RANDOM_SEED:-123}"
+DEPTH_SLICE_MODE="${DEPTH_SLICE_MODE:-per_basin}"
+REQUIRE_STABLE_TRUE_BASIN="${REQUIRE_STABLE_TRUE_BASIN:-1}"
+DEVICE="${DEVICE:-cuda}"
+
+STABLE_FLAG="--require_stable_true_basin"
+if [[ "${REQUIRE_STABLE_TRUE_BASIN}" == "0" ]]; then
+  STABLE_FLAG="--no-require_stable_true_basin"
+fi
+
+echo "============================================="
+echo "Support Coordinate Interventions"
+echo "Job ID: ${SLURM_JOB_ID:-local}"
+echo "ROWS_CSV: ${ROWS_CSV}"
+echo "OUT_DIR: ${OUT_DIR}"
+echo "ROOT_LABEL: ${ROOT_LABEL}"
+echo "SYSTEM: ${SYSTEM}"
+echo "SEED: ${SEED}"
+echo "NUM_INITIAL_POINTS: ${NUM_INITIAL_POINTS}"
+echo "SUPPORT_DEFINITION: ${SUPPORT_DEFINITION}"
+echo "HORIZONS: ${HORIZONS}"
+echo "MAX_DROP: ${MAX_DROP}"
+echo "RANDOM_SUPPORT_REPEATS: ${RANDOM_SUPPORT_REPEATS}"
+echo "DEPTH_SLICE_MODE: ${DEPTH_SLICE_MODE}"
+echo "DEVICE: ${DEVICE}"
+echo "============================================="
+
+uv run python tools/evaluate_support_coordinate_interventions.py \
+  --rows_csv "${ROWS_CSV}" \
+  --output_dir "${OUT_DIR}" \
+  --root_label "${ROOT_LABEL}" \
+  --system "${SYSTEM}" \
+  --seed "${SEED}" \
+  --num_initial_points "${NUM_INITIAL_POINTS}" \
+  --num_candidate_trajectories "${NUM_CANDIDATE_TRAJECTORIES}" \
+  --trajectory_length "${TRAJECTORY_LENGTH}" \
+  --eval_seed "${EVAL_SEED}" \
+  --endpoint_rollout_steps "${ENDPOINT_ROLLOUT_STEPS}" \
+  --support_definition "${SUPPORT_DEFINITION}" \
+  --horizons "${HORIZONS}" \
+  --max_drop "${MAX_DROP}" \
+  --random_support_repeats "${RANDOM_SUPPORT_REPEATS}" \
+  --random_seed "${RANDOM_SEED}" \
+  --depth_slice_mode "${DEPTH_SLICE_MODE}" \
+  "${STABLE_FLAG}" \
+  --device "${DEVICE}"

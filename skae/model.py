@@ -679,6 +679,9 @@ class HyperLISTA(nn.Module):
         self.use_ss = hypercfg.USE_SUPPORT_SELECTION
         self.use_momentum = hypercfg.USE_MOMENTUM
         self.mag_ratio = hypercfg.MAG_RATIO
+        self.step_scale = float(hypercfg.STEP_SCALE)
+        if self.step_scale <= 0.0:
+            raise ValueError("HyperLISTA STEP_SCALE must be positive.")
         self.use_group_shrinkage = bool(hypercfg.GROUP_SHRINKAGE)
         self.group_threshold_scale = float(hypercfg.GROUP_THRESHOLD_SCALE)
         self.topk_groups = int(hypercfg.TOPK_GROUPS)
@@ -758,14 +761,14 @@ class HyperLISTA(nn.Module):
         Returns:
             Lipschitz constant with small safety margin
         """
-        # Use power iteration for efficiency
-        gram = D.T @ D  # [zdim, zdim]
-        v = torch.randn(self.zdim, 1, device=D.device, dtype=D.dtype)
-        v = v / torch.norm(v)
-        for _ in range(5):  # 5 iterations is usually sufficient
-            v = gram @ v
-            v = v / torch.norm(v)
-        L = torch.norm(gram @ v) / torch.norm(v)
+        # The benchmark observation dimensions are small enough that an exact,
+        # deterministic Gram eigensolve is cheaper than injecting random power
+        # iteration noise into every encoder call.
+        if D.shape[0] <= D.shape[1]:
+            gram = D @ D.T
+        else:
+            gram = D.T @ D
+        L = torch.linalg.eigvalsh(gram).amax()
         return L * 1.05  # Safety margin
 
     def _apply_group_structure(self, x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
@@ -807,14 +810,13 @@ class HyperLISTA(nn.Module):
         
         # Compute derived quantities
         L = self._compute_L(D)
-        gamma = 1.0 / L
+        gamma = self.step_scale / L
         W_e = gamma * D.T  # [zdim, xdim]
         
-        # Initial encoding
-        c = x @ W_e.T  # [..., zdim]
-        theta_init = self.c_theta * gamma
-        c_structured = self._apply_group_structure(c, theta_init)
-        z = self._shrink(c_structured, theta_init)  # Initial thresholding
+        # HyperLISTA follows the sparse-coding iteration from the zero code.
+        # A dense pre-step can nearly reconstruct low-dimensional observations,
+        # collapse the residual-adaptive threshold, and prevent sparsification.
+        z = torch.zeros(*x.shape[:-1], self.zdim, device=x.device, dtype=x.dtype)
         z_prev = torch.zeros_like(z)
         if latent_prior is not None:
             latent_prior = latent_prior.to(device=z.device, dtype=z.dtype)
@@ -840,7 +842,7 @@ class HyperLISTA(nn.Module):
         for k in range(num_refinement_steps):
             # Compute residual and gradient step
             residual = z @ D.T - x  # [..., xdim]
-            grad = residual @ W_e.T  # [..., zdim]
+            grad = residual @ W_e.T  # [..., zdim], includes the 1/L step size
             
             # Momentum term
             if self.use_momentum:
@@ -854,7 +856,7 @@ class HyperLISTA(nn.Module):
                 momentum = 0.0
             
             # Pre-threshold state
-            z_tilde = z - gamma * grad + momentum
+            z_tilde = z - grad + momentum
             
             # Adaptive threshold based on error approximation
             approx_error = torch.norm(residual @ D_pinv.T, p=1, dim=-1, keepdim=True) + 1e-8
@@ -1117,6 +1119,7 @@ class KoopmanMachine(ABC, nn.Module):
 
     def _prediction_loss_from_tensors(self, x_pred: torch.Tensor, x_true: torch.Tensor) -> torch.Tensor:
         """Raw prediction loss: ||x_pred - x_true|| averaged over batch/time."""
+        # L2 is taken over state dimension; mean is over batch and horizon.
         return torch.norm(x_pred - x_true, dim=-1).mean()
 
     def _observation_loss_dim_scale(
@@ -1267,13 +1270,8 @@ class KoopmanMachine(ABC, nn.Module):
         prediction_loss = prediction_loss_raw / obs_loss_dim_scale
         reconst_loss = reconst_loss_raw / obs_loss_dim_scale
 
-        sequence_term_scale = 1.0 / float(horizon)
-        prediction_loss_raw = prediction_loss_raw * sequence_term_scale
-        prediction_loss = prediction_loss * sequence_term_scale
-        alignment_loss = alignment_loss * sequence_term_scale
-        reconst_loss_raw = reconst_loss_raw * sequence_term_scale
-        reconst_loss = reconst_loss * sequence_term_scale
-        sparsity_loss = sparsity_loss * sequence_term_scale
+        # Loss terms above are already averaged over the horizon dimension.
+        sequence_term_scale = 1.0
 
         total_loss = (
             self.cfg.MODEL.RES_COEFF * alignment_loss +
@@ -1384,11 +1382,72 @@ class GenericKM(KoopmanMachine):
             last_relu=False,
             activation=cfg.MODEL.DECODER.ACTIVATION,
         )
+        self._normalize_decoder_atoms = bool(getattr(cfg.MODEL.DECODER, "NORMALIZE_ATOMS", False))
+        self._linear_decoder: Optional[nn.Linear] = None
+        if self._normalize_decoder_atoms:
+            if cfg.MODEL.DECODER.LAYERS:
+                raise ValueError("GenericKM decoder atom normalization requires a linear decoder.")
+            linear_layers = [module for module in self.decoder.network if isinstance(module, nn.Linear)]
+            if len(linear_layers) != 1:
+                raise ValueError("GenericKM decoder atom normalization expected exactly one decoder Linear layer.")
+            self._linear_decoder = linear_layers[0]
         
-        # Koopman matrix (learnable)
-        self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
+        # Koopman matrix structure depends on cfg.MODEL.K_STRUCTURE.
+        self._k_structure = cfg.MODEL.K_STRUCTURE
+        zdim = cfg.MODEL.TARGET_SIZE
+        if self._k_structure == "diagonal":
+            self.kmat_diag = nn.Parameter(torch.ones(zdim))
+            print(f"  Diagonal K: {zdim} parameters")
+        elif self._k_structure == "block_diagonal":
+            requested_num_blocks = int(getattr(cfg.MODEL, "K_NUM_BLOCKS", 0))
+            self._k_block_sizes: List[int] = []
+            if requested_num_blocks > 0:
+                self._k_block_size = 0
+                self._k_num_blocks = requested_num_blocks
+                self._k_remainder = 0
+                self._k_block_sizes = _split_group_sizes(zdim, requested_num_blocks)
+                self.kmat_blocks = nn.ParameterList([
+                    nn.Parameter(torch.eye(block_size))
+                    for block_size in self._k_block_sizes
+                ])
+                print(
+                    "  Block-diagonal K: "
+                    f"{requested_num_blocks} blocks with sizes {self._k_block_sizes}"
+                )
+            else:
+                block_size = int(getattr(cfg.MODEL, "K_BLOCK_SIZE", 0))
+                if block_size <= 0:
+                    block_size = max(1, zdim // 13)
+                self._k_block_size = block_size
+                self._k_num_blocks = zdim // block_size
+                self._k_remainder = zdim - self._k_num_blocks * block_size
+                self._k_block_sizes = [block_size] * self._k_num_blocks
+                self.kmat_blocks = nn.ParameterList([
+                    nn.Parameter(torch.eye(block_size))
+                    for _ in range(self._k_num_blocks)
+                ])
+                if self._k_remainder > 0:
+                    self.kmat_remainder = nn.Parameter(torch.eye(self._k_remainder))
+                    self._k_block_sizes.append(self._k_remainder)
+                print(
+                    f"  Block-diagonal K: {self._k_num_blocks} blocks of size {block_size}"
+                    + (
+                        f" + remainder {self._k_remainder}"
+                        if self._k_remainder > 0
+                        else ""
+                    )
+                )
+        else:
+            self.kmat = nn.Parameter(torch.eye(zdim))
 
         self.norm_fn_name = cfg.MODEL.NORM_FN
+
+    def _block_diagonal_matrices(self) -> List[torch.Tensor]:
+        """Return all block matrices in latent order."""
+        blocks = [block for block in self.kmat_blocks]
+        if getattr(self, "_k_remainder", 0) > 0 and hasattr(self, "kmat_remainder"):
+            blocks.append(self.kmat_remainder)
+        return blocks
     
     def _norm_fn(self, x: torch.Tensor) -> torch.Tensor:
         """Apply normalization to latent codes.
@@ -1439,6 +1498,15 @@ class GenericKM(KoopmanMachine):
         Returns:
             Reconstructed observations of shape [..., observation_size]
         """
+        if self._normalize_decoder_atoms:
+            if self._linear_decoder is None:
+                raise RuntimeError("Normalized decoder requested but linear decoder handle is missing.")
+            atoms = self._linear_decoder.weight.T
+            atoms = atoms / torch.norm(atoms, dim=1, keepdim=True).clamp(min=1e-4)
+            out = y @ atoms
+            if self._linear_decoder.bias is not None:
+                out = out + self._linear_decoder.bias
+            return out
         return self.decoder(y)
     
     def kmatrix(self) -> torch.Tensor:
@@ -1447,7 +1515,12 @@ class GenericKM(KoopmanMachine):
         Returns:
             Koopman matrix of shape [target_size, target_size]
         """
-        return self.kmat
+        if self._k_structure == "diagonal":
+            return torch.diag(self.kmat_diag)
+        elif self._k_structure == "block_diagonal":
+            return torch.block_diag(*self._block_diagonal_matrices())
+        else:
+            return self.kmat
     
     def step_latent(self, y: torch.Tensor) -> torch.Tensor:
         """Step forward in latent space with normalization.
@@ -1458,7 +1531,18 @@ class GenericKM(KoopmanMachine):
         Returns:
             Next latent codes of shape [..., target_size]
         """
-        ny = y @ self.kmatrix()
+        if self._k_structure == "diagonal":
+            ny = y * self.kmat_diag
+        elif self._k_structure == "block_diagonal":
+            parts = []
+            offset = 0
+            for block_size, block in zip(self._k_block_sizes, self._block_diagonal_matrices()):
+                yi = y[..., offset:offset + block_size]
+                parts.append(yi @ block)
+                offset += block_size
+            ny = torch.cat(parts, dim=-1)
+        else:
+            ny = y @ self.kmat
         return self._norm_fn(ny)
 
 # TODO: test this class with experiments. Sweep over the sparsity coefficient values.

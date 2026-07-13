@@ -1,0 +1,29 @@
+{
+  "control_forecasting_csvs": [
+    "/home/mila/l/lia/skae/results/transition_rich_table2_5model_seed15_backfill_20260428/collect_pass0/forecasting_rows.csv",
+    "/home/mila/l/lia/skae/results/transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/collect_pass0/forecasting_rows.csv",
+    "/home/mila/l/lia/skae/results/transition_rich_lista_dense_p256_hardinit_table123_20260430/collect_pass0/forecasting_rows.csv"
+  ],
+  "control_forecasting_repaired_override": "/home/mila/l/lia/skae/results/transition_rich_sparse_mlp_bd_repaired_table1_20260506/collect_pass0/forecasting_rows.csv",
+  "control_interpretability_csvs": [
+    "/home/mila/l/lia/skae/results/transition_rich_table2_5model_seed15_backfill_20260428/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+    "/home/mila/l/lia/skae/results/transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+    "/home/mila/l/lia/skae/results/transition_rich_lista_dense_p256_hardinit_table123_20260430/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv"
+  ],
+  "control_interpretability_repaired_override": "/home/mila/l/lia/skae/results/transition_rich_sparse_mlp_bd_repaired_table1_20260506/interpretability_per_basin_deep_pass0/interpretability_rows.csv",
+  "repaired_control_root": "mlp_sparse_blockdiag_hardinit_basin_partition_control",
+  "dysts_summary_csv": "/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/dysts_dt30_iqm_summary.csv",
+  "dysts_tests_csv": "/home/mila/l/lia/skae/docs/figures/neurips_paper_2026/_tables/dysts_dt30_aggregate_tests_vs_dense.csv",
+  "excluded_systems": [
+    "claude:checkerboard_potential",
+    "claude_checkerboard_potential",
+    "multiwell_strong_transition"
+  ],
+  "retained_control_system_count": 15,
+  "retained_dysts_system_count": 10,
+  "support_slice": "per_basin_deep",
+  "support_scheme": "absolute:0.001",
+  "family_jaccard_threshold": 0.5,
+  "control_significance_full_star_rule": "within-system Wilcoxon/Holm; compact star iff all eligible systems pass",
+  "dysts_significance_rule": "exact system-sign/Holm from dysts_dt30_aggregate_tests_vs_dense.csv"
+}

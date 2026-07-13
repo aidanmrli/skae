@@ -1,0 +1,80 @@
+date=Wed Jun  3 16:35:28 EDT 2026
+host=cn-h001.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9731005
+slurm_array_task_id=6
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+checkpoint=runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/lista_a0p03_sp0p01/seed0/checkpoint.pt
+output_dir=runs/maniskill_insertion/perturbation_e20_50k_fine_h125_eval_20260603/lista_a0p03_sp0p01/seed0/eval_test_long
+setting=lista_a0p03_sp0p01
+seed=0
+horizons=10
+support_threshold=0.2
+family_jaccard=0.4
+{
+  "checkpoint": "runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/lista_a0p03_sp0p01/seed0/checkpoint.pt",
+  "checkpoint_step": 7500,
+  "dataset": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "device": "cpu",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 15,
+    "h10/episode_count": 15,
+    "h10/final_state_mse": 0.0015980531966764164,
+    "h10/outcome_drop_episode_count": 3,
+    "h10/outcome_drop_final_state_mse": 0.001234849306200844,
+    "h10/outcome_drop_state_mse": 0.0015022254652447171,
+    "h10/outcome_jam_episode_count": 3,
+    "h10/outcome_jam_final_state_mse": 0.0014816854952597151,
+    "h10/outcome_jam_state_mse": 0.001740848823310503,
+    "h10/outcome_miss_episode_count": 3,
+    "h10/outcome_miss_final_state_mse": 0.0027252474641488267,
+    "h10/outcome_miss_state_mse": 0.007832079619364022,
+    "h10/outcome_partial_episode_count": 3,
+    "h10/outcome_partial_final_state_mse": 0.0012727150194395602,
+    "h10/outcome_partial_state_mse": 0.0015001335759568058,
+    "h10/outcome_success_episode_count": 3,
+    "h10/outcome_success_final_state_mse": 0.0012757688200746486,
+    "h10/outcome_success_state_mse": 0.0014999092599145727,
+    "h10/state_mse": 0.002815039391611137,
+    "max_requested_horizon": 10
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 7.929187212172091e-05,
+      "contact_phase_family_nmi": 0.017954033165295383,
+      "contact_phase_family_purity": 0.9996668887408394,
+      "contact_phase_sample_count": 3002.0,
+      "h_contact_phase_given_family": 0.0012460581410071116,
+      "h_family_given_contact_phase": 3.180144407235579,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 48.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 3017,
+    "family_count": 59,
+    "mean_family_similarity": 0.3366887867450714,
+    "mean_support_size": 91.67086509777926,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 1.0061926645934502,
+      "h_outcome_given_family": 0.43944491546724385,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.6251700675056877,
+      "outcome_family_purity": 0.7333333333333333,
+      "outcome_sample_count": 15.0,
+      "unique_family_count": 10.0,
+      "unique_outcome_count": 5.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 2346
+  },
+  "support_threshold": 0.2
+}
+summary=runs/maniskill_insertion/perturbation_e20_50k_fine_h125_eval_20260603/lista_a0p03_sp0p01/seed0/eval_test_long/metrics_summary.json

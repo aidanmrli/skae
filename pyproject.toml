@@ -27,6 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 develop = ["pytest"]
+control = ["dm-control>=1.0.20"]
 # CUDA PyTorch for Linux users who want GPU support
 # Install with: uv pip install --extra-index-url https://download.pytorch.org/whl/cu128 torch
 cuda = [

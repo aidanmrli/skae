@@ -1,0 +1,248 @@
+date=Tue Jun  2 23:34:25 EDT 2026
+host=cn-h004.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9726492
+slurm_array_task_id=40
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+run_dir=runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/dense_sp0/seed2
+model_family=dense
+encoder_kind=dense
+seed=2
+num_steps=50000
+batch_size=128
+sequence_length=10
+z_dim=320
+hidden_dim=256
+num_hidden_layers=2
+lista_alpha=0.05
+sparsity_weight=0
+support_threshold=0.2
+family_jaccard=0.4
+horizons=10,25,50,100
+cuda_visible_devices=
+step=0 loss=1.445164 pred=0.955119 val_mse=0.739490
+step=500 loss=0.069998 pred=0.060036 val_mse=0.187367
+step=1000 loss=0.045855 pred=0.039270 val_mse=0.162800
+step=1500 loss=0.030763 pred=0.026388 val_mse=0.102085
+step=2000 loss=0.026475 pred=0.022538 val_mse=0.179147
+step=2500 loss=0.039681 pred=0.036030 val_mse=0.133665
+step=3000 loss=0.025980 pred=0.022631 val_mse=0.204213
+step=3500 loss=0.031491 pred=0.028528 val_mse=0.246919
+step=4000 loss=0.018931 pred=0.016652 val_mse=0.248762
+step=4500 loss=0.016282 pred=0.014297 val_mse=0.184077
+step=5000 loss=0.014527 pred=0.012398 val_mse=0.153926
+step=5500 loss=0.015940 pred=0.013465 val_mse=0.121635
+step=6000 loss=0.012619 pred=0.011032 val_mse=0.166470
+step=6500 loss=0.014342 pred=0.012790 val_mse=0.106895
+step=7000 loss=0.011571 pred=0.010064 val_mse=0.132178
+step=7500 loss=0.011713 pred=0.010128 val_mse=0.148410
+step=8000 loss=0.012705 pred=0.010920 val_mse=0.265573
+step=8500 loss=0.024745 pred=0.023179 val_mse=0.095096
+step=9000 loss=0.008387 pred=0.006991 val_mse=0.162011
+step=9500 loss=0.013201 pred=0.011614 val_mse=0.212335
+step=10000 loss=0.008729 pred=0.007584 val_mse=0.127233
+step=10500 loss=0.009985 pred=0.008554 val_mse=0.160696
+step=11000 loss=0.011260 pred=0.009655 val_mse=0.149309
+step=11500 loss=0.008767 pred=0.007709 val_mse=0.261676
+step=12000 loss=0.011109 pred=0.009793 val_mse=0.187187
+step=12500 loss=0.010759 pred=0.009661 val_mse=0.245167
+step=13000 loss=0.019868 pred=0.018560 val_mse=0.190064
+step=13500 loss=0.010677 pred=0.009660 val_mse=0.227124
+step=14000 loss=0.008037 pred=0.006957 val_mse=0.235855
+step=14500 loss=0.008743 pred=0.007641 val_mse=0.414949
+step=15000 loss=0.007823 pred=0.006904 val_mse=0.267229
+step=15500 loss=0.005862 pred=0.005062 val_mse=0.239230
+step=16000 loss=0.007424 pred=0.006504 val_mse=0.240663
+step=16500 loss=0.006319 pred=0.005473 val_mse=0.130525
+step=17000 loss=0.007523 pred=0.006411 val_mse=0.118792
+step=17500 loss=0.005603 pred=0.004728 val_mse=0.201103
+step=18000 loss=0.009180 pred=0.008113 val_mse=0.135035
+step=18500 loss=0.005703 pred=0.004741 val_mse=0.207557
+step=19000 loss=0.006879 pred=0.005958 val_mse=0.131201
+step=19500 loss=0.006992 pred=0.006095 val_mse=0.131226
+step=20000 loss=0.006416 pred=0.005533 val_mse=0.165152
+step=20500 loss=0.003870 pred=0.003007 val_mse=0.134387
+step=21000 loss=0.007016 pred=0.005941 val_mse=0.295864
+step=21500 loss=0.005196 pred=0.004325 val_mse=0.153878
+step=22000 loss=0.006715 pred=0.005872 val_mse=0.189491
+step=22500 loss=0.009217 pred=0.008171 val_mse=0.154095
+step=23000 loss=0.006011 pred=0.005200 val_mse=0.128543
+step=23500 loss=0.011649 pred=0.010698 val_mse=0.272480
+step=24000 loss=0.005051 pred=0.004274 val_mse=0.109242
+step=24500 loss=0.005957 pred=0.005225 val_mse=0.255387
+step=25000 loss=0.004597 pred=0.003853 val_mse=0.212748
+step=25500 loss=0.004332 pred=0.003598 val_mse=0.116698
+step=26000 loss=0.005861 pred=0.005052 val_mse=0.120033
+step=26500 loss=0.003812 pred=0.003096 val_mse=0.186743
+step=27000 loss=0.003381 pred=0.002767 val_mse=0.153274
+step=27500 loss=0.006229 pred=0.005441 val_mse=0.169249
+step=28000 loss=0.006347 pred=0.005594 val_mse=0.109351
+step=28500 loss=0.004203 pred=0.003511 val_mse=0.227225
+step=29000 loss=0.004861 pred=0.004135 val_mse=0.194354
+step=29500 loss=0.004077 pred=0.003408 val_mse=0.198791
+step=30000 loss=0.005592 pred=0.004831 val_mse=0.265513
+step=30500 loss=0.007500 pred=0.006720 val_mse=0.195867
+step=31000 loss=0.004308 pred=0.003526 val_mse=0.224945
+step=31500 loss=0.006396 pred=0.005629 val_mse=0.227587
+step=32000 loss=0.002917 pred=0.002319 val_mse=0.141796
+step=32500 loss=0.004434 pred=0.003783 val_mse=0.296313
+step=33000 loss=0.006451 pred=0.005770 val_mse=0.171931
+step=33500 loss=0.004399 pred=0.003674 val_mse=0.294647
+step=34000 loss=0.007002 pred=0.006229 val_mse=0.295631
+step=34500 loss=0.004546 pred=0.003843 val_mse=0.161569
+step=35000 loss=0.007129 pred=0.006284 val_mse=0.223729
+step=35500 loss=0.005675 pred=0.004859 val_mse=0.120823
+step=36000 loss=0.003141 pred=0.002583 val_mse=0.182395
+step=36500 loss=0.008958 pred=0.008212 val_mse=0.132274
+step=37000 loss=0.005054 pred=0.004404 val_mse=0.178720
+step=37500 loss=0.004327 pred=0.003617 val_mse=0.393364
+step=38000 loss=0.003799 pred=0.003150 val_mse=0.179560
+step=38500 loss=0.004282 pred=0.003673 val_mse=0.244967
+step=39000 loss=0.005789 pred=0.005027 val_mse=0.167244
+step=39500 loss=0.003966 pred=0.003223 val_mse=0.164788
+step=40000 loss=0.002960 pred=0.002418 val_mse=0.157907
+step=40500 loss=0.003862 pred=0.003218 val_mse=0.094947
+step=41000 loss=0.004206 pred=0.003529 val_mse=0.181364
+step=41500 loss=0.005104 pred=0.004354 val_mse=0.175617
+step=42000 loss=0.004153 pred=0.003453 val_mse=0.380773
+step=42500 loss=0.002517 pred=0.001955 val_mse=0.254413
+step=43000 loss=0.003720 pred=0.003106 val_mse=0.140594
+step=43500 loss=0.007846 pred=0.007120 val_mse=0.113614
+step=44000 loss=0.005776 pred=0.005169 val_mse=0.261278
+step=44500 loss=0.004136 pred=0.003454 val_mse=0.162619
+step=45000 loss=0.002970 pred=0.002392 val_mse=0.310998
+step=45500 loss=0.004442 pred=0.003860 val_mse=0.193509
+step=46000 loss=0.004643 pred=0.003892 val_mse=0.172677
+step=46500 loss=0.005694 pred=0.004976 val_mse=0.201140
+step=47000 loss=0.002808 pred=0.002220 val_mse=0.211185
+step=47500 loss=0.004937 pred=0.004233 val_mse=0.128314
+step=48000 loss=0.005501 pred=0.004733 val_mse=0.157445
+step=48500 loss=0.005057 pred=0.004326 val_mse=0.233862
+step=49000 loss=0.003923 pred=0.003376 val_mse=0.161272
+step=49500 loss=0.005092 pred=0.004161 val_mse=0.198766
+step=49999 loss=0.003126 pred=0.002490 val_mse=0.138878
+run_dir=runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/dense_sp0/seed2
+{
+  "checkpoint": "runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/dense_sp0/seed2/checkpoint.pt",
+  "checkpoint_step": 40500,
+  "dataset": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "device": "cpu",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 15,
+    "h10/episode_count": 15,
+    "h10/final_state_mse": 0.0009130023663340051,
+    "h10/outcome_drop_episode_count": 3,
+    "h10/outcome_drop_final_state_mse": 0.0005224126518941393,
+    "h10/outcome_drop_state_mse": 0.0009550177680900673,
+    "h10/outcome_jam_episode_count": 3,
+    "h10/outcome_jam_final_state_mse": 0.0005787136459272671,
+    "h10/outcome_jam_state_mse": 0.0010020785861545138,
+    "h10/outcome_miss_episode_count": 3,
+    "h10/outcome_miss_final_state_mse": 0.0024179718122373218,
+    "h10/outcome_miss_state_mse": 0.0066102233587526805,
+    "h10/outcome_partial_episode_count": 3,
+    "h10/outcome_partial_final_state_mse": 0.0005238118149291457,
+    "h10/outcome_partial_state_mse": 0.0009654052604257671,
+    "h10/outcome_success_episode_count": 3,
+    "h10/outcome_success_final_state_mse": 0.0005221021319039506,
+    "h10/outcome_success_state_mse": 0.0009643251015469919,
+    "h10/state_mse": 0.002099409913705065,
+    "h100/episode_count": 15,
+    "h100/final_state_mse": 0.004814729191898521,
+    "h100/outcome_drop_episode_count": 3,
+    "h100/outcome_drop_final_state_mse": 0.003910247163445342,
+    "h100/outcome_drop_state_mse": 0.00198593647651423,
+    "h100/outcome_jam_episode_count": 3,
+    "h100/outcome_jam_final_state_mse": 0.004599243548570895,
+    "h100/outcome_jam_state_mse": 0.001956591574974309,
+    "h100/outcome_miss_episode_count": 3,
+    "h100/outcome_miss_final_state_mse": 0.0084439592034209,
+    "h100/outcome_miss_state_mse": 0.003638282476686964,
+    "h100/outcome_partial_episode_count": 3,
+    "h100/outcome_partial_final_state_mse": 0.002708427851496179,
+    "h100/outcome_partial_state_mse": 0.0015585499807120927,
+    "h100/outcome_success_episode_count": 3,
+    "h100/outcome_success_final_state_mse": 0.00441176906909818,
+    "h100/outcome_success_state_mse": 0.00182831184536803,
+    "h100/state_mse": 0.0021935347014782475,
+    "h25/episode_count": 15,
+    "h25/final_state_mse": 0.0008476469251844618,
+    "h25/outcome_drop_episode_count": 3,
+    "h25/outcome_drop_final_state_mse": 0.0007525171256727643,
+    "h25/outcome_drop_state_mse": 0.0007775090021245619,
+    "h25/outcome_jam_episode_count": 3,
+    "h25/outcome_jam_final_state_mse": 0.0010576395658788338,
+    "h25/outcome_jam_state_mse": 0.0008065227122088663,
+    "h25/outcome_miss_episode_count": 3,
+    "h25/outcome_miss_final_state_mse": 0.0009232569071981641,
+    "h25/outcome_miss_state_mse": 0.003579109291625179,
+    "h25/outcome_partial_episode_count": 3,
+    "h25/outcome_partial_final_state_mse": 0.0007549992707722328,
+    "h25/outcome_partial_state_mse": 0.0007727432718463973,
+    "h25/outcome_success_episode_count": 3,
+    "h25/outcome_success_final_state_mse": 0.0007498218659676757,
+    "h25/outcome_success_state_mse": 0.0007753143279381048,
+    "h25/state_mse": 0.0013422396790747548,
+    "h50/episode_count": 15,
+    "h50/final_state_mse": 0.001576127881318136,
+    "h50/outcome_drop_episode_count": 3,
+    "h50/outcome_drop_final_state_mse": 0.0016079534307803984,
+    "h50/outcome_drop_state_mse": 0.0010461458193710426,
+    "h50/outcome_jam_episode_count": 3,
+    "h50/outcome_jam_final_state_mse": 0.0017379287605971292,
+    "h50/outcome_jam_state_mse": 0.0009411864031374065,
+    "h50/outcome_miss_episode_count": 3,
+    "h50/outcome_miss_final_state_mse": 0.0016599778645957997,
+    "h50/outcome_miss_state_mse": 0.002375306085823408,
+    "h50/outcome_partial_episode_count": 3,
+    "h50/outcome_partial_final_state_mse": 0.0014493245558411466,
+    "h50/outcome_partial_state_mse": 0.0008806147684458814,
+    "h50/outcome_success_episode_count": 3,
+    "h50/outcome_success_final_state_mse": 0.001425454965214324,
+    "h50/outcome_success_state_mse": 0.0008811027707617267,
+    "h50/state_mse": 0.0012248710682189543,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.00011053694936341214,
+      "contact_phase_family_nmi": 0.01445723759355217,
+      "contact_phase_family_purity": 0.9996668887408394,
+      "contact_phase_sample_count": 3002.0,
+      "h_contact_phase_given_family": 0.0017052052492417351,
+      "h_family_given_contact_phase": 2.6733241153266345,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 30.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 3017,
+    "family_count": 43,
+    "mean_family_similarity": 0.3916400671005249,
+    "mean_support_size": 137.94895591647332,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.9137730405187909,
+      "h_outcome_given_family": 0.6469373685226156,
+      "outcome_family_ari": 0.011764705882352941,
+      "outcome_family_nmi": 0.5538801328646803,
+      "outcome_family_purity": 0.6666666666666666,
+      "outcome_sample_count": 15.0,
+      "unique_family_count": 8.0,
+      "unique_outcome_count": 5.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 2346
+  },
+  "support_threshold": 0.2
+}
+summary=runs/maniskill_insertion/perturbation_e20_50k_cpu_20260603/dense_sp0/seed2/eval_test/metrics_summary.json

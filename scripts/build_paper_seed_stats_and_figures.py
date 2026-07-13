@@ -703,6 +703,7 @@ def plot_entropy_strip(
     itp_df: pd.DataFrame, label_map: dict, ax, metric: str, title: str,
     yscale: str = "linear",
     summary: str = "iqm",
+    cap: float | None = None,
 ):
     keys = []
     distros = []
@@ -733,12 +734,37 @@ def plot_entropy_strip(
     for idx, (vals, c) in enumerate(zip(distros, colors)):
         if vals.size == 0:
             continue
+        plot_vals = vals if cap is None else np.minimum(vals, cap)
+        overflow = np.zeros(vals.shape, dtype=bool) if cap is None else vals > cap
         q1, q3 = np.percentile(vals, [25, 75])
-        ax.vlines(idx, q1, q3, color="0.25", alpha=0.9, lw=1.5, zorder=2.5)
-        ax.hlines([q1, q3], idx - 0.16, idx + 0.16, color="0.25", alpha=0.9, lw=1.5, zorder=2.6)
+        q1_plot = min(q1, cap) if cap is not None else q1
+        q3_plot = min(q3, cap) if cap is not None else q3
+        ax.vlines(idx, q1_plot, q3_plot, color="0.25", alpha=0.9, lw=1.5, zorder=2.5)
+        ax.hlines([q1_plot, q3_plot], idx - 0.16, idx + 0.16, color="0.25", alpha=0.9, lw=1.5, zorder=2.6)
         x_jitter = idx + (rng.random(vals.size) - 0.5) * 0.18
-        ax.scatter(x_jitter, vals, color=c, alpha=0.45, s=11, edgecolor="none", zorder=2)
-        ax.hlines(iqm_pts[idx], idx - 0.25, idx + 0.25, color="black", lw=2.0, zorder=3)
+        ax.scatter(
+            x_jitter[~overflow],
+            plot_vals[~overflow],
+            color=c,
+            alpha=0.45,
+            s=11,
+            edgecolor="none",
+            zorder=2,
+        )
+        if np.any(overflow):
+            ax.scatter(
+                x_jitter[overflow],
+                plot_vals[overflow],
+                color=c,
+                alpha=0.6,
+                s=15,
+                marker="^",
+                edgecolor="none",
+                zorder=2.2,
+                clip_on=False,
+            )
+        point = min(iqm_pts[idx], cap) if cap is not None else iqm_pts[idx]
+        ax.hlines(point, idx - 0.25, idx + 0.25, color="black", lw=2.0, zorder=3)
     ax.set_xticks(range(len(keys)))
     ax.set_xticklabels(keys, rotation=30, ha="right")
     ax.set_title(title, fontsize=8)
@@ -776,17 +802,17 @@ table1_current_interp_csvs = [
     ROOT
     / "results"
     / "transition_rich_table2_5model_seed15_backfill_20260428"
-    / "interpretability_pass0"
+    / "interpretability_per_basin_deep_current_table1_pass0"
     / "interpretability_rows.csv",
     ROOT
     / "results"
     / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
-    / "interpretability_pass0"
+    / "interpretability_per_basin_deep_current_table1_pass0"
     / "interpretability_rows.csv",
     ROOT
     / "results"
     / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
-    / "interpretability_pass0"
+    / "interpretability_per_basin_deep_current_table1_pass0"
     / "interpretability_rows.csv",
 ]
 root_labels_table1_current = {
@@ -841,15 +867,20 @@ deep_table1_current = deep_table1_current[
     deep_table1_current["root_label"].isin(root_labels_table1_current.keys())
     & (deep_table1_current["support_scheme"] == "absolute:0.001")
     & (deep_table1_current["subset"] == "deep")
+    & (deep_table1_current["family_jaccard_threshold"] == 0.5)
 ].copy()
 
-# H(B|F_abs), |F_abs|, and the h=1 wrong-support/base ratio. The count panel
-# uses a mean summary because family count is interpreted against basin counts;
-# the wrong-support panel is log-scaled because the functional ablation spans
-# orders of magnitude.
+# H(B|F_abs), |F_abs|, and the h=1 wrong-support/base ratio on the per-basin
+# deep slice. The count panel uses a capped linear scale because |F_abs| is a
+# basin-count diagnostic; log scaling would obscure closeness to the retained
+# benchmark's mean basin count.
 fig, axes = plt.subplots(1, 3, figsize=(8.0, 2.6))
 plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[0], "family_h_basin_given_family", r"$H(B\,|\,F_{\rm abs})$")
-plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[1], "family_unique_count", r"$|F_{\rm abs}|$", summary="mean")
+plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[1], "family_unique_count", r"$|F_{\rm abs}|$", summary="mean", cap=6.0)
+axes[1].axhline(4.20, color="0.45", lw=0.9, ls="--", zorder=1)
+axes[1].set_ylim(0.75, 6.35)
+axes[1].set_yticks(np.arange(1, 7))
+axes[1].text(0.98, 0.97, "triangles: >6", transform=axes[1].transAxes, ha="right", va="top", fontsize=7, color="0.35")
 plot_entropy_strip(deep_table1_current, root_labels_table1_current, axes[2], "support_freeze_wrong_over_base_h1", r"wrong-support ratio $h{=}1$", yscale="log")
 fig.tight_layout()
 fig.savefig(FIG_DIR / "fig_fixed17_entropy_strips_alt2.pdf", bbox_inches="tight")
@@ -1424,7 +1455,7 @@ tbl_refresh = build_refresh_table(pr)
 manifest = {
     "fixed17_horizon_curves": "fig_fixed17_horizon_curves.pdf",
     "fixed17_seed_strips": "fig_fixed17_seed_strips.pdf",
-    "fixed17_entropy_strips": "fig_fixed17_entropy_strips.pdf",
+    "fixed17_entropy_strips": "fig_fixed17_entropy_strips_alt2.pdf",
     "routing_ratios": "fig_routing_ratios.pdf",
     "dysts_long_horizon": "fig_dysts_long_horizon.pdf",
     "appfig_fixed17_perseed_histograms": "appfig_fixed17_perseed_histograms.pdf",

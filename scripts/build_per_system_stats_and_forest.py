@@ -110,17 +110,17 @@ INTERP_CSVS = [
     ROOT
     / "results"
     / "transition_rich_table2_5model_seed15_backfill_20260428"
-    / "interpretability_pass0"
+    / "interpretability_per_basin_deep_current_table1_pass0"
     / "interpretability_rows.csv",
     ROOT
     / "results"
     / "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428"
-    / "interpretability_pass0"
+    / "interpretability_per_basin_deep_current_table1_pass0"
     / "interpretability_rows.csv",
     ROOT
     / "results"
     / "transition_rich_lista_dense_p256_hardinit_table123_20260430"
-    / "interpretability_pass0"
+    / "interpretability_per_basin_deep_current_table1_pass0"
     / "interpretability_rows.csv",
 ]
 
@@ -191,7 +191,11 @@ for column in ("system_name", "system_key", "train_env_name"):
         fc = fc[~fc[column].isin(EXCLUDED_SYSTEMS)].copy()
     if column in itp:
         itp = itp[~itp[column].isin(EXCLUDED_SYSTEMS)].copy()
-deep_mask = (itp["support_scheme"] == "absolute:0.001") & (itp["subset"] == "deep")
+deep_mask = (
+    (itp["support_scheme"] == "absolute:0.001")
+    & (itp["subset"] == "deep")
+    & (itp["family_jaccard_threshold"] == 0.5)
+)
 itp_deep = itp[deep_mask].copy()
 
 systems = sorted(fc["system_name"].unique())
@@ -1342,17 +1346,49 @@ def plot_entropy_strips() -> None:
             color = PALETTE[meta["color"]]
             if kind == "strip_log":
                 vals = vals[vals > 0]
+            cap = 6.0 if kind == "strip_mean" else None
+            plot_vals = vals if cap is None else np.minimum(vals, cap)
+            overflow = np.zeros(vals.shape, dtype=bool) if cap is None else vals > cap
             x = i + rng.uniform(-0.18, 0.18, size=vals.size)
             if vals.size:
                 q1, q3 = np.percentile(vals, [25, 75])
-                ax.vlines(i, q1, q3, color="0.25", alpha=0.9, lw=1.5, zorder=2.5)
-                ax.hlines([q1, q3], i - 0.16, i + 0.16, color="0.25", alpha=0.9, lw=1.5, zorder=2.6)
-                ax.scatter(x, vals, s=8, color=color, alpha=0.32, linewidths=0, zorder=2)
+                q1_plot = min(q1, cap) if cap is not None else q1
+                q3_plot = min(q3, cap) if cap is not None else q3
+                ax.vlines(i, q1_plot, q3_plot, color="0.25", alpha=0.9, lw=1.5, zorder=2.5)
+                ax.hlines([q1_plot, q3_plot], i - 0.16, i + 0.16, color="0.25", alpha=0.9, lw=1.5, zorder=2.6)
+                ax.scatter(x[~overflow], plot_vals[~overflow], s=8, color=color, alpha=0.32, linewidths=0, zorder=2)
+                if np.any(overflow):
+                    ax.scatter(
+                        x[overflow],
+                        plot_vals[overflow],
+                        s=12,
+                        color=color,
+                        alpha=0.55,
+                        marker="^",
+                        linewidths=0,
+                        zorder=2.2,
+                        clip_on=False,
+                    )
                 summary = float(np.mean(vals)) if kind == "strip_mean" else iqm(vals)
+                summary = min(summary, cap) if cap is not None and np.isfinite(summary) else summary
                 ax.hlines(summary, i - 0.25, i + 0.25, color="black", lw=1.6, zorder=3)
             xlabels.append(meta["label"])
         if kind == "strip_log":
             ax.set_yscale("log")
+        if kind == "strip_mean":
+            ax.axhline(4.20, color="0.45", lw=0.9, ls="--", zorder=1)
+            ax.set_ylim(0.75, 6.35)
+            ax.set_yticks(np.arange(1, 7))
+            ax.text(
+                0.98,
+                0.97,
+                "triangles: >6",
+                transform=ax.transAxes,
+                ha="right",
+                va="top",
+                fontsize=7,
+                color="0.35",
+            )
         ax.set_title(label)
         ax.set_xticks(np.arange(len(xlabels)))
         ax.set_xticklabels(xlabels, rotation=35, ha="right")

@@ -1,0 +1,13 @@
+date=Wed Jun 10 12:16:50 EDT 2026
+host=cn-f004.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9801697
+slurm_array_task_id=2
+task_index=2
+task_id=PullCube-v1
+max_steps=50
+primary_horizons=10,20,30,40,50
+obs_key=env_states
+output=data/maniskill/default_tasks/PullCube-v1/PullCube-v1_state_compact_seed0.npz
+cuda_visible_devices=
+Downloading demonstrations to /home/mila/l/lia/.maniskill/demos - 1/1, PullCube-v1

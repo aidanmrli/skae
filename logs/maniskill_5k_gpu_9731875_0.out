@@ -1,0 +1,125 @@
+=============================================
+ManiSkill 5k packed tuning GPU context
+date=2026-06-03T18:58:00-0400
+host=cn-e002.server.mila.quebec
+slurm_job_id=9731880
+slurm_array_task_id=0
+slurm_nodelist=cn-e002
+slurm_job_gpus=3
+slurm_step_gpus=
+slurm_gpus=
+slurm_gpus_on_node=1
+slurm_cpus_per_task=8
+cuda_visible_devices=0
+cuda_device_order=
+GPU 0: Tesla V100-SXM2-32GB-LS (UUID: GPU-375daf3e-b754-9d09-1102-a797d5a4ab95)
+index, uuid, name, driver_version, memory.total [MiB]
+0, GPU-375daf3e-b754-9d09-1102-a797d5a4ab95, Tesla V100-SXM2-32GB-LS, 580.95.05, 32768 MiB
+=============================================
+date=Wed Jun  3 18:58:00 EDT 2026
+host=cn-e002.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9731880
+slurm_array_task_id=0
+task_set=initial
+task_count=18
+start_task=0
+pack_size=4
+pack_concurrency=4
+packed_task_threads=2
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+run_root=runs/maniskill_insertion/perturbation_e20_5k_lista_tuning_initial_20260603_185559
+num_steps=5000
+batch_size=512
+sequence_length=10
+z_dim=320
+hidden_dim=256
+horizons=10
+periodic_reencode_periods=10
+cuda_visible_devices=0
+----- task 1/18: dense_tanh_sp0 seed0 -----
+encoder_kind=dense activation=tanh alpha=0.05 sparsity=0 loops=2
+weights pred=1.0 rec=0.1 latent=0.1 k=1e-4
+run_dir=runs/maniskill_insertion/perturbation_e20_5k_lista_tuning_initial_20260603_185559/dense_tanh_sp0/seed0
+----- task 0/18: dense_relu_sp0 seed0 -----
+encoder_kind=dense activation=relu alpha=0.05 sparsity=0 loops=2
+weights pred=1.0 rec=0.1 latent=0.1 k=1e-4
+run_dir=runs/maniskill_insertion/perturbation_e20_5k_lista_tuning_initial_20260603_185559/dense_relu_sp0/seed0
+----- task 2/18: lista_tanh_a0p001_sp0 seed0 -----
+encoder_kind=lista activation=tanh alpha=0.001 sparsity=0 loops=2
+weights pred=1.0 rec=0.1 latent=0.1 k=1e-4
+run_dir=runs/maniskill_insertion/perturbation_e20_5k_lista_tuning_initial_20260603_185559/lista_tanh_a0p001_sp0/seed0
+----- task 3/18: lista_tanh_a0p001_sp1em5 seed0 -----
+encoder_kind=lista activation=tanh alpha=0.001 sparsity=1e-5 loops=2
+weights pred=1.0 rec=0.1 latent=0.1 k=1e-4
+run_dir=runs/maniskill_insertion/perturbation_e20_5k_lista_tuning_initial_20260603_185559/lista_tanh_a0p001_sp1em5/seed0
+step=0 loss=1.609871 pred=0.987744 val_mse=0.741452
+step=0 loss=1.561148 pred=1.014493 val_mse=0.764732
+step=0 loss=1.529391 pred=0.994587 val_mse=0.757364
+step=0 loss=1.529393 pred=0.994587 val_mse=0.757364
+step=500 loss=0.060046 pred=0.050647 val_mse=0.123980
+step=500 loss=0.052644 pred=0.046906 val_mse=0.090402
+step=500 loss=0.049246 pred=0.044010 val_mse=0.082877
+step=500 loss=0.049263 pred=0.044022 val_mse=0.082862
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Wed Jun  3 18:58:39 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:0B:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 1773169
+            GPU Utilization               : 16 %
+            Memory Utilization            : 4 %
+            Max memory usage              : 524 MiB
+            Time                          : 0 ms
+            Is Running                    : 1
+        Process ID                        : 1773170
+            GPU Utilization               : 15 %
+            Memory Utilization            : 4 %
+            Max memory usage              : 556 MiB
+            Time                          : 0 ms
+            Is Running                    : 1
+        Process ID                        : 1773174
+            GPU Utilization               : 16 %
+            Memory Utilization            : 4 %
+            Max memory usage              : 524 MiB
+            Time                          : 0 ms
+            Is Running                    : 1
+        Process ID                        : 1773171
+            GPU Utilization               : 19 %
+            Memory Utilization            : 5 %
+            Max memory usage              : 556 MiB
+            Time                          : 0 ms
+            Is Running                    : 1
+
+Wed Jun  3 18:58:39 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-SXM2-32GB-LS        On  |   00000000:0B:00.0 Off |                    0 |
+| N/A   36C    P0            161W /  163W |    2164MiB /  32768MiB |     97%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A         1773169      C   .../l/lia/skae/.venv/bin/python3        524MiB |
+|    0   N/A  N/A         1773170      C   .../l/lia/skae/.venv/bin/python3        556MiB |
+|    0   N/A  N/A         1773171      C   .../l/lia/skae/.venv/bin/python3        556MiB |
+|    0   N/A  N/A         1773174      C   .../l/lia/skae/.venv/bin/python3        524MiB |
++-----------------------------------------------------------------------------------------+

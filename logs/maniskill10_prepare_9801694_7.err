@@ -1,0 +1,73 @@
+Downloading lxml (5.0MiB)
+Downloading hf-xet (4.3MiB)
+Downloading pygments (1.2MiB)
+Downloading pillow (6.3MiB)
+Downloading sympy (6.0MiB)
+Downloading transforms3d (1.3MiB)
+Downloading jedi (1.5MiB)
+Downloading nvidia-cuda-cupti-cu12 (9.8MiB)
+Downloading triton (162.4MiB)
+Downloading nvidia-nvshmem-cu12 (118.9MiB)
+Downloading nvidia-cufile-cu12 (1.1MiB)
+Downloading matplotlib (8.3MiB)
+Downloading nvidia-nvjitlink-cu12 (37.4MiB)
+Downloading nvidia-cusolver-cu12 (255.1MiB)
+Downloading torch (858.1MiB)
+Downloading h5py (4.8MiB)
+Downloading opencv-python (69.5MiB)
+Downloading nvidia-cuda-nvrtc-cu12 (84.0MiB)
+Downloading nvidia-curand-cu12 (60.7MiB)
+Downloading nvidia-cudnn-cu12 (674.0MiB)
+Downloading nvidia-cusparselt-cu12 (273.9MiB)
+Downloading sapien (48.9MiB)
+Downloading numpy (15.6MiB)
+Downloading nvidia-cusparse-cu12 (274.9MiB)
+Downloading mani-skill (97.0MiB)
+Downloading imageio-ffmpeg (28.1MiB)
+Downloading networkx (1.6MiB)
+Downloading mplib (11.5MiB)
+Downloading scipy (35.9MiB)
+Downloading nvidia-cufft-cu12 (184.2MiB)
+Downloading nvidia-cublas-cu12 (566.8MiB)
+Downloading fonttools (4.6MiB)
+Downloading nvidia-nccl-cu12 (307.4MiB)
+Downloading kiwisolver (1.6MiB)
+ Downloaded nvidia-cufile-cu12
+ Downloaded pygments
+ Downloaded transforms3d
+ Downloaded jedi
+ Downloaded kiwisolver
+ Downloaded networkx
+ Downloaded hf-xet
+ Downloaded h5py
+ Downloaded fonttools
+ Downloaded lxml
+ Downloaded sympy
+ Downloaded pillow
+ Downloaded matplotlib
+ Downloaded nvidia-cuda-cupti-cu12
+ Downloaded mplib
+ Downloaded numpy
+ Downloaded imageio-ffmpeg
+ Downloaded scipy
+ Downloaded nvidia-nvjitlink-cu12
+ Downloaded sapien
+ Downloaded nvidia-curand-cu12
+ Downloaded opencv-python
+ Downloaded nvidia-cuda-nvrtc-cu12
+ Downloaded mani-skill
+ Downloaded nvidia-nvshmem-cu12
+ Downloaded triton
+ Downloaded nvidia-cufft-cu12
+ Downloaded nvidia-cusolver-cu12
+ Downloaded nvidia-cusparselt-cu12
+ Downloaded nvidia-cusparse-cu12
+ Downloaded nvidia-nccl-cu12
+ Downloaded nvidia-cublas-cu12
+ Downloaded nvidia-cudnn-cu12
+ Downloaded torch
+Installed 105 packages in 322ms
+/tmp/uv-cache/archive-v0/1aAJKIWAhga4F5sIFnvlC/lib/python3.10/site-packages/sapien/_vulkan_tricks.py:42: UserWarning: Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.
+  warn("Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.")
+0.00it [00:00, ?it/s]  1%|          | 221k/35.7M [00:00<00:16, 2.11Mit/s] 23%|██▎       | 8.31M/35.7M [00:00<00:00, 47.5Mit/s] 56%|█████▌    | 20.1M/35.7M [00:00<00:00, 79.2Mit/s] 89%|████████▉ | 31.8M/35.7M [00:00<00:00, 94.1Mit/s]35.7Mit [00:00, 80.9Mit/s]                           
+Could not find trajectory.h5 for PushT-v1 under /home/mila/l/lia/.maniskill/demos/PushT-v1

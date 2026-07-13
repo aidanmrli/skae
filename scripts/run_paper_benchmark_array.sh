@@ -29,13 +29,13 @@ else
 fi
 cd "${ROOT_DIR}"
 
-module load cuda/12.6.0
+source scripts/slurm_gpu_guard.sh
+trap gpu_guard_stop_sampler EXIT
 source .venv/bin/activate
 
 echo "Host: $(hostname)"
 echo "Repo: ${ROOT_DIR}"
 echo "Git commit: $(git rev-parse HEAD)"
-command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi || true
 
 TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
 BASE_OUT="${BASE_OUT:?BASE_OUT is required}"
@@ -94,6 +94,24 @@ fi
 LOG_DIR="${LOG_ROOT}/${system_slug}/dt_${DT_TAG}/seed_${seed}"
 mkdir -p "${LOG_DIR}"
 
+COMPLETED_RUN=""
+if [[ "${SKIP_COMPLETED:-1}" == "1" ]]; then
+  COMPLETED_RUN="$(
+    find "${LOG_DIR}" -mindepth 1 -maxdepth 1 -type d \
+      -name '20*' -exec test -f '{}/evaluation_summary.json' ';' -print \
+      | sort | tail -n 1
+  )"
+fi
+
+RESUME_CHECKPOINT=""
+if [[ -z "${COMPLETED_RUN}" && "${RESUME_FROM_LATEST:-1}" == "1" ]]; then
+  RESUME_CHECKPOINT="$(
+    find "${LOG_DIR}" -mindepth 2 -maxdepth 2 -type f -name 'last.pt' \
+      -printf '%T@ %p\n' 2>/dev/null \
+      | sort -n | tail -n 1 | cut -d' ' -f2-
+  )"
+fi
+
 echo "============================================="
 echo "Paper Benchmark Array Runner"
 echo "Job ID: ${SLURM_JOB_ID:-local}"
@@ -133,6 +151,17 @@ if [[ -n "${competitive_lv_system_seed:-}" ]]; then
   echo "COMPETITIVE_LV_SYSTEM_SEED: ${competitive_lv_system_seed}"
 fi
 echo "LOG_DIR: ${LOG_DIR}"
+if [[ -n "${COMPLETED_RUN}" ]]; then
+  echo "Completed run already exists: ${COMPLETED_RUN}"
+  echo "Skipping completed task."
+  exit 0
+fi
+if [[ -n "${RESUME_CHECKPOINT}" ]]; then
+  echo "Resuming from latest checkpoint: ${RESUME_CHECKPOINT}"
+fi
+module load cuda/12.6.0
+gpu_guard_assert_cuda_visible "paper benchmark task ${task_id}"
+gpu_guard_print_context "Paper Benchmark Array Runner"
 echo "Start Time: $(date)"
 echo "============================================="
 
@@ -154,6 +183,18 @@ TRAIN_ARGS=(
   --log_dir "${LOG_DIR}"
 )
 
+if [[ -n "${sparsity_target:-}" ]]; then
+  TRAIN_ARGS+=(--sparsity_target "${sparsity_target}")
+fi
+if [[ -n "${eval_every:-}" ]]; then
+  TRAIN_ARGS+=(--eval_every "${eval_every}")
+fi
+if [[ -n "${eval_num_steps:-}" ]]; then
+  TRAIN_ARGS+=(--eval_num_steps "${eval_num_steps}")
+fi
+if [[ "${skip_basin_eval:-0}" == "1" ]]; then
+  TRAIN_ARGS+=(--skip_basin_eval)
+fi
 if [[ -n "${lista_alpha:-}" ]]; then
   TRAIN_ARGS+=(--lista_alpha "${lista_alpha}")
 fi
@@ -232,6 +273,9 @@ fi
 if [[ -n "${decoder_coherence_weight:-}" ]]; then
   TRAIN_ARGS+=(--decoder_coherence_weight "${decoder_coherence_weight}")
 fi
+if [[ -n "${normalize_decoder_atoms:-}" ]]; then
+  TRAIN_ARGS+=(--normalize_decoder_atoms "${normalize_decoder_atoms}")
+fi
 if [[ -n "${k_structure:-}" ]]; then
   TRAIN_ARGS+=(--k_structure "${k_structure}")
 fi
@@ -270,6 +314,9 @@ if [[ -n "${hyperlista_c_beta:-}" ]]; then
 fi
 if [[ -n "${hyperlista_c_ss:-}" ]]; then
   TRAIN_ARGS+=(--hyperlista_c_ss "${hyperlista_c_ss}")
+fi
+if [[ -n "${hyperlista_step_scale:-}" ]]; then
+  TRAIN_ARGS+=(--hyperlista_step_scale "${hyperlista_step_scale}")
 fi
 if [[ -n "${hyperlista_use_ss:-}" ]]; then
   TRAIN_ARGS+=(--hyperlista_use_ss "${hyperlista_use_ss}")
@@ -400,9 +447,20 @@ fi
 if [[ -n "${dysts_ic_noise_scale:-}" ]]; then
   TRAIN_ARGS+=(--dysts_ic_noise_scale "${dysts_ic_noise_scale}")
 fi
+if [[ -n "${RESUME_CHECKPOINT}" ]]; then
+  TRAIN_ARGS+=(--checkpoint "${RESUME_CHECKPOINT}")
+fi
 
+gpu_guard_start_sampler \
+  "${LOG_DIR}/gpu_utilization_${SLURM_JOB_ID:-local}_${TASK_ID}.csv" \
+  "${GPU_TELEMETRY_INTERVAL:-30}"
+gpu_guard_phase "paper benchmark training start task_id=${task_id}"
+set +e
 uv run python tools/train.py "${TRAIN_ARGS[@]}"
 EXIT_CODE=$?
+set -e
+gpu_guard_phase "paper benchmark training end task_id=${task_id} exit_code=${EXIT_CODE}"
+gpu_guard_stop_sampler
 
 echo "============================================="
 echo "End Time: $(date)"

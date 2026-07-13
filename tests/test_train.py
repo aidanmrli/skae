@@ -122,10 +122,43 @@ class TestTrainStep:
         x_seq = torch.randn(4, horizon + 1, env.observation_size)
         metrics = train_step(model, optimizer, x_seq)
 
-        assert metrics["sequence_term_scale"] == pytest.approx(1.0 / horizon, abs=1e-8)
+        assert metrics["sequence_term_scale"] == pytest.approx(1.0, abs=1e-8)
         for key in ("loss", "alignment_loss", "reconst_loss", "prediction_loss", "sparsity_loss"):
             assert key in metrics
             assert isinstance(metrics[key], float)
+
+    @pytest.mark.parametrize("target", ["rollout", "encoded", "encoded_rollout"])
+    def test_train_step_sparsity_target(self, target):
+        """train_step should apply L1 to the configured latent source."""
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LAYERS = [8]
+        cfg.MODEL.SPARSITY_TARGET = target
+
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.0)
+
+        x_seq = torch.randn(4, 4, env.observation_size)
+        batch_size, seq_len, obs_size = x_seq.shape
+        horizon = seq_len - 1
+        with torch.no_grad():
+            z_all = model.encode(x_seq.reshape(batch_size * seq_len, obs_size)).reshape(batch_size, seq_len, -1)
+            z0 = z_all[:, 0, :]
+            z_true = z_all[:, 1:, :]
+            z_pred = model.rollout_latent_discrete(z0, horizon=horizon)
+            if target == "rollout":
+                expected = torch.norm(z_pred, p=1, dim=-1).mean()
+            elif target == "encoded":
+                expected = torch.norm(z_true, p=1, dim=-1).mean()
+            else:
+                expected = 0.5 * (
+                    torch.norm(z_true, p=1, dim=-1).mean()
+                    + torch.norm(z_pred, p=1, dim=-1).mean()
+                )
+
+        metrics = train_step(model, optimizer, x_seq)
+        assert metrics["sparsity_loss"] == pytest.approx(float(expected), rel=1e-6)
 
 
 class TestEvaluate:
@@ -194,7 +227,7 @@ class TestTrain:
         cfg.TRAIN.DATA_SIZE = 16
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            model = train(cfg, log_dir=tmpdir, device='cpu')
+            model = train(cfg, log_dir=tmpdir, device='cpu', save_last_checkpoint=True)
             
             # Check model was returned
             assert model is not None
@@ -218,7 +251,7 @@ class TestTrain:
         cfg.TRAIN.DATA_SIZE = 16
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            model = train(cfg, log_dir=tmpdir, device='cpu')
+            model = train(cfg, log_dir=tmpdir, device='cpu', save_last_checkpoint=True)
             
             # Find run directory
             run_dirs = list(Path(tmpdir).iterdir())
@@ -683,7 +716,7 @@ class TestOptimizer:
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # First training run
-            model1 = train(cfg, log_dir=tmpdir, device='cpu')
+            model1 = train(cfg, log_dir=tmpdir, device='cpu', save_last_checkpoint=True)
             
             # Get checkpoint path
             run_dirs = list(Path(tmpdir).iterdir())

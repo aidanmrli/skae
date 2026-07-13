@@ -1,0 +1,150 @@
+date=Tue May 19 13:45:15 EDT 2026
+host=cn-h004.server.mila.quebec
+commit=b5ea99e
+step=0 loss=1.261408 pred=0.906400 val_mse=0.775923
+step=100 loss=0.383953 pred=0.298080 val_mse=0.254303
+step=200 loss=0.175575 pred=0.132012 val_mse=0.291286
+step=300 loss=0.119415 pred=0.087307 val_mse=0.253944
+step=400 loss=0.085278 pred=0.059492 val_mse=0.233176
+step=500 loss=0.087588 pred=0.063626 val_mse=0.133276
+step=600 loss=0.077633 pred=0.056510 val_mse=0.153947
+step=700 loss=0.076039 pred=0.055718 val_mse=0.145225
+step=800 loss=0.055741 pred=0.038860 val_mse=0.192700
+step=900 loss=0.059587 pred=0.043225 val_mse=0.201463
+step=1000 loss=0.063372 pred=0.047237 val_mse=0.192131
+step=1100 loss=0.093150 pred=0.075346 val_mse=0.150545
+step=1200 loss=0.058971 pred=0.044556 val_mse=0.151183
+step=1300 loss=0.059384 pred=0.045031 val_mse=0.146008
+step=1400 loss=0.057468 pred=0.043494 val_mse=0.237474
+step=1500 loss=0.045729 pred=0.033016 val_mse=0.106783
+step=1600 loss=0.055485 pred=0.042984 val_mse=0.190227
+step=1700 loss=0.044850 pred=0.033189 val_mse=0.262528
+step=1800 loss=0.040725 pred=0.029810 val_mse=0.205387
+step=1900 loss=0.031953 pred=0.022098 val_mse=0.383108
+step=1999 loss=0.070283 pred=0.058229 val_mse=0.151954
+run_dir=runs/maniskill_insertion/perturbation_seed0_e20_cpu/lista
+{
+  "checkpoint": "runs/maniskill_insertion/perturbation_seed0_e20_cpu/lista/checkpoint.pt",
+  "checkpoint_step": 1500,
+  "dataset": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "device": "cpu",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 15,
+    "h10/episode_count": 15,
+    "h10/final_state_mse": 0.0030958767809899025,
+    "h10/outcome_drop_episode_count": 3,
+    "h10/outcome_drop_final_state_mse": 0.0026449880081843707,
+    "h10/outcome_drop_state_mse": 0.0017889014646118762,
+    "h10/outcome_jam_episode_count": 3,
+    "h10/outcome_jam_final_state_mse": 0.004011470069682676,
+    "h10/outcome_jam_state_mse": 0.0023249594214694953,
+    "h10/outcome_miss_episode_count": 3,
+    "h10/outcome_miss_final_state_mse": 0.003551752251737258,
+    "h10/outcome_miss_state_mse": 0.010992119670693391,
+    "h10/outcome_partial_episode_count": 3,
+    "h10/outcome_partial_final_state_mse": 0.0026360273945565315,
+    "h10/outcome_partial_state_mse": 0.0016668746868769328,
+    "h10/outcome_success_episode_count": 3,
+    "h10/outcome_success_final_state_mse": 0.0026351473008105956,
+    "h10/outcome_success_state_mse": 0.00168362464390549,
+    "h10/state_mse": 0.003691296047634549,
+    "h100/episode_count": 15,
+    "h100/final_state_mse": 238.35841503267974,
+    "h100/outcome_drop_episode_count": 3,
+    "h100/outcome_drop_final_state_mse": 206.52765331392973,
+    "h100/outcome_drop_state_mse": 13.293660896650326,
+    "h100/outcome_jam_episode_count": 3,
+    "h100/outcome_jam_final_state_mse": 211.38614111008988,
+    "h100/outcome_jam_state_mse": 13.568417330473856,
+    "h100/outcome_miss_episode_count": 3,
+    "h100/outcome_miss_final_state_mse": 335.39936300040847,
+    "h100/outcome_miss_state_mse": 24.457282475490196,
+    "h100/outcome_partial_episode_count": 3,
+    "h100/outcome_partial_final_state_mse": 219.1749546823938,
+    "h100/outcome_partial_state_mse": 14.134014629289215,
+    "h100/outcome_success_episode_count": 3,
+    "h100/outcome_success_final_state_mse": 219.30386731515523,
+    "h100/outcome_success_state_mse": 14.098949142156863,
+    "h100/state_mse": 15.910464052287582,
+    "h25/episode_count": 15,
+    "h25/final_state_mse": 0.019596875259299682,
+    "h25/outcome_drop_episode_count": 3,
+    "h25/outcome_drop_final_state_mse": 0.019685986384846806,
+    "h25/outcome_drop_state_mse": 0.006345796522751353,
+    "h25/outcome_jam_episode_count": 3,
+    "h25/outcome_jam_final_state_mse": 0.02104380746292912,
+    "h25/outcome_jam_state_mse": 0.006834924236621732,
+    "h25/outcome_miss_episode_count": 3,
+    "h25/outcome_miss_final_state_mse": 0.018165772257287518,
+    "h25/outcome_miss_state_mse": 0.00941611071817236,
+    "h25/outcome_partial_episode_count": 3,
+    "h25/outcome_partial_final_state_mse": 0.019637206021477196,
+    "h25/outcome_partial_state_mse": 0.006210041918785743,
+    "h25/outcome_success_episode_count": 3,
+    "h25/outcome_success_final_state_mse": 0.019451605728249145,
+    "h25/outcome_success_state_mse": 0.006200190650092231,
+    "h25/state_mse": 0.007001412185968137,
+    "h50/episode_count": 15,
+    "h50/final_state_mse": 0.23158409766901553,
+    "h50/outcome_drop_episode_count": 3,
+    "h50/outcome_drop_final_state_mse": 0.19489190157722025,
+    "h50/outcome_drop_state_mse": 0.042841065849354064,
+    "h50/outcome_jam_episode_count": 3,
+    "h50/outcome_jam_final_state_mse": 0.18926102507348155,
+    "h50/outcome_jam_state_mse": 0.04436618680268331,
+    "h50/outcome_miss_episode_count": 3,
+    "h50/outcome_miss_final_state_mse": 0.3985445733163871,
+    "h50/outcome_miss_state_mse": 0.0719343776328891,
+    "h50/outcome_partial_episode_count": 3,
+    "h50/outcome_partial_final_state_mse": 0.18649794073665843,
+    "h50/outcome_partial_state_mse": 0.044433661566840275,
+    "h50/outcome_success_episode_count": 3,
+    "h50/outcome_success_final_state_mse": 0.1887250663408267,
+    "h50/outcome_success_state_mse": 0.04448991463854422,
+    "h50/state_mse": 0.04961303870506536,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 1.7550180569972904e-05,
+      "contact_phase_family_nmi": 0.009849639087374676,
+      "contact_phase_family_purity": 0.9996668887408394,
+      "contact_phase_sample_count": 3002.0,
+      "h_contact_phase_given_family": 0.0021244469215523244,
+      "h_family_given_contact_phase": 2.6345320911321988,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 19.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 3017,
+    "family_count": 22,
+    "mean_family_similarity": 0.43988484144210815,
+    "mean_support_size": 54.76930725886643,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 1.0061926645934502,
+      "h_outcome_given_family": 0.46209812037329684,
+      "outcome_family_ari": -0.013793103448275862,
+      "outcome_family_nmi": 0.616281642732217,
+      "outcome_family_purity": 0.7333333333333333,
+      "outcome_sample_count": 15.0,
+      "unique_family_count": 10.0,
+      "unique_outcome_count": 5.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 2346
+  },
+  "support_threshold": 0.2
+}
+run_dir=runs/maniskill_insertion/perturbation_seed0_e20_cpu/lista
+summary=runs/maniskill_insertion/perturbation_seed0_e20_cpu/lista/eval_test/metrics_summary.json

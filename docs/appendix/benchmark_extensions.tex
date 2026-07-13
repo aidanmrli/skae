@@ -1,7 +1,16 @@
-\section{Planned high-dimensional and application benchmarks}
+\section{High-dimensional and application benchmarks}
 \label{app:benchmark_extensions}
 
-The main experiments isolate basin-support alignment in controlled low-dimensional systems. The next benchmark additions should test the same claim in settings where autoencoding and regime discovery are more demanding, while preserving the paper's label-free training protocol. In both proposed benchmarks, labels are hidden from the encoder, decoder, transition model, sparsity rule, support-family construction, and checkpoint selection. Labels are used only after training to evaluate whether support families are useful regime variables.
+The main experiments isolate basin-support alignment in controlled low-dimensional systems. The next benchmark additions should test the same claim in settings where autoencoding and regime discovery are more demanding, while preserving the paper's label-free training protocol. In these proposed benchmarks, labels are hidden from the encoder, decoder, transition model, sparsity rule, support-family construction, and checkpoint selection. Labels are used only after training to evaluate whether support families are useful regime variables.
+
+\subsection{Completed Lorenz--96 high-dimensional forecasting pilot}
+\label{app:lorenz96_highdim_pilot}
+
+As a first scaling check, we ran a noisy \(D=128\) Lorenz--96 forecasting pilot with \(64\) training trajectories, \(16\) validation trajectories, \(16\) test trajectories, seeds \(0,1,2\), and observation noise equal to \(0.05\) times the training-set channel standard deviation. The neural comparison used overcomplete latents with \(d_z=512=4D\), a 20-step training rollout window, dense learned \(K\) matrices throughout, and no \(K\) regularization. Sparse rows used latent sparsity through the sparse MLP encoder/objective or LISTA-family encoder nonlinearities. A short 120-step smoke run was not enough for this comparison; the paper-facing pilot uses a 2,000-step maximum budget with the same early-stopping rule for all neural rows.
+
+With the longer budget, LISTA-sign-split was the strongest H50/H100 model. Its mean NRMSE was \(0.8832\) at H50 and \(0.9525\) at H100, compared with dense MLP KAE \(0.9131/1.0081\), DMD \(0.9490/0.9741\), and truncated-SVD DMD \(0.9473/0.9775\). Paired trajectory-bootstrap differences favored LISTA-sign-split over dense MLP KAE at H50/H100 by \(-0.0299\) and \(-0.0556\), over DMD by \(-0.0658\) and \(-0.0216\), and over truncated-SVD DMD by \(-0.0641\) and \(-0.0250\); all corresponding 95\% intervals excluded zero. Other sparse rows were less consistent: Sparse-MLP \(L_1=0.1\) improved H50 but not H100, LISTA-shrink approached dense MLP but remained slightly worse at H100, and HyperLISTA remained short-horizon accurate but long-horizon unstable.
+
+This pilot supports a focused overcomplete scaling statement: under a fair longer training budget, the sign-split LISTA sparse encoder improves long-horizon noisy Lorenz--96 forecasting over the matched dense MLP KAE and over full-state DMD baselines in this \(D=128\) condition. The result is still not a blanket claim about all LISTA variants or all sparsity mechanisms, and it remains a full-state benchmark rather than a partial-observation test.
 
 \subsection{Spatialized multibasin reaction--diffusion fields}
 \label{app:spatialized_multibasin_pde}
@@ -28,6 +37,8 @@ On an \(N\times N\) periodic grid, the discretized dynamics are
 \end{equation}
 so the observed state dimension is \(2N^2\), e.g. \(8192\) for \(N=64\). The first pass should use \(N=64\), \(\nu\in\{0.005,0.01,0.02\}\), RK4 internal step size \(0.005\) or \(0.01\), periodic boundary conditions, and stored observations every 10--20 integration steps. The model observes only stored fields, not vector fields or integration substeps. This follows the storage and high-dimensional forecasting style of PDEBench and The Well, which provide reference conventions and baseline context for time-dependent PDE datasets \citep{takamoto_pdebench_2022,ohana_well_2024}.
 
+The paper-facing high-dimensional multibasin variant should prioritize a multistable Allen--Cahn phase-field source, implemented as a two-channel order parameter with smooth multiwell potential \(W\) and dynamics \(\partial_t u=\nu\Delta u-\nabla W(u)\). The wells are known only for evaluation, where final fields can be assigned global modal-well labels and per-pixel well maps. This keeps the benchmark close to a recognizable multistable PDE while preserving the label-free training rule and the existing \(F_{\rm abs}\) support-family evaluation.
+
 Initial conditions should create spatially mixed local basin membership rather than independent ODE copies. For each trajectory, choose \(r\in\{2,3\}\) attractor centers \(c_1,\ldots,c_r\), sample low-frequency Fourier noise fields \(g_k(\xi)\), and convert them to soft masks
 \begin{equation}
   w_k(\xi)=
@@ -52,7 +63,79 @@ records how much of the final field belongs to the modal basin. The primary supp
 
 The initial dataset should cover five source systems, five seeds, and one grid size before expansion. Recommended source systems are \texttt{cal\_square\_4}, \texttt{cal\_high\_cross\_3}, \texttt{transition\_routes\_4}, \texttt{gated\_local\_linear}, and \texttt{var\_l\_shape\_5}; \texttt{cal\_octagon\_8}, \texttt{duffing\_triple\_well}, and \texttt{snic\_multi} are escalation cases. Store HDF5 arrays as \([{\rm trajectory},{\rm time},x,y,{\rm channel}]\), with metadata for source system, attractor centers, final basin label, majority fraction, per-pixel final basin map, stored \(\Delta t\), diffusion coefficient, and initial-condition seed.
 
-Models should use convolutional encoders and decoders rather than flattening into the current MLP. The main comparison is a convolutional LISTA SKAE with dense \(K\), latent dimension \(d_z=512\), two or three LISTA refinement loops, and a convolutional decoder back to the two-channel field. Controls should include a dense Conv-KAE, a sparse Conv-MLP KAE without LISTA shrinkage, an FNO or U-Net autoregressive predictor, and an oracle basin-local Conv-KAE trained with evaluation labels only as an upper-bound diagnostic. Forecast metrics should include field MSE, gradient MSE, Fourier-shell MSE, and final-basin consistency. Support-family metrics should be computed out of sample: build \(F_{\rm abs}\) representatives on validation states only, freeze them, assign test states by nearest Jaccard representative, and report \(H(B_{\rm global}\mid F_{\rm abs})\), NMI, ARI, purity, \(|F_{\rm abs}|\), and \(H(F_{\rm abs}\mid B_{\rm global})\).
+Models should use convolutional encoders and decoders rather than flattening into the current MLP. Koopman-lifting runs should keep an overcomplete latent with \(d_z\ge4d_x\), where \(d_x=2N^2\); thus \(N=16\) requires \(d_z\ge2048\), \(N=32\) requires \(d_z\ge8192\), and the \(N=64\) setting above requires \(d_z\ge32768\). The main comparison is a convolutional LISTA SKAE with dense \(K\), two or three LISTA refinement loops, and a convolutional decoder back to the two-channel field. Controls should include a dense Conv-KAE, a sparse Conv-MLP KAE without LISTA shrinkage, an FNO or U-Net autoregressive predictor, and an oracle basin-local Conv-KAE trained with evaluation labels only as an upper-bound diagnostic. Forecast metrics should include field MSE, gradient MSE, Fourier-shell MSE, and final-basin consistency. Support-family metrics should be computed out of sample: build \(F_{\rm abs}\) representatives on validation states only, freeze them, assign test states by nearest Jaccard representative, and report \(H(B_{\rm global}\mid F_{\rm abs})\), NMI, ARI, purity, \(|F_{\rm abs}|\), and \(H(F_{\rm abs}\mid B_{\rm global})\).
+
+\paragraph{Completed Allen--Cahn H200 pilot.}
+We completed a three-seed \(16\times16\) two-channel multistable Allen--Cahn pilot on \texttt{allen\_cahn\_4}. The state dimension is \(d_x=512\), and all Koopman rows used \(d_z=2048=4d_x\), tanh convolutional hidden activations, dense latent \(K\), no \(K\)-stability penalty, length-20 training windows, and 10,000 optimizer steps. Each seed used 48/12/12 train/validation/test trajectories and passed a preflight check confirming that all four final modal basins appeared in every split. The stored observation cadence is four RK4 substeps of size \(0.005\), so one forecast step is physical time \(0.02\) and \(H200\) is physical time \(4.0\).
+\begin{table}[t]
+  \centering
+  \caption{Allen--Cahn H200 no-reencoding pilot. Entries are mean held-out field MSE across three seeds; lower is better.}
+  \label{tab:allen_cahn_h200_no_reencode}
+  \input{figures/neurips_paper_2026/_tables/table_allen_cahn_h200_no_reencode}
+\end{table}
+\begin{table}[t]
+  \centering
+  \caption{Allen--Cahn H200 field MSE by periodic re-encoding mode. Re-encoding decodes and re-encodes the model's own prediction; it never uses the future ground truth.}
+  \label{tab:allen_cahn_h200_reencode_modes}
+  \input{figures/neurips_paper_2026/_tables/table_allen_cahn_h200_reencode_modes}
+\end{table}
+In the autonomous no-reencoding rollout, Sparse-MLP had the lowest mean field MSE through \(H100\), while LISTA had the lowest \(H200\) average and final-step error: \(1.114\) average field MSE and \(1.142\) final-step MSE, compared with dense Conv-KAE \(1.174\) and \(1.363\). The seed-paired \(H200\) no-reencoding field-MSE difference versus dense was \(-0.060\pm0.053\) for LISTA and \(-0.026\pm0.027\) for Sparse-MLP, where negative favors the sparse-latent row. Periodic re-encoding did not uniformly help in this 10,000-step pilot. Every-step and period-5 re-encoding worsened \(H200\) error, period 10 favored Sparse-MLP, period 50 preserved a LISTA advantage over dense, and the best observed \(H200\) LISTA score remained the autonomous no-reencoding score.
+
+\begin{table}[t]
+  \centering
+  \caption{Allen--Cahn no-reencoding H200 field MSE under longer training. The 50,000-step run reuses the same train/validation/test trajectories as the 10,000-step run.}
+  \label{tab:allen_cahn_h200_10k_vs_50k}
+  \input{figures/neurips_paper_2026/_tables/table_allen_cahn_h200_10k_vs_50k}
+\end{table}
+\begin{table}[t]
+  \centering
+  \caption{Allen--Cahn 50,000-step no-reencoding pilot. Entries are mean held-out field MSE across three seeds; lower is better.}
+  \label{tab:allen_cahn_h200_50k_no_reencode}
+  \input{figures/neurips_paper_2026/_tables/table_allen_cahn_h200_50k_no_reencode}
+\end{table}
+\begin{table}[t]
+  \centering
+  \caption{Allen--Cahn 50,000-step H200 field MSE by periodic re-encoding mode.}
+  \label{tab:allen_cahn_h200_50k_reencode_modes}
+  \input{figures/neurips_paper_2026/_tables/table_allen_cahn_h200_50k_reencode_modes}
+\end{table}
+The longer 50,000-step run changes the endpoint interpretation. No-reencoding error improves for every model, but the improvement is largest for dense Conv-KAE and Sparse-MLP: \(H200\) field MSE changes from \(1.174\) to \(1.068\) for dense, from \(1.114\) to \(1.096\) for LISTA, and from \(1.147\) to \(1.073\) for Sparse-MLP. Thus the 10,000-step autonomous LISTA advantage is not stable to a longer training budget. Under 50,000 steps, dense has the best no-reencoding \(H100/H200\) average field error, Sparse-MLP is essentially tied with dense, and LISTA has the lowest \(H200\) final-step error but worse average rollout error. Periodic re-encoding becomes more useful after longer training: period \(20\), matching the training-window length, gives the best \(H200\) score for all three rows, and Sparse-MLP obtains the lowest \(H200\) field MSE, \(0.876\), compared with dense \(0.928\) and LISTA \(1.003\). The seed-paired Sparse-MLP period-20 \(H200\) difference versus dense is \(-0.052\pm0.118\), so this is promising high-dimensional forecasting evidence but not a strong statistical claim from only three seeds. The support-family readout still needs a stronger noncollapsed family structure before this benchmark can support the basin-support alignment claim.
+
+\begin{table}[t]
+  \centering
+  \caption{Allen--Cahn 50,000-step LISTA shrinkage/depth diagnostic. The tuned LISTA column reports the best tested LISTA setting for each horizon and rollout mode over \(q\in\{1,2,4\}\) refinement loops and \(\alpha\in\{0,10^{-4},3{\times}10^{-4},10^{-3},3{\times}10^{-3},10^{-2}\}\). Entries are mean held-out field MSE across three seeds; lower is better. Because the best setting is reported separately for each horizon and mode, this table is a diagnostic sweep summary rather than a final validation-selected model claim.}
+  \label{tab:allen_cahn_lista_stiffness_50k}
+  \input{figures/neurips_paper_2026/_tables/table_allen_cahn_lista_stiffness_50k}
+\end{table}
+The LISTA-only stiffness sweep shows that the weaker 50,000-step LISTA endpoint was partly a hyperparameter issue. The best validation-H50 LISTA setting, \(q=1,\alpha=10^{-2}\), reached validation MSE \(0.582\), close to the dense and Sparse-MLP validation means \(0.585\), and much better than the original LISTA setting's \(0.668\). The per-horizon diagnostic bests in \cref{tab:allen_cahn_lista_stiffness_50k} recover the no-reencoding H50--H200 gap and slightly edge the dense and Sparse-MLP references, but only by less than \(1.3\%\) in mean field MSE and with only three seeds. Under period-20 re-encoding, tuned LISTA improves substantially over the original LISTA row, but Sparse-MLP remains the lowest-error model at all displayed horizons. The optimal shrinkage is also horizon- and rollout-mode dependent: nearly no shrinkage is best for autonomous H200, while strong shrinkage is best for period-20 H200. We therefore interpret this sweep as evidence that LISTA shrinkage can be an effective regularizer after tuning, not as evidence that unfolded shrinkage is uniformly the best high-dimensional forecasting mechanism. If this benchmark is promoted beyond extension evidence, the next run should choose the LISTA setting by validation before test evaluation and increase the seed count.
+
+\subsection{Lorenz--96 overcomplete sparsity-screening pilot}
+\label{app:l96_sparsity_screen}
+
+A resource-aware seed-0 screen was run on noisy Lorenz--96 with \(D=128\), observation noise \(0.05\), \(d_z=512=4D\), dense \(K\), no \(K\)-regularization, and length-20 training rollouts. With a 300-minibatch budget, horizon-100 NRMSE was \(0.968\) for DMD, \(0.970\) for truncated-SVD DMD, \(0.964\) for the best ReLU sparse-MLP KAE at latent sparsity coefficient \(0.3\), \(0.988\) for the best noncollapsed LISTA-shrink row at \(\alpha=0.03\), \(1.083\) for the dense tanh KAE, and \(1.393\) for persistence. A 1000-minibatch run improved the useful sparse rows: the best ReLU sparse-MLP row reached horizon-100 NRMSE \(0.948\), LISTA-shrink reached \(0.958\), and dense tanh reached \(1.020\). A 3000-minibatch higher-sparsity run improved further: Sparse-MLP at latent sparsity coefficient \(1.0\) reached horizon-100 NRMSE \(0.937\) with active density \(0.854\), Sparse-MLP at coefficient \(3.0\) reached \(0.944\) with active density \(0.600\), LISTA-shrink at \(\alpha=0.03\) reached \(0.942\), and dense tanh reached \(0.946\). Paired trajectory bootstrap differences in the 3000-update run favored Sparse-MLP \(1.0\) over DMD at horizon 100, with difference \(-0.031\) and 95\% CI \([-0.036,-0.027]\). Pushing sparsity further to Sparse-MLP coefficients \(10\) and \(30\) reduced active density to \(0.272\) and \(0.200\) but degraded horizon-100 NRMSE to \(0.968\) and \(0.990\). This pilot therefore supports moderate sparse-activation regularization as a forecasting aid, but not extreme latent sparsity. LISTA-ReLU remained worse at long horizon for all noncollapsed thresholds. Very large LISTA thresholds collapsed the latent code to zero active coordinates and produced NRMSE exactly \(1.0\); those rows should be treated as degenerate stable predictors, not evidence for useful sparse dynamics. Future validation selection should include a noncollapse guard, such as a minimum reconstruction or one-step forecast quality constraint, before choosing the sparsest row within a long-horizon error tolerance.
+
+A follow-up LISTA-shrink-only sweep used 30 thresholds and five seeds per threshold under the same \(D=128\), noise \(0.05\), \(d_z=512\), dense-\(K\), no-\(K\)-regularization protocol, with a 3000-epoch maximum budget and early stopping. Validation H100 selected \(\alpha=0.015\), which had latent active density \(0.990\) and test H100 NRMSE \(0.945\pm0.010\) across seeds. The seed-paired H100 difference versus DMD was \(-0.0316\), with 95\% seed-bootstrap interval \([-0.0354,-0.0255]\), and the difference versus truncated-SVD DMD was \(-0.0342\), with interval \([-0.0403,-0.0267]\). This confirms that LISTA-shrink can beat DMD at long horizon in this condition, but the H100-optimal LISTA-shrink code is nearly dense. By contrast, the best H5--H50 LISTA-shrink rows used much sparser codes, with active density \(0.55\)--\(0.62\), so the optimal sparsity is horizon-dependent rather than a single universal target.
+
+Lorenz--96 should only be used as multibasin evidence after a separate attractor audit. Some parameter regimes near bifurcations may exhibit coexisting periodic, quasiperiodic, or other attractors, but the paper must verify coexistence for the exact \(D,F\) pairs used. The audit criterion is numerical and conservative: launch diverse initial-condition families, discard long transients, cluster asymptotic tail features, and promote a parameter pair only when distinct reproducible tail clusters survive longer reruns and qualitative inspection. Otherwise Lorenz--96 remains a high-dimensional chaotic forecasting stress test rather than a basin-support alignment benchmark.
+
+\subsection{State-observation control world models}
+\label{app:control_world_models}
+
+A lower-risk action-conditioned pilot should precede pixel observations and policy learning. The first pass uses state observations from four continuous-control tasks: cartpole swingup, finger spin, cheetah run, and walker walk. The model is trained offline from trajectories containing \(o_t\), \(a_t\), \(r_t\), and a continuation variable \(c_t\). No task labels, outcome labels, contact phases, basin counts, or trajectory clusters are used during training.
+
+The controlled Koopman candidates use either
+\begin{equation}
+  z_{t+1}=Kz_t+Ba_t
+\end{equation}
+or
+\begin{equation}
+  z_{t+1}=K_0z_t+\sum_j a_{t,j}K_jz_t+Ba_t.
+\end{equation}
+Both variants are trained with sparse and dense transition-matrix penalties. The dense no-sparsity baselines use tanh hidden activations by default. A parameter-matched residual MLP latent transition is the first non-Koopman control. Reward and continuation heads predict \(\hat r_t=f_r(z_t,a_t)\) and \(\hat c_t=f_c(z_t,a_t)\) from the same latent state and action used by the transition.
+
+The primary readout is whether sparse transition matrices improve downstream world-model utility rather than only one-step prediction. Report one-step latent error, 5-, 10-, 20-, and 50-step open-loop observation error, reward error, continuation loss, rollout throughput, random-shooting planning latency, peak memory, unstable rollout fraction, base transition spectral radius, and effective matrix density. Data-efficiency slices should train on 10\%, 25\%, 50\%, and 100\% of the training trajectories. Robustness can then perturb mass, friction, action delay, or hidden dynamics parameters once the clean state-observation comparison is complete.
+
+These experiments should be treated as extension evidence unless they show a clear advantage in data efficiency, planning latency, or stable long-horizon rollouts. A general claim that sparse Koopman autoencoders replace modern world-model agents would require online data collection, stochastic latent states, value or policy learning, pixel or history encoders, and broader task coverage.
 
 \subsection{Contact-rich robotic insertion in ManiSkill}
 \label{app:maniskill_insertion}

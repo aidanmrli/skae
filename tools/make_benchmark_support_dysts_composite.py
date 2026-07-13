@@ -4,7 +4,8 @@
 The top row overlays LISTA support-family assignments on evaluation-only true
 basin maps and vector fields for representative fixed-17 systems. The bottom
 row shows H5000 dt x30 Dysts phase portraits from the best seed-0 primary row
-among the stored all-model rollout artifacts.
+among the stored all-model rollout artifacts, except that the first two Dysts
+panels split Chua into Dense MLP and LISTA forecasts for direct comparison.
 """
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ OKABE_ITO = (
 )
 
 DYSTS_FORECAST_COLOR = "#0072B2"
+DYSTS_DENSE_MLP_COLOR = "#D62728"
 
 DYSTS_COLORS = {
     "lista": "#0072B2",
@@ -64,7 +66,7 @@ DYSTS_COLORS = {
     "lista_sb": "#D55E00",
     "sparse_mlp": "#009E73",
     "sparse_mlp_bd": "#56B4E9",
-    "dense_mlp_tanh": "#000000",
+    "dense_mlp_tanh": DYSTS_DENSE_MLP_COLOR,
 }
 
 DYSTS_DISPLAY = {
@@ -99,6 +101,8 @@ class SupportPanelSpec:
 class DystsPanelSpec:
     system: str
     title: str
+    root: Optional[str] = None
+    axis_roots: tuple[str, ...] = ()
 
 
 SUPPORT_PANELS = (
@@ -133,8 +137,18 @@ SUPPORT_PANELS = (
 )
 
 DYSTS_PANELS = (
-    DystsPanelSpec(system="dysts:Chua", title="Chua"),
-    DystsPanelSpec(system="dysts:Dadras", title="Dadras"),
+    DystsPanelSpec(
+        system="dysts:Chua",
+        title="Chua (dense MLP)",
+        root="dense_mlp_tanh",
+        axis_roots=("dense_mlp_tanh", "lista"),
+    ),
+    DystsPanelSpec(
+        system="dysts:Chua",
+        title="Chua (LISTA)",
+        root="lista",
+        axis_roots=("dense_mlp_tanh", "lista"),
+    ),
     DystsPanelSpec(system="dysts:ShimizuMorioka", title="ShimizuMorioka"),
     DystsPanelSpec(system="dysts:SanUmSrisuchinwong", title="SanUmSrisuchinwong"),
 )
@@ -504,11 +518,16 @@ def _thin_trace(xy: torch.Tensor, max_points: int = 1200) -> torch.Tensor:
     return out
 
 
-def _axis_limits(init_xy: torch.Tensor, true_xy: torch.Tensor, pred_xy: torch.Tensor) -> tuple[float, float, float, float]:
+def _axis_limits(
+    init_xy: torch.Tensor,
+    true_xy: torch.Tensor,
+    *pred_xys: torch.Tensor,
+) -> tuple[float, float, float, float]:
     points = [init_xy, true_xy.reshape(-1, 2)]
-    finite_pred = pred_xy[torch.isfinite(pred_xy).all(dim=-1)]
-    if finite_pred.numel() > 0:
-        points.append(finite_pred.reshape(-1, 2))
+    for pred_xy in pred_xys:
+        finite_pred = pred_xy[torch.isfinite(pred_xy).all(dim=-1)]
+        if finite_pred.numel() > 0:
+            points.append(finite_pred.reshape(-1, 2))
     xy = torch.cat(points, dim=0).to(torch.float64)
     xy = xy[torch.isfinite(xy).all(dim=-1)]
     if xy.shape[0] > 200_000:
@@ -567,6 +586,17 @@ def _prediction_xy(payload: dict[str, Any], mode_name: str, horizon: int) -> tor
     return pred[:horizon, :, :2].float()
 
 
+def _panel_for_root(row: dict[str, Any], root: str, horizon: int) -> dict[str, Any]:
+    key = f"{root}:H{horizon}"
+    panel = row["panels"].get(key)
+    if not isinstance(panel, dict):
+        raise RuntimeError(f"No Dysts panel found for {row['system']} {key}")
+    mse = _safe_float(panel.get("mse"))
+    if mse is None:
+        raise RuntimeError(f"Dysts panel {row['system']} {key} has no finite MSE")
+    return panel
+
+
 def _select_dysts_root(row: dict[str, Any], horizon: int) -> tuple[str, dict[str, Any]]:
     panels = row["panels"]
     candidates = []
@@ -584,6 +614,40 @@ def _select_dysts_root(row: dict[str, Any], horizon: int) -> tuple[str, dict[str
     return root, panel
 
 
+def _assert_matching_rollout_reference(
+    *,
+    system: str,
+    reference_init_xy: torch.Tensor,
+    reference_true_xy: torch.Tensor,
+    candidate_init_xy: torch.Tensor,
+    candidate_true_xy: torch.Tensor,
+    candidate_root: str,
+) -> None:
+    if reference_init_xy.shape != candidate_init_xy.shape:
+        raise RuntimeError(
+            f"{system} {candidate_root} init state shape does not match the selected rollout: "
+            f"{tuple(candidate_init_xy.shape)} vs {tuple(reference_init_xy.shape)}"
+        )
+    if reference_true_xy.shape != candidate_true_xy.shape:
+        raise RuntimeError(
+            f"{system} {candidate_root} true trajectory shape does not match the selected rollout: "
+            f"{tuple(candidate_true_xy.shape)} vs {tuple(reference_true_xy.shape)}"
+        )
+    if not torch.allclose(reference_init_xy, candidate_init_xy, rtol=1e-5, atol=1e-6):
+        raise RuntimeError(
+            f"{system} {candidate_root} init states do not match the selected rollout"
+        )
+    if not torch.allclose(reference_true_xy, candidate_true_xy, rtol=1e-5, atol=1e-6):
+        raise RuntimeError(
+            f"{system} {candidate_root} true trajectories do not match the selected rollout"
+        )
+
+
+def _is_dense_mlp_root(root: str) -> bool:
+    display = DYSTS_DISPLAY.get(root, root)
+    return "dense mlp" in display.lower() or "dense_mlp" in root
+
+
 def _render_dysts_panel(
     ax,
     *,
@@ -596,13 +660,39 @@ def _render_dysts_panel(
     row = next((item for item in manifest_rows if item.get("system") == spec.system), None)
     if row is None:
         raise RuntimeError(f"No Dysts manifest row for {spec.system}")
-    root, panel = _select_dysts_root(row, horizon)
+    if spec.root is None:
+        root, panel = _select_dysts_root(row, horizon)
+        selection = "best_primary_root_by_mse"
+    else:
+        root = spec.root
+        panel = _panel_for_root(row, root, horizon)
+        selection = "explicit_root"
     root_meta = row["roots"][root]
     payload = _load_rollout_payload(Path(root_meta["selected_rollout_artifacts"]))
     init_states = payload["init_states"][:, :2].float()
     true_xy = payload["true_future"][:horizon, :, :2].float()
     pred_xy = _prediction_xy(payload, str(panel["mode"]), horizon)
-    bounds = _axis_limits(init_states, true_xy, pred_xy)
+
+    axis_pred_xys = [pred_xy]
+    for axis_root in spec.axis_roots:
+        if axis_root == root:
+            continue
+        axis_panel = _panel_for_root(row, axis_root, horizon)
+        axis_root_meta = row["roots"][axis_root]
+        axis_payload = _load_rollout_payload(Path(axis_root_meta["selected_rollout_artifacts"]))
+        axis_init_states = axis_payload["init_states"][:, :2].float()
+        axis_true_xy = axis_payload["true_future"][:horizon, :, :2].float()
+        _assert_matching_rollout_reference(
+            system=spec.system,
+            reference_init_xy=init_states,
+            reference_true_xy=true_xy,
+            candidate_init_xy=axis_init_states,
+            candidate_true_xy=axis_true_xy,
+            candidate_root=axis_root,
+        )
+        axis_pred_xys.append(_prediction_xy(axis_payload, str(axis_panel["mode"]), horizon))
+
+    bounds = _axis_limits(init_states, true_xy, *axis_pred_xys)
     zoom_factor = float(DYSTS_AXIS_ZOOM.get(spec.system, 1.0))
     bounds = _zoom_bounds(bounds, zoom_factor)
     xshift_fraction = float(DYSTS_AXIS_XSHIFT_FRAC.get(spec.system, 0.0))
@@ -611,12 +701,25 @@ def _render_dysts_panel(
     valid = torch.nonzero(valid_lengths > 1, as_tuple=False).flatten()
     if valid.numel() > 0:
         valid = valid[torch.argsort(valid_lengths[valid], descending=True)][:max_traces]
+    is_dense_mlp = _is_dense_mlp_root(root)
+    forecast_color = DYSTS_DENSE_MLP_COLOR if is_dense_mlp else DYSTS_FORECAST_COLOR
+    forecast_alpha = 0.24 if is_dense_mlp else 0.30
+    forecast_linewidth = 1.05 if is_dense_mlp else 0.80
     for idx in valid.tolist():
         length = int(valid_lengths[idx].item())
         truth = _thin_trace(torch.cat([init_states[idx : idx + 1], true_xy[:, idx]], dim=0)).numpy()
-        pred = _thin_trace(torch.cat([init_states[idx : idx + 1], pred_xy[:length, idx]], dim=0)).numpy()
-        ax.plot(truth[:, 0], truth[:, 1], color="#7F7F7F", alpha=0.14, linewidth=0.65)
-        ax.plot(pred[:, 0], pred[:, 1], color=DYSTS_FORECAST_COLOR, alpha=0.22, linewidth=0.78)
+        pred = _thin_trace(
+            torch.cat([init_states[idx : idx + 1], pred_xy[:length, idx]], dim=0)
+        ).numpy()
+        ax.plot(truth[:, 0], truth[:, 1], color="#7F7F7F", alpha=0.16, linewidth=0.68, zorder=1)
+        ax.plot(
+            pred[:, 0],
+            pred[:, 1],
+            color=forecast_color,
+            alpha=forecast_alpha,
+            linewidth=forecast_linewidth,
+            zorder=2,
+        )
     ax.set_xlim(bounds[0], bounds[1])
     ax.set_ylim(bounds[2], bounds[3])
     ax.set_aspect("equal", adjustable="box")
@@ -627,19 +730,25 @@ def _render_dysts_panel(
     mse = float(panel["mse"])
     title = f"{spec.title}"
     ax.set_title(title)
-    return {
+    meta = {
         "system": spec.system,
         "title": spec.title,
         "selected_root": root,
         "selected_root_display": display,
+        "selection": selection,
         "horizon": int(horizon),
         "mode": str(panel["mode"]),
         "mse": mse,
+        "forecast_color": forecast_color,
+        "forecast_alpha": forecast_alpha,
+        "forecast_linewidth": forecast_linewidth,
+        "axis_reference_roots": list(spec.axis_roots),
         "axis_zoom_factor": zoom_factor,
         "axis_xshift_fraction": xshift_fraction,
         "selected_rollout_artifacts": root_meta["selected_rollout_artifacts"],
         "trace_count_plotted": int(valid.numel()),
     }
+    return meta
 
 
 def render_composite(args: argparse.Namespace) -> dict[str, Any]:
@@ -737,6 +846,7 @@ def render_composite(args: argparse.Namespace) -> dict[str, Any]:
     handles = [
         Line2D([0], [0], color="#7F7F7F", linewidth=1.5),
         Line2D([0], [0], color=DYSTS_FORECAST_COLOR, linewidth=1.5),
+        Line2D([0], [0], color=DYSTS_DENSE_MLP_COLOR, linewidth=1.8),
         match_handle,
         Line2D(
             [0],
@@ -751,16 +861,20 @@ def render_composite(args: argparse.Namespace) -> dict[str, Any]:
     fig.legend(
         handles=handles,
         labels=[
-            "Ground truth trajectory",
-            "Model forecast",
+            "Ground truth",
+            "LISTA forecast",
+            "Dense MLP forecast",
             "Support/basin match",
             "Support/basin mismatch",
         ],
         loc="lower center",
         bbox_to_anchor=(0.5, -0.035),
-        ncol=4,
+        ncol=5,
         frameon=False,
         fontsize=7.8,
+        columnspacing=0.85,
+        handlelength=1.35,
+        handletextpad=0.45,
         handler_map={tuple: HandlerTuple(ndivide=None, pad=0.25)},
     )
 
@@ -784,7 +898,12 @@ def render_composite(args: argparse.Namespace) -> dict[str, Any]:
             "panels": support_meta,
         },
         "dysts_row": {
-            "description": "H5000 dt x30 seed-0 portraits using the best primary root in the stored all-model manifest.",
+            "description": (
+                "H5000 dt x30 seed-0 portraits from stored all-model rollout artifacts. "
+                "The first two Dysts panels compare Chua Dense MLP and LISTA forecasts "
+                "with shared Chua axis limits; the remaining panels keep the previous "
+                "best-primary-root selections."
+            ),
             "panels": dysts_meta,
         },
     }

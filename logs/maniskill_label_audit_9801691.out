@@ -1,0 +1,87 @@
+date=Wed Jun 10 12:15:19 EDT 2026
+host=cn-f001.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9801691
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+perturbation_summary=data/maniskill/perturbation_assessment_seed0_e20/perturbation_summary.json
+output_dir=results/maniskill_perturbation_label_audit_20260610
+cuda_visible_devices=
+{
+  "actual_success_final_by_target": {
+    "drop": {
+      "false": 20
+    },
+    "jam": {
+      "false": 18,
+      "true": 2
+    },
+    "miss": {
+      "false": 20
+    },
+    "partial": {
+      "false": 20
+    },
+    "success": {
+      "false": 7,
+      "true": 13
+    }
+  },
+  "dataset": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "feature_audit": {
+    "generic_state_name_fraction": 0.8431372549019608,
+    "groups": {
+      "contact": {
+        "available": false,
+        "examples": [],
+        "match_count": 0
+      },
+      "grasp_drop": {
+        "available": false,
+        "examples": [],
+        "match_count": 0
+      },
+      "insertion_depth": {
+        "available": false,
+        "examples": [],
+        "match_count": 0
+      },
+      "peg_hole_distance": {
+        "available": false,
+        "examples": [],
+        "match_count": 0
+      },
+      "rim_alignment": {
+        "available": false,
+        "examples": [],
+        "match_count": 0
+      }
+    },
+    "has_required_geometry_for_five_class_labels": false,
+    "obs_dim": 51
+  },
+  "labels_used_for_training": false,
+  "missing_summary_rows": 0,
+  "num_dataset_rows": 100,
+  "num_summary_entries": 100,
+  "paper_claim_status": "not_ready_target_labels_only_or_binary_success_only",
+  "perturbation_summary": "data/maniskill/perturbation_assessment_seed0_e20/perturbation_summary.json",
+  "recommended_next_step": "Use this packet for pipeline/debugging only. For paper-facing outcome/contact support claims, regenerate or augment rollouts with explicit success, insertion depth, peg-hole distance, grasp/drop, sustained contact, and rim/alignment signals.",
+  "semantic_label_counts_from_available_signals": {
+    "non_success_untyped": 85,
+    "success": 15
+  },
+  "split_counts": {
+    "test": 15,
+    "train": 70,
+    "val": 15
+  },
+  "target_label_counts": {
+    "drop": 20,
+    "jam": 20,
+    "miss": 20,
+    "partial": 20,
+    "success": 20
+  },
+  "target_success_mismatch_rows": 9
+}
+summary=results/maniskill_perturbation_label_audit_20260610/label_audit_summary.json

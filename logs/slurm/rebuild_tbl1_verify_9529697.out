@@ -1,0 +1,13 @@
+/home/mila/l/lia/skae/.venv/lib/python3.10/site-packages/scipy/stats/_wilcoxon.py:172: RuntimeWarning: invalid value encountered in scalar divide
+  z = (r_plus - mn) / se
+/home/mila/l/lia/skae/.venv/lib/python3.10/site-packages/scipy/stats/_wilcoxon.py:172: RuntimeWarning: invalid value encountered in scalar divide
+  z = (r_plus - mn) / se
+/home/mila/l/lia/skae/.venv/lib/python3.10/site-packages/scipy/stats/_wilcoxon.py:172: RuntimeWarning: invalid value encountered in scalar divide
+  z = (r_plus - mn) / se
+/home/mila/l/lia/skae/.venv/lib/python3.10/site-packages/scipy/stats/_wilcoxon.py:172: RuntimeWarning: invalid value encountered in scalar divide
+  z = (r_plus - mn) / se
+/home/mila/l/lia/skae/.venv/lib/python3.10/site-packages/scipy/stats/_wilcoxon.py:172: RuntimeWarning: invalid value encountered in scalar divide
+  z = (r_plus - mn) / se
+Rebuilt compact Table 1 and support-diagnostic tables.
+Repaired Sparse MLP-BD controlled values: H100=0.0473424, H500=0.135546, H1000=0.159346, H(B|F)=0.358419, |F|=2.96444, wrong_h1=38692.2, wrong_h20=93.5322
+Rows in control summary: 6

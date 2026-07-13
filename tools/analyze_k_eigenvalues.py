@@ -62,8 +62,8 @@ def extract_block_eigenvalues(model) -> List[Dict]:
                 ev = _eigvals_of_block(model.K_basin[k])
             blocks.append(_block_stats(f"basin_{k}", ev, model.d_basin))
 
-    elif isinstance(model, LISTAKM):
-        k_struct = model._k_structure
+    elif hasattr(model, "_k_structure"):
+        k_struct = getattr(model, "_k_structure")
 
         if k_struct == "diagonal":
             with torch.no_grad():
@@ -76,10 +76,13 @@ def extract_block_eigenvalues(model) -> List[Dict]:
                 ev = _eigvals_of_block(blk)
                 blocks.append(_block_stats(f"block_{i}", ev, blk.shape[0]))
 
-        else:
-            # Dense
+        elif hasattr(model, "kmat"):
             ev = _eigvals_of_block(model.kmat)
             blocks.append(_block_stats("dense", ev, model.kmat.shape[0]))
+        else:
+            kmat = model.kmatrix()
+            ev = _eigvals_of_block(kmat)
+            blocks.append(_block_stats(str(k_struct), ev, kmat.shape[0]))
     else:
         # GenericKM or others with .kmat
         kmat = model.kmatrix()
@@ -386,7 +389,7 @@ def main():
     # Determine K structure for reporting
     if isinstance(model, StructuredLISTAKM):
         k_structure = "arrowhead"
-    elif isinstance(model, LISTAKM):
+    elif hasattr(model, "_k_structure"):
         k_structure = model._k_structure
     else:
         k_structure = "dense"

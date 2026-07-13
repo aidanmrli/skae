@@ -1,0 +1,2 @@
+error: Failed to query Python interpreter
+  Caused by: failed to create file `/network/scratch/l/lia/cache_storage/uv/.tmpj0jFj9/python/get_interpreter_info.py`: Disk quota exceeded (os error 122)

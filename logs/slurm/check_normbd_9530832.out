@@ -1,0 +1,11 @@
+dysts:Chua normalize_atoms= True k_structure= block_diagonal k_num_blocks= 2 block_shapes= [(128, 128), (128, 128)] dense_k_keys= []
+dysts:Dadras normalize_atoms= True k_structure= block_diagonal k_num_blocks= 2 block_shapes= [(128, 128), (128, 128)] dense_k_keys= []
+dysts:DequanLi normalize_atoms= True k_structure= block_diagonal k_num_blocks= 3 block_shapes= [(86, 86), (85, 85), (85, 85)] dense_k_keys= []
+dysts:Hadley normalize_atoms= True k_structure= block_diagonal k_num_blocks= 3 block_shapes= [(86, 86), (85, 85), (85, 85)] dense_k_keys= []
+dysts:LuChenCheng normalize_atoms= True k_structure= block_diagonal k_num_blocks= 4 block_shapes= [(64, 64), (64, 64), (64, 64), (64, 64)] dense_k_keys= []
+dysts:QiChen normalize_atoms= True k_structure= block_diagonal k_num_blocks= 2 block_shapes= [(128, 128), (128, 128)] dense_k_keys= []
+dysts:Sakarya normalize_atoms= True k_structure= block_diagonal k_num_blocks= 2 block_shapes= [(128, 128), (128, 128)] dense_k_keys= []
+dysts:SanUmSrisuchinwong normalize_atoms= True k_structure= block_diagonal k_num_blocks= 2 block_shapes= [(128, 128), (128, 128)] dense_k_keys= []
+dysts:ShimizuMorioka normalize_atoms= True k_structure= block_diagonal k_num_blocks= 2 block_shapes= [(128, 128), (128, 128)] dense_k_keys= []
+dysts:WangSun normalize_atoms= True k_structure= block_diagonal k_num_blocks= 4 block_shapes= [(64, 64), (64, 64), (64, 64), (64, 64)] dense_k_keys= []
+OK: verified 10 Sparse MLP-BD norm-dec checkpoints use block-diagonal K only.

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-09T13:25:53.800217",
+  "timestamp": "2026-05-25T18:21:37.977375",
   "os": {
     "system": "Linux",
     "release": "5.15.0-173-generic",
@@ -13,22 +13,22 @@
     "max_frequency_mhz": 0.0,
     "architecture": "x86_64",
     "processor": "x86_64",
-    "current_frequency_mhz": 2472.886475
+    "current_frequency_mhz": 2229.25525
   },
   "memory": {
     "total_gb": 376.78,
-    "available_gb": 349.57,
-    "used_gb": 27.21,
-    "percent_used": 7.2,
+    "available_gb": 351.34,
+    "used_gb": 25.44,
+    "percent_used": 6.8,
     "swap_total_gb": 0.0,
     "swap_available_gb": 0.0
   },
   "disk": {
     "path": "/home/mila/l/lia/skae",
     "total_gb": 265124.7,
-    "available_gb": 183072.11,
-    "used_gb": 79369.47,
-    "percent_used": 30.2
+    "available_gb": 182144.47,
+    "used_gb": 80296.83,
+    "percent_used": 30.6
   },
   "gpu": {
     "nvidia_gpus": [

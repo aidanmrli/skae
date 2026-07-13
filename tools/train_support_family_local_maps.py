@@ -160,6 +160,21 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--no_resume", action="store_true")
+    parser.add_argument(
+        "--save_metrics_history",
+        action="store_true",
+        help="Write per-run metrics_history.jsonl files. Off by default.",
+    )
+    parser.add_argument(
+        "--save_train_checkpoint",
+        action="store_true",
+        help="Write train_checkpoint.pt files for resumability. Off by default.",
+    )
+    parser.add_argument(
+        "--save_stage2_artifacts",
+        action="store_true",
+        help="Write local_maps.pt/global_map.pt tensors. Off by default; CSV/JSON summaries are still written.",
+    )
     return parser.parse_args()
 
 
@@ -450,8 +465,8 @@ def _train_one_local_bundle(
     lr: float,
     seed: int,
     progress_every_steps: int,
-    metrics_path: Path,
-    checkpoint_path: Path,
+    metrics_path: Optional[Path],
+    checkpoint_path: Optional[Path],
     initial_checkpoint_path: Optional[Path],
     resume: bool,
     max_runtime_seconds: int,
@@ -461,13 +476,18 @@ def _train_one_local_bundle(
     buckets = _balanced_indices_by_route(initial_route_indices)
     rng = np.random.default_rng(seed)
     horizon = int(train_pool.shape[1]) - 1
-    metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    if metrics_path is not None:
+        metrics_path.parent.mkdir(parents=True, exist_ok=True)
     family_cache: Dict[object, object] = {}
     last_metrics: Dict[str, float] = {}
     start_step = 0
     train_start = time.time()
 
-    checkpoint_to_load = checkpoint_path if checkpoint_path.exists() else initial_checkpoint_path
+    checkpoint_to_load = (
+        checkpoint_path
+        if checkpoint_path is not None and checkpoint_path.exists()
+        else initial_checkpoint_path
+    )
     if resume and checkpoint_to_load is not None and checkpoint_to_load.exists():
         try:
             payload = torch.load(checkpoint_to_load, map_location=device, weights_only=False)
@@ -536,16 +556,18 @@ def _train_one_local_bundle(
                 "loss": float(loss.detach().cpu().item()),
                 "route_coverage": float(coverage),
             }
-            with metrics_path.open("a") as handle:
-                handle.write(json.dumps(last_metrics) + "\n")
-            _save_train_checkpoint(
-                checkpoint_path,
-                bundle=bundle,
-                optimizer=optimizer,
-                next_step=step + 1,
-                rng=rng,
-                last_metrics=last_metrics,
-            )
+            if metrics_path is not None:
+                with metrics_path.open("a") as handle:
+                    handle.write(json.dumps(last_metrics) + "\n")
+            if checkpoint_path is not None:
+                _save_train_checkpoint(
+                    checkpoint_path,
+                    bundle=bundle,
+                    optimizer=optimizer,
+                    next_step=step + 1,
+                    rng=rng,
+                    last_metrics=last_metrics,
+                )
             print(
                 f"  stage2 step {step}/{train_steps} loss={last_metrics['loss']:.6g} "
                 f"coverage={last_metrics['route_coverage']:.3f}",
@@ -553,16 +575,20 @@ def _train_one_local_bundle(
             )
         elapsed = time.time() - train_start
         if STOP_REQUESTED or (int(max_runtime_seconds) > 0 and elapsed >= int(max_runtime_seconds)):
-            _save_train_checkpoint(
-                checkpoint_path,
-                bundle=bundle,
-                optimizer=optimizer,
-                next_step=step + 1,
-                rng=rng,
-                last_metrics=last_metrics,
-            )
+            if checkpoint_path is not None:
+                _save_train_checkpoint(
+                    checkpoint_path,
+                    bundle=bundle,
+                    optimizer=optimizer,
+                    next_step=step + 1,
+                    rng=rng,
+                    last_metrics=last_metrics,
+                )
+                checkpoint_msg = f"; checkpoint saved to {checkpoint_path}"
+            else:
+                checkpoint_msg = "; rerun with --save_train_checkpoint to resume partial progress"
             raise RuntimeError(
-                f"Stage-2 training stopped at step {step + 1}/{train_steps}; checkpoint saved to {checkpoint_path}"
+                f"Stage-2 training stopped at step {step + 1}/{train_steps}{checkpoint_msg}"
             )
     return last_metrics
 
@@ -743,18 +769,20 @@ def _save_local_artifacts(
     bundle: LocalMapBundle,
     route_codebook: Dict[str, object],
     metadata: Dict[str, object],
+    save_weights: bool,
 ) -> None:
     run_output_dir.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "family_ids": list(bundle.family_ids),
-            "centers": bundle.centers.detach().cpu(),
-            "local_maps": bundle.local_maps.detach().cpu(),
-            "global_k": bundle.global_k.detach().cpu(),
-            "metadata": metadata,
-        },
-        run_output_dir / "local_maps.pt",
-    )
+    if save_weights:
+        torch.save(
+            {
+                "family_ids": list(bundle.family_ids),
+                "centers": bundle.centers.detach().cpu(),
+                "local_maps": bundle.local_maps.detach().cpu(),
+                "global_k": bundle.global_k.detach().cpu(),
+                "metadata": metadata,
+            },
+            run_output_dir / "local_maps.pt",
+        )
     codebook_json = {
         "family_counts": {str(key): int(value) for key, value in route_codebook["family_counts"].items()},
         "fitted_family_ids": [str(item) for item in route_codebook["fitted_family_ids"]],
@@ -773,16 +801,18 @@ def _save_global_artifacts(
     bundle: GlobalMapBundle,
     route_codebook: Dict[str, object],
     metadata: Dict[str, object],
+    save_weights: bool,
 ) -> None:
     run_output_dir.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "global_map": bundle.global_map.detach().cpu(),
-            "initial_global_k": bundle.initial_global_k.detach().cpu(),
-            "metadata": metadata,
-        },
-        run_output_dir / "global_map.pt",
-    )
+    if save_weights:
+        torch.save(
+            {
+                "global_map": bundle.global_map.detach().cpu(),
+                "initial_global_k": bundle.initial_global_k.detach().cpu(),
+                "metadata": metadata,
+            },
+            run_output_dir / "global_map.pt",
+        )
     codebook_json = {
         "family_counts": {str(key): int(value) for key, value in route_codebook["family_counts"].items()},
         "fitted_family_ids": [str(item) for item in route_codebook["fitted_family_ids"]],
@@ -896,14 +926,22 @@ def _evaluate_one_setting(
         slug_parts.append(args.stage2_map_mode)
     run_slug = _make_slug(*slug_parts)
     run_output_dir = output_dir / "stage2_runs" / run_slug
-    metrics_path = run_output_dir / "metrics_history.jsonl"
-    train_checkpoint_path = run_output_dir / "train_checkpoint.pt"
+    metrics_path = run_output_dir / "metrics_history.jsonl" if args.save_metrics_history else None
+    train_checkpoint_path = run_output_dir / "train_checkpoint.pt" if args.save_train_checkpoint else None
     prior_checkpoint_path = _find_prior_train_checkpoint(
         SRF._parse_csv_strings(args.resume_from_output_dirs),
         run_slug,
-    )
+    ) if not args.no_resume else None
     run_output_dir.mkdir(parents=True, exist_ok=True)
-    if metrics_path.exists() and (args.no_resume or not train_checkpoint_path.exists()):
+    if (
+        metrics_path is not None
+        and metrics_path.exists()
+        and (
+            args.no_resume
+            or train_checkpoint_path is None
+            or not train_checkpoint_path.exists()
+        )
+    ):
         metrics_path.unlink()
 
     print(
@@ -994,14 +1032,29 @@ def _evaluate_one_setting(
         "family_jaccard_threshold": float(args.family_jaccard_threshold),
         "resume_from_output_dirs": SRF._parse_csv_strings(args.resume_from_output_dirs),
         "resume_from_train_checkpoint": str(prior_checkpoint_path) if prior_checkpoint_path else "",
+        "save_metrics_history": bool(args.save_metrics_history),
+        "save_train_checkpoint": bool(args.save_train_checkpoint),
+        "save_stage2_artifacts": bool(args.save_stage2_artifacts),
         "fit_family_class_count_total": int(len(route_codebook["family_counts"])),
         "fit_family_class_count_fit": int(len(fitted_family_ids)),
         "final_train_metrics": final_train_metrics,
     }
     if args.stage2_map_mode == "family_local_centered":
-        _save_local_artifacts(run_output_dir, bundle=bundle, route_codebook=route_codebook, metadata=metadata)
+        _save_local_artifacts(
+            run_output_dir,
+            bundle=bundle,
+            route_codebook=route_codebook,
+            metadata=metadata,
+            save_weights=bool(args.save_stage2_artifacts),
+        )
     else:
-        _save_global_artifacts(run_output_dir, bundle=bundle, route_codebook=route_codebook, metadata=metadata)
+        _save_global_artifacts(
+            run_output_dir,
+            bundle=bundle,
+            route_codebook=route_codebook,
+            metadata=metadata,
+            save_weights=bool(args.save_stage2_artifacts),
+        )
 
     rows: List[Dict[str, object]] = []
     for depth_stratum, subset_mask in depth_masks.items():
@@ -1214,6 +1267,9 @@ def main() -> None:
                 "train_steps": int(args.train_steps),
                 "train_batch_size": int(args.train_batch_size),
                 "train_pool_trajectories": int(args.train_pool_trajectories),
+                "save_metrics_history": bool(args.save_metrics_history),
+                "save_train_checkpoint": bool(args.save_train_checkpoint),
+                "save_stage2_artifacts": bool(args.save_stage2_artifacts),
                 "status": "complete" if not failures else "complete_with_failures",
                 "completed_runs": len(completed),
                 "total_runs": total_runs,

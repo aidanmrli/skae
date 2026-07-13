@@ -13,6 +13,8 @@
 #   THRESHOLD=1.0
 #   NEXT_TASK_TSV=<path for rescue/full task table>
 #   MANIFEST_JSON=<optional manifest snapshot path>
+#   BASE_OUT=<paper benchmark output root; enables completed-run filtering>
+#   SKIP_COMPLETED=1
 #
 #SBATCH --job-name=resolve_paper
 #SBATCH --ntasks=1
@@ -45,6 +47,17 @@ MAX_HALVINGS="${MAX_HALVINGS:-2}"
 THRESHOLD="${THRESHOLD:-1.0}"
 NEXT_TASK_TSV="${NEXT_TASK_TSV:-${OUT_DIR}/next_tasks.tsv}"
 MANIFEST_JSON="${MANIFEST_JSON:-${OUT_DIR}/paper_manifest.json}"
+BASE_OUT="${BASE_OUT:-}"
+SKIP_COMPLETED="${SKIP_COMPLETED:-1}"
+
+BUILD_SKIP_ARGS=()
+if [[ "${SKIP_COMPLETED}" == "1" && -n "${BASE_OUT}" ]]; then
+  BUILD_SKIP_ARGS+=(
+    --base_out "${BASE_OUT}"
+    --skip_completed
+    --skip_report_json "${OUT_DIR}/skipped_completed_tasks.json"
+  )
+fi
 
 echo "============================================="
 echo "Resolve Paper Benchmark DT"
@@ -70,12 +83,14 @@ if (( CURRENT_PASS < MAX_HALVINGS )); then
     --phase_label "rescue_pass$((CURRENT_PASS + 1))" \
     --dt_table "${REQUEST_TSV}" \
     --output_tsv "${NEXT_TASK_TSV}" \
-    --output_manifest_json "${MANIFEST_JSON}"
+    --output_manifest_json "${MANIFEST_JSON}" \
+    "${BUILD_SKIP_ARGS[@]}"
 else
   SELECTED_TSV="${OUT_DIR}/selected_dt.tsv"
   uv run python tools/build_paper_benchmark_tasks.py \
     --phase full \
     --dt_table "${SELECTED_TSV}" \
     --output_tsv "${NEXT_TASK_TSV}" \
-    --output_manifest_json "${MANIFEST_JSON}"
+    --output_manifest_json "${MANIFEST_JSON}" \
+    "${BUILD_SKIP_ARGS[@]}"
 fi

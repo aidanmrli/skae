@@ -1,0 +1,71 @@
+output_root: "."
+device: "cpu"
+bootstrap_resamples: 2000
+profile: "smoke_explicit_reductions"
+notes:
+  - "This config is a resource-aware smoke profile, not the full requested scientific grid."
+  - "Official PDEBench SWE uses 2D_rdb_NA_NA.h5 from DaRUS DOI 10.18419/DARUS-2986; set pdebench_swe.data_path to the downloaded file for official runs."
+  - "Silverbox uses nonlinear_benchmarks.Silverbox when available; the fixture is explicitly marked non-official."
+
+lorenz96:
+  seeds: [0]
+  dimension: 64
+  forcing: 8.0
+  n_train: 4
+  n_val: 2
+  n_test: 2
+  time_points: 40
+  observed_fraction: 1.0
+  noise_fraction: 0.0
+  horizons: [1, 5, 10]
+  latent_dims: [16]
+  sparsity_coefficients: [0.0, 0.0001]
+  truncated_dmd_rank: 8
+  training:
+    epochs: 3
+    patience: 2
+    train_horizon: 5
+    batch_size: 8
+    hidden_dim: 64
+    num_layers: 2
+    decoder_layers: 1
+    lr: 0.0003
+    weight_decay: 0.000001
+    grad_clip: 1.0
+
+silverbox:
+  seed: 0
+  allow_smoke_fixture: true
+  history: 16
+  guard: 32
+  horizons: [10, 50, 100]
+  latent_dim: 8
+  hidden_dim: 64
+  sparsity_coefficients: [0.0, 0.0001]
+  epochs: 3
+  train_horizon: 10
+  batch_size: 16
+  lr: 0.0003
+  weight_decay: 0.000001
+  grad_clip: 1.0
+
+pdebench_swe:
+  seed: 0
+  data_path: "data/pdebench/2D_rdb_NA_NA.h5"
+  allow_smoke_fixture: true
+  max_trajectories: 8
+  fixture_trajectories: 6
+  fixture_time_points: 24
+  grid_size: 16
+  history: 4
+  horizons: [1, 5, 10]
+  latent_dim: 16
+  hidden_channels: 8
+  sparsity_coefficients: [0.0, 0.0001]
+  training:
+    epochs: 3
+    train_horizon: 5
+    batch_size: 2
+    lr: 0.0003
+    weight_decay: 0.000001
+    grad_clip: 1.0

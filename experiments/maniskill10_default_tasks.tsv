@@ -1,0 +1,11 @@
+# task_id	max_episode_steps	primary_horizons	notes
+PickCube-v1	50	10,20,30,40,50	Single-object pick/place baseline with official demos.
+PushCube-v1	50	10,20,30,40,50	Planar pushing baseline with official demos.
+PullCube-v1	50	10,20,30,40,50	Planar pulling baseline with official demos.
+PokeCube-v1	50	10,20,30,40,50	Peg-mediated pushing; useful contact/action coupling task.
+StackCube-v1	50	10,20,30,40,50	Two-object stacking; default max steps are short, demos may be longer.
+RollBall-v1	80	10,20,40,60,80	Rolling contact task with intermediate default horizon.
+PullCubeTool-v1	100	10,20,50,75,100	Tool-use pulling; fixed-shape state/action forecasting stressor.
+PushT-v1	100	10,20,50,75,100	Precision planar pushing task from the Push-T family.
+PegInsertionSide-v1	100	10,20,50,75,100	Default-demo insertion row, distinct from perturbation-balanced insertion.
+PlugCharger-v1	200	10,20,50,100,150,200	Harder long-horizon insertion row; use LiftPegUpright-v1 as replacement if replay fails.

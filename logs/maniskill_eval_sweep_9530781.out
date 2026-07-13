@@ -1,0 +1,752 @@
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.9518543481826782,
+    "mean_support_size": 121.83735832815265,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.001
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.7,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.9518543481826782,
+    "mean_support_size": 121.83735832815265,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.001
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.9,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0029473619557870328,
+      "contact_phase_family_nmi": 0.011271190272422283,
+      "contact_phase_family_purity": 0.9514609535651093,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19390521511803482,
+      "h_family_given_contact_phase": 0.03911196730081064,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 31.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 106,
+    "mean_family_similarity": 0.9519612789154053,
+    "mean_support_size": 121.83735832815265,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.001
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.9433779716491699,
+    "mean_support_size": 120.75237913060111,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.01
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.7,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.9433779716491699,
+    "mean_support_size": 120.75237913060111,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.01
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.9,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": -0.011644417860837707,
+      "contact_phase_family_nmi": 0.010572238019242427,
+      "contact_phase_family_purity": 0.9514609535651093,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.1929320826226589,
+      "h_family_given_contact_phase": 0.17612036131014616,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 110.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 276,
+    "mean_family_similarity": 0.9437965750694275,
+    "mean_support_size": 120.75237913060111,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.01
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.8311681151390076,
+    "mean_support_size": 115.96523360910525,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.05
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.7,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.8311681151390076,
+    "mean_support_size": 115.96523360910525,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.05
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.9,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 7.093037371715908e-05,
+      "contact_phase_family_nmi": 0.08689826087187655,
+      "contact_phase_family_purity": 0.9658552914733872,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.09526367549568293,
+      "h_family_given_contact_phase": 6.645840926025311,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1817.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 2424,
+    "mean_family_similarity": 0.9083870053291321,
+    "mean_support_size": 115.96523360910525,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 3.8402145688350737,
+      "h_outcome_given_family": 0.11607634677612627,
+      "outcome_family_ari": 0.00816988424365735,
+      "outcome_family_nmi": 0.31518904854901036,
+      "outcome_family_purity": 0.94,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 96.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.05
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.5,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.0,
+      "contact_phase_family_nmi": 0.0,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.19490175784475267,
+      "h_family_given_contact_phase": 0.0,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 1,
+    "mean_family_similarity": 0.7928951382637024,
+    "mean_support_size": 109.97102003730095,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.1
+}
+{
+  "checkpoint": "runs/maniskill_insertion/controlled_lista_seed0/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.7,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0004583100172189566,
+    "h10/state_mse": 0.0004805797022632045,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 11.273791816907051,
+    "h100/state_mse": 0.9489289262820513,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.002022254650409405,
+    "h25/state_mse": 0.0008383578960712139,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.03518850701486963,
+    "h50/state_mse": 0.006656241861979166,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": -0.007051196015122815,
+      "contact_phase_family_nmi": 0.017999189719109944,
+      "contact_phase_family_purity": 0.9512218449619817,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.18865345039706252,
+      "h_family_given_contact_phase": 0.6120572019788116,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 15.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 15,
+    "mean_family_similarity": 0.7958148717880249,
+    "mean_support_size": 109.97102003730095,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 0.0,
+      "h_outcome_given_family": 0.6453587189232539,
+      "outcome_family_ari": 0.0,
+      "outcome_family_nmi": 0.0,
+      "outcome_family_purity": 0.6533333333333333,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 1.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.1
+}
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Tue May 12 16:30:45 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:A3:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 1212413
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 435008 ms
+            Is Running                    : 0
+        Process ID                        : 1213720
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 2270 ms
+            Is Running                    : 0
+        Process ID                        : 1213735
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 4710 ms
+            Is Running                    : 0
+        Process ID                        : 1213774
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 0 ms
+            Is Running                    : 1
+
+Tue May 12 16:30:45 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Quadro RTX 8000                On  |   00000000:A3:00.0 Off |                    0 |
+| 33%   24C    P8             31W /  260W |     272MiB /  46080MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A         1213774      C   .../l/lia/skae/.venv/bin/python3        268MiB |
++-----------------------------------------------------------------------------------------+

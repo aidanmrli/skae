@@ -13,9 +13,12 @@
 #   DYSTS_CACHE_SPLIT=test
 #   DYSTS_CACHE_DIR=/network/scratch/l/lia/skae/dysts_native_cache
 #   DYSTS_CACHE_NUM_WORKERS=2
+#   STAGED_SUPPORT_DEFINITION=absolute:0.001
+#   STAGED_FAMILY_JACCARD_THRESHOLD=0.4
 #   BATCH_SIZE=100
 #   HORIZONS="5000 10000 20000 30000 40000 50000 60000"
 #   DYSTS_PERIODIC_REENCODE_PERIODS="50 75 100 200 400 600 1000"
+#   SAVE_SELECTED_ROLLOUTS=0
 #   ARRAY_OFFSET=0
 #
 #SBATCH --job-name=dysts_long_eval
@@ -57,6 +60,8 @@ DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-long60}"
 DYSTS_CACHE_SPLIT="${DYSTS_CACHE_SPLIT:-test}"
 DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cache}"
 DYSTS_CACHE_NUM_WORKERS="${DYSTS_CACHE_NUM_WORKERS:-2}"
+STAGED_SUPPORT_DEFINITION="${STAGED_SUPPORT_DEFINITION:-absolute:0.001}"
+STAGED_FAMILY_JACCARD_THRESHOLD="${STAGED_FAMILY_JACCARD_THRESHOLD:-0.4}"
 BATCH_SIZE="${BATCH_SIZE:-100}"
 HORIZONS="${HORIZONS:-}"
 DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS:-}"
@@ -126,6 +131,8 @@ CMD=(
   --dysts-cache-profile "${DYSTS_CACHE_PROFILE}"
   --dysts-cache-split "${DYSTS_CACHE_SPLIT}"
   --dysts-cache-num-workers "${DYSTS_CACHE_NUM_WORKERS}"
+  --staged-support-definition "${STAGED_SUPPORT_DEFINITION}"
+  --staged-family-jaccard-threshold "${STAGED_FAMILY_JACCARD_THRESHOLD}"
 )
 
 if [[ -n "${HORIZONS}" ]]; then
@@ -143,6 +150,9 @@ if [[ -n "${DYSTS_CACHE_DIR}" ]]; then
 fi
 if [[ "${KEEP_FULL_ROLLOUTS:-0}" == "1" ]]; then
   CMD+=(--keep-full-rollouts)
+fi
+if [[ "${SAVE_SELECTED_ROLLOUTS:-0}" == "1" ]]; then
+  CMD+=(--save-selected-rollouts)
 fi
 if [[ "${SAVE_PLOTS:-0}" == "1" ]]; then
   CMD+=(--save-plots)

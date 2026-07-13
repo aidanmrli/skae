@@ -1,0 +1,138 @@
+output_root: "results/lorenz96_lista_shrink_density_sweep_30x5_cpu_20260625"
+device: "cpu"
+bootstrap_resamples: 2000
+profile: "lorenz96_D128_lista_shrink_density_sweep_30x5"
+notes:
+  - "Fine-grained LISTA-shrink alpha sweep for achieved latent sparsity."
+  - "Thirty threshold settings, five seeds per setting."
+  - "All neural rows use overcomplete dz=512 latents, dense K, no K regularization, and training windows of length 20."
+  - "Primary analysis asks which achieved validation latent active density maximizes long-horizon forecasting."
+
+x_lista_shrink_base: &lista_shrink_base
+  family: "lista_shrink_density_sweep"
+  preset: "lista_parity_generic_sparse"
+  latent_dim: 512
+  sparsity_coefficient: 0.0
+  sparsity_target: "latent_rollout"
+  lista_final_op: "shrink"
+  lista_num_loops: 5
+  use_homogeneous: false
+  k_structure: "dense"
+
+lorenz96:
+  seeds: [0, 1, 2, 3, 4]
+  dimension: 128
+  forcing: 8.0
+  n_train: 64
+  n_val: 16
+  n_test: 16
+  train_sizes: [64]
+  time_points: 160
+  observed_fraction: 1.0
+  noise_fraction: 0.05
+  horizons: [1, 5, 10, 25, 50, 100]
+  train_horizons: [20]
+  latent_dims: [512]
+  truncated_dmd_rank: 32
+  training:
+    epochs: 3000
+    patience: 500
+    batch_size: 64
+    hidden_dim: 128
+    num_layers: 2
+    decoder_layers: 1
+    lr: 0.0003
+    weight_decay: 0.000001
+    grad_clip: 1.0
+    sparsity_target: "latent_rollout"
+  model_variants:
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p005"
+      lista_alpha: 0.005
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p0075"
+      lista_alpha: 0.0075
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p01"
+      lista_alpha: 0.01
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p015"
+      lista_alpha: 0.015
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p02"
+      lista_alpha: 0.02
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p025"
+      lista_alpha: 0.025
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p03"
+      lista_alpha: 0.03
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p04"
+      lista_alpha: 0.04
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p05"
+      lista_alpha: 0.05
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p06"
+      lista_alpha: 0.06
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p075"
+      lista_alpha: 0.075
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p09"
+      lista_alpha: 0.09
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p1"
+      lista_alpha: 0.1
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p125"
+      lista_alpha: 0.125
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p15"
+      lista_alpha: 0.15
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p2"
+      lista_alpha: 0.2
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p25"
+      lista_alpha: 0.25
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p3"
+      lista_alpha: 0.3
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p4"
+      lista_alpha: 0.4
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p5"
+      lista_alpha: 0.5
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p65"
+      lista_alpha: 0.65
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_0p8"
+      lista_alpha: 0.8
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_1"
+      lista_alpha: 1.0
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_1p25"
+      lista_alpha: 1.25
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_1p5"
+      lista_alpha: 1.5
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_1p75"
+      lista_alpha: 1.75
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_2"
+      lista_alpha: 2.0
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_2p25"
+      lista_alpha: 2.25
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_2p5"
+      lista_alpha: 2.5
+    - <<: *lista_shrink_base
+      label: "lista_shrink_alpha_3"
+      lista_alpha: 3.0

@@ -1,0 +1,28 @@
+{
+  "dysts_dir": "results/paper_baseline_dysts_dt30_20260512",
+  "dysts_dirs": [
+    "results/paper_baseline_dysts_dt30_20260512",
+    "results/paper_baseline_local_edmd_dysts_dt30_20260623"
+  ],
+  "dysts_horizons": [
+    100,
+    2000,
+    4000
+  ],
+  "dysts_status_counts": {
+    "ok": 720
+  },
+  "multibasin_dir": "results/paper_baseline_retained15_20260512",
+  "multibasin_dirs": [
+    "results/paper_baseline_retained15_20260512",
+    "results/paper_baseline_local_edmd_retained15_20260623"
+  ],
+  "multibasin_horizons": [
+    100,
+    500,
+    1000
+  ],
+  "multibasin_status_counts": {
+    "ok": 1080
+  }
+}

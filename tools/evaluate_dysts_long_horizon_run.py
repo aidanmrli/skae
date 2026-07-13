@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+import numpy as np
 import torch
 
 from skae.checkpoint_compat import load_model_state_dict_compat
@@ -16,6 +17,12 @@ from skae.dysts_cache_profiles import apply_dysts_cache_profile, default_dysts_c
 from skae.data import make_env
 from skae.evaluation import EvaluationSettings, evaluate_model
 from skae.model import make_model
+from tools.train_staged_support_family_local_k import (
+    SourceTargetLocalMapBundle,
+    _make_wrapped_model,
+    _support_definition,
+    _target_centers_from_global,
+)
 
 
 DEFAULT_HORIZONS: Tuple[int, ...] = (
@@ -48,6 +55,13 @@ def _safe_json_load(path: Path) -> Optional[Dict[str, Any]]:
         return json.loads(path.read_text())
     except Exception:
         return None
+
+
+def _torch_load(path: Path, *, map_location: str):
+    try:
+        return torch.load(path, map_location=map_location, weights_only=False)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
 
 
 def _output_root(run_dir: Path, output_tag: str) -> Path:
@@ -93,6 +107,7 @@ def _is_complete(
     checkpoint_name: str,
     system: str,
     horizons: Sequence[int],
+    require_selected_rollouts: bool = False,
 ) -> bool:
     results_json = _results_json_path(run_dir, output_tag, checkpoint_name)
     compact_rollouts = _rollout_paths(run_dir, output_tag, checkpoint_name, system)[1]
@@ -104,6 +119,8 @@ def _is_complete(
         return False
     if not _has_required_horizons(system_data, horizons):
         return False
+    if not require_selected_rollouts:
+        return True
     files = system_data.get("files", {})
     selected_path = files.get("selected_rollout_artifacts")
     if isinstance(selected_path, str) and Path(selected_path).exists():
@@ -121,13 +138,15 @@ def _load_checkpoint_model(
     dysts_cache_split: str,
     dysts_cache_dir: Optional[str],
     dysts_cache_num_workers: Optional[int],
+    staged_support_definition: str,
+    staged_family_jaccard_threshold: float,
 ):
     checkpoint_file = "checkpoint.pt" if checkpoint_name == "checkpoint" else f"{checkpoint_name}.pt"
     checkpoint_path = run_dir / checkpoint_file
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Missing checkpoint: {checkpoint_path}")
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = _torch_load(checkpoint_path, map_location=device)
     if "config" not in checkpoint:
         raise KeyError(f"Checkpoint missing config payload: {checkpoint_path}")
 
@@ -159,7 +178,82 @@ def _load_checkpoint_model(
             f"{eval_env.observation_size}, model expects {model.observation_size}"
         )
 
+    if checkpoint.get("local_bundle_state_dict") is not None:
+        model = _wrap_staged_local_k_checkpoint(
+            run_dir=run_dir,
+            checkpoint=checkpoint,
+            model=model,
+            device=device,
+            support_definition=staged_support_definition,
+            family_jaccard_threshold=staged_family_jaccard_threshold,
+        )
+
     return model, eval_cfg, checkpoint_path
+
+
+def _wrap_staged_local_k_checkpoint(
+    *,
+    run_dir: Path,
+    checkpoint: Dict[str, Any],
+    model: torch.nn.Module,
+    device: str,
+    support_definition: str,
+    family_jaccard_threshold: float,
+) -> torch.nn.Module:
+    artifact_path = run_dir / "stage2_artifacts.pt"
+    artifact: Optional[Dict[str, Any]]
+    if checkpoint.get("route_codebook") is not None:
+        artifact = checkpoint
+    elif artifact_path.exists():
+        artifact = _torch_load(artifact_path, map_location=device)
+    else:
+        raise FileNotFoundError(
+            "Checkpoint has local_bundle_state_dict but neither checkpoint "
+            f"route metadata nor staged artifact exists: {artifact_path}"
+        )
+
+    staged_cfg = _safe_json_load(run_dir / "staged_local_k_config.json") or {}
+    route_metadata = dict(artifact.get("route_metadata", {}) or {})
+    route_metadata.update(dict(checkpoint.get("route_metadata", {}) or {}))
+    route_codebook = artifact["route_codebook"]
+
+    resolved_support = str(staged_cfg.get("support_definition") or support_definition)
+    resolved_jaccard = float(
+        staged_cfg.get(
+            "family_jaccard_threshold",
+            route_metadata.get("route_jaccard_threshold", family_jaccard_threshold),
+        )
+    )
+    scheme, support_value = _support_definition(resolved_support)
+    global_k = model.kmatrix().detach().cpu().numpy().astype(np.float32, copy=False)
+    target_centers = artifact.get("target_centers")
+    if target_centers is None:
+        target_centers = _target_centers_from_global(
+            route_codebook["centers"],
+            route_codebook["fitted_family_ids"],
+            global_k,
+        )
+    bundle = SourceTargetLocalMapBundle(
+        family_ids=route_codebook["fitted_family_ids"],
+        source_centers=route_codebook["centers"],
+        target_centers=target_centers,
+        global_k=global_k,
+        device=device,
+        learn_target_centers=bool(route_metadata.get("learn_target_centers", False)),
+    ).to(device)
+    bundle.load_state_dict(checkpoint["local_bundle_state_dict"])
+    wrapped = _make_wrapped_model(
+        model,
+        bundle,
+        route_codebook,
+        route_env=None,
+        scheme=scheme,
+        support_value=support_value,
+        family_jaccard_threshold=resolved_jaccard,
+    )
+    wrapped.dt = getattr(model, "dt", None)
+    wrapped.eval()
+    return wrapped
 
 
 def _selected_modes_from_results(
@@ -276,9 +370,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=100, help="Held-out rollout batch size.")
     parser.add_argument("--save-plots", action="store_true", help="Also render qualitative plots.")
     parser.add_argument(
+        "--save-selected-rollouts",
+        action="store_true",
+        help="Save compact rollout tensors for the selected best modes. Off by default.",
+    )
+    parser.add_argument(
         "--skip-if-complete",
         action="store_true",
-        help="Exit early when compact rollout artifacts and requested horizons already exist.",
+        help="Exit early when requested horizons already exist; also requires selected rollouts if requested.",
     )
     parser.add_argument(
         "--keep-full-rollouts",
@@ -289,6 +388,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dysts-cache-split", default="test", help="Dysts cache split.")
     parser.add_argument("--dysts-cache-dir", default=None, help="Optional shared Dysts cache directory.")
     parser.add_argument("--dysts-cache-num-workers", type=int, default=None, help="Optional cache worker override.")
+    parser.add_argument(
+        "--staged-support-definition",
+        default="absolute:0.001",
+        help="Support definition used when evaluating staged local-K checkpoints.",
+    )
+    parser.add_argument(
+        "--staged-family-jaccard-threshold",
+        type=float,
+        default=0.4,
+        help="Fallback Jaccard threshold used when evaluating staged local-K checkpoints.",
+    )
     return parser.parse_args()
 
 
@@ -304,6 +414,7 @@ def main() -> None:
     )
     checkpoint_name = str(args.checkpoint_name)
     output_tag = str(args.output_tag)
+    save_selected_rollouts = bool(args.save_selected_rollouts or args.keep_full_rollouts)
 
     if args.skip_if_complete and _is_complete(
         run_dir=run_dir,
@@ -311,6 +422,7 @@ def main() -> None:
         checkpoint_name=checkpoint_name,
         system=system,
         horizons=horizons,
+        require_selected_rollouts=save_selected_rollouts,
     ):
         print(
             f"Skip complete reevaluation: run_dir={run_dir} system={system} "
@@ -328,6 +440,8 @@ def main() -> None:
         dysts_cache_split=str(args.dysts_cache_split),
         dysts_cache_dir=args.dysts_cache_dir,
         dysts_cache_num_workers=args.dysts_cache_num_workers,
+        staged_support_definition=str(args.staged_support_definition),
+        staged_family_jaccard_threshold=float(args.staged_family_jaccard_threshold),
     )
     print(
         f"Reevaluating {checkpoint_path} on {system} with device={device}, "
@@ -340,7 +454,7 @@ def main() -> None:
         horizons=horizons,
         dysts_periodic_reencode_periods=dysts_periodic_reencode_periods,
         batch_size=int(args.batch_size),
-        save_rollout_artifacts=True,
+        save_rollout_artifacts=save_selected_rollouts,
         save_plots=bool(args.save_plots),
     )
     output_dir = _output_root(run_dir, output_tag)
@@ -373,20 +487,25 @@ def main() -> None:
         "dysts_cache_profile": str(args.dysts_cache_profile),
         "dysts_cache_split": str(args.dysts_cache_split),
         "dysts_cache_dir": eval_cfg.ENV.DYSTS.CACHE_DIR,
+        "save_selected_rollouts": save_selected_rollouts,
+        "keep_full_rollouts": bool(args.keep_full_rollouts),
     }
     results_json.write_text(json.dumps(eval_results, indent=2))
 
-    selected_modes = _compact_rollouts(
-        run_dir=run_dir,
-        output_tag=output_tag,
-        checkpoint_name=checkpoint_name,
-        system=system,
-        horizons=horizons,
-        keep_full_rollouts=bool(args.keep_full_rollouts),
-    )
+    if save_selected_rollouts:
+        selected_modes = _compact_rollouts(
+            run_dir=run_dir,
+            output_tag=output_tag,
+            checkpoint_name=checkpoint_name,
+            system=system,
+            horizons=horizons,
+            keep_full_rollouts=bool(args.keep_full_rollouts),
+        )
+    else:
+        selected_modes = []
     print(
         f"Completed reevaluation for {run_dir} ({system}); "
-        f"selected rollout modes={selected_modes}",
+        f"selected rollout modes={selected_modes if save_selected_rollouts else 'not saved'}",
         flush=True,
     )
 

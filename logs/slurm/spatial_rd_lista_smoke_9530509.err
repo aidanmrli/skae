@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/mila/l/lia/skae/tools/train_spatialized_reaction_diffusion_lista.py", line 357, in <module>
+    main()
+  File "/home/mila/l/lia/skae/tools/train_spatialized_reaction_diffusion_lista.py", line 309, in main
+    **{key: float(value) for key, value in last_metrics.items()},
+  File "/home/mila/l/lia/skae/tools/train_spatialized_reaction_diffusion_lista.py", line 309, in <dictcomp>
+    **{key: float(value) for key, value in last_metrics.items()},
+ValueError: could not convert string to float: 'sqrt_dim'

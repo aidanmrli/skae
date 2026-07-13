@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620">
+  <defs>
+    <marker id="dotCblue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+      <circle cx="5" cy="5" r="4" fill="#1f77b4"/>
+    </marker>
+    <marker id="dotCorange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+      <circle cx="5" cy="5" r="4" fill="#d95f02"/>
+    </marker>
+    <marker id="dotCgreen" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+      <circle cx="5" cy="5" r="4" fill="#009e73"/>
+    </marker>
+  </defs>
+  <rect width="1400" height="620" fill="#ffffff"/>
+  <text x="44" y="48" font-family="serif" font-size="26" fill="#111827">Prototype C: spatial family callouts to prototype support barcodes</text>
+  <text x="44" y="78" font-family="serif" font-size="16" fill="#4b5563">This is less alluvial-like, but it makes the spatial-to-support object relationship very direct.</text>
+
+  <rect x="58" y="118" width="540" height="430" fill="#ffffff" stroke="#d0d5dd"/>
+  <text x="78" y="150" font-family="serif" font-size="18" fill="#111827">State-space support-family regions</text>
+  <image href="../fig_support_barcode_map_p256.png" x="78" y="174" width="500" height="210" preserveAspectRatio="xMinYMin meet"/>
+  <circle cx="410" cy="255" r="9" fill="#1f77b4" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="230" cy="246" r="9" fill="#d95f02" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="250" cy="350" r="9" fill="#009e73" stroke="#ffffff" stroke-width="2"/>
+  <text x="78" y="434" font-family="serif" font-size="13" fill="#4b5563">Representative points or region centroids become callout anchors.</text>
+  <text x="78" y="456" font-family="serif" font-size="13" fill="#4b5563">The exact alluvial can move to an appendix if this is the main visual.</text>
+
+  <path d="M 410 255 C 650 180 700 178 820 178" fill="none" stroke="#1f77b4" stroke-width="1.8" stroke-opacity="0.55" marker-start="url(#dotCblue)"/>
+  <path d="M 230 246 C 640 290 700 305 820 305" fill="none" stroke="#d95f02" stroke-width="1.8" stroke-opacity="0.55" marker-start="url(#dotCorange)"/>
+  <path d="M 250 350 C 645 410 700 430 820 432" fill="none" stroke="#009e73" stroke-width="1.8" stroke-opacity="0.55" marker-start="url(#dotCgreen)"/>
+
+  <rect x="820" y="128" width="505" height="410" fill="#ffffff" stroke="#d0d5dd"/>
+  <text x="845" y="160" font-family="serif" font-size="18" fill="#111827">Prototype active-coordinate supports</text>
+  <text x="845" y="184" font-family="serif" font-size="13" fill="#4b5563">Each row is a support-family prototype on the shared 0..255 latent axis.</text>
+
+  <text x="845" y="226" font-family="serif" font-size="16" fill="#1f77b4">B0 F2</text>
+  <rect x="925" y="207" width="345" height="34" fill="#f8f9fa" stroke="#aeb4bd"/>
+  <g fill="#1f77b4">
+    <rect x="932" y="207" width="2" height="34"/><rect x="947" y="207" width="2" height="34"/>
+    <rect x="980" y="207" width="2" height="34"/><rect x="1004" y="207" width="2" height="34"/>
+    <rect x="1040" y="207" width="2" height="34"/><rect x="1103" y="207" width="2" height="34"/>
+    <rect x="1168" y="207" width="2" height="34"/><rect x="1214" y="207" width="2" height="34"/>
+    <rect x="1248" y="207" width="2" height="34"/>
+  </g>
+
+  <text x="845" y="353" font-family="serif" font-size="16" fill="#d95f02">B1 F1</text>
+  <rect x="925" y="334" width="345" height="34" fill="#f8f9fa" stroke="#aeb4bd"/>
+  <g fill="#d95f02">
+    <rect x="935" y="334" width="2" height="34"/><rect x="960" y="334" width="2" height="34"/>
+    <rect x="992" y="334" width="2" height="34"/><rect x="1018" y="334" width="2" height="34"/>
+    <rect x="1060" y="334" width="2" height="34"/><rect x="1084" y="334" width="2" height="34"/>
+    <rect x="1120" y="334" width="2" height="34"/><rect x="1158" y="334" width="2" height="34"/>
+    <rect x="1194" y="334" width="2" height="34"/>
+  </g>
+
+  <text x="845" y="480" font-family="serif" font-size="16" fill="#009e73">B2 F0</text>
+  <rect x="925" y="461" width="345" height="34" fill="#f8f9fa" stroke="#aeb4bd"/>
+  <g fill="#009e73">
+    <rect x="930" y="461" width="2" height="34"/><rect x="950" y="461" width="2" height="34"/>
+    <rect x="985" y="461" width="2" height="34"/><rect x="1024" y="461" width="2" height="34"/>
+    <rect x="1056" y="461" width="2" height="34"/><rect x="1110" y="461" width="2" height="34"/>
+    <rect x="1160" y="461" width="2" height="34"/><rect x="1220" y="461" width="2" height="34"/>
+  </g>
+
+  <text x="845" y="522" font-family="serif" font-size="13" fill="#4b5563">Use this when the main claim is support-object interpretability.</text>
+</svg>

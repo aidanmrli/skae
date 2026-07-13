@@ -1,0 +1,71 @@
+=============================================
+ManiSkill-10 5k packed smoke GPU context
+date=2026-06-10T12:26:07-0400
+host=cn-a008.server.mila.quebec
+slurm_job_id=9801762
+slurm_array_task_id=0
+slurm_nodelist=cn-a008
+slurm_job_gpus=5
+slurm_step_gpus=
+slurm_gpus=
+slurm_gpus_on_node=1
+slurm_cpus_per_task=8
+cuda_visible_devices=0
+cuda_device_order=
+GPU 0: Quadro RTX 8000 (UUID: GPU-0d5b0b64-78a3-9588-377e-29793cc2f5af)
+index, uuid, name, driver_version, memory.total [MiB]
+0, GPU-0d5b0b64-78a3-9588-377e-29793cc2f5af, Quadro RTX 8000, 580.159.03, 46080 MiB
+=============================================
+date=Wed Jun 10 12:26:08 EDT 2026
+host=cn-a008.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9801762
+slurm_array_task_id=0
+manifest=experiments/maniskill10_default_tasks.tsv
+data_root=data/maniskill/default_tasks
+run_root=runs/maniskill10_default/forecast_5k_smoke_9801761
+task_indices=0,9
+task_count=8
+pack_size=4
+pack_concurrency=4
+packed_task_threads=2
+num_steps=5000
+batch_size=512
+periodic_reencode_periods=1,2,5,10,20,50,100
+cuda_visible_devices=0
+end_time=Wed Jun 10 12:26:08 EDT 2026
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                              : Wed Jun 10 12:26:08 2026
+Driver Version                                         : 580.159.03
+CUDA Version                                           : 13.0
+
+Attached GPUs                                          : 1
+GPU 00000000:89:00.0
+    Accounting Mode                                    : Enabled
+    Accounting Mode Buffer Size                        : 4000
+    Accounted Processes                                : None
+
+Wed Jun 10 12:26:08 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.159.03             Driver Version: 580.159.03     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Quadro RTX 8000                On  |   00000000:89:00.0 Off |                  N/A |
+| 33%   26C    P8             37W /  260W |       1MiB /  46080MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

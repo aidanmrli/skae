@@ -1,0 +1,61 @@
+{
+  "combined_output": "data/maniskill/perturbation_assessment_seed0_long/all_setups.npz",
+  "demo_h5": "/home/mila/l/lia/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.h5",
+  "demo_json": "/home/mila/l/lia/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.json",
+  "episode_id": 0,
+  "episode_index": 0,
+  "labels_used_for_training": false,
+  "seed": 0,
+  "setups": [
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0_long/success.npz",
+      "setup": "success",
+      "steps": 166,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0_long/jam.npz",
+      "setup": "jam",
+      "steps": 198,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0_long/miss.npz",
+      "setup": "miss",
+      "steps": 198,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0_long/drop.npz",
+      "setup": "drop",
+      "steps": 198,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "obs_dim": 51,
+      "output": "data/maniskill/perturbation_assessment_seed0_long/partial.npz",
+      "setup": "partial",
+      "steps": 198,
+      "target_outcome_label": 5
+    }
+  ]
+}

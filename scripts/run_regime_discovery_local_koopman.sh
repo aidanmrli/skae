@@ -14,6 +14,8 @@
 #   FEATURE_VIEWS=raw_state,dense_latent,sparse_latent_values,support_binary
 #   CLUSTER_METHODS=kmeans,gmm_diag,spectral
 #   CLUSTER_COUNT_MODES=basin_count,support_family_count
+#     Set FEATURE_VIEWS=none, CLUSTER_METHODS=none, and
+#     CLUSTER_COUNT_MODES=none to run only global/support-family/oracle rows.
 #   NUM_TRAJECTORIES=256
 #   TRAJECTORY_LENGTH=256
 #   EVAL_SEED=42
@@ -30,6 +32,7 @@
 #   PROGRESS_EVERY_RUNS=1
 #   FLUSH_EVERY_RUNS=1
 #   MAX_RUNTIME_SECONDS=0
+#   SKIP_STATE_DECODE=0
 #
 #SBATCH --job-name=tr_regime_local_k
 #SBATCH --ntasks=1
@@ -80,6 +83,22 @@ DECODE_BATCH_SIZE="${DECODE_BATCH_SIZE:-4096}"
 PROGRESS_EVERY_RUNS="${PROGRESS_EVERY_RUNS:-1}"
 FLUSH_EVERY_RUNS="${FLUSH_EVERY_RUNS:-1}"
 MAX_RUNTIME_SECONDS="${MAX_RUNTIME_SECONDS:-0}"
+SKIP_STATE_DECODE="${SKIP_STATE_DECODE:-0}"
+
+if [[ "${FEATURE_VIEWS}" == "none" ]]; then
+  FEATURE_VIEWS=""
+fi
+if [[ "${CLUSTER_METHODS}" == "none" ]]; then
+  CLUSTER_METHODS=""
+fi
+if [[ "${CLUSTER_COUNT_MODES}" == "none" ]]; then
+  CLUSTER_COUNT_MODES=""
+fi
+
+EXTRA_ARGS=()
+if [[ "${SKIP_STATE_DECODE}" == "1" || "${SKIP_STATE_DECODE}" == "true" ]]; then
+  EXTRA_ARGS+=(--skip_state_decode)
+fi
 
 echo "============================================="
 echo "Regime-Discovery Local Koopman Comparison"
@@ -100,6 +119,7 @@ echo "LABEL_MODE: ${LABEL_MODE}"
 echo "TRAIN_FRACTION: ${TRAIN_FRACTION}"
 echo "CLUSTER_FIT_MAX_SAMPLES: ${CLUSTER_FIT_MAX_SAMPLES}"
 echo "MAX_RUNTIME_SECONDS: ${MAX_RUNTIME_SECONDS}"
+echo "SKIP_STATE_DECODE: ${SKIP_STATE_DECODE}"
 echo "============================================="
 
 uv run python tools/evaluate_regime_discovery_local_koopman.py \
@@ -127,4 +147,5 @@ uv run python tools/evaluate_regime_discovery_local_koopman.py \
   --decode_batch_size "${DECODE_BATCH_SIZE}" \
   --progress_every_runs "${PROGRESS_EVERY_RUNS}" \
   --flush_every_runs "${FLUSH_EVERY_RUNS}" \
-  --max_runtime_seconds "${MAX_RUNTIME_SECONDS}"
+  --max_runtime_seconds "${MAX_RUNTIME_SECONDS}" \
+  "${EXTRA_ARGS[@]}"

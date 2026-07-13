@@ -1,0 +1,36 @@
+output_root: "results/lorenz96_latent_sparse_horizon_20260624"
+device: "cpu"
+bootstrap_resamples: 2000
+profile: "lorenz96_D128_latent_sparsity_training_horizon_sweep"
+notes:
+  - "Focused follow-up: no K regularization."
+  - "Sparse arms use latent rollout L1 with the same encoder/decoder and dense K parameterization as the dense KAE."
+  - "Sweeps training window length to test whether longer multistep training stabilizes K."
+
+lorenz96:
+  seeds: [0, 1, 2]
+  dimension: 128
+  forcing: 8.0
+  n_train: 64
+  n_val: 16
+  n_test: 16
+  train_sizes: [64]
+  time_points: 160
+  observed_fraction: 1.0
+  noise_fraction: 0.05
+  horizons: [1, 5, 10, 25, 50, 100]
+  train_horizons: [10, 20, 40]
+  latent_dims: [64]
+  sparsity_coefficients: [0.0, 0.0001, 0.001, 0.01, 0.1]
+  truncated_dmd_rank: 32
+  training:
+    epochs: 120
+    patience: 20
+    batch_size: 64
+    hidden_dim: 128
+    num_layers: 2
+    decoder_layers: 1
+    lr: 0.0003
+    weight_decay: 0.000001
+    grad_clip: 1.0
+    sparsity_target: "latent_rollout"

@@ -1,0 +1,149 @@
+date=Tue Jun  2 21:45:02 EDT 2026
+host=cn-f003.server.mila.quebec
+commit=b5ea99e
+slurm_job_id=9725893
+slurm_array_task_id=0
+dataset=data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz
+run_dir=runs/maniskill_insertion/perturbation_e20_50k_cpu_smoke_20260603/dense_sp0/seed0
+model_family=dense
+encoder_kind=dense
+seed=0
+num_steps=2
+batch_size=128
+sequence_length=10
+z_dim=320
+hidden_dim=256
+num_hidden_layers=2
+lista_alpha=0.05
+sparsity_weight=0
+support_threshold=0.2
+family_jaccard=0.4
+horizons=10,25,50,100
+cuda_visible_devices=
+step=0 loss=1.443149 pred=0.938610 val_mse=0.766535
+step=1 loss=1.514696 pred=1.048737 val_mse=0.580123
+run_dir=runs/maniskill_insertion/perturbation_e20_50k_cpu_smoke_20260603/dense_sp0/seed0
+{
+  "checkpoint": "runs/maniskill_insertion/perturbation_e20_50k_cpu_smoke_20260603/dense_sp0/seed0/checkpoint.pt",
+  "checkpoint_step": 1,
+  "dataset": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "device": "cpu",
+  "family_jaccard": 0.4,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 15,
+    "h10/episode_count": 15,
+    "h10/final_state_mse": 0.04258071799683415,
+    "h10/outcome_drop_episode_count": 3,
+    "h10/outcome_drop_final_state_mse": 0.03993604074116626,
+    "h10/outcome_drop_state_mse": 0.04348081576278786,
+    "h10/outcome_jam_episode_count": 3,
+    "h10/outcome_jam_final_state_mse": 0.04174304865544139,
+    "h10/outcome_jam_state_mse": 0.04400022668776169,
+    "h10/outcome_miss_episode_count": 3,
+    "h10/outcome_miss_final_state_mse": 0.05128576397116667,
+    "h10/outcome_miss_state_mse": 0.06392550125620723,
+    "h10/outcome_partial_episode_count": 3,
+    "h10/outcome_partial_final_state_mse": 0.039943272771399,
+    "h10/outcome_partial_state_mse": 0.04339010824565015,
+    "h10/outcome_success_episode_count": 3,
+    "h10/outcome_success_final_state_mse": 0.039995452936957866,
+    "h10/outcome_success_state_mse": 0.043409404879301984,
+    "h10/state_mse": 0.04764121061836193,
+    "h100/episode_count": 15,
+    "h100/final_state_mse": 1191155350.5882354,
+    "h100/outcome_drop_episode_count": 3,
+    "h100/outcome_drop_final_state_mse": 1033045226.248366,
+    "h100/outcome_drop_state_mse": 43164033.50588235,
+    "h100/outcome_jam_episode_count": 3,
+    "h100/outcome_jam_final_state_mse": 1033398660.1830065,
+    "h100/outcome_jam_state_mse": 43347183.067189544,
+    "h100/outcome_miss_episode_count": 3,
+    "h100/outcome_miss_final_state_mse": 1835314851.9738562,
+    "h100/outcome_miss_state_mse": 73940186.72104575,
+    "h100/outcome_partial_episode_count": 3,
+    "h100/outcome_partial_final_state_mse": 1027660860.2352941,
+    "h100/outcome_partial_state_mse": 42913534.99607843,
+    "h100/outcome_success_episode_count": 3,
+    "h100/outcome_success_final_state_mse": 1026357341.6993464,
+    "h100/outcome_success_state_mse": 43058976.727843136,
+    "h100/state_mse": 49284785.359477125,
+    "h25/episode_count": 15,
+    "h25/final_state_mse": 0.1735827676611009,
+    "h25/outcome_drop_episode_count": 3,
+    "h25/outcome_drop_final_state_mse": 0.15578408646427727,
+    "h25/outcome_drop_state_mse": 0.06300309125114889,
+    "h25/outcome_jam_episode_count": 3,
+    "h25/outcome_jam_final_state_mse": 0.15645715925428602,
+    "h25/outcome_jam_state_mse": 0.06320952571295445,
+    "h25/outcome_miss_episode_count": 3,
+    "h25/outcome_miss_final_state_mse": 0.2413054073558134,
+    "h25/outcome_miss_state_mse": 0.08414241217320262,
+    "h25/outcome_partial_episode_count": 3,
+    "h25/outcome_partial_final_state_mse": 0.15787572798386118,
+    "h25/outcome_partial_state_mse": 0.0633416508693321,
+    "h25/outcome_success_episode_count": 3,
+    "h25/outcome_success_final_state_mse": 0.15649143854777017,
+    "h25/outcome_success_state_mse": 0.06314608904271345,
+    "h25/state_mse": 0.06736855341094772,
+    "h50/episode_count": 15,
+    "h50/final_state_mse": 410.73484477124185,
+    "h50/outcome_drop_episode_count": 3,
+    "h50/outcome_drop_final_state_mse": 418.9321640114379,
+    "h50/outcome_drop_state_mse": 30.09439133986928,
+    "h50/outcome_jam_episode_count": 3,
+    "h50/outcome_jam_final_state_mse": 427.25457005718954,
+    "h50/outcome_jam_state_mse": 30.78344056372549,
+    "h50/outcome_miss_episode_count": 3,
+    "h50/outcome_miss_final_state_mse": 362.5483558006536,
+    "h50/outcome_miss_state_mse": 29.83268382352941,
+    "h50/outcome_partial_episode_count": 3,
+    "h50/outcome_partial_final_state_mse": 422.8103043300654,
+    "h50/outcome_partial_state_mse": 30.42139501633987,
+    "h50/outcome_success_episode_count": 3,
+    "h50/outcome_success_final_state_mse": 422.1286892361111,
+    "h50/outcome_success_state_mse": 30.380303308823528,
+    "h50/state_mse": 30.302441176470587,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 5.866972040555919e-05,
+      "contact_phase_family_nmi": 0.022050617607808784,
+      "contact_phase_family_purity": 0.9996668887408394,
+      "contact_phase_sample_count": 3002.0,
+      "h_contact_phase_given_family": 0.0007492806723768265,
+      "h_family_given_contact_phase": 3.4711072953272324,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 62.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 3017,
+    "family_count": 100,
+    "mean_family_similarity": 0.33326616883277893,
+    "mean_support_size": 30.028173682466026,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 1.0986122886681096,
+      "h_outcome_given_family": 0.40456170588294066,
+      "outcome_family_ari": -0.07692307692307693,
+      "outcome_family_nmi": 0.6257664725022377,
+      "outcome_family_purity": 0.7333333333333333,
+      "outcome_sample_count": 15.0,
+      "unique_family_count": 11.0,
+      "unique_outcome_count": 5.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 2346
+  },
+  "support_threshold": 0.2
+}
+summary=runs/maniskill_insertion/perturbation_e20_50k_cpu_smoke_20260603/dense_sp0/seed0/eval_test/metrics_summary.json

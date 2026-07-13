@@ -1,0 +1,1018 @@
+{
+  "combined_output": "data/maniskill/perturbation_assessment_seed0_e20/all_setups.npz",
+  "demo_h5": "/home/mila/l/lia/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.h5",
+  "demo_json": "/home/mila/l/lia/.maniskill/demos/PegInsertionSide-v1/motionplanning/trajectory.json",
+  "episode_count": 20,
+  "episode_index": 0,
+  "labels_used_for_training": false,
+  "seed": 0,
+  "setup_outputs": {
+    "drop": "data/maniskill/perturbation_assessment_seed0_e20/drop.npz",
+    "jam": "data/maniskill/perturbation_assessment_seed0_e20/jam.npz",
+    "miss": "data/maniskill/perturbation_assessment_seed0_e20/miss.npz",
+    "partial": "data/maniskill/perturbation_assessment_seed0_e20/partial.npz",
+    "success": "data/maniskill/perturbation_assessment_seed0_e20/success.npz"
+  },
+  "setups": [
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 0,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 166,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 0,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 198,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 0,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 198,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 0,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 198,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 0,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 198,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 1,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 176,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 1,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 176,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 1,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 176,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 1,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 176,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 1,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 176,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 2,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 220,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 2,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 220,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 2,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 220,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 2,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 220,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 2,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 220,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 3,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 107,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 3,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 137,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 3,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 137,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 3,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 137,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 3,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 137,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 4,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 181,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 4,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 209,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 4,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 209,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 4,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 209,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 4,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 209,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 5,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 109,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 5,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 138,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 5,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 138,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 5,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 138,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 5,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 138,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 6,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 143,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 6,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 144,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 6,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 171,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 6,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 171,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 6,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 171,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 7,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 119,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 7,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 117,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 7,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 148,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 7,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 148,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 7,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 148,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 8,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 125,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 8,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 154,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 8,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 154,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 8,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 154,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 8,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 154,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 9,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 182,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 9,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 210,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 9,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 210,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 9,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 210,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 9,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 210,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 10,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 185,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 10,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 213,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 10,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 213,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 10,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 213,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 10,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 213,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 11,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 116,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 11,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 152,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 11,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 152,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 11,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 152,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 11,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 152,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 12,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 179,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 12,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 212,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 12,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 212,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 12,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 212,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 12,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 212,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 13,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 144,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 13,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 172,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 13,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 172,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 13,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 172,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 13,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 172,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 14,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 148,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 14,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 148,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 14,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 148,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 14,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 148,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 14,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 148,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 15,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 220,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 15,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 220,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 15,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 220,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 15,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 220,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 15,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 220,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 16,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 220,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 16,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 220,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 16,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 220,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 16,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 220,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 16,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 220,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 17,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 157,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 17,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 157,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 17,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 157,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 17,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 157,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 17,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 157,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": true,
+      "actual_success_final": true,
+      "episode_id": 18,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 134,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 18,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 168,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 18,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 168,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 18,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 168,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 18,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 168,
+      "target_outcome_label": 5
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 19,
+      "obs_dim": 51,
+      "setup": "success",
+      "steps": 173,
+      "target_outcome_label": 1
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 19,
+      "obs_dim": 51,
+      "setup": "jam",
+      "steps": 173,
+      "target_outcome_label": 2
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 19,
+      "obs_dim": 51,
+      "setup": "miss",
+      "steps": 173,
+      "target_outcome_label": 3
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 19,
+      "obs_dim": 51,
+      "setup": "drop",
+      "steps": 173,
+      "target_outcome_label": 4
+    },
+    {
+      "action_dim": 8,
+      "actual_success_any": false,
+      "actual_success_final": false,
+      "episode_id": 19,
+      "obs_dim": 51,
+      "setup": "partial",
+      "steps": 173,
+      "target_outcome_label": 5
+    }
+  ]
+}

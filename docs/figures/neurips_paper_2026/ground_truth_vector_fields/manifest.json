@@ -1,0 +1,628 @@
+{
+  "description": "Ground-truth continuous-time vector fields for the retained 15 multibasin benchmark systems.",
+  "grid_points": 80,
+  "formats": [
+    "png",
+    "pdf",
+    "svg"
+  ],
+  "composite": [
+    "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.png",
+    "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf",
+    "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.svg"
+  ],
+  "systems": [
+    {
+      "system_key": "gated_local_linear",
+      "title": "Local-linear gates",
+      "basin_count": 3,
+      "xlim": [
+        -4.0,
+        4.0
+      ],
+      "ylim": [
+        -4.0,
+        4.0
+      ],
+      "dt": 0.04,
+      "slug": "gated_local_linear",
+      "log_speed_vmin": -0.3947453188896179,
+      "log_speed_vmax": 0.8108141219615933,
+      "centers": [
+        [
+          1.75,
+          0.0
+        ],
+        [
+          -0.8750000596046448,
+          1.5155445337295532
+        ],
+        [
+          -0.8749998211860657,
+          -1.5155445337295532
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_local_linear.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_local_linear.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_local_linear.svg"
+      ]
+    },
+    {
+      "system_key": "gated_transfer_linear",
+      "title": "Transfer-gated local-linear",
+      "basin_count": 3,
+      "xlim": [
+        -2.8,
+        2.8
+      ],
+      "ylim": [
+        -2.8,
+        2.8
+      ],
+      "dt": 0.04,
+      "slug": "gated_transfer_linear",
+      "log_speed_vmin": -0.5550520586967468,
+      "log_speed_vmax": 0.29007552802562686,
+      "centers": [
+        [
+          1.850000023841858,
+          0.0
+        ],
+        [
+          -0.9250001311302185,
+          1.6021469831466675
+        ],
+        [
+          -0.9249998331069946,
+          -1.6021469831466675
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_transfer_linear.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_transfer_linear.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_gated_transfer_linear.svg"
+      ]
+    },
+    {
+      "system_key": "claude:arrested_spiral",
+      "title": "Arrested spiral",
+      "basin_count": 5,
+      "xlim": [
+        -3.0,
+        3.0
+      ],
+      "ylim": [
+        -3.0,
+        3.0
+      ],
+      "dt": 0.02,
+      "slug": "claude_arrested_spiral",
+      "log_speed_vmin": 0.018669885210692884,
+      "log_speed_vmax": 0.9122927975654602,
+      "centers": [
+        [
+          1.5,
+          0.0
+        ],
+        [
+          0.0,
+          1.8
+        ],
+        [
+          -1.0,
+          -1.0
+        ],
+        [
+          0.8,
+          -1.5
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.svg"
+      ]
+    },
+    {
+      "system_key": "claude:cal_asymmetric_3",
+      "title": "Asymmetric three-well",
+      "basin_count": 3,
+      "xlim": [
+        -3.0,
+        3.0
+      ],
+      "ylim": [
+        -2.5,
+        3.0
+      ],
+      "dt": 0.03,
+      "slug": "claude_cal_asymmetric_3",
+      "log_speed_vmin": -0.4560608023405075,
+      "log_speed_vmax": 0.7287017989158627,
+      "centers": [
+        [
+          0.0,
+          1.8
+        ],
+        [
+          -1.5,
+          -0.9
+        ],
+        [
+          1.5,
+          -0.9
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.svg"
+      ]
+    },
+    {
+      "system_key": "claude:cal_high_cross_3",
+      "title": "High-cross three-well",
+      "basin_count": 3,
+      "xlim": [
+        -3.3,
+        3.3
+      ],
+      "ylim": [
+        -3.3,
+        3.3
+      ],
+      "dt": 0.03,
+      "slug": "claude_cal_high_cross_3",
+      "log_speed_vmin": -0.1015785251557827,
+      "log_speed_vmax": 1.0025504159927363,
+      "centers": [
+        [
+          0.0,
+          1.8
+        ],
+        [
+          -1.55884573,
+          -0.9
+        ],
+        [
+          1.55884573,
+          -0.9
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.svg"
+      ]
+    },
+    {
+      "system_key": "claude:cal_hexagon_6",
+      "title": "Hexagonal six-well",
+      "basin_count": 6,
+      "xlim": [
+        -3.3,
+        3.3
+      ],
+      "ylim": [
+        -3.3,
+        3.3
+      ],
+      "dt": 0.03,
+      "slug": "claude_cal_hexagon_6",
+      "log_speed_vmin": -0.2836457282304764,
+      "log_speed_vmax": 0.8248158669471739,
+      "centers": [
+        [
+          1.7,
+          0.0
+        ],
+        [
+          0.85,
+          1.47224319
+        ],
+        [
+          -0.85,
+          1.47224319
+        ],
+        [
+          -1.7,
+          0.0
+        ],
+        [
+          -0.85,
+          -1.47224319
+        ],
+        [
+          0.85,
+          -1.47224319
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.svg"
+      ]
+    },
+    {
+      "system_key": "claude:cal_octagon_8",
+      "title": "Octagonal eight-well",
+      "basin_count": 8,
+      "xlim": [
+        -4.0,
+        4.0
+      ],
+      "ylim": [
+        -4.0,
+        4.0
+      ],
+      "dt": 0.03,
+      "slug": "claude_cal_octagon_8",
+      "log_speed_vmin": -0.27324260234832765,
+      "log_speed_vmax": 0.8834561085700984,
+      "centers": [
+        [
+          2.2,
+          0.0
+        ],
+        [
+          1.55563492,
+          1.55563492
+        ],
+        [
+          0.0,
+          2.2
+        ],
+        [
+          -1.55563492,
+          1.55563492
+        ],
+        [
+          -2.2,
+          0.0
+        ],
+        [
+          -1.55563492,
+          -1.55563492
+        ],
+        [
+          -0.0,
+          -2.2
+        ],
+        [
+          1.55563492,
+          -1.55563492
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.svg"
+      ]
+    },
+    {
+      "system_key": "claude:cal_pentagon_5",
+      "title": "Pentagonal five-well",
+      "basin_count": 5,
+      "xlim": [
+        -3.3,
+        3.3
+      ],
+      "ylim": [
+        -3.3,
+        3.3
+      ],
+      "dt": 0.03,
+      "slug": "claude_cal_pentagon_5",
+      "log_speed_vmin": -0.3297312396764755,
+      "log_speed_vmax": 0.8433346915245054,
+      "centers": [
+        [
+          0.0,
+          1.8
+        ],
+        [
+          -1.71190173,
+          0.55623059
+        ],
+        [
+          -1.05801345,
+          -1.45623059
+        ],
+        [
+          1.05801345,
+          -1.45623059
+        ],
+        [
+          1.71190173,
+          0.55623059
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.svg"
+      ]
+    },
+    {
+      "system_key": "claude:cal_square_4",
+      "title": "Square four-well",
+      "basin_count": 4,
+      "xlim": [
+        -3.3,
+        3.3
+      ],
+      "ylim": [
+        -3.3,
+        3.3
+      ],
+      "dt": 0.03,
+      "slug": "claude_cal_square_4",
+      "log_speed_vmin": -0.3053061270713805,
+      "log_speed_vmax": 0.8248784554004668,
+      "centers": [
+        [
+          1.27279221,
+          1.27279221
+        ],
+        [
+          -1.27279221,
+          1.27279221
+        ],
+        [
+          -1.27279221,
+          -1.27279221
+        ],
+        [
+          1.27279221,
+          -1.27279221
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.svg"
+      ]
+    },
+    {
+      "system_key": "claude:duffing_triple_well",
+      "title": "Triple-well Duffing",
+      "basin_count": 3,
+      "xlim": [
+        -2.0,
+        2.0
+      ],
+      "ylim": [
+        -2.0,
+        2.0
+      ],
+      "dt": 0.02,
+      "slug": "claude_duffing_triple_well",
+      "log_speed_vmin": -0.272748726606369,
+      "log_speed_vmax": 1.2728822922706602,
+      "centers": [
+        [
+          -1.27767583,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1.27767583,
+          0.0
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.svg"
+      ]
+    },
+    {
+      "system_key": "claude:snic_multi",
+      "title": "SNIC multi-attractor",
+      "basin_count": 3,
+      "xlim": [
+        -2.0,
+        2.0
+      ],
+      "ylim": [
+        -2.0,
+        2.0
+      ],
+      "dt": 0.02,
+      "slug": "claude_snic_multi",
+      "log_speed_vmin": -0.7061946880817412,
+      "log_speed_vmax": 1.1761424446105955,
+      "centers": [
+        [
+          0.82165451,
+          -0.16247992
+        ],
+        [
+          -0.27011552,
+          0.79281364
+        ],
+        [
+          -0.55153899,
+          -0.63033372
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.svg"
+      ]
+    },
+    {
+      "system_key": "claude:transition_routes_4",
+      "title": "Transition-routes four-well",
+      "basin_count": 4,
+      "xlim": [
+        -3.5,
+        3.5
+      ],
+      "ylim": [
+        -3.5,
+        3.5
+      ],
+      "dt": 0.02,
+      "slug": "claude_transition_routes_4",
+      "log_speed_vmin": -0.3502496188879013,
+      "log_speed_vmax": 0.8992790913581845,
+      "centers": [
+        [
+          -1.8,
+          1.8
+        ],
+        [
+          1.8,
+          1.8
+        ],
+        [
+          -1.8,
+          -1.8
+        ],
+        [
+          1.8,
+          -1.8
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.svg"
+      ]
+    },
+    {
+      "system_key": "claude:var_depth_gradient_4",
+      "title": "Depth-gradient four-well",
+      "basin_count": 4,
+      "xlim": [
+        -3.0,
+        3.0
+      ],
+      "ylim": [
+        -3.0,
+        3.0
+      ],
+      "dt": 0.03,
+      "slug": "claude_var_depth_gradient_4",
+      "log_speed_vmin": -0.31285543501377105,
+      "log_speed_vmax": 0.8192461657524108,
+      "centers": [
+        [
+          -1.3,
+          1.3
+        ],
+        [
+          1.3,
+          1.3
+        ],
+        [
+          1.3,
+          -1.3
+        ],
+        [
+          -1.3,
+          -1.3
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.svg"
+      ]
+    },
+    {
+      "system_key": "claude:var_diamond_4",
+      "title": "Diamond four-well",
+      "basin_count": 4,
+      "xlim": [
+        -3.5,
+        3.5
+      ],
+      "ylim": [
+        -3.5,
+        3.5
+      ],
+      "dt": 0.03,
+      "slug": "claude_var_diamond_4",
+      "log_speed_vmin": -0.31301194787025444,
+      "log_speed_vmax": 0.7880035567283623,
+      "centers": [
+        [
+          0.0,
+          2.2
+        ],
+        [
+          2.2,
+          0.0
+        ],
+        [
+          0.0,
+          -2.2
+        ],
+        [
+          -2.2,
+          0.0
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.svg"
+      ]
+    },
+    {
+      "system_key": "claude:var_l_shape_5",
+      "title": "L-shaped five-well",
+      "basin_count": 5,
+      "xlim": [
+        -3.5,
+        3.5
+      ],
+      "ylim": [
+        -3.5,
+        3.5
+      ],
+      "dt": 0.03,
+      "slug": "claude_var_l_shape_5",
+      "log_speed_vmin": -0.2714549058675766,
+      "log_speed_vmax": 0.8798958158493039,
+      "centers": [
+        [
+          -1.5,
+          1.5
+        ],
+        [
+          -1.5,
+          0.0
+        ],
+        [
+          -1.5,
+          -1.5
+        ],
+        [
+          0.0,
+          -1.5
+        ],
+        [
+          1.5,
+          -1.5
+        ]
+      ],
+      "individual": [
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.png",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.pdf",
+        "docs/figures/neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.svg"
+      ]
+    }
+  ]
+}

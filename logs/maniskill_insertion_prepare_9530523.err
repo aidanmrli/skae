@@ -1,0 +1,29 @@
+Downloading hf-xet (4.3MiB)
+Downloading imageio-ffmpeg (28.1MiB)
+Downloading h5py (4.8MiB)
+Downloading transforms3d (1.3MiB)
+Downloading sapien (48.9MiB)
+Downloading mplib (11.5MiB)
+Downloading opencv-python (69.5MiB)
+Downloading mani-skill (97.0MiB)
+ Downloaded transforms3d
+ Downloaded hf-xet
+ Downloaded h5py
+ Downloaded mplib
+ Downloaded imageio-ffmpeg
+ Downloaded opencv-python
+ Downloaded sapien
+ Downloaded mani-skill
+Installed 105 packages in 17.47s
+/home/mila/l/lia/.cache/uv/archive-v0/rbpGCdzJtIFU6UWIHBfJN/lib/python3.10/site-packages/sapien/_vulkan_tricks.py:42: UserWarning: Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.
+  warn("Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.")
+0.00it [00:00, ?it/s]  0%|          | 0.00/29.5M [00:00<?, ?it/s]  7%|▋         | 2.16M/29.5M [00:00<00:01, 21.6Mit/s] 40%|████      | 11.9M/29.5M [00:00<00:00, 60.4Mit/s] 85%|████████▌ | 25.2M/29.5M [00:00<00:00, 91.3Mit/s]29.5Mit [00:00, 58.4Mit/s]                           
+/network/scratch/l/lia/cache_storage/uv/archive-v0/rbpGCdzJtIFU6UWIHBfJN/lib/python3.10/site-packages/sapien/_vulkan_tricks.py:42: UserWarning: Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.
+  warn("Failed to find system libvulkan. Fallback to SAPIEN builtin libvulkan.")
+╭─ Unrecognized options ───────────────────────────────────────────────────────╮
+│ Unrecognized options: --num-procs, 4                                         │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ For full helptext, run /network/scratch/l/lia/cache_storage/uv/archive-v0/rb │
+│ pGCdzJtIFU6UWIHBfJN/lib/python3.10/site-packages/mani_skill/trajectory/repla │
+│ y_trajectory.py --help                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯

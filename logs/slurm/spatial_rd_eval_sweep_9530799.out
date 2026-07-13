@@ -1,0 +1,2655 @@
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6772605526539817,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": 1.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.7689697585560168,
+      "nmi": 1.0,
+      "num_test_families": 3,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.4,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6772605526539817,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 0.4,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6772605526539817,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7473294132883713,
+      "nmi": 0.7085707268671558,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": 1.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.769645137000835,
+      "nmi": 1.0,
+      "num_test_families": 3,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.7,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11,
+      4,
+      4,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7473294132883713,
+      "nmi": 0.7085707268671558,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 0.7,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11,
+      4,
+      4,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7473294132883713,
+      "nmi": 0.7085707268671558,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11,
+      4,
+      4,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8115721058287089,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.34657359027997264,
+      "mean_state_to_rep_jaccard": 0.8425710156425106,
+      "nmi": 0.8571428571428571,
+      "num_test_families": 4,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 1.0,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 114,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      16,
+      15,
+      11,
+      11,
+      10,
+      7,
+      5
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8115721058287089,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 1.0,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 114,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      16,
+      15,
+      11,
+      11,
+      10,
+      7,
+      5
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8115721058287089,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 1e-05,
+    "validation_representative_count": 114,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      16,
+      15,
+      11,
+      11,
+      10,
+      7,
+      5
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 114
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6772770117923815,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": 1.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.7689697585560168,
+      "nmi": 1.0,
+      "num_test_families": 3,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6772770117923815,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6772770117923815,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7414151583689647,
+      "nmi": 0.7085707268671558,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": 1.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.7756196201448097,
+      "nmi": 1.0,
+      "num_test_families": 3,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11,
+      4,
+      4,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7414151583689647,
+      "nmi": 0.7085707268671558,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11,
+      4,
+      4,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7414151583689647,
+      "nmi": 0.7085707268671558,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      11,
+      4,
+      4,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8115959153525184,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.34657359027997264,
+      "mean_state_to_rep_jaccard": 0.8425710156425106,
+      "nmi": 0.8571428571428571,
+      "num_test_families": 4,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 116,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      16,
+      15,
+      11,
+      11,
+      10,
+      7,
+      5
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8115959153525184,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 116,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      16,
+      15,
+      11,
+      11,
+      10,
+      7,
+      5
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8115959153525184,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.0001,
+    "validation_representative_count": 116,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      19,
+      16,
+      15,
+      11,
+      11,
+      10,
+      7,
+      5
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 116
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6773852861032684,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": 1.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.7687891753868291,
+      "nmi": 1.0,
+      "num_test_families": 3,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.001,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      10
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6773852861032684,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.001,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      10
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.45627376425855515,
+      "h_basin_given_family": 0.30296957829959364,
+      "h_family_given_basin": 0.5623351446188083,
+      "mean_state_to_rep_jaccard": 0.6773852861032684,
+      "nmi": 0.6477618681515922,
+      "num_test_families": 4,
+      "num_test_trajectories": 12,
+      "purity": 0.8333333333333334
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.4,
+    "support_threshold": 0.001,
+    "validation_representative_count": 4,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      10
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7480847621901133,
+      "nmi": 0.7085707268671557,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": 1.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.7694270328069353,
+      "nmi": 1.0,
+      "num_test_families": 3,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.001,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      10,
+      5,
+      3,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7480847621901133,
+      "nmi": 0.7085707268671557,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.001,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      10,
+      5,
+      3,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.5020576131687243,
+      "h_basin_given_family": 0.11552453009332421,
+      "h_family_given_basin": 0.6931471805599452,
+      "mean_state_to_rep_jaccard": 0.7480847621901133,
+      "nmi": 0.7085707268671557,
+      "num_test_families": 6,
+      "num_test_trajectories": 12,
+      "purity": 0.9166666666666666
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 0.7,
+    "support_threshold": 0.001,
+    "validation_representative_count": 7,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      10,
+      5,
+      3,
+      1
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8117806536206449,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": 0.0,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 0.34657359027997264,
+      "mean_state_to_rep_jaccard": 0.8425510670480696,
+      "nmi": 0.8571428571428571,
+      "num_test_families": 4,
+      "num_test_trajectories": 4,
+      "purity": 1.0
+    },
+    "deep_threshold": 0.5,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.001,
+    "validation_representative_count": 117,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      16,
+      15,
+      12,
+      10,
+      10,
+      7,
+      6
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8117806536206449,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.7,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.001,
+    "validation_representative_count": 117,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      16,
+      15,
+      12,
+      10,
+      10,
+      7,
+      6
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+Initialized LISTA encoder with computed Lipschitz constant L=1.0500
+{
+  "checkpoint": "runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/lista/checkpoint.pt",
+  "checkpoint_step": 700,
+  "dataset": "runs/spatialized_reaction_diffusion/cal_square_4_seed0_grid32_smoke/dataset.pt",
+  "device": "cuda",
+  "diffusion": 0.01,
+  "forecast": {
+    "1": {
+      "effective_horizon": 1,
+      "field_mse": 0.7400687535603842,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 0.7400687535603842,
+      "gradient_mse": 0.11010224123795827,
+      "predicted_final_majority_fraction_mean": 0.774169921875
+    },
+    "12": {
+      "effective_horizon": 12,
+      "field_mse": 1.0316443973117404,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.1327760219573975,
+      "gradient_mse": 0.2886279821395874,
+      "predicted_final_majority_fraction_mean": 0.7724609375
+    },
+    "4": {
+      "effective_horizon": 4,
+      "field_mse": 0.8914448420206705,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.0096583366394043,
+      "gradient_mse": 0.1768063505490621,
+      "predicted_final_majority_fraction_mean": 0.7738444209098816
+    },
+    "8": {
+      "effective_horizon": 8,
+      "field_mse": 0.9853897094726562,
+      "final_basin_consistency": 0.9166666865348816,
+      "final_field_mse": 1.104461669921875,
+      "gradient_mse": 0.24604904651641846,
+      "predicted_final_majority_fraction_mean": 0.7734375
+    }
+  },
+  "grid_size": 32,
+  "label_policy": "No basin labels, basin counts, or selected center indices are used by training.",
+  "model": {
+    "config_env_name": "spatialized_reaction_diffusion:cal_square_4",
+    "lista_num_loops": 2,
+    "model_name": "LISTAKM",
+    "target_size": 512
+  },
+  "source_system": "cal_square_4",
+  "status": "completed",
+  "stored_dt": 0.1,
+  "support_family_alignment": {
+    "all_test": {
+      "ari": 0.15384615384615385,
+      "h_basin_given_family": 0.0,
+      "h_family_given_basin": 1.155245300933242,
+      "mean_state_to_rep_jaccard": 0.8117806536206449,
+      "nmi": 0.6554047186459501,
+      "num_test_families": 10,
+      "num_test_trajectories": 12,
+      "purity": 1.0
+    },
+    "deep_test": {
+      "ari": NaN,
+      "h_basin_given_family": NaN,
+      "h_family_given_basin": NaN,
+      "mean_state_to_rep_jaccard": NaN,
+      "nmi": NaN,
+      "num_test_families": 0,
+      "num_test_trajectories": 0,
+      "purity": NaN
+    },
+    "deep_threshold": 0.9,
+    "family_jaccard": 1.0,
+    "support_threshold": 0.001,
+    "validation_representative_count": 117,
+    "validation_representative_count_cap": 256,
+    "validation_representative_top_counts": [
+      21,
+      20,
+      18,
+      16,
+      15,
+      12,
+      10,
+      10,
+      7,
+      6
+    ],
+    "validation_state_count": 300,
+    "validation_unique_supports_before_cap": 117
+  }
+}
+output_root=runs/spatialized_reaction_diffusion/tuning_alpha0p001_sp0_seed0/eval_jaccard_sweep
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Tue May 12 16:19:35 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:3A:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 336529
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 2972 ms
+            Is Running                    : 0
+        Process ID                        : 336583
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1544 ms
+            Is Running                    : 0
+        Process ID                        : 336605
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1520 ms
+            Is Running                    : 0
+        Process ID                        : 336623
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1536 ms
+            Is Running                    : 0
+        Process ID                        : 336643
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1509 ms
+            Is Running                    : 0
+        Process ID                        : 336685
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1538 ms
+            Is Running                    : 0
+        Process ID                        : 336703
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1572 ms
+            Is Running                    : 0
+        Process ID                        : 336720
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1547 ms
+            Is Running                    : 0
+        Process ID                        : 336743
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1555 ms
+            Is Running                    : 0
+        Process ID                        : 336761
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1488 ms
+            Is Running                    : 0
+        Process ID                        : 336779
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1502 ms
+            Is Running                    : 0
+        Process ID                        : 336797
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1489 ms
+            Is Running                    : 0
+        Process ID                        : 336839
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1507 ms
+            Is Running                    : 0
+        Process ID                        : 336857
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1503 ms
+            Is Running                    : 0
+        Process ID                        : 336875
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1496 ms
+            Is Running                    : 0
+        Process ID                        : 336898
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1576 ms
+            Is Running                    : 0
+        Process ID                        : 336916
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1575 ms
+            Is Running                    : 0
+        Process ID                        : 336934
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1562 ms
+            Is Running                    : 0
+        Process ID                        : 336977
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1517 ms
+            Is Running                    : 0
+        Process ID                        : 336997
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1507 ms
+            Is Running                    : 0
+        Process ID                        : 337016
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1499 ms
+            Is Running                    : 0
+        Process ID                        : 337040
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1532 ms
+            Is Running                    : 0
+        Process ID                        : 337060
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1529 ms
+            Is Running                    : 0
+        Process ID                        : 337115
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1515 ms
+            Is Running                    : 0
+        Process ID                        : 337133
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1579 ms
+            Is Running                    : 0
+        Process ID                        : 337175
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1565 ms
+            Is Running                    : 0
+        Process ID                        : 337193
+            GPU Utilization               : 1 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 248 MiB
+            Time                          : 1577 ms
+            Is Running                    : 0
+
+Tue May 12 16:19:35 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Quadro RTX 8000                On  |   00000000:3A:00.0 Off |                    0 |
+| 33%   29C    P2             61W /  260W |       1MiB /  46080MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

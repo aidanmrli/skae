@@ -1,0 +1,151 @@
+date=Tue May 12 16:14:19 EDT 2026
+host=cn-c006.server.mila.quebec
+commit=b5ea99e
+Tue May 12 16:14:19 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Quadro RTX 8000                On  |   00000000:C3:00.0 Off |                    0 |
+| 33%   26C    P8             30W /  260W |       1MiB /  46080MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+step=0 loss=1.003479 pred=0.667452 val_mse=0.622545
+step=100 loss=0.226111 pred=0.177984 val_mse=0.157215
+step=200 loss=0.117326 pred=0.087323 val_mse=0.101801
+step=300 loss=0.083987 pred=0.060768 val_mse=0.094733
+step=400 loss=0.073923 pred=0.053393 val_mse=0.051842
+step=500 loss=0.070225 pred=0.052769 val_mse=0.052342
+step=600 loss=0.073427 pred=0.055245 val_mse=0.041515
+step=700 loss=0.057218 pred=0.041939 val_mse=0.032054
+step=800 loss=0.047497 pred=0.034292 val_mse=0.048444
+step=900 loss=0.069265 pred=0.054437 val_mse=0.047562
+step=1000 loss=0.039426 pred=0.028318 val_mse=0.031175
+step=1100 loss=0.055920 pred=0.044072 val_mse=0.038531
+step=1200 loss=0.042420 pred=0.031347 val_mse=0.037234
+step=1300 loss=0.038408 pred=0.028207 val_mse=0.031028
+step=1400 loss=0.037894 pred=0.027624 val_mse=0.028733
+step=1500 loss=0.046238 pred=0.036427 val_mse=0.029169
+step=1600 loss=0.039411 pred=0.029747 val_mse=0.034389
+step=1700 loss=0.038919 pred=0.029918 val_mse=0.035387
+step=1800 loss=0.045262 pred=0.036040 val_mse=0.026536
+step=1900 loss=0.037640 pred=0.028823 val_mse=0.042613
+step=1999 loss=0.040359 pred=0.031596 val_mse=0.022080
+run_dir=runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7
+{
+  "checkpoint": "runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/checkpoint.pt",
+  "checkpoint_step": 1999,
+  "dataset": "data/maniskill/PegInsertionSide-v1_state_compact_seed0.npz",
+  "device": "cuda",
+  "family_jaccard": 0.7,
+  "horizons": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "labels_used_for_training": false,
+  "rollout": {
+    "episode_count": 150,
+    "h10/episode_count": 150,
+    "h10/final_state_mse": 0.0003475802117942745,
+    "h10/state_mse": 0.00037903848061194786,
+    "h100/episode_count": 150,
+    "h100/final_state_mse": 2.4020018696581196,
+    "h100/state_mse": 0.24782413528311967,
+    "h25/episode_count": 150,
+    "h25/final_state_mse": 0.0026070314391046507,
+    "h25/state_mse": 0.0008650341327373798,
+    "h50/episode_count": 150,
+    "h50/final_state_mse": 0.028057303795447717,
+    "h50/state_mse": 0.006501571890024038,
+    "max_requested_horizon": 100
+  },
+  "split": "test",
+  "support_alignment": {
+    "contact_phase": {
+      "contact_phase_family_ari": 0.00024242121599826044,
+      "contact_phase_family_nmi": 0.15733439258596174,
+      "contact_phase_family_purity": 0.993878819759935,
+      "contact_phase_sample_count": 20911.0,
+      "h_contact_phase_given_family": 0.01148657682713782,
+      "h_family_given_contact_phase": 6.789388949366041,
+      "unique_contact_phase_count": 2.0,
+      "unique_family_count": 1633.0
+    },
+    "contact_phase_alignment_available": true,
+    "evaluated_state_count": 20911,
+    "family_count": 2017,
+    "mean_family_similarity": 0.7230082154273987,
+    "mean_support_size": 50.33647362632107,
+    "outcome_alignment_available": true,
+    "outcome_state": {
+      "h_family_given_outcome": 3.887540694037877,
+      "h_outcome_given_family": 0.05621329845234095,
+      "outcome_family_ari": 0.008393144800132814,
+      "outcome_family_nmi": 0.3466119989377776,
+      "outcome_family_purity": 0.9733333333333334,
+      "outcome_sample_count": 150.0,
+      "unique_family_count": 102.0,
+      "unique_outcome_count": 2.0
+    },
+    "status": "ok",
+    "unassigned_state_fraction": 0.0,
+    "validation_state_count": 20967
+  },
+  "support_threshold": 0.1
+}
+run_dir=runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7
+summary=runs/maniskill_insertion/tuning_alpha0p2_sp0p03_thr0p1_j0p7/eval_test/metrics_summary.json
+
+======== GPU REPORT ========
+
+==============NVSMI LOG==============
+
+Timestamp                                 : Tue May 12 16:21:18 2026
+Driver Version                            : 580.95.05
+CUDA Version                              : 13.0
+
+Attached GPUs                             : 1
+GPU 00000000:C3:00.0
+    Accounting Mode                       : Enabled
+    Accounting Mode Buffer Size           : 4000
+    Accounted Processes
+        Process ID                        : 2334788
+            GPU Utilization               : 0 %
+            Memory Utilization            : 0 %
+            Max memory usage              : 268 MiB
+            Time                          : 383568 ms
+            Is Running                    : 0
+
+Tue May 12 16:21:18 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Quadro RTX 8000                On  |   00000000:C3:00.0 Off |                    0 |
+| 33%   26C    P8             32W /  260W |       1MiB /  46080MiB |      9%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+

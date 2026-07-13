@@ -1,0 +1,2 @@
+error: Failed to query Python interpreter
+  Caused by: failed to create file `/home/mila/l/lia/.cache/uv/.tmp7rAkqt/python/get_interpreter_info.py`: Disk quota exceeded (os error 122)
