@@ -71,14 +71,7 @@ def _infer_encoder_group_slices(cfg: Config, zdim: int) -> Tuple[slice, ...]:
     """Infer latent group slices for group-aware encoder shrinkage."""
 
     sizes: List[int] = []
-    if cfg.MODEL.STRUCTURED.ENABLED:
-        d_global = int(cfg.MODEL.STRUCTURED.D_GLOBAL)
-        num_basins = int(cfg.MODEL.STRUCTURED.NUM_BASINS)
-        d_basin = int(cfg.MODEL.STRUCTURED.D_BASIN)
-        if d_global > 0:
-            sizes.append(d_global)
-        sizes.extend([d_basin] * num_basins)
-    elif cfg.MODEL.K_STRUCTURE == "block_diagonal":
+    if cfg.MODEL.K_STRUCTURE == "block_diagonal":
         requested_num_blocks = int(getattr(cfg.MODEL, "K_NUM_BLOCKS", 0))
         if requested_num_blocks > 0:
             sizes = _split_group_sizes(zdim, requested_num_blocks)
@@ -679,6 +672,9 @@ class HyperLISTA(nn.Module):
         self.use_ss = hypercfg.USE_SUPPORT_SELECTION
         self.use_momentum = hypercfg.USE_MOMENTUM
         self.mag_ratio = hypercfg.MAG_RATIO
+        self.step_scale = float(hypercfg.STEP_SCALE)
+        if self.step_scale <= 0.0:
+            raise ValueError("HyperLISTA STEP_SCALE must be positive.")
         self.use_group_shrinkage = bool(hypercfg.GROUP_SHRINKAGE)
         self.group_threshold_scale = float(hypercfg.GROUP_THRESHOLD_SCALE)
         self.topk_groups = int(hypercfg.TOPK_GROUPS)
@@ -758,14 +754,14 @@ class HyperLISTA(nn.Module):
         Returns:
             Lipschitz constant with small safety margin
         """
-        # Use power iteration for efficiency
-        gram = D.T @ D  # [zdim, zdim]
-        v = torch.randn(self.zdim, 1, device=D.device, dtype=D.dtype)
-        v = v / torch.norm(v)
-        for _ in range(5):  # 5 iterations is usually sufficient
-            v = gram @ v
-            v = v / torch.norm(v)
-        L = torch.norm(gram @ v) / torch.norm(v)
+        # The benchmark observation dimensions are small enough that an exact,
+        # deterministic Gram eigensolve is cheaper than injecting random power
+        # iteration noise into every encoder call.
+        if D.shape[0] <= D.shape[1]:
+            gram = D @ D.T
+        else:
+            gram = D.T @ D
+        L = torch.linalg.eigvalsh(gram).amax()
         return L * 1.05  # Safety margin
 
     def _apply_group_structure(self, x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
@@ -807,14 +803,13 @@ class HyperLISTA(nn.Module):
         
         # Compute derived quantities
         L = self._compute_L(D)
-        gamma = 1.0 / L
+        gamma = self.step_scale / L
         W_e = gamma * D.T  # [zdim, xdim]
         
-        # Initial encoding
-        c = x @ W_e.T  # [..., zdim]
-        theta_init = self.c_theta * gamma
-        c_structured = self._apply_group_structure(c, theta_init)
-        z = self._shrink(c_structured, theta_init)  # Initial thresholding
+        # HyperLISTA follows the sparse-coding iteration from the zero code.
+        # A dense pre-step can nearly reconstruct low-dimensional observations,
+        # collapse the residual-adaptive threshold, and prevent sparsification.
+        z = torch.zeros(*x.shape[:-1], self.zdim, device=x.device, dtype=x.dtype)
         z_prev = torch.zeros_like(z)
         if latent_prior is not None:
             latent_prior = latent_prior.to(device=z.device, dtype=z.dtype)
@@ -840,7 +835,7 @@ class HyperLISTA(nn.Module):
         for k in range(num_refinement_steps):
             # Compute residual and gradient step
             residual = z @ D.T - x  # [..., xdim]
-            grad = residual @ W_e.T  # [..., zdim]
+            grad = residual @ W_e.T  # [..., zdim], includes the 1/L step size
             
             # Momentum term
             if self.use_momentum:
@@ -854,7 +849,7 @@ class HyperLISTA(nn.Module):
                 momentum = 0.0
             
             # Pre-threshold state
-            z_tilde = z - gamma * grad + momentum
+            z_tilde = z - grad + momentum
             
             # Adaptive threshold based on error approximation
             approx_error = torch.norm(residual @ D_pinv.T, p=1, dim=-1, keepdim=True) + 1e-8
@@ -1117,6 +1112,7 @@ class KoopmanMachine(ABC, nn.Module):
 
     def _prediction_loss_from_tensors(self, x_pred: torch.Tensor, x_true: torch.Tensor) -> torch.Tensor:
         """Raw prediction loss: ||x_pred - x_true|| averaged over batch/time."""
+        # L2 is taken over state dimension; mean is over batch and horizon.
         return torch.norm(x_pred - x_true, dim=-1).mean()
 
     def _observation_loss_dim_scale(
@@ -1233,14 +1229,10 @@ class KoopmanMachine(ABC, nn.Module):
         sparsity_latent: Optional[torch.Tensor] = None,
         homogeneous_loss: Optional[Any] = None,
         block_losses: Optional[Dict[str, Any]] = None,
-        structured_latent: Optional[torch.Tensor] = None,
-        temporal_latent_sequence: Optional[torch.Tensor] = None,
-        loss_weights: Optional[Dict[str, Any]] = None,
         step: int = 0,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Pure tensor aggregation for unified loss."""
-        del x0, step, homogeneous_loss, block_losses, structured_latent, temporal_latent_sequence, loss_weights
-        # Base aggregation intentionally ignores structured-specific inputs.
+        del x0, step, homogeneous_loss, block_losses
         if x_pred.ndim < 3 or x_true.ndim < 3:
             raise ValueError("x_pred/x_true must have shape [B, H, ...]")
         if x_pred.shape != x_true.shape:
@@ -1267,13 +1259,8 @@ class KoopmanMachine(ABC, nn.Module):
         prediction_loss = prediction_loss_raw / obs_loss_dim_scale
         reconst_loss = reconst_loss_raw / obs_loss_dim_scale
 
-        sequence_term_scale = 1.0 / float(horizon)
-        prediction_loss_raw = prediction_loss_raw * sequence_term_scale
-        prediction_loss = prediction_loss * sequence_term_scale
-        alignment_loss = alignment_loss * sequence_term_scale
-        reconst_loss_raw = reconst_loss_raw * sequence_term_scale
-        reconst_loss = reconst_loss * sequence_term_scale
-        sparsity_loss = sparsity_loss * sequence_term_scale
+        # Loss terms above are already averaged over the horizon dimension.
+        sequence_term_scale = 1.0
 
         total_loss = (
             self.cfg.MODEL.RES_COEFF * alignment_loss +
@@ -1321,9 +1308,6 @@ class KoopmanMachine(ABC, nn.Module):
         sparsity_latent: Optional[torch.Tensor] = None,
         homogeneous_loss: Optional[Any] = None,
         block_losses: Optional[Dict[str, Any]] = None,
-        structured_latent: Optional[torch.Tensor] = None,
-        temporal_latent_sequence: Optional[torch.Tensor] = None,
-        loss_weights: Optional[Dict[str, Any]] = None,
         step: int = 0,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Canonical unified loss API (pure aggregation)."""
@@ -1339,9 +1323,6 @@ class KoopmanMachine(ABC, nn.Module):
             sparsity_latent=sparsity_latent,
             homogeneous_loss=homogeneous_loss,
             block_losses=block_losses,
-            structured_latent=structured_latent,
-            temporal_latent_sequence=temporal_latent_sequence,
-            loss_weights=loss_weights,
             step=step,
         )
 
@@ -1384,11 +1365,72 @@ class GenericKM(KoopmanMachine):
             last_relu=False,
             activation=cfg.MODEL.DECODER.ACTIVATION,
         )
+        self._normalize_decoder_atoms = bool(getattr(cfg.MODEL.DECODER, "NORMALIZE_ATOMS", False))
+        self._linear_decoder: Optional[nn.Linear] = None
+        if self._normalize_decoder_atoms:
+            if cfg.MODEL.DECODER.LAYERS:
+                raise ValueError("GenericKM decoder atom normalization requires a linear decoder.")
+            linear_layers = [module for module in self.decoder.network if isinstance(module, nn.Linear)]
+            if len(linear_layers) != 1:
+                raise ValueError("GenericKM decoder atom normalization expected exactly one decoder Linear layer.")
+            self._linear_decoder = linear_layers[0]
         
-        # Koopman matrix (learnable)
-        self.kmat = nn.Parameter(torch.eye(cfg.MODEL.TARGET_SIZE))
+        # Koopman matrix structure depends on cfg.MODEL.K_STRUCTURE.
+        self._k_structure = cfg.MODEL.K_STRUCTURE
+        zdim = cfg.MODEL.TARGET_SIZE
+        if self._k_structure == "diagonal":
+            self.kmat_diag = nn.Parameter(torch.ones(zdim))
+            print(f"  Diagonal K: {zdim} parameters")
+        elif self._k_structure == "block_diagonal":
+            requested_num_blocks = int(getattr(cfg.MODEL, "K_NUM_BLOCKS", 0))
+            self._k_block_sizes: List[int] = []
+            if requested_num_blocks > 0:
+                self._k_block_size = 0
+                self._k_num_blocks = requested_num_blocks
+                self._k_remainder = 0
+                self._k_block_sizes = _split_group_sizes(zdim, requested_num_blocks)
+                self.kmat_blocks = nn.ParameterList([
+                    nn.Parameter(torch.eye(block_size))
+                    for block_size in self._k_block_sizes
+                ])
+                print(
+                    "  Block-diagonal K: "
+                    f"{requested_num_blocks} blocks with sizes {self._k_block_sizes}"
+                )
+            else:
+                block_size = int(getattr(cfg.MODEL, "K_BLOCK_SIZE", 0))
+                if block_size <= 0:
+                    block_size = max(1, zdim // 13)
+                self._k_block_size = block_size
+                self._k_num_blocks = zdim // block_size
+                self._k_remainder = zdim - self._k_num_blocks * block_size
+                self._k_block_sizes = [block_size] * self._k_num_blocks
+                self.kmat_blocks = nn.ParameterList([
+                    nn.Parameter(torch.eye(block_size))
+                    for _ in range(self._k_num_blocks)
+                ])
+                if self._k_remainder > 0:
+                    self.kmat_remainder = nn.Parameter(torch.eye(self._k_remainder))
+                    self._k_block_sizes.append(self._k_remainder)
+                print(
+                    f"  Block-diagonal K: {self._k_num_blocks} blocks of size {block_size}"
+                    + (
+                        f" + remainder {self._k_remainder}"
+                        if self._k_remainder > 0
+                        else ""
+                    )
+                )
+        else:
+            self.kmat = nn.Parameter(torch.eye(zdim))
 
         self.norm_fn_name = cfg.MODEL.NORM_FN
+
+    def _block_diagonal_matrices(self) -> List[torch.Tensor]:
+        """Return all block matrices in latent order."""
+        blocks = [block for block in self.kmat_blocks]
+        if getattr(self, "_k_remainder", 0) > 0 and hasattr(self, "kmat_remainder"):
+            blocks.append(self.kmat_remainder)
+        return blocks
     
     def _norm_fn(self, x: torch.Tensor) -> torch.Tensor:
         """Apply normalization to latent codes.
@@ -1439,6 +1481,15 @@ class GenericKM(KoopmanMachine):
         Returns:
             Reconstructed observations of shape [..., observation_size]
         """
+        if self._normalize_decoder_atoms:
+            if self._linear_decoder is None:
+                raise RuntimeError("Normalized decoder requested but linear decoder handle is missing.")
+            atoms = self._linear_decoder.weight.T
+            atoms = atoms / torch.norm(atoms, dim=1, keepdim=True).clamp(min=1e-4)
+            out = y @ atoms
+            if self._linear_decoder.bias is not None:
+                out = out + self._linear_decoder.bias
+            return out
         return self.decoder(y)
     
     def kmatrix(self) -> torch.Tensor:
@@ -1447,7 +1498,12 @@ class GenericKM(KoopmanMachine):
         Returns:
             Koopman matrix of shape [target_size, target_size]
         """
-        return self.kmat
+        if self._k_structure == "diagonal":
+            return torch.diag(self.kmat_diag)
+        elif self._k_structure == "block_diagonal":
+            return torch.block_diag(*self._block_diagonal_matrices())
+        else:
+            return self.kmat
     
     def step_latent(self, y: torch.Tensor) -> torch.Tensor:
         """Step forward in latent space with normalization.
@@ -1458,11 +1514,20 @@ class GenericKM(KoopmanMachine):
         Returns:
             Next latent codes of shape [..., target_size]
         """
-        ny = y @ self.kmatrix()
+        if self._k_structure == "diagonal":
+            ny = y * self.kmat_diag
+        elif self._k_structure == "block_diagonal":
+            parts = []
+            offset = 0
+            for block_size, block in zip(self._k_block_sizes, self._block_diagonal_matrices()):
+                yi = y[..., offset:offset + block_size]
+                parts.append(yi @ block)
+                offset += block_size
+            ny = torch.cat(parts, dim=-1)
+        else:
+            ny = y @ self.kmat
         return self._norm_fn(ny)
 
-# TODO: test this class with experiments. Sweep over the sparsity coefficient values.
-# TODO: test this on the Lyapunov environment
 class LISTAKM(KoopmanMachine):
     """Koopman Machine with a sparse LISTA-family encoder.
     
@@ -1976,13 +2041,9 @@ class LISTAKM(KoopmanMachine):
         sparsity_latent: Optional[torch.Tensor] = None,
         homogeneous_loss: Optional[Any] = None,
         block_losses: Optional[Dict[str, Any]] = None,
-        structured_latent: Optional[torch.Tensor] = None,
-        temporal_latent_sequence: Optional[torch.Tensor] = None,
-        loss_weights: Optional[Dict[str, Any]] = None,
         step: int = 0,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Unified loss with LISTA-specific homogeneous/block additions."""
-        del structured_latent, temporal_latent_sequence, loss_weights
         total_loss, metrics = super().loss(
             x_pred=x_pred,
             x_true=x_true,
@@ -2087,567 +2148,6 @@ class LISTAKM(KoopmanMachine):
         return total_loss, metrics
 
 
-class StructuredLISTAKM(LISTAKM):
-    """LISTA Koopman Machine with structured latent space for multi-basin dynamics.
-
-    Key differences from LISTAKM:
-    - Latent z is partitioned: z^(g) [d_g] + z^(1)...z^(B) [d_b each]
-    - Koopman uses separate nn.Parameters per block (no masked single matrix)
-    - Block-weighted sparsity loss with near-zero global penalty
-    - Exclusivity loss with linear warmup schedule
-
-    The arrowhead Koopman structure enforces:
-    - Global dynamics evolve independently
-    - Global variables can drive basin variables (forcing)
-    - Basin variables evolve within their own block (local linearity)
-    - No basin-to-basin interaction
-
-    Args:
-        cfg: Configuration object
-        observation_size: Dimension of the observation space
-    """
-
-    def __init__(self, cfg: Config, observation_size: int):
-        # Read structured config before calling parent init
-        struct_cfg = cfg.MODEL.STRUCTURED
-        if cfg.MODEL.SOFT_BLOCK.ENABLED:
-            raise ValueError("StructuredLISTAKM does not support soft block dense-K penalties.")
-        self.d_global = struct_cfg.D_GLOBAL
-        self.num_basins = struct_cfg.NUM_BASINS
-        self.d_basin = struct_cfg.D_BASIN
-        self.lambda_global = struct_cfg.LAMBDA_GLOBAL
-        self.lambda_local = struct_cfg.LAMBDA_LOCAL
-        self.lambda_exclusivity = struct_cfg.LAMBDA_EXCLUSIVITY
-        self.lambda_entropy = struct_cfg.LAMBDA_ENTROPY
-        self.lambda_dominance = struct_cfg.LAMBDA_DOMINANCE
-        self.lambda_sparsity = struct_cfg.LAMBDA_SPARSITY
-        self.lambda_temporal = struct_cfg.LAMBDA_TEMPORAL
-        self.excl_warmup_steps = struct_cfg.EXCL_WARMUP_STEPS
-
-        # Compute and set TARGET_SIZE to match structured dimensions
-        # Note: This modifies cfg, which is intentional to ensure consistency
-        expected_target_size = self.d_global + self.num_basins * self.d_basin
-        if cfg.MODEL.TARGET_SIZE != expected_target_size:
-            print(f"[StructuredLISTAKM] Setting TARGET_SIZE to {expected_target_size} "
-                  f"(d_g={self.d_global} + {self.num_basins}*d_b={self.d_basin})")
-            cfg.MODEL.TARGET_SIZE = expected_target_size
-
-        # Initialize parent (creates self.encoder, self.dict, and K parameters)
-        super().__init__(cfg, observation_size)
-
-        # Replace single kmat with block-wise parameters
-        del self.kmat  # Remove parent's flat Koopman matrix
-
-        # Block-wise Koopman parameters (no unused entries, optimal memory)
-        self.K_global = nn.Parameter(torch.eye(self.d_global))  # [d_g, d_g]
-        self.K_coupling = nn.ParameterList([
-            nn.Parameter(torch.zeros(self.d_basin, self.d_global))
-            for _ in range(self.num_basins)
-        ])  # B x [d_b, d_g]
-        self.K_basin = nn.ParameterList([
-            nn.Parameter(torch.eye(self.d_basin))
-            for _ in range(self.num_basins)
-        ])  # B x [d_b, d_b]
-
-        # Compute memory savings from block-wise storage
-        dense_elements = self.target_size ** 2
-        block_elements = (self.d_global ** 2 +
-                          self.num_basins * self.d_basin * self.d_global +
-                          self.num_basins * self.d_basin ** 2)
-        sparsity_pct = 100.0 * (1.0 - block_elements / dense_elements)
-
-        print(f"[StructuredLISTAKM] Initialized with:")
-        print(f"  Global block: {self.d_global} dims")
-        print(f"  Basin blocks: {self.num_basins} x {self.d_basin} dims")
-        print(f"  Total latent: {self.target_size} dims")
-        print(f"  Koopman storage: {block_elements:,} params (vs {dense_elements:,} dense, {sparsity_pct:.1f}% sparse)")
-        print(f"  λ_global={self.lambda_global}, λ_local={self.lambda_local}, λ_excl={self.lambda_exclusivity}")
-        print(f"  λ_entropy={self.lambda_entropy}, λ_dominance={self.lambda_dominance}, λ_sparsity={self.lambda_sparsity}")
-        print(f"  λ_temporal={self.lambda_temporal}")
-        print(f"  Exclusivity/sparsity warmup: {self.excl_warmup_steps} steps")
-
-    def kmatrix(self) -> torch.Tensor:
-        """Assemble full Koopman matrix from block parameters.
-
-        NOTE: This creates a dense N×N matrix. Use only for eigenvalue monitoring
-        (in torch.no_grad() blocks). For dynamics computation, use step_latent()
-        which operates directly on blocks without assembling the full matrix.
-
-        Returns:
-            Koopman matrix of shape [target_size, target_size] with arrowhead structure
-        """
-        N = self.d_global + self.num_basins * self.d_basin
-        device = self.K_global.device
-        dtype = self.K_global.dtype
-        K = torch.zeros(N, N, device=device, dtype=dtype)
-
-        # Global block (top-left)
-        K[:self.d_global, :self.d_global] = self.K_global
-
-        # Basin blocks (diagonal + global coupling)
-        for k in range(self.num_basins):
-            start = self.d_global + k * self.d_basin
-            end = start + self.d_basin
-            K[start:end, :self.d_global] = self.K_coupling[k]  # Global-to-basin coupling
-            K[start:end, start:end] = self.K_basin[k]  # Basin self-dynamics
-
-        return K
-
-    def _stack_koopman_blocks(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Stack Koopman block parameters for efficient batched computation.
-
-        Returns:
-            Tuple of (K_coupling_T [B, d_g, d_b], K_basin_stack [B, d_b, d_b])
-        """
-        # Stack and transpose coupling: [B, d_b, d_g] -> [B, d_g, d_b]
-        K_coupling_T = torch.stack([k.T for k in self.K_coupling])
-        # Stack basin blocks: [B, d_b, d_b]
-        K_basin_stack = torch.stack(list(self.K_basin))
-        return K_coupling_T, K_basin_stack
-
-    def _step_latent_with_blocks(
-        self,
-        z: torch.Tensor,
-        K_coupling_T: torch.Tensor,
-        K_basin_stack: torch.Tensor,
-    ) -> torch.Tensor:
-        """Compute z @ K using pre-stacked block parameters (no dense matrix).
-
-        This is the core block-wise computation:
-        - z_g' = z_g @ K_global
-        - z_k' = z_g @ K_coupling[k].T + z_k @ K_basin[k]  for each basin k
-
-        Args:
-            z: Latent codes [..., target_size]
-            K_coupling_T: Pre-stacked coupling matrices [B, d_g, d_b]
-            K_basin_stack: Pre-stacked basin matrices [B, d_b, d_b]
-
-        Returns:
-            Next latent codes [..., target_size]
-        """
-        z_g, z_basins = self._partition_latent(z)  # [..., d_g], [..., B, d_b]
-
-        # Global dynamics: z_g' = z_g @ K_global
-        z_g_next = z_g @ self.K_global  # [..., d_g]
-
-        # Basin dynamics (vectorized over all basins):
-        # Coupling term: z_g @ K_coupling[k].T for each k
-        # [..., d_g] @ [B, d_g, d_b] -> [..., B, d_b]
-        coupling_term = torch.einsum('...g,bgd->...bd', z_g, K_coupling_T)
-
-        # Self-dynamics term: z_k @ K_basin[k] for each k
-        # [..., B, d_b] @ [B, d_b, d_b] -> [..., B, d_b]
-        basin_term = torch.einsum('...bd,bde->...be', z_basins, K_basin_stack)
-
-        z_basins_next = coupling_term + basin_term  # [..., B, d_b]
-
-        # Reassemble: flatten basins and concatenate with global
-        batch_shape = z.shape[:-1]
-        z_basins_flat = z_basins_next.reshape(*batch_shape, self.num_basins * self.d_basin)
-
-        return torch.cat([z_g_next, z_basins_flat], dim=-1)
-
-    def step_latent(self, z: torch.Tensor) -> torch.Tensor:
-        """Step forward in latent space using block-wise Koopman computation.
-
-        Avoids assembling the full N×N Koopman matrix by computing directly
-        on the block parameters. Memory usage is O(d_g² + B*d_b*d_g + B*d_b²)
-        instead of O((d_g + B*d_b)²).
-
-        Args:
-            z: Latent codes of shape [..., target_size]
-
-        Returns:
-            Next latent codes of shape [..., target_size]
-        """
-        K_coupling_T, K_basin_stack = self._stack_koopman_blocks()
-        return self._step_latent_with_blocks(z, K_coupling_T, K_basin_stack)
-
-    def _partition_latent(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Partition latent codes into global and basin blocks (vectorized).
-
-        Args:
-            z: Latent codes of shape [..., target_size]
-
-        Returns:
-            Tuple of (z_global [..., d_g], z_basins [..., B, d_b])
-            z_basins is a single tensor with basin dimension, not a list.
-        """
-        z_global = z[..., :self.d_global]  # [..., d_g]
-        # Reshape basin portion into [..., num_basins, d_basin] - single tensor view
-        z_basins = z[..., self.d_global:].view(*z.shape[:-1], self.num_basins, self.d_basin)
-        return z_global, z_basins
-
-    def _structured_sparsity_from_z(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Compute block-weighted sparsity loss from pre-encoded latents (vectorized).
-
-        Args:
-            z: Latent codes of shape [..., target_size]
-
-        Returns:
-            Tuple of (global_sparsity_loss, local_sparsity_loss)
-        """
-        z_global, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
-
-        # Global: near-zero penalty allows dense activation
-        global_loss = torch.norm(z_global, p=1, dim=-1).mean()
-
-        # Local: L1 norm over all basin dimensions (flatten B and d_b)
-        # z_basins has shape [..., B, d_b], sum absolute values over last two dims
-        local_loss = z_basins.abs().sum(dim=(-2, -1)).mean()
-
-        return global_loss, local_loss
-
-    def _exclusivity_from_z(self, z: torch.Tensor) -> torch.Tensor:
-        """Compute mutual exclusivity penalty from pre-encoded latents (vectorized).
-
-        Penalty = (1/(B-1)) * sum_{i<j} ||z^(i)||_2 * ||z^(j)||_2
-
-        Normalized by 1/(B-1) for scale-independence across different num_basins.
-        Uses efficient O(B) computation instead of O(B^2) pairwise loop.
-
-        Args:
-            z: Latent codes of shape [..., target_size]
-
-        Returns:
-            Scalar exclusivity loss
-        """
-        _, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
-        B = self.num_basins
-
-        # Compute L2 norms per basin: [..., B] - fully vectorized
-        norms = torch.norm(z_basins, p=2, dim=-1)
-
-        # Efficient pairwise: sum_{i<j} = 0.5 * ((sum norms)^2 - sum(norms^2))
-        sum_norms = norms.sum(dim=-1)  # [...]
-        sum_sq_norms = (norms ** 2).sum(dim=-1)  # [...]
-        pairwise_sum = 0.5 * (sum_norms ** 2 - sum_sq_norms)
-
-        # Normalize by 1/(B-1)
-        return pairwise_sum.mean() / max(B - 1, 1)
-
-    def _entropy_exclusivity_from_z(self, z: torch.Tensor) -> torch.Tensor:
-        """Compute entropy-based exclusivity penalty from pre-encoded latents.
-
-        Penalizes high entropy of the normalized basin norm distribution.
-        Low entropy = one basin dominates. High entropy = multiple basins active.
-
-        Uses softmax over basin norms to get a probability distribution, then
-        computes the entropy. Minimizing this encourages single-basin dominance.
-
-        Args:
-            z: Latent codes of shape [..., target_size]
-
-        Returns:
-            Mean entropy over batch (scalar)
-        """
-        _, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
-
-        # Compute L2 norms per basin: [..., B]
-        norms = torch.norm(z_basins, p=2, dim=-1)
-
-        # Softmax to get probability distribution over basins
-        probs = F.softmax(norms, dim=-1)  # [..., B]
-
-        # Compute entropy: -sum(p * log(p))
-        entropy = -torch.sum(probs * torch.log(probs + 1e-8), dim=-1)  # [...]
-
-        return entropy.mean()
-
-    def _dominance_loss_from_z(self, z: torch.Tensor) -> torch.Tensor:
-        """Compute top-1 dominance loss from pre-encoded latents.
-
-        Encourages the maximum-norm basin to be significantly larger than others.
-        Penalizes the ratio of (sum of non-max norms) / (max norm).
-
-        When ratio is 0, only one basin is active (ideal).
-        When ratio is high, multiple basins have comparable activations.
-
-        Args:
-            z: Latent codes of shape [..., target_size]
-
-        Returns:
-            Mean dominance ratio over batch (scalar)
-        """
-        _, z_basins = self._partition_latent(z)  # z_basins: [..., B, d_b]
-
-        # Compute L2 norms per basin: [..., B]
-        norms = torch.norm(z_basins, p=2, dim=-1)
-
-        # Get max norm and sum of other norms
-        max_norm, _ = norms.max(dim=-1, keepdim=True)  # [..., 1]
-        other_norms_sum = norms.sum(dim=-1, keepdim=True) - max_norm  # [..., 1]
-
-        # Compute ratio (with epsilon for numerical stability)
-        dominance_ratio = other_norms_sum / (max_norm + 1e-8)
-
-        return dominance_ratio.mean()
-
-    def _temporal_consistency_from_z_seq(
-        self, z_seq: torch.Tensor
-    ) -> torch.Tensor:
-        """Compute temporal consistency loss for sequence training.
-
-        Penalizes changes in basin activation pattern within a trajectory window.
-        Points in the same trajectory are (almost always) in the same basin, so
-        the active basin should remain consistent throughout the sequence.
-
-        Mathematical formulation:
-        Given sequence z_0, ..., z_T, compute basin norms n_t^(k) = ||z_t^(k)||_2
-        L_temporal = (1/T) Σ_t Σ_k (n_t^(k) - n_0^(k))²
-
-        Args:
-            z_seq: Latent codes of shape [batch_size, seq_len, target_size]
-
-        Returns:
-            Scalar temporal consistency loss
-        """
-        batch_size, seq_len, _ = z_seq.shape
-
-        # Partition into basins: [batch, seq_len, B, d_basin]
-        z_flat = z_seq.reshape(batch_size * seq_len, -1)
-        _, z_basins_flat = self._partition_latent(z_flat)  # [batch*seq, B, d_b]
-        z_basins = z_basins_flat.reshape(batch_size, seq_len, self.num_basins, self.d_basin)
-
-        # Compute basin norms: [batch, seq_len, B]
-        basin_norms = torch.norm(z_basins, p=2, dim=-1)
-
-        # Reference norms from t=0: [batch, 1, B]
-        ref_norms = basin_norms[:, 0:1, :]
-
-        # Temporal consistency: penalize deviation from initial basin pattern
-        # [batch, seq_len, B] -> scalar
-        temporal_loss = torch.mean((basin_norms - ref_norms) ** 2)
-
-        return temporal_loss
-
-    def get_temporal_weight(self, step: int) -> float:
-        """Get current temporal consistency weight based on linear warmup schedule.
-
-        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
-
-        Args:
-            step: Current training step
-
-        Returns:
-            Current temporal coefficient (0 to lambda_temporal)
-        """
-        if self.excl_warmup_steps <= 0:
-            return self.lambda_temporal
-        progress = min(1.0, step / self.excl_warmup_steps)
-        return progress * self.lambda_temporal
-
-    def structured_sparsity_loss(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Compute block-weighted sparsity loss (convenience wrapper).
-
-        Args:
-            x: Observations of shape [..., observation_size]
-
-        Returns:
-            Tuple of (global_sparsity_loss, local_sparsity_loss)
-        """
-        return self._structured_sparsity_from_z(self.encode(x))
-
-    def exclusivity_loss(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute mutual exclusivity penalty (convenience wrapper).
-
-        Args:
-            x: Observations of shape [..., observation_size]
-
-        Returns:
-            Scalar exclusivity loss
-        """
-        return self._exclusivity_from_z(self.encode(x))
-
-    def get_exclusivity_weight(self, step: int) -> float:
-        """Get current exclusivity weight based on linear warmup schedule.
-
-        Args:
-            step: Current training step
-
-        Returns:
-            Current exclusivity coefficient (0 to lambda_exclusivity)
-        """
-        if self.excl_warmup_steps <= 0:
-            return self.lambda_exclusivity
-        progress = min(1.0, step / self.excl_warmup_steps)
-        return progress * self.lambda_exclusivity
-
-    def get_sparsity_weight(self, step: int) -> float:
-        """Get current sparsity weight based on linear warmup schedule.
-
-        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
-
-        Args:
-            step: Current training step
-
-        Returns:
-            Current sparsity coefficient (0 to lambda_sparsity)
-        """
-        if self.excl_warmup_steps <= 0:
-            return self.lambda_sparsity
-        progress = min(1.0, step / self.excl_warmup_steps)
-        return progress * self.lambda_sparsity
-
-    def get_entropy_weight(self, step: int) -> float:
-        """Get current entropy exclusivity weight based on linear warmup schedule.
-
-        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
-
-        Args:
-            step: Current training step
-
-        Returns:
-            Current entropy coefficient (0 to lambda_entropy)
-        """
-        if self.excl_warmup_steps <= 0:
-            return self.lambda_entropy
-        progress = min(1.0, step / self.excl_warmup_steps)
-        return progress * self.lambda_entropy
-
-    def get_dominance_weight(self, step: int) -> float:
-        """Get current dominance loss weight based on linear warmup schedule.
-
-        Uses the same warmup schedule as exclusivity (excl_warmup_steps).
-
-        Args:
-            step: Current training step
-
-        Returns:
-            Current dominance coefficient (0 to lambda_dominance)
-        """
-        if self.excl_warmup_steps <= 0:
-            return self.lambda_dominance
-        progress = min(1.0, step / self.excl_warmup_steps)
-        return progress * self.lambda_dominance
-
-    def loss(
-        self,
-        x_pred: torch.Tensor,
-        x_true: torch.Tensor,
-        x0: Optional[torch.Tensor] = None,
-        z0: Optional[torch.Tensor] = None,
-        z_pred: Optional[torch.Tensor] = None,
-        z_true: Optional[torch.Tensor] = None,
-        reconstruction_error: Optional[Any] = None,
-        sparsity_error: Optional[Any] = None,
-        sparsity_latent: Optional[torch.Tensor] = None,
-        homogeneous_loss: Optional[Any] = None,
-        block_losses: Optional[Dict[str, Any]] = None,
-        structured_latent: Optional[torch.Tensor] = None,
-        temporal_latent_sequence: Optional[torch.Tensor] = None,
-        loss_weights: Optional[Dict[str, Any]] = None,
-        step: int = 0,
-    ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Unified structured loss consuming explicit precomputed tensors only."""
-        del block_losses
-        if sparsity_error is None:
-            sparsity_error = torch.zeros((), device=x_pred.device, dtype=x_pred.dtype)
-        device = x_pred.device
-        dtype = x_pred.dtype
-        horizon = x_pred.shape[1]
-        sequence_term_scale = 1.0 / float(horizon)
-
-        total_loss, metrics = self._aggregate_losses_from_tensors(
-            x_pred=x_pred,
-            x_true=x_true,
-            x0=x0,
-            z0=z0,
-            z_pred=z_pred,
-            z_true=z_true,
-            reconstruction_error=reconstruction_error,
-            sparsity_error=sparsity_error,
-            sparsity_latent=sparsity_latent,
-            step=step,
-        )
-
-        z_for_structured = structured_latent if structured_latent is not None else z_pred
-        if z_for_structured is None:
-            raise ValueError("StructuredLISTAKM.loss requires structured_latent (or z_pred).")
-        if z_for_structured.ndim == 3:
-            z_for_structured_flat = z_for_structured.reshape(-1, z_for_structured.shape[-1])
-        elif z_for_structured.ndim == 2:
-            z_for_structured_flat = z_for_structured
-        else:
-            raise ValueError("structured_latent must have shape [B, H, Dz] or [N, Dz]")
-
-        global_sparsity_loss, local_sparsity_loss = self._structured_sparsity_from_z(z_for_structured_flat)
-        excl_loss = self._exclusivity_from_z(z_for_structured_flat)
-        entropy_loss = self._entropy_exclusivity_from_z(z_for_structured_flat)
-        dominance_loss = self._dominance_loss_from_z(z_for_structured_flat)
-        sparsity_loss = torch.norm(z_for_structured_flat, p=1, dim=-1).mean()
-
-        z_for_temporal = temporal_latent_sequence
-        if z_for_temporal is None and z0 is not None and z_pred is not None:
-            z_for_temporal = torch.cat([z0.unsqueeze(1), z_pred], dim=1)
-        if z_for_temporal is None:
-            temporal_loss = torch.zeros((), device=device, dtype=dtype)
-        else:
-            temporal_loss = self._temporal_consistency_from_z_seq(z_for_temporal)
-
-        global_sparsity_loss = global_sparsity_loss * sequence_term_scale
-        local_sparsity_loss = local_sparsity_loss * sequence_term_scale
-        excl_loss = excl_loss * sequence_term_scale
-        entropy_loss = entropy_loss * sequence_term_scale
-        dominance_loss = dominance_loss * sequence_term_scale
-        sparsity_loss = sparsity_loss * sequence_term_scale
-        temporal_loss = temporal_loss * sequence_term_scale
-
-        loss_weights = loss_weights or {}
-        excl_weight = float(loss_weights.get("exclusivity", self.get_exclusivity_weight(step)))
-        entropy_weight = float(loss_weights.get("entropy", self.get_entropy_weight(step)))
-        dominance_weight = float(loss_weights.get("dominance", self.get_dominance_weight(step)))
-        sparsity_weight = float(loss_weights.get("sparsity", self.get_sparsity_weight(step)))
-        temporal_weight = float(loss_weights.get("temporal", self.get_temporal_weight(step)))
-
-        total_loss = (
-            total_loss +
-            self.lambda_global * global_sparsity_loss +
-            self.lambda_local * local_sparsity_loss +
-            excl_weight * excl_loss +
-            entropy_weight * entropy_loss +
-            dominance_weight * dominance_loss +
-            sparsity_weight * sparsity_loss +
-            temporal_weight * temporal_loss
-        )
-
-        if self.use_homogeneous:
-            if homogeneous_loss is None and self.cfg.MODEL.HOMOGENEOUS_COEFF != 0.0:
-                raise ValueError("homogeneous_loss must be provided when homogeneous coordinates are enabled.")
-            if homogeneous_loss is not None:
-                homog_loss = self._to_scalar_tensor(
-                    homogeneous_loss,
-                    device=device,
-                    dtype=dtype,
-                    name="homogeneous_loss",
-                ) * sequence_term_scale
-                total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
-                metrics['homogeneous_loss'] = homog_loss.item()
-
-        with torch.no_grad():
-            _, z_basins = self._partition_latent(z_for_structured_flat)
-            basin_norms = torch.norm(z_basins, p=2, dim=-1).mean(dim=0)
-            active_basins = (basin_norms > 1e-4).sum().item()
-
-        metrics.update({
-            'global_sparsity_loss': global_sparsity_loss.item(),
-            'local_sparsity_loss': local_sparsity_loss.item(),
-            'exclusivity_loss': excl_loss.item(),
-            'exclusivity_weight': excl_weight,
-            'entropy_loss': entropy_loss.item(),
-            'entropy_weight': entropy_weight,
-            'dominance_loss': dominance_loss.item(),
-            'dominance_weight': dominance_weight,
-            'sparsity_loss': sparsity_loss.item(),
-            'sparsity_weight': sparsity_weight,
-            'temporal_loss': temporal_loss.item(),
-            'temporal_weight': temporal_weight,
-            'active_basins': active_basins,
-        })
-        metrics['loss'] = total_loss.item()
-        return total_loss, metrics
-
-
 # ---------------------------------------------------------------------------
 # Model Factory
 # ---------------------------------------------------------------------------
@@ -2657,7 +2157,6 @@ _MODEL_REGISTRY = {
     "GenericKM": GenericKM,
     "SparseKM": GenericKM,  # Same as GenericKM, configured via sparsity coeff
     "LISTAKM": LISTAKM,
-    "StructuredLISTAKM": StructuredLISTAKM,
 }
 
 

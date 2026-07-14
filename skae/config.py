@@ -291,7 +291,7 @@ class DystsConfig:
     The dysts library provides 135+ chaotic systems. Use ENV_NAME="dysts:SystemName"
     (e.g., "dysts:Lorenz", "dysts:Chua") to select a dysts system.
     
-    See benchmarks/system_catalog.py for curated system lists.
+    The retained paper roster lives in benchmarks/paper_protocol.py.
     """
     SYSTEM_NAME: str = "Lorenz"  # Name matching dysts.flows class
     DT_OVERRIDE: float = 0.0  # If > 0, override dysts default dt
@@ -341,7 +341,7 @@ class EnvConfig:
         ]
     
     For Claude catalog systems, set ENV_NAME to
-    "claude:SystemName" (e.g., "claude:cal_triangle_3").
+    "claude:SystemName" (e.g., "claude:cal_square_4").
 
     For dysts systems, set ENV_NAME to
     "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
@@ -399,6 +399,7 @@ class HyperListaConfig:
     C_THETA: float = 5e-3            # Threshold scaling hyperparameter (c₁)
     C_BETA: float = 5e-3             # Momentum hyperparameter (c₂)
     C_SS: float = 0.5                # Support selection hyperparameter (c₃)
+    STEP_SCALE: float = 1.0          # Multiplier on the 1/L HyperLISTA gradient step
     C_THETA_MIN: float = 1e-6        # Minimum threshold scale when constraining c_theta
     CONSTRAIN_C_THETA: bool = True   # Reparameterize c_theta to stay strictly positive
     USE_SUPPORT_SELECTION: bool = True  # Enable adaptive support selection
@@ -409,30 +410,6 @@ class HyperListaConfig:
     GROUP_SHRINKAGE: bool = False    # apply sparse-group shrinkage over inferred latent groups
     GROUP_THRESHOLD_SCALE: float = 1.0  # group threshold multiplier relative to adaptive theta
     TOPK_GROUPS: int = 0             # keep only the top-k groups before within-group thresholding (0 disables)
-
-
-@dataclass
-class StructuredLatentConfig:
-    """Configuration for structured latent space partitioning.
-
-    Enables basin-aware Koopman dynamics with:
-    - Global dynamics block (always active, shared physics)
-    - B basin blocks (mutually exclusive, local linear dynamics)
-
-    Total latent dim = D_GLOBAL + NUM_BASINS * D_BASIN
-    """
-    ENABLED: bool = False              # Enable structured latent space
-    D_GLOBAL: int = 8                  # Dimension of global dynamics block
-    NUM_BASINS: int = 20               # Number of basin slots (B)
-    D_BASIN: int = 8                   # Dimension of each basin block
-    LAMBDA_GLOBAL: float = 1e-4        # Sparsity weight for global block (near-zero)
-    LAMBDA_LOCAL: float = 1e-3         # Sparsity weight for basin blocks
-    LAMBDA_EXCLUSIVITY: float = 1e-2   # Final exclusivity penalty weight (pairwise)
-    LAMBDA_ENTROPY: float = 0.0        # Entropy-based exclusivity penalty (low entropy = 1 dominant basin)
-    LAMBDA_DOMINANCE: float = 0.0      # Top-1 dominance loss (penalize non-max basins)
-    LAMBDA_SPARSITY: float = 1e-3      # Explicit L1 sparsity weight on full z
-    LAMBDA_TEMPORAL: float = 0.0       # Temporal consistency loss weight (sequence training only)
-    EXCL_WARMUP_STEPS: int = 1000      # Steps to ramp exclusivity/sparsity from 0 to final
 
 
 @dataclass
@@ -481,12 +458,13 @@ class DecoderConfig:
     USE_BIAS: bool = False
     ACTIVATION: str = "relu"
     AFFINE_BIAS: bool = False  # Add learnable bias to decoder output (useful for LISTA)
+    NORMALIZE_ATOMS: bool = False  # Normalize linear decoder atoms at decode time
 
 
 @dataclass
 class ModelConfig:
     """Model architecture and loss configuration."""
-    MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM", "StructuredLISTAKM"]
+    MODEL_NAME: str = "SparseKM"  # from ["GenericKM", "SparseKM", "LISTAKM"]
     NORM_FN: str = "id"  # from ["id", "ball"]
     TARGET_SIZE: int = 16  # latent_dim i.e. zdim
     OBS_LOSS_DIM_NORMALIZATION: str = "sqrt_dim"  # ["none", "sqrt_dim", "dim"]
@@ -496,6 +474,7 @@ class ModelConfig:
     RECONST_COEFF: float = 0.02  # reconstruction loss weight
     PRED_COEFF: float = 0.0  # prediction loss weight
     SPARSITY_COEFF: float = 1e-3  # sparsity loss weight (L1 regularization)
+    SPARSITY_TARGET: str = "rollout"  # latent L1 target: "rollout", "encoded", or "encoded_rollout"
     HOMOGENEOUS_COEFF: float = 1.0  # homogeneous coordinate consistency loss weight
     DECODER_COHERENCE_WEIGHT: float = 0.0  # weight on normalized dictionary off-diagonal Gram penalty
     
@@ -510,7 +489,6 @@ class ModelConfig:
     # Sub-configs
     ENCODER: EncoderConfig = field(default_factory=EncoderConfig)
     DECODER: DecoderConfig = field(default_factory=DecoderConfig)
-    STRUCTURED: StructuredLatentConfig = field(default_factory=StructuredLatentConfig)
     BLOCK_LOSS: BlockLossConfig = field(default_factory=BlockLossConfig)
     SOFT_BLOCK: SoftBlockConfig = field(default_factory=SoftBlockConfig)
 
@@ -613,7 +591,6 @@ class Config:
         encoder.HYPERLISTA = hyperlista
         decoder = _build_dataclass(DecoderConfig, model_dict.get("DECODER", {}))
         
-        structured = _build_dataclass(StructuredLatentConfig, model_dict.get("STRUCTURED", {}))
         block_loss = _build_dataclass(BlockLossConfig, model_dict.get("BLOCK_LOSS", {}))
         soft_block = _build_dataclass(SoftBlockConfig, model_dict.get("SOFT_BLOCK", {}))
         model = ModelConfig(
@@ -628,7 +605,6 @@ class Config:
         )
         model.ENCODER = encoder
         model.DECODER = decoder
-        model.STRUCTURED = structured
         model.BLOCK_LOSS = block_loss
         model.SOFT_BLOCK = soft_block
         

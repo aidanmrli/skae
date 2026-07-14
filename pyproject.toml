@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "skae"
 version = "0.1.0"
-description = "Koopman Sparse Autoencoder research sandbox"
+description = "Sparse Koopman autoencoders and reproducible multibasin paper evidence"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -13,20 +13,15 @@ dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
-    "tqdm",
-    "pytest>=8.4.2",
-    "ipykernel>=7.0.1",
-    "jax>=0.6.2",
-    "ml-collections>=1.1.0",
-    "flax>=0.10.7",
-    "optax>=0.2.6",
+    "pandas",
     "dysts>=0.96",
-    "numba>=0.63.1",
     "scikit-learn>=1.0",
 ]
 
+[dependency-groups]
+dev = ["pytest>=8.4.2"]
+
 [project.optional-dependencies]
-develop = ["pytest"]
 # CUDA PyTorch for Linux users who want GPU support
 # Install with: uv pip install --extra-index-url https://download.pytorch.org/whl/cu128 torch
 cuda = [
@@ -36,13 +31,11 @@ cuda = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["skae*", "tools*", "experiments*"]
+include = ["skae*", "tools*"]
 
 [project.scripts]
 skae-train = "tools.train:main"
 skae-evaluate = "tools.evaluate_checkpoints:main"
-skae-basin-structure = "tools.evaluate_basin_structure:main"
-skae-latent-clustering = "tools.evaluate_latent_basin_clustering:main"
 
 # CUDA PyTorch index - only used on Linux when explicitly requested
 # On macOS/Windows, PyTorch will install from PyPI (CPU version)

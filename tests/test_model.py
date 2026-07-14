@@ -10,7 +10,6 @@ from skae.model import (
     HyperLISTA,
     GenericKM,
     LISTAKM,
-    StructuredLISTAKM,
     make_model,
     shrink,
     get_activation
@@ -546,6 +545,72 @@ class TestGenericKM:
         y = torch.randn(4, 16)
         ny = model.step_latent(y)
         assert ny.shape == y.shape
+
+    def test_diagonal_k_respects_config(self):
+        """GenericKM should honor diagonal Koopman structure."""
+        cfg = get_config("generic_sparse")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.K_STRUCTURE = "diagonal"
+        model = GenericKM(cfg, observation_size=2)
+
+        assert model._k_structure == "diagonal"
+        assert not hasattr(model, "kmat")
+        with torch.no_grad():
+            model.kmat_diag.copy_(torch.tensor([1.0, 2.0, 3.0, 4.0]))
+
+        z = torch.ones(2, 4)
+        stepped = model.step_latent(z)
+        expected = torch.tensor([[1.0, 2.0, 3.0, 4.0]]).repeat(2, 1)
+        assert torch.allclose(stepped, expected)
+        assert torch.allclose(model.kmatrix(), torch.diag(model.kmat_diag))
+
+    def test_block_diagonal_k_respects_explicit_block_count(self):
+        """GenericKM block-diagonal K should support an exact requested block count."""
+        cfg = get_config("generic_sparse")
+        cfg.MODEL.TARGET_SIZE = 10
+        cfg.MODEL.K_STRUCTURE = "block_diagonal"
+        cfg.MODEL.K_NUM_BLOCKS = 3
+        model = GenericKM(cfg, observation_size=2)
+
+        assert model._k_structure == "block_diagonal"
+        assert model._k_block_sizes == [4, 3, 3]
+        assert len(model.kmat_blocks) == 3
+        assert not hasattr(model, "kmat")
+
+        with torch.no_grad():
+            for scale, block in zip((2.0, 3.0, 4.0), model.kmat_blocks):
+                block.copy_(scale * torch.eye(block.shape[0]))
+
+        z = torch.ones(2, 10)
+        stepped = model.step_latent(z)
+        expected = torch.tensor(
+            [[2.0] * 4 + [3.0] * 3 + [4.0] * 3]
+        ).repeat(2, 1)
+        assert torch.allclose(stepped, expected)
+
+        kmat = model.kmatrix()
+        assert kmat.shape == (10, 10)
+        assert torch.count_nonzero(kmat[:4, 4:]).item() == 0
+        assert torch.count_nonzero(kmat[4:, :4]).item() == 0
+
+    def test_normalized_linear_decoder_atoms(self):
+        """GenericKM can normalize linear decoder atoms at decode time."""
+        cfg = get_config("generic_sparse")
+        cfg.MODEL.TARGET_SIZE = 2
+        cfg.MODEL.DECODER.NORMALIZE_ATOMS = True
+        model = GenericKM(cfg, observation_size=2)
+
+        with torch.no_grad():
+            linear = model._linear_decoder
+            assert linear is not None
+            linear.weight.copy_(torch.tensor([[3.0, 0.0], [4.0, 2.0]]))
+            if linear.bias is not None:
+                linear.bias.zero_()
+
+        z = torch.tensor([[1.0, 1.0]])
+        decoded = model.decode(z)
+        expected = torch.tensor([[0.6, 0.8]]) + torch.tensor([[0.0, 1.0]])
+        assert torch.allclose(decoded, expected, atol=1e-6)
     
     def test_step_env(self):
         """Test stepping in observation space via Koopman operator."""
@@ -954,21 +1019,6 @@ class TestLISTAKM:
         assert torch.isclose(penalty, torch.tensor(0.0), atol=1e-6)
         assert torch.isclose(max_offdiag, torch.tensor(0.0), atol=1e-6)
 
-    def test_structured_listakm_rejects_soft_block_penalty(self):
-        cfg = get_config("lista_parity_generic_sparse")
-        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
-        cfg.MODEL.STRUCTURED.ENABLED = True
-        cfg.MODEL.STRUCTURED.D_GLOBAL = 2
-        cfg.MODEL.STRUCTURED.NUM_BASINS = 2
-        cfg.MODEL.STRUCTURED.D_BASIN = 2
-        cfg.MODEL.SOFT_BLOCK.ENABLED = True
-        cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS = 2
-        cfg.MODEL.SOFT_BLOCK.WEIGHT = 1e-4
-
-        with pytest.raises(ValueError, match="does not support soft block"):
-            StructuredLISTAKM(cfg, observation_size=2)
-
-
 class TestUnifiedLossInterface:
     """Tests for the unified pure-aggregation loss API."""
 
@@ -994,7 +1044,7 @@ class TestUnifiedLossInterface:
         assert loss.ndim == 0
         assert "alignment_loss" in metrics
 
-    def test_horizon_scaling_is_inverse_h(self):
+    def test_horizon_mean_is_invariant_for_repeated_errors(self):
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 4
         cfg.MODEL.RES_COEFF = 1.0
@@ -1003,7 +1053,8 @@ class TestUnifiedLossInterface:
         cfg.MODEL.SPARSITY_COEFF = 0.0
         model = GenericKM(cfg, 2)
 
-        # Keep per-step errors identical so only 1/H scaling changes total.
+        # Per-step losses are averaged over the horizon, so repeating the same
+        # error at every step must leave the aggregate unchanged.
         x_pred_h1 = torch.zeros(2, 1, 2)
         x_true_h1 = torch.ones(2, 1, 2)
         z_pred_h1 = torch.zeros(2, 1, 4)
@@ -1020,7 +1071,7 @@ class TestUnifiedLossInterface:
             x_pred=x_pred_h2, x_true=x_true_h2, z_pred=z_pred_h2, z_true=z_true_h2
         )
 
-        assert torch.allclose(loss_h2, 0.5 * loss_h1, atol=1e-6)
+        assert torch.allclose(loss_h2, loss_h1, atol=1e-6)
 
         x_pred_h8 = torch.zeros(2, 8, 2)
         x_true_h8 = torch.ones(2, 8, 2)
@@ -1030,7 +1081,7 @@ class TestUnifiedLossInterface:
             x_pred=x_pred_h8, x_true=x_true_h8, z_pred=z_pred_h8, z_true=z_true_h8
         )
 
-        assert torch.allclose(loss_h8, 0.125 * loss_h1, atol=1e-6)
+        assert torch.allclose(loss_h8, loss_h1, atol=1e-6)
 
     def test_loss_is_pure_aggregator(self, monkeypatch):
         cfg = get_config("generic")
@@ -1059,73 +1110,6 @@ class TestUnifiedLossInterface:
         )
         assert loss.ndim == 0
         assert "loss" in metrics
-
-    def test_structured_terms_use_explicit_weights(self, monkeypatch):
-        cfg = get_config("lista_parity_generic_sparse")
-        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
-        cfg.MODEL.USE_HOMOGENEOUS = False
-        cfg.MODEL.STRUCTURED.ENABLED = True
-        cfg.MODEL.STRUCTURED.D_GLOBAL = 1
-        cfg.MODEL.STRUCTURED.NUM_BASINS = 2
-        cfg.MODEL.STRUCTURED.D_BASIN = 2
-        cfg.MODEL.STRUCTURED.LAMBDA_GLOBAL = 0.3
-        cfg.MODEL.STRUCTURED.LAMBDA_LOCAL = 0.4
-        model = StructuredLISTAKM(cfg, observation_size=2)
-
-        def _fake_base_aggregate(*args, **kwargs):
-            x_pred = kwargs["x_pred"]
-            base = torch.tensor(2.0, device=x_pred.device, dtype=x_pred.dtype)
-            return base, {"loss": base.item()}
-
-        monkeypatch.setattr(model, "_aggregate_losses_from_tensors", _fake_base_aggregate)
-        monkeypatch.setattr(
-            model,
-            "_structured_sparsity_from_z",
-            lambda z: (torch.tensor(10.0, device=z.device), torch.tensor(20.0, device=z.device)),
-        )
-        monkeypatch.setattr(model, "_exclusivity_from_z", lambda z: torch.tensor(30.0, device=z.device))
-        monkeypatch.setattr(model, "_entropy_exclusivity_from_z", lambda z: torch.tensor(40.0, device=z.device))
-        monkeypatch.setattr(model, "_dominance_loss_from_z", lambda z: torch.tensor(50.0, device=z.device))
-        monkeypatch.setattr(
-            model,
-            "_temporal_consistency_from_z_seq",
-            lambda z_seq: torch.tensor(60.0, device=z_seq.device),
-        )
-
-        x_pred = torch.zeros(3, 2, 2)
-        x_true = torch.zeros(3, 2, 2)
-        z0 = torch.zeros(3, model.target_size)
-        z_pred = torch.zeros(3, 2, model.target_size)
-        z_true = torch.zeros(3, 2, model.target_size)
-        loss_weights = {
-            "exclusivity": 1.0,
-            "entropy": 2.0,
-            "dominance": 3.0,
-            "sparsity": 0.0,
-            "temporal": 4.0,
-        }
-
-        loss, metrics = model.loss(
-            x_pred=x_pred,
-            x_true=x_true,
-            z0=z0,
-            z_pred=z_pred,
-            z_true=z_true,
-            structured_latent=z_pred,
-            temporal_latent_sequence=torch.zeros(3, 3, model.target_size),
-            loss_weights=loss_weights,
-        )
-
-        # H=2 so each structured term is scaled by 1/2 before weighting.
-        expected = 2.0 + 0.3 * 5.0 + 0.4 * 10.0 + 1.0 * 15.0 + 2.0 * 20.0 + 3.0 * 25.0 + 4.0 * 30.0
-        assert torch.isclose(loss, torch.tensor(expected), atol=1e-6)
-        assert metrics["global_sparsity_loss"] == pytest.approx(5.0, abs=1e-6)
-        assert metrics["local_sparsity_loss"] == pytest.approx(10.0, abs=1e-6)
-        assert metrics["exclusivity_weight"] == pytest.approx(1.0, abs=1e-6)
-        assert metrics["entropy_weight"] == pytest.approx(2.0, abs=1e-6)
-        assert metrics["dominance_weight"] == pytest.approx(3.0, abs=1e-6)
-        assert metrics["temporal_weight"] == pytest.approx(4.0, abs=1e-6)
-
 
 class TestModelFactory:
     """Test model factory function."""

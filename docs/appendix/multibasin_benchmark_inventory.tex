@@ -1,85 +1,106 @@
 \section{Multibasin benchmark inventory and system definitions}
-\label{app:fixed17_inventory}
+\label{app:controlled_inventory}
 
-\Cref{tab:fixed17_inventory} lists the \(15\) two-dimensional multibasin systems used in this paper. 
-Every row contributes to the retained-system aggregate in
-\cref{tab:forecasting_main}, \cref{tab:fixed17_alignment}, and
-\cref{fig:fixed17_horizon_curves}. The support-refresh
-subtable uses \(12\) retained systems for which the controlled-transfer
-construction produced eligible post-entry comparisons. 
+\Cref{tab:controlled_inventory} lists the \(15\) two-dimensional multibasin systems used in this paper.
+Every row contributes to controlled forecasting and staged-routing results in
+\cref{tab:forecasting_main,tab:fabs_local_k_forecasting}.  The primary
+alignment aggregate in \cref{tab:controlled_alignment} uses the \(14\) systems
+whose frozen evaluation assignment realizes at least two labels.  Triple-well
+Duffing's one-label proxy rows remain in the evidence packet and in the
+all-\(15\)-system sensitivity sidecar.
 
-Basin labels are used
-only for benchmark annotation, controlled-transfer construction, and evaluation.
-Basin counts are benchmark metadata; for the
-structured-transition ablation rows, they are also used only to set a fixed
-architecture group count, as described in \cref{app:experimental_details}, and
-not for support extraction, support-family construction, routing, or rollout
-evaluation.
-
-The 15 multibasin benchmark systems were generated procedurally with Claude Opus 4.5. 
+The two gated systems expose native labels and centers for evaluation.  The
+remaining \(13\) catalog systems expose neither; their alignment evaluator uses
+the known benchmark count to estimate centers from long-rolled endpoints and
+construct nearest-center proxy labels.  Basin counts are also used to set the
+fixed architecture group count for structured-transition ablations, as
+described in \cref{app:experimental_details}.  No native label, proxy label,
+center, or count is supplied as a runtime feature to support extraction,
+support-family construction, staged routing, or rollout prediction;
+structured-transition rows retain the disclosed count-sized parameterization.
 
 \begin{table}[tbp]
 \centering
-\caption{The \(15\) multibasin benchmark systems.}
-\label{tab:fixed17_inventory}
+\caption{The \(15\) multibasin benchmark systems. The manifest count sets the
+number of estimated evaluation centers for catalog systems and the number of
+transition blocks for structured-transition diagnostic rows.}
+\label{tab:controlled_inventory}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}l l l c@{}}
+\begin{tabular}{@{}l l c@{}}
 \toprule
-Display name & System key & Generator family & Basins \\
+Display name & Dynamical family & Manifest count (eval./blocks) \\
 \midrule
 Local-linear gates
-  & \texttt{gated\_local\_linear}
   & piecewise local-linear gates & 3 \\
 Transfer-gated local-linear
-  & \texttt{gated\_transfer\_linear}
   & piecewise transfer gates & 3 \\
 Arrested spiral
-  & \texttt{arrested\_spiral}
   & spiral capture with Gaussian traps & 5 \\
 Asymmetric three-well
-  & \texttt{cal\_asymmetric\_3}
   & Gaussian wells with independent rotation & 3 \\
 High-cross three-well
-  & \texttt{cal\_high\_cross\_3}
   & Gaussian wells with stronger rotation & 3 \\
 Hexagonal six-well
-  & \texttt{cal\_hexagon\_6}
   & Gaussian wells with independent rotation & 6 \\
 Octagonal eight-well
-  & \texttt{cal\_octagon\_8}
   & Gaussian wells with independent rotation & 8 \\
 Pentagonal five-well
-  & \texttt{cal\_pentagon\_5}
   & Gaussian wells with independent rotation & 5 \\
 Square four-well
-  & \texttt{cal\_square\_4}
   & Gaussian wells with independent rotation & 4 \\
 Triple-well Duffing
-  & \texttt{duffing\_triple\_well}
   & triple-well Duffing oscillator & 3 \\
 SNIC multi-attractor
-  & \texttt{snic\_multi}
   & polar SNIC-like phase dynamics & 3 \\
 Transition-routes four-well
-  & \texttt{transition\_routes\_4}
   & route-augmented Gaussian wells & 4 \\
 Depth-gradient four-well
-  & \texttt{var\_depth\_gradient\_4}
   & Gaussian wells with depth gradient & 4 \\
 Diamond four-well
-  & \texttt{var\_diamond\_4}
   & Gaussian wells on a diamond layout & 4 \\
 L-shaped five-well
-  & \texttt{var\_l\_shape\_5}
   & Gaussian wells on an L-shaped layout & 5 \\
 \bottomrule
 \end{tabular}
 }
 \end{table}
 
+\begin{table}[tbp]
+\centering
+\caption{Stored observation intervals and base reset laws. Each coordinate is
+sampled independently and uniformly over the listed box; one stored step is one
+fourth-order Runge--Kutta update.}
+\label{tab:controlled_dt_reset}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c l@{}}
+\toprule
+System(s) & \(\Delta t\) & Base reset box \\
+\midrule
+Local-linear gates & \(0.04\) & \([-2.6,2.6]^2\) \\
+Transfer-gated local-linear & \(0.04\) & \([-2.8,2.8]^2\) \\
+Arrested spiral & \(0.02\) & \([-3,3]^2\) \\
+Asymmetric three-well & \(0.03\) & \([-3,3]\times[-2.5,3]\) \\
+High-cross three-well; Hexagonal six-well; Pentagonal five-well; Square four-well & \(0.03\) & \([-3.3,3.3]^2\) \\
+Octagonal eight-well & \(0.03\) & \([-4,4]^2\) \\
+Triple-well Duffing; SNIC multi-attractor & \(0.02\) & \([-2,2]^2\) \\
+Transition-routes four-well & \(0.02\) & \([-3.5,3.5]^2\) \\
+Depth-gradient four-well & \(0.03\) & \([-3,3]^2\) \\
+Diamond four-well; L-shaped five-well & \(0.03\) & \([-3.5,3.5]^2\) \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+For every system except Triple-well Duffing, the frozen seed-\(42\) evaluation
+assignment realizes the full manifest count shown above.  The Duffing endpoint
+clustering instead assigns all \(16{,}512\) evaluation states to one estimated
+center.  Its conditional entropy is therefore zero for every model and cannot
+measure regime alignment; this evaluation-proxy failure does not remove the
+system from forecasting or staged-routing experiments.
+
 \paragraph{Stored-step convention.}
 All retained systems are implemented as continuous-time vector fields
-\(\dot x=f_s(x)\) and integrated with fourth-order Runge--Kutta to produce the
+\(\dot x=f_s(x)\) and integrated with fourth-order Runge--Kutta at the
+system-specific intervals in \cref{tab:controlled_dt_reset} to produce the
 stored observation map \(F_{\Delta t}\) used in \cref{eq:sampled_map}. The
 training windows contain only stored states \(x_k\), not \(f_s\), integration
 substeps, or basin assignments.
@@ -100,8 +121,10 @@ with per-system colorbars are provided in
 \includegraphics[width=\textwidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf}
 \caption{Ground-truth vector fields for the retained \(15\)-system multibasin
 benchmark. The models are trained only on stored state trajectories; these
-continuous-time vector fields and attractor annotations are shown here only to
-document the benchmark geometry and are not provided to the learner.}
+continuous-time vector fields and generator reference markers are shown only
+to document the benchmark and are not provided to the learner. For the \(13\)
+catalog systems, these markers are not native alignment labels or centers; the
+evaluation-only proxies are estimated from long-rolled endpoints.}
 \label{fig:app_ground_truth_vector_fields_retained15}
 \end{figure}
 
@@ -121,7 +144,7 @@ document the benchmark geometry and are not provided to the learner.}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_arrested_spiral.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_arrested_spiral.pdf}
   \caption{Arrested spiral.}
 \end{subfigure}
 \caption{Detailed ground-truth vector-field panels for the first three retained
@@ -134,19 +157,19 @@ multibasin systems. Colorbars report the panel-local
 \centering
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_asymmetric_3.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_cal_asymmetric_3.pdf}
   \caption{Asymmetric three-well.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_high_cross_3.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_cal_high_cross_3.pdf}
   \caption{High-cross three-well.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_hexagon_6.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_cal_hexagon_6.pdf}
   \caption{Hexagonal six-well.}
 \end{subfigure}
 \caption{Detailed ground-truth vector-field panels for retained Gaussian-well
@@ -158,19 +181,19 @@ systems. Colorbars report the panel-local \(\log_{10}\norm{f_s(x)}_2\) scale.}
 \centering
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_octagon_8.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_cal_octagon_8.pdf}
   \caption{Octagonal eight-well.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_pentagon_5.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_cal_pentagon_5.pdf}
   \caption{Pentagonal five-well.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_cal_square_4.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_cal_square_4.pdf}
   \caption{Square four-well.}
 \end{subfigure}
 \caption{Detailed ground-truth vector-field panels for retained polygonal
@@ -183,19 +206,19 @@ Gaussian-well systems. Colorbars report the panel-local
 \centering
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_duffing_triple_well.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_duffing_triple_well.pdf}
   \caption{Triple-well Duffing.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_snic_multi.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_snic_multi.pdf}
   \caption{SNIC multi-attractor.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_transition_routes_4.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_transition_routes_4.pdf}
   \caption{Transition-routes four-well.}
 \end{subfigure}
 \caption{Detailed ground-truth vector-field panels for specialized retained
@@ -207,19 +230,19 @@ systems. Colorbars report the panel-local \(\log_{10}\norm{f_s(x)}_2\) scale.}
 \centering
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_depth_gradient_4.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_var_depth_gradient_4.pdf}
   \caption{Depth-gradient four-well.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_diamond_4.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_var_diamond_4.pdf}
   \caption{Diamond four-well.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.32\textwidth}
   \centering
-  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_claude_var_l_shape_5.pdf}
+  \includegraphics[width=\linewidth]{neurips_paper_2026/ground_truth_vector_fields/ground_truth_vector_field_var_l_shape_5.pdf}
   \caption{L-shaped five-well.}
 \end{subfigure}
 \caption{Detailed ground-truth vector-field panels for retained geometry
@@ -321,7 +344,7 @@ different radii and region definitions. Let
 \sin\alpha&\cos\alpha\end{psmallmatrix}\) and
 \(\alpha_b=2\pi b/3\), \(b\in\{0,1,2\}\).
 
-For \texttt{gated\_local\_linear}, \(c_b=1.75(\cos\alpha_b,\sin\alpha_b)\).
+For Local-linear gates, \(c_b=1.75(\cos\alpha_b,\sin\alpha_b)\).
 Inside the radius-\(1.05\) core of basin \(b\),
 \[
   \dot x=A_b(x-c_b),\qquad
@@ -342,7 +365,7 @@ the shared gate matrix
 \]
 drives the state as \(\dot x=G(x-c_{s(x)})\).
 
-For \texttt{gated\_transfer\_linear}, \(c_b=1.85(\cos\alpha_b,\sin\alpha_b)\).
+For Transfer-gated local-linear, \(c_b=1.85(\cos\alpha_b,\sin\alpha_b)\).
 The implemented radii and widths are
 \[
 \begin{aligned}
@@ -460,7 +483,7 @@ The Cartesian vector field is
      -0.01x_2(x_1^2+x_2^2)-0.5x_1 .
 \end{aligned}
 \]
-These analytic generators define the benchmark trajectories. Held-out
-evaluation annotations are produced by the benchmark label helpers or by
-endpoint-rollout basin labeling, and the learned models observe only stored
-states.
+These explicit generators define the benchmark trajectories. Evaluation
+annotations use native labels for the two gated systems and nearest-estimated-
+center proxy labels after endpoint rollout for the catalog systems; the learned
+models observe only stored states.

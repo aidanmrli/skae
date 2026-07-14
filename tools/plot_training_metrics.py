@@ -2,8 +2,8 @@
 Utility script to plot training metrics from log files.
 
 Usage:
-    python plot_metrics.py runs/quick_test/20251106-223912
-    python plot_metrics.py runs/quick_test/20251106-223912 --metrics loss residual_loss
+    uv run python tools/plot_training_metrics.py runs/quick_test/20251106-223912
+    uv run python tools/plot_training_metrics.py runs/quick_test/20251106-223912 --metrics loss residual_loss
 """
 
 import argparse
@@ -180,4 +180,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

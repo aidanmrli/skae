@@ -68,11 +68,13 @@ def _horizon_per_dim_mean(system_data: Dict, mode_name: str, horizon: int) -> Op
     return _safe_float(mean)
 
 
-def _is_run_dir(path: Path) -> bool:
-    return (path / "config.json").exists() or (path / "evaluation_results_best.json").exists()
+def _is_run_dir(path: Path, eval_file_name: str) -> bool:
+    return (path / eval_file_name).exists()
 
 
-def _discover_run_dirs(system_dir: Path) -> List[Tuple[Optional[str], Path]]:
+def _discover_run_dirs(
+    system_dir: Path, eval_file_name: str
+) -> List[Tuple[Optional[str], Path]]:
     """Discover run directories and associated seed labels.
 
     Supports legacy layouts like ``system/seed_X/run_id`` as well as the paper
@@ -80,7 +82,7 @@ def _discover_run_dirs(system_dir: Path) -> List[Tuple[Optional[str], Path]]:
     """
     run_dirs: List[Tuple[Optional[str], Path]] = []
     for candidate in sorted(system_dir.rglob("*")):
-        if not candidate.is_dir() or not _is_run_dir(candidate):
+        if not candidate.is_dir() or not _is_run_dir(candidate, eval_file_name):
             continue
         try:
             rel_parts = candidate.relative_to(system_dir).parts
@@ -96,8 +98,10 @@ def _discover_run_dirs(system_dir: Path) -> List[Tuple[Optional[str], Path]]:
     return sorted(dedup.values(), key=lambda t: (t[0] or "", t[1].name, str(t[1])))
 
 
-def _select_run_dirs(system_dir: Path, select: str) -> List[Tuple[Optional[str], Path]]:
-    run_dirs = _discover_run_dirs(system_dir)
+def _select_run_dirs(
+    system_dir: Path, select: str, eval_file_name: str
+) -> List[Tuple[Optional[str], Path]]:
+    run_dirs = _discover_run_dirs(system_dir, eval_file_name)
     return _select_run_dirs_from_candidates(run_dirs, select)
 
 
@@ -123,9 +127,8 @@ def _select_run_dirs_from_candidates(
 def _infer_system_dir_for_run(root_dir: Path, run_dir: Path) -> Path:
     """Infer the system directory for a run discovered under ``root_dir``.
 
-    Paper benchmark roots sometimes contain a dimension wrapper such as
-    ``n_16/hopfield_n16_p16/dt_0p00625/seed_0/<run_id>``.  Selection must keep
-    the latest run per system and seed, not per dimension wrapper and seed.
+    Selection keeps the latest run per system and seed when roots contain
+    additional grouping directories.
     """
     try:
         rel_parts = run_dir.relative_to(root_dir).parts
@@ -229,9 +232,6 @@ def _read_env_dt_from_cfg(cfg_data: Dict) -> Optional[float]:
         "multiwell": "MULTIWELL",
         "gated_local_linear": "GATED_LOCAL_LINEAR",
         "gated_transfer_linear": "GATED_TRANSFER_LINEAR",
-        "kuramoto": "KURAMOTO",
-        "hopfield": "HOPFIELD",
-        "competitive_lv": "COMPETITIVE_LV",
         "claude_catalog": "CLAUDE_CATALOG",
     }
     key = key_map.get(target_env)
@@ -295,10 +295,6 @@ def _extract_row(
         "sequence_length": train_cfg.get("SEQUENCE_LENGTH", 1),
         "num_steps": train_cfg.get("NUM_STEPS"),
         "env_dt": _read_env_dt_from_cfg(cfg_data),
-        "kuramoto_num_oscillators": cfg_data.get("ENV", {}).get("KURAMOTO", {}).get("NUM_OSCILLATORS"),
-        "hopfield_num_neurons": cfg_data.get("ENV", {}).get("HOPFIELD", {}).get("NUM_NEURONS"),
-        "hopfield_num_patterns": cfg_data.get("ENV", {}).get("HOPFIELD", {}).get("NUM_PATTERNS"),
-        "competitive_lv_num_species": cfg_data.get("ENV", {}).get("COMPETITIVE_LV", {}).get("NUM_SPECIES"),
     }
 
     for horizon in horizons:
@@ -362,7 +358,7 @@ def _collect_rows(
         if not root_dir.exists():
             continue
         candidates_by_system: Dict[Path, List[Tuple[Optional[str], Path]]] = defaultdict(list)
-        for seed_name, run_dir in _discover_run_dirs(root_dir):
+        for seed_name, run_dir in _discover_run_dirs(root_dir, eval_file_name):
             system_dir = _infer_system_dir_for_run(root_dir=root_dir, run_dir=run_dir)
             candidates_by_system[system_dir].append((seed_name, run_dir))
 
@@ -627,7 +623,7 @@ def parse_args() -> argparse.Namespace:
         choices=["latest", "all"],
         default="latest",
         help=(
-            "Selection mode. 'latest' keeps latest run per system-seed when seed folders exist; "
+            "Selection mode. 'latest' keeps latest evaluable run per system-seed when seed folders exist; "
             "'all' keeps all discovered runs."
         ),
     )

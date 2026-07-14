@@ -1,11 +1,11 @@
 \section{Support-coordinate intervention table}
 \label{app:support_coordinate_interventions}
 
-\Cref{fig:support_coordinate_interventions} plots the full horizon curves for the representative support-coordinate intervention experiment. \Cref{tab:support_coordinate_interventions_h21} reports the corresponding accumulated MSE summary at \(H=21\). The coordinate-dropping rows use \(100\) held-out basin-interior starts. The random-support row summarizes \(20\) random inactive-coordinate reassignments for each of the same \(100\) starts.
+\Cref{fig:support_coordinate_interventions} plots the full curves for one Local-linear gates LISTA checkpoint at seed \(0\). \Cref{tab:support_coordinate_interventions_h21} reports accumulated MSE at \(H=21\), defined here as the sum over rollout steps of the squared error averaged across state coordinates. This differs from the state-summed, through-horizon mean used by the headline forecasting table, so their numerical scales are not comparable. Candidate starts lie in the tie-inclusive per-native-label high center-margin subset and must retain their initial native label throughout the true \(21\)-step future. The evaluator balances \(100\) starts across the three labels (\(34/33/33\)). Coordinate dropping and random support use exactly these same starts; random support uses \(20\) inactive-coordinate reassignments per start. Random-support summaries pool the resulting \(2{,}000\) dependent point--shuffle outcomes at each horizon. The margin is not a true basin-boundary distance. This one-system, one-model, one-seed experiment is descriptive and has no confirmatory significance test.
 
 \begin{table}[tbp]
 \centering
-\caption{Accumulated MSE at \(H=21\) for support-coordinate interventions. Lower is better; all intervention rows are worse than the standard rollout.}
+\caption{Accumulated MSE (sum of per-coordinate step MSE) at \(H=21\) for descriptive support-coordinate interventions on the Local-linear gates LISTA checkpoint at seed \(0\). Drop rows summarize \(100\) starts; the random row pools \(2{,}000\) dependent point--shuffle outcomes. Lower is better; no confirmatory inference is attached.}
 \label{tab:support_coordinate_interventions_h21}
 \resizebox{0.7\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_support_coordinate_interventions_h21.tex}}
 \end{table}

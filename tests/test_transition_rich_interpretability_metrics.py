@@ -1,116 +1,133 @@
-"""Tests for the study-plan transition-rich interpretability reducer helpers."""
+"""Tests for the frozen controlled basin/support alignment reducer."""
 
 from __future__ import annotations
 
+import csv
+import json
+import math
+from pathlib import Path
+import sys
+
 import numpy as np
+import pytest
 import torch
 
-from tools.reduce_transition_rich_interpretability_metrics import (
-    _dominant_group_labels,
-    canonical_support_masks_by_basin,
+from skae.benchmarks.controlled_alignment import (
+    ENDPOINT_ROLLOUT_STEPS,
+    ENTROPY_UNITS,
+    FAMILY_JACCARD_THRESHOLD,
+    FAMILY_COUNT_SEMANTICS,
+    NATIVE_LABEL_SOURCE,
+    OUTPUT_COLUMNS,
+    PROXY_LABEL_SOURCE,
+    SUPPORT_SCHEME,
+    _scored_alignment_metrics,
+    _label_sequences_and_centers,
+    _assign_nearest_centers,
+    _kmeans_centers,
+    alignment_protocol_metadata,
+    absolute_support_mask,
     conditional_entropy,
-    dominant_support_mass_per_basin,
-    freeze_support_rollout_metrics,
-    jacobian_distance_summary,
-    normalized_mutual_information,
-    operator_distance_summary,
     support_family_labels,
-    support_projection_metrics,
-    support_transition_metrics,
-    switch_timing_metrics,
+    tie_inclusive_high_center_margin_mask,
 )
+from tools.reduce_transition_rich_interpretability_metrics import (
+    _load_latest_specs,
+    _write_csv,
+)
+from tools import reduce_transition_rich_interpretability_metrics as reducer
 
 
-def test_information_metrics_are_perfect_for_deterministic_support_basin_mapping():
-    supports = [b"a", b"a", b"b", b"b"]
-    basins = [0, 0, 1, 1]
-
-    assert np.isclose(conditional_entropy(basins, supports), 0.0)
-    assert np.isclose(conditional_entropy(supports, basins), 0.0)
-    assert np.isclose(normalized_mutual_information(supports, basins), 1.0)
-    assert np.isclose(dominant_support_mass_per_basin(supports, basins), 1.0)
-
-
-def test_support_transition_metrics_separate_persistence_from_switch_alignment():
-    support_mask = np.asarray(
-        [
-            [
-                [True, False, False],
-                [True, False, False],
-                [False, True, False],
-            ]
-        ],
-        dtype=bool,
-    )
-    support_keys = np.asarray([[b"a", b"a", b"b"]], dtype=object)
-    basin_labels = np.asarray([[0, 0, 1]], dtype=np.int64)
-
-    metrics = support_transition_metrics(support_mask, support_keys, basin_labels)
-
-    assert np.isclose(metrics["support_persistence"], 1.0)
-    assert np.isclose(metrics["support_switch_off_basin_switch"], 0.0)
-    assert np.isclose(metrics["support_switch_on_basin_switch"], 1.0)
-    assert np.isclose(metrics["basin_switch_fraction"], 0.5)
-    assert np.isclose(metrics["support_jaccard_mean"], 1.0)
-
-
-def test_operator_distance_summary_prefers_between_basin_separation():
-    latents = np.asarray(
-        [
-            [[1.0, 0.0], [2.0, 0.0], [4.0, 0.0]],
-            [[1.0, 0.0], [2.1, 0.0], [4.41, 0.0]],
-            [[0.0, 1.0], [0.0, 3.0], [0.0, 9.0]],
-        ],
-        dtype=np.float64,
-    )
-    basin_labels = np.asarray(
-        [
-            [0, 0, 0],
-            [0, 0, 0],
-            [1, 1, 1],
-        ],
-        dtype=np.int64,
-    )
-    class_labels = np.asarray(
-        [
-            ["a1", "a1", "a1"],
-            ["a2", "a2", "a2"],
-            ["b1", "b1", "b1"],
-        ],
-        dtype=object,
+def test_active_output_schema_is_exact() -> None:
+    assert SUPPORT_SCHEME == "absolute:0.001"
+    assert FAMILY_JACCARD_THRESHOLD == 0.5
+    assert OUTPUT_COLUMNS == (
+        "root_label",
+        "system_name",
+        "seed",
+        "support_scheme",
+        "subset",
+        "num_states",
+        "observed_label_count",
+        "family_jaccard_threshold",
+        "family_h_basin_given_family",
+        "family_unique_count",
     )
 
-    metrics = operator_distance_summary(
-        latents,
-        basin_labels,
-        class_labels,
-        ridge_lambda=1e-6,
-        min_transitions=2,
+
+def test_alignment_protocol_records_label_margin_and_metric_semantics() -> None:
+    protocol = alignment_protocol_metadata()
+    assert protocol["num_evaluation_trajectories"] == 128
+    assert protocol["trajectory_transitions"] == 128
+    assert protocol["states_per_trajectory"] == 129
+    assert protocol["evaluation_seed"] == 42
+    assert protocol["proxy_basin_count_source"] == (
+        "known_benchmark_count_for_evaluation_only"
     )
-
-    assert metrics["operator_class_count"] == 3.0
-    assert metrics["operator_support_vs_basin_fro_mean"] is not None
-    assert metrics["operator_within_basin_fro_mean"] is not None
-    assert metrics["operator_between_basin_fro_mean"] is not None
-    assert metrics["operator_between_basin_fro_mean"] > metrics["operator_within_basin_fro_mean"]
-    assert metrics["operator_between_over_within"] is not None
-    assert metrics["operator_between_over_within"] > 1.0
-
-
-def test_dominant_group_labels_can_ignore_structured_global_block():
-    latents = np.asarray(
-        [
-            [[9.0, 3.0, 0.0, 0.0, 0.0], [8.0, 0.0, 0.0, 4.0, 0.0]],
-        ],
-        dtype=np.float64,
+    assert protocol["proxy_endpoint_rollout_steps"] == ENDPOINT_ROLLOUT_STEPS == 5000
+    assert protocol["center_margin_definition"] == (
+        "second_nearest_center_distance_minus_nearest"
     )
+    assert protocol["entropy_units"] == ENTROPY_UNITS == "nats"
+    assert protocol["family_count_semantics"] == FAMILY_COUNT_SEMANTICS
+    assert protocol["mask_visit_order"] == (
+        "descending_frequency_then_ascending_packbits_bytes"
+    )
+    assert protocol["family_assignment_tie_break"] == "earliest_created_family"
+    assert protocol["kmeans_farthest_tie_break"] == "first_endpoint_index"
+    assert protocol["kmeans_assignment_tie_break"] == "first_center_index"
+    assert protocol["kmeans_empty_cluster_rule"] == "retain_previous_center"
 
-    labels = _dominant_group_labels(latents, [2, 2], offset=1)
 
-    assert labels.tolist() == [[0, 1]]
+def test_native_gated_path_uses_env_labels_and_points() -> None:
+    class NativeEnv:
+        points = torch.tensor([[0.0], [5.0], [10.0]])
+
+        @staticmethod
+        def basin_label(states):
+            return torch.cdist(states, NativeEnv.points).argmin(dim=1)
+
+    trajectories = torch.tensor([[[0.0], [1.0]], [[9.0], [10.0]]])
+    labels, centers, source = _label_sequences_and_centers(
+        NativeEnv(),
+        trajectories,
+        system_key="gated_local_linear",
+        endpoint_rollout_steps=0,
+    )
+    assert source == NATIVE_LABEL_SOURCE
+    assert torch.equal(centers, NativeEnv.points)
+    assert labels.tolist() == [[0, 0], [2, 2]]
 
 
-def test_support_family_labels_merge_nearby_exact_supports_by_jaccard():
+def test_catalog_path_uses_known_count_endpoint_centers_and_proxy_labels() -> None:
+    class ProxyEnv:
+        @staticmethod
+        def step(states):
+            return states
+
+    trajectories = torch.tensor(
+        [[[0.0], [0.0]], [[5.0], [5.0]], [[10.0], [10.0]]]
+    )
+    labels, centers, source = _label_sequences_and_centers(
+        ProxyEnv(),
+        trajectories,
+        system_key="claude:cal_asymmetric_3",
+        endpoint_rollout_steps=0,
+    )
+    assert source == PROXY_LABEL_SOURCE
+    assert centers.shape == (3, 1)
+    assert sorted(centers[:, 0].tolist()) == [0.0, 5.0, 10.0]
+    assert labels[:, 0].unique().numel() == 3
+
+
+def test_absolute_support_uses_strict_paper_threshold() -> None:
+    latents = np.asarray([[[-0.0011, -0.001, 0.0, 0.001, 0.0011]]])
+    assert absolute_support_mask(latents).tolist() == [
+        [[True, False, False, False, True]]
+    ]
+
+
+def test_support_family_labels_preserve_frozen_greedy_jaccard_rule() -> None:
     support_mask = np.asarray(
         [
             [
@@ -121,199 +138,172 @@ def test_support_family_labels_merge_nearby_exact_supports_by_jaccard():
         ],
         dtype=bool,
     )
-
-    labels = support_family_labels(support_mask, min_jaccard=0.5)
-
+    labels = support_family_labels(support_mask)
     assert labels[0, 0] == labels[0, 1]
     assert labels[0, 2] != labels[0, 0]
 
 
-def test_canonical_support_masks_by_basin_use_candidate_subset_only():
-    support_mask = np.asarray(
-        [
-            [[True, False], [True, False], [False, True]],
-            [[False, True], [False, True], [True, False]],
-        ],
+def test_support_family_ties_use_frequency_bytes_then_earliest_family() -> None:
+    supports = np.asarray(
+        [[
+            [True, False],
+            [True, False],
+            [True, False],
+            [False, True],
+            [False, True],
+            [True, True],
+        ]],
         dtype=bool,
     )
-    basin_labels = np.asarray(
+    labels = support_family_labels(supports)
+    assert labels[0, -1] == labels[0, 0]
+
+    equal_frequency = np.asarray(
+        [[[True, False], [False, True]]], dtype=bool
+    )
+    ordered = support_family_labels(equal_frequency)
+    assert ordered.tolist() == [[1, 0]]
+
+
+def test_kmeans_and_nearest_center_ties_use_first_index() -> None:
+    points = torch.tensor([[0.0], [-1.0], [1.0]])
+    initial = _kmeans_centers(points, num_centers=2, num_iters=0)
+    assert initial.tolist() == [[0.0], [-1.0]]
+    labels = _assign_nearest_centers(
+        torch.tensor([[[0.0]]]), torch.tensor([[-1.0], [1.0]])
+    )
+    assert labels.item() == 0
+    retained = _kmeans_centers(torch.zeros(3, 1), num_centers=2)
+    assert retained.tolist() == [[0.0], [0.0]]
+
+
+def test_high_center_margin_mask_keeps_margin_at_or_above_each_q75() -> None:
+    states = torch.tensor(
+        [[[0.0], [1.0], [2.0], [3.0]], [[6.0], [7.0], [8.0], [10.0]]]
+    )
+    centers = torch.tensor([[0.0], [10.0]])
+    basins = np.asarray([[0, 0, 0, 0], [1, 1, 1, 1]])
+    score_mask = tie_inclusive_high_center_margin_mask(states, centers, basins)
+    assert score_mask.tolist() == [True, False, False, False, False, False, False, True]
+
+
+def test_high_center_margin_mask_includes_all_q75_ties() -> None:
+    states = torch.tensor([[[2.0], [2.0], [2.0], [2.0]]])
+    centers = torch.tensor([[0.0], [10.0]])
+    basins = np.asarray([[0, 0, 0, 0]])
+    score_mask = tie_inclusive_high_center_margin_mask(states, centers, basins)
+    assert score_mask.tolist() == [True, True, True, True]
+
+
+def test_scored_alignment_metrics_match_conditional_entropy_definition() -> None:
+    families = np.asarray([[0, 0], [0, 0]])
+    basins = np.asarray([[0, 0], [1, 1]])
+    deep = np.ones(4, dtype=bool)
+    entropy, count = _scored_alignment_metrics(families, basins, deep)
+    assert np.isclose(entropy, math.log(2.0))
+    assert count == 1.0
+    assert np.isclose(conditional_entropy([0, 0, 1, 1], [0, 0, 0, 0]), entropy)
+
+
+def test_non_deep_states_influence_family_fit_before_deep_scoring() -> None:
+    bridge = [True, True, True]
+    left = [True, True, False]
+    right = [False, True, True]
+    supports = np.asarray([[bridge, bridge, bridge, left, right]], dtype=bool)
+    basins = np.asarray([[0, 0, 0, 0, 1]])
+    deep = np.asarray([False, False, False, True, True])
+
+    all_state_families = support_family_labels(supports)
+    all_fit_entropy, all_fit_count = _scored_alignment_metrics(
+        all_state_families,
+        basins,
+        deep,
+    )
+    deep_only_families = support_family_labels(supports[:, -2:, :])
+    deep_only_entropy, deep_only_count = _scored_alignment_metrics(
+        deep_only_families,
+        basins[:, -2:],
+        np.ones(2, dtype=bool),
+    )
+
+    assert all_fit_count == 1.0
+    assert np.isclose(all_fit_entropy, math.log(2.0))
+    assert deep_only_count == 2.0
+    assert np.isclose(deep_only_entropy, 0.0)
+
+
+def test_latest_specs_select_newest_timestamped_run(tmp_path: Path) -> None:
+    rows = tmp_path / "forecasting_rows.csv"
+    rows.write_text(
+        "root_label,system_key,system_name,seed,run_dir\n"
+        "model,system,System,2,/runs/20260101-000000\n"
+        "model,system,System,2,/runs/20260102-000000\n"
+    )
+    specs = _load_latest_specs(rows, ["model"], [], [])
+    assert len(specs) == 1
+    assert specs[0].run_dir == "/runs/20260102-000000"
+
+
+def test_csv_writer_emits_schema_for_empty_shard(tmp_path: Path) -> None:
+    output = tmp_path / "rows.csv"
+    _write_csv(output, [])
+    with output.open(newline="") as handle:
+        reader = csv.reader(handle)
+        assert tuple(next(reader)) == OUTPUT_COLUMNS
+        assert list(reader) == []
+
+
+def test_failed_run_flushes_failed_manifest_and_exits_nonzero(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = "lista_dense_signsplit_p256_hardinit_basin_partition"
+    rows = tmp_path / "forecasting_rows.csv"
+    rows.write_text(
+        "root_label,system_key,system_name,seed,run_dir\n"
+        f"{root},gated_local_linear,gated_local_linear,0,{tmp_path / 'run'}\n"
+    )
+    output = tmp_path / "output"
+
+    def fail_run(*args, **kwargs):
+        raise RuntimeError("expected failure")
+
+    monkeypatch.setattr(reducer, "reduce_run", fail_run)
+    monkeypatch.setattr(
+        sys,
+        "argv",
         [
-            [0, 0, 0],
-            [1, 1, 1],
+            "reduce_transition_rich_interpretability_metrics.py",
+            "--rows_csv",
+            str(rows),
+            "--output_dir",
+            str(output),
+            "--root_labels",
+            root,
         ],
-        dtype=np.int64,
     )
-    candidate_mask = np.asarray([True, True, False, False, True, True], dtype=bool)
-
-    canonical = canonical_support_masks_by_basin(support_mask, basin_labels, candidate_mask)
-
-    assert canonical[0].tolist() == [True, False]
-    assert canonical[1].tolist() == [False, True]
-
-
-def test_support_projection_metrics_favor_own_basin_support():
-    class IdentityModel:
-        def step_latent(self, z: torch.Tensor) -> torch.Tensor:
-            return z
-
-        def decode(self, z: torch.Tensor) -> torch.Tensor:
-            return z
-
-    trajectories = torch.tensor(
-        [
-            [[1.0, 0.5], [1.0, 0.0]],
-            [[0.25, 2.0], [0.0, 2.0]],
-        ],
-        dtype=torch.float32,
-    )
-    latents = trajectories.numpy()
-    basin_labels = np.asarray([[0, 0], [1, 1]], dtype=np.int64)
-    support_templates = {
-        0: np.asarray([True, False], dtype=bool),
-        1: np.asarray([False, True], dtype=bool),
-    }
-    subset_mask = np.ones(trajectories.shape[:2], dtype=bool).reshape(-1)
-
-    metrics = support_projection_metrics(
-        IdentityModel(),
-        latents,
-        trajectories,
-        basin_labels,
-        support_templates,
-        subset_mask,
-        device="cpu",
-    )
-
-    assert metrics["support_projection_state_count"] == 2.0
-    assert metrics["support_projection_base_mse"] is not None
-    assert metrics["support_projection_self_mse"] is not None
-    assert metrics["support_projection_wrong_mse"] is not None
-    assert metrics["support_projection_self_mse"] < metrics["support_projection_base_mse"]
-    assert metrics["support_projection_wrong_mse"] > metrics["support_projection_self_mse"]
-    assert metrics["support_projection_self_over_base"] is not None
-    assert metrics["support_projection_wrong_over_base"] is not None
-    assert metrics["support_projection_self_over_base"] < 1.0
-    assert metrics["support_projection_wrong_over_base"] > 1.0
+    with pytest.raises(SystemExit) as exc_info:
+        reducer.main()
+    assert exc_info.value.code == 1
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["status"] == "failed"
+    assert manifest["num_failures"] == 1
+    assert json.loads((output / "failures.json").read_text())[0][
+        "error"
+    ].startswith("RuntimeError")
 
 
-def test_switch_timing_metrics_capture_delay_false_switches_and_chatter():
-    class_labels = np.asarray(
-        [
-            ["a", "b", "a", "c", "c", "d"],
-            ["u", "u", "u", "v", "v", "v"],
-        ],
-        dtype=object,
-    )
-    basin_labels = np.asarray(
-        [
-            [0, 0, 0, 1, 1, 1],
-            [1, 1, 2, 2, 2, 2],
-        ],
-        dtype=np.int64,
-    )
-
-    metrics = switch_timing_metrics(class_labels, basin_labels)
-
-    assert metrics["switch_trajectory_count"] == 2.0
-    assert metrics["switch_detected_fraction"] == 1.0
-    assert metrics["switch_miss_fraction"] == 0.0
-    assert metrics["switch_false_switches_mean"] == 1.0
-    assert metrics["switch_delay_mean"] == 0.5
-    assert metrics["switch_delay_abs_mean"] == 0.5
-    assert metrics["switch_chatter_mean"] == 0.5
-    assert metrics["switch_pre_dwell_mean"] == 2.0
-    assert metrics["switch_post_dwell_mean"] == 2.5
-
-
-def test_freeze_support_rollout_metrics_measure_longer_horizon_support_freeze():
-    class IdentityModel:
-        def step_latent(self, z: torch.Tensor) -> torch.Tensor:
-            return z
-
-        def decode(self, z: torch.Tensor) -> torch.Tensor:
-            return z
-
-    trajectories = torch.tensor(
-        [
-            [[1.0, 0.2], [1.0, 0.0], [1.0, 0.0]],
-            [[0.25, 2.0], [0.0, 2.0], [0.0, 2.0]],
-        ],
-        dtype=torch.float32,
-    )
-    latents = trajectories.numpy()
-    basin_labels = np.asarray([[0, 0, 0], [1, 1, 1]], dtype=np.int64)
-    support_templates = {
-        0: np.asarray([True, False], dtype=bool),
-        1: np.asarray([False, True], dtype=bool),
-    }
-    subset_mask = np.ones(trajectories.shape[:2], dtype=bool).reshape(-1)
-
-    metrics = freeze_support_rollout_metrics(
-        IdentityModel(),
-        latents,
-        trajectories,
-        basin_labels,
-        support_templates,
-        subset_mask,
-        device="cpu",
-        horizons=(1, 2),
-        max_states_per_horizon=16,
-        sample_seed=0,
-    )
-
-    assert metrics["support_freeze_template_count"] == 2.0
-    assert metrics["support_freeze_state_count_h1"] == 4.0
-    assert metrics["support_freeze_state_count_h2"] == 2.0
-    assert metrics["support_freeze_self_over_base_h1"] is not None
-    assert metrics["support_freeze_self_over_base_h2"] is not None
-    assert metrics["support_freeze_wrong_over_base_h1"] is not None
-    assert metrics["support_freeze_wrong_over_base_h2"] is not None
-    assert metrics["support_freeze_self_over_base_h1"] < 1.0
-    assert metrics["support_freeze_self_over_base_h2"] < 1.0
-    assert metrics["support_freeze_wrong_over_base_h1"] > 1.0
-    assert metrics["support_freeze_wrong_over_base_h2"] > 1.0
-    assert metrics["support_freeze_longest_horizon"] == 2.0
-    assert metrics["support_freeze_longest_self_over_base"] is not None
-    assert metrics["support_freeze_longest_self_over_base"] < 1.0
-
-
-def test_jacobian_distance_summary_prefers_between_basin_and_can_compare_to_true():
-    jacobians = np.asarray(
-        [
-            [[1.0, 0.0], [0.0, 1.0]],
-            [[1.1, 0.0], [0.0, 0.9]],
-            [[3.0, 0.0], [0.0, 3.0]],
-            [[2.9, 0.0], [0.0, 3.1]],
-        ],
-        dtype=np.float32,
-    )
-    true_jacobians = np.asarray(
-        [
-            [[1.0, 0.0], [0.0, 1.0]],
-            [[1.0, 0.0], [0.0, 1.0]],
-            [[3.0, 0.0], [0.0, 3.0]],
-            [[3.0, 0.0], [0.0, 3.0]],
-        ],
-        dtype=np.float32,
-    )
-    basin_labels = np.asarray([0, 0, 1, 1], dtype=np.int64)
-    class_labels = np.asarray(["a1", "a2", "b1", "b2"], dtype=object)
-
-    metrics = jacobian_distance_summary(
-        jacobians,
-        basin_labels,
-        class_labels,
-        min_states=1,
-        true_jacobians=true_jacobians,
-    )
-
-    assert metrics["jacobian_state_count"] == 4.0
-    assert metrics["jacobian_class_count"] == 4.0
-    assert metrics["jacobian_support_vs_basin_fro_mean"] is not None
-    assert metrics["jacobian_within_basin_fro_mean"] is not None
-    assert metrics["jacobian_between_basin_fro_mean"] is not None
-    assert metrics["jacobian_between_basin_fro_mean"] > metrics["jacobian_within_basin_fro_mean"]
-    assert metrics["jacobian_between_over_within"] is not None
-    assert metrics["jacobian_between_over_within"] > 1.0
-    assert metrics["jacobian_support_vs_true_fro_mean"] is not None
-    assert metrics["jacobian_basin_vs_true_fro_mean"] is not None
+def test_retired_reducer_surfaces_are_absent() -> None:
+    source = Path(
+        "tools/reduce_transition_rich_interpretability_metrics.py"
+    ).read_text() + Path("skae/benchmarks/controlled_alignment.py").read_text()
+    for retired in (
+        "relative_thresholds",
+        "topk_values",
+        "freeze_support",
+        "support_projection",
+        "operator_distance",
+        "jacobian",
+        "save_visuals",
+    ):
+        assert retired not in source

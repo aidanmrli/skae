@@ -1,0 +1,161 @@
+{
+  "schema_version": 3,
+  "generated_by": "tools/build_local_map_forecasting_tables.py",
+  "machine_specific_columns_removed": [
+    "staged_run_dir",
+    "global_run_dir"
+  ],
+  "training_contract": {
+    "shared": {
+      "architecture": "LISTA sparse Koopman autoencoder",
+      "latent_dimension": 256,
+      "total_training_steps": 200000,
+      "task_rows": "same system/seed architecture and training-budget recipe"
+    },
+    "staged_fabs": {
+      "stage1_joint_steps": 100000,
+      "stage2_local_map_steps": 100000,
+      "frozen_during_stage2": "encoder, decoder, and global K",
+      "local_map": "source_target_affine_learned_intercept",
+      "route_fit": {
+        "support_definition": "absolute:0.001",
+        "family_jaccard_threshold": 0.4,
+        "configured_rows": 512,
+        "unique_trajectories": 256,
+        "duplication_factor": 2,
+        "construction": "two bitwise-identical copies of one 256-row training-distribution batch",
+        "transitions_per_trajectory": 192,
+        "states_per_trajectory": 193,
+        "seed_offset": 271828,
+        "supports_clustered": 98816,
+        "clustering_scope": "all 193 states per configured row, including terminal states",
+        "map_fit_source_transitions": 98304,
+        "unique_map_fit_source_transitions": 49152,
+        "map_fit_scope": "first 192 source states per configured row",
+        "family_representative": "modal source-state support mask",
+        "minimum_family_transitions": 1
+      }
+    },
+    "global_k": {
+      "joint_training_steps": 200000,
+      "local_map_stage": false
+    }
+  },
+  "checkpoint_selection_contract": {
+    "staged_fabs": {
+      "candidate_steps": {
+        "first_regular": 100500,
+        "last_regular": 199500,
+        "regular_interval": 500,
+        "final": 199999,
+        "count": 200
+      },
+      "starts": 32,
+      "seed_offset": 12345,
+      "horizons": [
+        100,
+        500,
+        1000
+      ],
+      "periods": [
+        1,
+        2,
+        5,
+        10,
+        20,
+        25,
+        50,
+        100
+      ],
+      "metric": "state-summed squared error; finite-prefix mean per start, then finite-start mean",
+      "aggregation": "choose the best cadence independently at H100, H500, and H1000, then take the arithmetic mean of the three minima",
+      "improvement_rule": "strict less-than; ties retain the earlier checkpoint"
+    },
+    "global_k": {
+      "candidate_steps": "every 500 steps plus the final step",
+      "starts": 16,
+      "seed_offset": 999999,
+      "horizon": 200,
+      "rollout": "every-step re-encoding",
+      "metric": "mean final-step Euclidean state error",
+      "evaluation_start_overlap": 0
+    },
+    "selector_is_asymmetric": true
+  },
+  "evaluation_contract": {
+    "systems": 15,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "paired_rows": 225,
+    "horizons": [
+      100,
+      500,
+      1000
+    ],
+    "periodic_reencoding_periods": [
+      1,
+      2,
+      5,
+      10,
+      20,
+      25,
+      50,
+      100
+    ],
+    "reported_evaluation_starts_per_pair": 100,
+    "seed_offset": 12345,
+    "support_definition": "absolute:0.001",
+    "family_jaccard_threshold": 0.4,
+    "staged_routing_cadence": "support route is recomputed before every latent transition",
+    "periodic_reencoding_role": "decode-encode refreshes the latent on the selected cadence; it does not set the staged route-lookup cadence",
+    "metric": "state-summed squared error, averaged first over finite rollout steps 1..H within each reported start and then over starts; nonfinite steps and all-nonfinite starts are omitted",
+    "cadence_reporting": "each model's best periodic cadence is selected independently on the same 100 starts used to report that horizon",
+    "staged_checkpoint_selector_overlap": {
+      "count": 32,
+      "fraction": 0.32,
+      "relationship": "the selector's 32 starts are exactly the first 32 of the 100 reported evaluation starts because both use seed+12345"
+    },
+    "global_checkpoint_selector_overlap": {
+      "count": 0,
+      "relationship": "global selection uses the distinct seed+999999 starts"
+    }
+  },
+  "comparison_contract": {
+    "matched_attributes": [
+      "system/seed roster",
+      "architecture",
+      "latent dimension",
+      "total optimization-step budget",
+      "reported evaluation starts",
+      "reported cadence grid",
+      "reported error reducer"
+    ],
+    "unmatched_attributes": [
+      "checkpoint-selection protocol"
+    ],
+    "interpretation": "descriptive and optimistic for the staged method; not a clean held-out causal comparison until disjoint validation is rerun"
+  },
+  "dataset": {
+    "description": "F_abs-routed local affine maps versus global-K LISTA",
+    "source_repository_path": "results/staged_cstab_baseline_support_family_lista_full_20260519/wide_periodic_reeval/wide_periodic_reeval_rows.csv",
+    "source_sha256": "b0b621e250256e577c29b8d1c9196792d80fc3d3584f098d65660dd5bed6b644",
+    "sanitized_repository_path": "docs/figures/neurips_paper_2026/_data/fabs_local_map_forecasting_rows.csv",
+    "sanitized_sha256": "a18af75c30edfa0284fa27e6a76f6288150212aef84d11b919a88cc9e5111622",
+    "row_count": 225
+  }
+}

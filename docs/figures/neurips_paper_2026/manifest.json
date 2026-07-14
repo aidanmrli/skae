@@ -1,38 +1,132 @@
 {
-  "fixed17_horizon_curves": "fig_fixed17_horizon_curves.pdf",
-  "fixed17_seed_strips": "fig_fixed17_seed_strips.pdf",
-  "fixed17_entropy_strips": "fig_fixed17_entropy_strips.pdf",
-  "routing_ratios": "fig_routing_ratios.pdf",
-  "dysts_long_horizon": "fig_dysts_long_horizon.pdf",
-  "appfig_fixed17_perseed_histograms": "appfig_fixed17_perseed_histograms.pdf",
-  "appfig_dysts_perseed_histograms": "appfig_dysts_perseed_histograms.pdf",
-  "appfig_fixed17_entropy_histograms": "appfig_fixed17_entropy_histograms.pdf",
-  "tables": [
-    "dysts_dt30_per_system_iqm.csv",
-    "dysts_dt30_iqm_summary.csv",
-    "table2_routing.csv",
-    "table3_dysts.csv",
-    "persystem_wilcoxon_entropy_fixed17.csv",
-    "table2_partition_controls_h100_censored_seed15_summary.csv",
-    "table2_routing_h100_h1000_censored_seed15_summary.csv",
-    "table1_hardinit_iqm.csv",
-    "lista_sb_p256_matched_table1_table2_summary.csv",
-    "dysts_dt30_wilcoxon_summary_vs_dense.csv",
-    "persystem_summary_fixed17.csv",
-    "persystem_wilcoxon_fixed17.csv",
-    "table_refresh.csv",
-    "dysts_dt30_ratio_to_dense_summary.csv",
-    "dysts_dt30_winner_systems.csv",
-    "table1_boundary_only.csv",
-    "dysts_dt30_aggregate_tests_vs_dense.csv",
-    "dysts_per_system_iqm_vs_dense.csv",
-    "table3_support_refresh_matched_summary.csv",
-    "table1_main_iqm.csv",
-    "dysts_dt30_per_system_ratio_to_dense.csv",
-    "dysts_dt30_per_system_wilcoxon_vs_dense.csv"
-  ],
-  "wilcoxon": [
-    "wilcoxon_significance_main.json",
-    "wilcoxon_significance_hardinit.json"
+  "schema_version": 2,
+  "description": "Active evidence and display map for the current sparse-Koopman multibasin paper.",
+  "paper_source": "docs/neurips_sparse_koopman_multibasin.tex",
+  "paths_relative_to": "docs/figures/neurips_paper_2026",
+  "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
+  "evidence_groups": [
+    {
+      "id": "headline_kae_forecasting_and_alignment",
+      "freeze_tool": "tools/freeze_main_paper_evidence.py",
+      "build_tool": "tools/build_table1_forecasting_support.py",
+      "check_command_inside_allocation": "uv run python tools/build_table1_forecasting_support.py --check",
+      "inputs": [
+        "_data/controlled_forecasting_rows.csv",
+        "_data/controlled_support_rows.csv",
+        "_tables/dysts_dt30_iqm_summary.csv",
+        "_tables/dysts_dt30_aggregate_tests_vs_dense.csv",
+        "_tables/paper_baseline_multibasin_summary.csv",
+        "_tables/paper_baseline_dysts_summary.csv"
+      ],
+      "provenance": "_data/main_paper_evidence_provenance.json",
+      "freeze_check_command_inside_allocation": "uv run python tools/freeze_main_paper_evidence.py --compact-existing-support --check",
+      "aggregation_contract": "Within each system, summarize finite seed values with scipy.stats.trim_mean(proportiontocut=0.25); a complete 15-seed cell retains the central nine sorted observations. Then take an arithmetic mean across systems. Ordinary q25/q75 display ranges remain NumPy percentiles.",
+      "support_contract": "At evaluation seed 42, generate 128 trajectories with 128 transitions (129 states) each. Use native env.basin_label labels and env.points centers for the two gated systems. For the 13 catalog systems, use the known benchmark count for evaluation only, advance endpoints 5,000 steps, estimate centers by deterministic farthest-first K-means, and assign each state its nearest-center proxy label. Form absolute-threshold (1e-3) support families at Jaccard 0.50 over every generated evaluation state. Within each observed label, compute the empirical q75 of the second-nearest minus nearest center-distance margin and retain every state with margin >= q75; this is tie-inclusive and can retain more than 25%. Report H(B|F_abs) in nats and the number of fitted family IDs observed on that scored high-margin slice. Wrong-support-freeze diagnostics are not active paper evidence.",
+      "outputs": [
+        "_tables/table1_forecasting_multibasin_dysts.tex",
+        "_tables/table2_support_alignment.tex",
+        "_tables/controlled_support_alignment_sensitivity.csv"
+      ]
+    },
+    {
+      "id": "controlled_per_system_tests",
+      "build_tool": "tools/build_controlled_per_system_tables.py",
+      "check_command_inside_allocation": "uv run python tools/build_controlled_per_system_tables.py --check",
+      "inputs": [
+        "_data/controlled_forecasting_rows.csv",
+        "_data/controlled_support_rows.csv"
+      ],
+      "provenance": "_data/main_paper_evidence_provenance.json",
+      "outputs": [
+        "_tables/table_persystem_h100.tex",
+        "_tables/table_persystem_h500.tex",
+        "_tables/table_persystem_h1000.tex",
+        "_tables/table_persystem_HBgivenF.tex"
+      ]
+    },
+    {
+      "id": "dysts_appendix",
+      "build_tool": "tools/build_dysts_paper_evidence.py",
+      "check_command_inside_allocation": "uv run python tools/build_dysts_paper_evidence.py --check",
+      "inputs": [
+        "_data/dysts_forecasting_rows.csv"
+      ],
+      "provenance": "_data/main_paper_evidence_provenance.json",
+      "aggregation_contract": "Dysts per-system seed summaries and bootstrap row summaries use scipy.stats.trim_mean(proportiontocut=0.25); robust IQM-over-systems summaries use the same convention. Ordinary inter-system q25/q75 ranges remain NumPy percentiles.",
+      "outputs": [
+        "_tables/dysts_dt30_iqm_summary.csv",
+        "_tables/dysts_dt30_aggregate_tests_vs_dense.csv",
+        "_tables/dysts_dt30_iqm_over_iqm_summary.csv",
+        "_tables/table_dysts_dt30_iqm_over_iqm.tex",
+        "_tables/table_dysts_dt30_ratio_to_dense.tex",
+        "fig_dysts_dt30_iqm_over_iqm_horizon.pdf"
+      ]
+    },
+    {
+      "id": "standalone_controls",
+      "freeze_tool": "tools/freeze_paper_baseline_evidence.py",
+      "build_tool": "tools/summarize_paper_baseline_suite.py",
+      "check_command_inside_allocation": "uv run python tools/summarize_paper_baseline_suite.py --check",
+      "inputs": [
+        "_data/paper_baseline_multibasin_rows.csv",
+        "_data/paper_baseline_dysts_rows.csv"
+      ],
+      "provenance": "_data/paper_baseline_evidence_provenance.json",
+      "aggregation_contract": "Standalone per-system finite-seed summaries use scipy.stats.trim_mean(proportiontocut=0.25). With three complete seeds this convention trims zero observations and equals their arithmetic mean.",
+      "outputs": [
+        "_tables/paper_baseline_multibasin_per_system.csv",
+        "_tables/paper_baseline_multibasin_summary.csv",
+        "_tables/paper_baseline_dysts_per_system.csv",
+        "_tables/paper_baseline_dysts_summary.csv",
+        "_tables/paper_baseline_suite_summary_metadata.json"
+      ],
+      "limitation": "The three-seed evaluation trajectories are independently generated and unmatched to the KAE packet; classical rows require finite ordinary through-horizon means, while mixture-local rows permit finite-prefix contribution."
+    },
+    {
+      "id": "staged_support_family_forecasting",
+      "build_tool": "tools/build_local_map_forecasting_tables.py",
+      "check_command_inside_allocation": "uv run python tools/build_local_map_forecasting_tables.py --check",
+      "inputs": [
+        "_data/fabs_local_map_forecasting_rows.csv"
+      ],
+      "provenance": "_data/local_map_forecasting_provenance.json",
+      "outputs": [
+        "_tables/table_fabs_local_k_forecasting.tex"
+      ],
+      "limitation": "The nominal 512-row route fit contains two exact copies of 256 unique trajectories. The staged checkpoint selector reuses the first 32 of the 100 reported starts, while the global-K baseline uses a distinct 16-start H200 final-error selector; the comparison is descriptive and optimistic."
+    },
+    {
+      "id": "coordinate_intervention",
+      "freeze_tool": "tools/freeze_intervention_evidence.py",
+      "build_tool": "tools/build_intervention_artifacts.py",
+      "check_command_inside_allocation": "uv run python tools/build_intervention_artifacts.py --check",
+      "inputs": [
+        "_data/interventions/drop_horizon_metrics.csv.gz",
+        "_data/interventions/drop_initial_points.csv.gz",
+        "_data/interventions/drop_point_metrics.csv.gz",
+        "_data/interventions/random_horizon_metrics.csv.gz",
+        "_data/interventions/random_initial_points.csv.gz",
+        "_data/interventions/random_point_metrics.csv.gz",
+        "_data/interventions/random_support_moves.csv.gz"
+      ],
+      "provenance": "_data/interventions/provenance.json",
+      "outputs": [
+        "_tables/table_support_coordinate_interventions_h21.tex",
+        "fig_support_coordinate_dropping_accumulated_mse.pdf",
+        "fig_support_coordinate_random_shuffle_accumulated_mse.pdf",
+        "fig_support_coordinate_trajectories_random_support_19.pdf"
+      ],
+      "limitation": "The trajectory PDF requires the external checkpoint and is hash-pinned rather than rebuilt from compact rows."
+    },
+    {
+      "id": "controlled_ground_truth_vector_fields",
+      "build_tool": "tools/plot_multibasin_ground_truth_vector_fields.py",
+      "command_inside_allocation": "uv run python tools/plot_multibasin_ground_truth_vector_fields.py --formats pdf",
+      "manifest": "ground_truth_vector_fields/manifest.json",
+      "outputs": [
+        "ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf",
+        "15 individual PDFs listed in ground_truth_vector_fields/manifest.json"
+      ]
+    }
   ]
 }

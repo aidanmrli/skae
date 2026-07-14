@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Packed wrapper for scripts/run_dysts_long_horizon_eval_array.sh.
+# Packed wrapper for scripts/run_dysts_long_horizon_eval_task.sh.
 #
 # Each SLURM array element runs PACK_SIZE reevaluation rows sequentially. This
 # keeps large Dysts reevaluation campaigns below accounting job-count limits.
@@ -23,6 +23,13 @@
 #SBATCH --requeue
 
 set -euo pipefail
+
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+  ROOT_DIR="${SLURM_SUBMIT_DIR}"
+else
+  ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+cd "${ROOT_DIR}"
 
 TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
@@ -59,7 +66,7 @@ for ((PACK_INDEX = 0; PACK_INDEX < PACK_SIZE; PACK_INDEX++)); do
   SLURM_ARRAY_TASK_ID="${GLOBAL_TASK_ID}" \
   ARRAY_OFFSET=0 \
   TASK_TSV="${TASK_TSV}" \
-  bash scripts/run_dysts_long_horizon_eval_array.sh
+  bash scripts/run_dysts_long_horizon_eval_task.sh
 done
 
 echo "============================================="

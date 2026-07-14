@@ -19,14 +19,16 @@ from skae.model import make_model
 
 
 DEFAULT_HORIZONS: Tuple[int, ...] = (
+    100,
+    500,
+    1000,
+    1500,
+    2000,
+    3000,
+    4000,
     5000,
-    10000,
-    20000,
-    30000,
-    40000,
-    50000,
-    60000,
 )
+DEFAULT_PERIODIC_REENCODE_PERIODS: Tuple[int, ...] = (10, 25, 50, 100, 150, 200)
 
 
 def _get_device(device_arg: str) -> str:
@@ -48,6 +50,13 @@ def _safe_json_load(path: Path) -> Optional[Dict[str, Any]]:
         return json.loads(path.read_text())
     except Exception:
         return None
+
+
+def _torch_load(path: Path, *, map_location: str):
+    try:
+        return torch.load(path, map_location=map_location, weights_only=False)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
 
 
 def _output_root(run_dir: Path, output_tag: str) -> Path:
@@ -93,6 +102,7 @@ def _is_complete(
     checkpoint_name: str,
     system: str,
     horizons: Sequence[int],
+    require_selected_rollouts: bool = False,
 ) -> bool:
     results_json = _results_json_path(run_dir, output_tag, checkpoint_name)
     compact_rollouts = _rollout_paths(run_dir, output_tag, checkpoint_name, system)[1]
@@ -104,6 +114,8 @@ def _is_complete(
         return False
     if not _has_required_horizons(system_data, horizons):
         return False
+    if not require_selected_rollouts:
+        return True
     files = system_data.get("files", {})
     selected_path = files.get("selected_rollout_artifacts")
     if isinstance(selected_path, str) and Path(selected_path).exists():
@@ -127,7 +139,7 @@ def _load_checkpoint_model(
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Missing checkpoint: {checkpoint_path}")
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = _torch_load(checkpoint_path, map_location=device)
     if "config" not in checkpoint:
         raise KeyError(f"Checkpoint missing config payload: {checkpoint_path}")
 
@@ -270,15 +282,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="auto", help="Device: auto/cpu/cuda/mps.")
     parser.add_argument(
         "--output-tag",
-        default="dysts_long_horizon_h5k_to_h60k_seq10",
+        default="dysts_dt30_h100_to_h5000_paper",
         help="Reevaluation output tag.",
     )
     parser.add_argument("--batch-size", type=int, default=100, help="Held-out rollout batch size.")
     parser.add_argument("--save-plots", action="store_true", help="Also render qualitative plots.")
     parser.add_argument(
+        "--save-selected-rollouts",
+        action="store_true",
+        help="Save compact rollout tensors for the selected best modes. Off by default.",
+    )
+    parser.add_argument(
         "--skip-if-complete",
         action="store_true",
-        help="Exit early when compact rollout artifacts and requested horizons already exist.",
+        help="Exit early when requested horizons already exist; also requires selected rollouts if requested.",
     )
     parser.add_argument(
         "--keep-full-rollouts",
@@ -300,10 +317,11 @@ def main() -> None:
     dysts_periodic_reencode_periods = (
         tuple(sorted({int(p) for p in args.dysts_periodic_reencode_periods}))
         if args.dysts_periodic_reencode_periods is not None
-        else tuple(EvaluationSettings().dysts_periodic_reencode_periods)
+        else DEFAULT_PERIODIC_REENCODE_PERIODS
     )
     checkpoint_name = str(args.checkpoint_name)
     output_tag = str(args.output_tag)
+    save_selected_rollouts = bool(args.save_selected_rollouts or args.keep_full_rollouts)
 
     if args.skip_if_complete and _is_complete(
         run_dir=run_dir,
@@ -311,6 +329,7 @@ def main() -> None:
         checkpoint_name=checkpoint_name,
         system=system,
         horizons=horizons,
+        require_selected_rollouts=save_selected_rollouts,
     ):
         print(
             f"Skip complete reevaluation: run_dir={run_dir} system={system} "
@@ -340,7 +359,7 @@ def main() -> None:
         horizons=horizons,
         dysts_periodic_reencode_periods=dysts_periodic_reencode_periods,
         batch_size=int(args.batch_size),
-        save_rollout_artifacts=True,
+        save_rollout_artifacts=save_selected_rollouts,
         save_plots=bool(args.save_plots),
     )
     output_dir = _output_root(run_dir, output_tag)
@@ -373,20 +392,25 @@ def main() -> None:
         "dysts_cache_profile": str(args.dysts_cache_profile),
         "dysts_cache_split": str(args.dysts_cache_split),
         "dysts_cache_dir": eval_cfg.ENV.DYSTS.CACHE_DIR,
+        "save_selected_rollouts": save_selected_rollouts,
+        "keep_full_rollouts": bool(args.keep_full_rollouts),
     }
     results_json.write_text(json.dumps(eval_results, indent=2))
 
-    selected_modes = _compact_rollouts(
-        run_dir=run_dir,
-        output_tag=output_tag,
-        checkpoint_name=checkpoint_name,
-        system=system,
-        horizons=horizons,
-        keep_full_rollouts=bool(args.keep_full_rollouts),
-    )
+    if save_selected_rollouts:
+        selected_modes = _compact_rollouts(
+            run_dir=run_dir,
+            output_tag=output_tag,
+            checkpoint_name=checkpoint_name,
+            system=system,
+            horizons=horizons,
+            keep_full_rollouts=bool(args.keep_full_rollouts),
+        )
+    else:
+        selected_modes = []
     print(
         f"Completed reevaluation for {run_dir} ({system}); "
-        f"selected rollout modes={selected_modes}",
+        f"selected rollout modes={selected_modes if save_selected_rollouts else 'not saved'}",
         flush=True,
     )
 

@@ -1,183 +1,48 @@
 \section{Statistical testing protocol}
 \label{app:statistical_testing}
 
-This appendix describes exactly what the significance annotations test. Point
-estimates and statistical annotations answer different questions. Point
-estimates in the forecasting and support-diagnostic tables first summarize
-completed training seeds within each benchmark system by an interquartile mean
-(IQM), then average those system summaries across systems. The main exception is
-the descriptive family-count column \(\overline{|F_{\rm abs}|}\), which averages
-per-system seed means because it is a count diagnostic rather than a directional
-performance metric. Significance annotations instead ask whether a paired effect
-is reproducible under the independent unit implied by the experimental design.
-We therefore do not pool seeds, trajectories, transfers, and systems into one
-sample.
+Point estimates and significance annotations answer different questions. Forecasting and alignment entropy tables first summarize finite completed seeds within each system by \texttt{scipy.stats.trim\_mean} with proportion \(0.25\), then take an arithmetic mean across systems. This sorts \(n\) values and discards \(\lfloor n/4\rfloor\) from each tail; complete \(15\)-seed cells therefore average their central nine. We refer to this implementation as the interquartile mean (IQM). Forecasting averages all \(15\) controlled systems; primary alignment averages the \(14\) systems with at least two observed labels and retains an all-\(15\) sensitivity. The descriptive family-count column instead averages per-system seed means. We do not pool trajectories, seeds, and systems into one inferential sample.
 
-\paragraph{Common paired effects.}
-For MSE comparisons against the dense-latent MLP baseline in
-\cref{tab:forecasting_main}, the paired effect for system \(s\), replicate
-\(u\), and horizon \(h\) is
-\begin{equation}
-  \Delta_{s,u,h}
+\paragraph{Forecasting metric and missingness.}
+For start \(i\), rollout step \(t\), and state coordinate \(j\), let
+\[
+  e_{i,t}=\sum_{j=1}^{d_x}(\hat x_{i,t,j}-x_{i,t,j})^2.
+\]
+For the KAE rows used in formal comparisons, the reported MSE through horizon \(H\) takes the mean of finite \(e_{i,t}\) over \(t=1,\ldots,H\) within each start, then averages finite per-start means. It is therefore a state-summed squared error, not per-coordinate MSE. A rollout can contribute through its finite prefix even if it is nonfinite before \(H\), so the KAE ranking does not enforce full-horizon finiteness. Local-linear mixture controls use the same finite-step convention; the unmatched classical DMD/EDMD evaluator requires a finite ordinary through-\(H\) mean for each contributing start, as detailed in \cref{app:experimental_details}.
+
+The error \(E_{s,r,h}\) used below is also best-periodic: for every system \(s\), seed \(r\), model, and horizon \(h\), the lowest MSE is selected on the same test trajectories over the fixed cadence grid. This test-set oracle is shared by the point estimates and formal KAE comparisons and should not be interpreted as validation-frozen deployment selection.
+
+\paragraph{Controlled forecasting effects.}
+For candidate model \(a\), Dense MLP baseline, system \(s\), seed \(r\), and horizon \(h\), the paired effect is
+\[
+  \Delta_{s,r,h}^{a}
   =
-  \log_{10} E^{\rm cand}_{s,u,h}
+  \log_{10}E^{a}_{s,r,h}
   -
-  \log_{10} E^{\rm Dense}_{s,u,h}
-  =
-  \log_{10}\!\left(E^{\rm cand}_{s,u,h}/E^{\rm Dense}_{s,u,h}\right),
-  \label{eq:stat_log_mse_delta}
-\end{equation}
-where \(E\) is the held-out best-periodic MSE and the one-sided alternative is
-\(\Delta<0\). For routed/global MSE ratios in \cref{tab:self_routing}, the same
-log-ratio convention is used with \(E^{\rm routed}\) and the same model's
-\(E^{\rm global}\). Log ratios are used only for positive MSE ratios. They match
-the multiplicative scientific question and reduce the influence of the
-heavy-tailed seed-level MSE scale.
+  \log_{10}E^{\rm Dense}_{s,r,h}.
+\]
+Only mutually finite positive MSEs are eligible. Within each system and candidate--horizon cell, a one-sided paired Wilcoxon signed-rank test uses the common seeds with alternative \(\Delta<0\). At least four finite pairs are required. Raw per-system \(p\)-values are Holm-corrected across eligible systems in that candidate--horizon family. A main-table star denotes corrected \(p<0.05\); every displayed controlled sparse-row forecasting cell passes on all \(15/15\) systems.
 
-Support diagnostics use raw paired differences unless the displayed quantity is
-already an MSE ratio. Mean \(|S_{\rm abs}|\) and \(H(B\mid F_{\rm abs})\) are
-tested against Dense MLP with alternative candidate \(<\) baseline. Wrong-support
-over base ratios are tested with alternative candidate \(>\) baseline, because a
-larger ratio means that replacing a basin's canonical \(S_{\rm abs}\) mask with a
-different basin's mask is more damaging. The family-count diagnostic
-\(\overline{|F_{\rm abs}|}\) is not assigned a one-sided test because closeness to
-the represented basin count is not monotone in either direction.
+The per-system tables in \cref{app:controlled_results} display the arithmetic mean of the paired seed effects \(\Delta_{s,r,h}^{a}\), together with the Wilcoxon/Holm \(p\)-value. The displayed effect is a mean, not the median used by an older forest-plot artifact. Because the signed-rank test depends on ranks whereas the mean does not, an extreme finite outlier can make their directions appear inconsistent; the Transfer-gated local-linear LISTA--BD H500 cell is the one such case, with \(12/15\) negative paired effects but a positive arithmetic mean.
 
-\paragraph{Holm correction.}
-All Wilcoxon families use Holm step-down correction at \(\alpha=0.05\). If
-\(p_{(1)}\leq \cdots \leq p_{(m)}\) are the eligible raw \(p\)-values in a test
-family, the adjusted value at rank \(i\) is the running maximum of
-\(\min\{1,(m-j+1)p_{(j)}\}\) for \(j\leq i\), then mapped back to the original
-cell order. The implementation uses SciPy's one-sided Wilcoxon signed-rank test
-with \texttt{zero\_method="wilcox"}; all-zero or otherwise degenerate paired
-differences are not counted as Holm passes.
+\paragraph{Transductive alignment effects.}
+The alignment partition \(F_{\rm abs}^{\rm align}\) is fit on all states in an evaluation trajectory collection and scored on states at or above the within-label \(75\)th center-margin percentile contained in that collection; ties are retained, so the subset need not contain exactly one quarter of a label, and no between-label count balancing is performed. Labels and centers are native for the two gated systems. For the \(13\) catalog systems they are nearest-center proxies obtained by deterministic clustering of long-rolled endpoints at the known benchmark count. The margin \(d_2-d_1\) is nearest-center separation, not a true boundary-distance measurement. \(H(B\mid F_{\rm abs}^{\rm align})\) uses natural logarithms and is reported in nats. The seed is the paired unit within each system and the one-sided alternative is candidate \(<\) Dense MLP. Holm correction is across eligible systems within each model--metric cell. Triple-well Duffing's frozen proxy realizes one observed label, so its zero entropy for every model is uninformative and it is excluded from primary aggregates; the all-zero paired differences and undefined signed-rank statistic are consequences. Every displayed alignment star passes on all \(14/14\) eligible systems. The observed high-margin-slice family count has no directional test because closeness to the number of represented evaluation labels, rather than monotone increase, is the relevant descriptive comparison. These tests quantify model differences in the transductive diagnostic; they do not turn it into an out-of-sample classification experiment.
 
-\paragraph{Controlled multibasin forecasting and support diagnostics.}
-For the controlled multibasin columns of \cref{tab:forecasting_main} and the
-support-diagnostic columns of \cref{tab:fixed17_alignment}, the replicate unit is
-the training seed. Candidate and baseline values are paired by the same
-benchmark system and seed. For each candidate--metric--horizon--subset cell, the
-table-generating scripts run a separate one-sided paired Wilcoxon signed-rank
-test within each system over the finite paired seed deltas. MSE tests require
-positive finite MSEs before the log transform. The paper-facing table builders
-require at least four finite paired seeds for a system to be eligible for these
-within-system tests.
-
-The raw per-system \(p\)-values are Holm-corrected across eligible systems for
-that cell. A compact superscript \(\ast\) means the Holm-corrected test passes at
-\(0.05\) in the prespecified direction. Appendix tables may instead display the
-same information as \(K/N\), where \(K\) is the number of systems whose
-Holm-corrected \(p\)-value is below \(0.05\) and \(N\) is the number of eligible
-systems for that diagnostic. The multibasin forecasting cells in the compact
-main table suppress the displayed \(K/N\) because every shown non-Dense
-multibasin forecasting cell passes on all \(15/15\) retained systems.
-
-\paragraph{Dysts forecasting superscripts.}
-The Dysts columns in \cref{tab:dysts_long} use benchmark systems, not seeds, as
-the independent inferential units. For each Dysts system and horizon, seeds are
-first summarized within system:
-\begin{equation}
-  I^{\rm cand}_{s,h}
-  =
-  \operatorname{IQM}_{r}\!\left\{E^{\rm cand}_{s,r,h}\right\},
+\paragraph{Dysts forecasting effects.}
+For each Dysts system and horizon, seeds are first summarized within system:
+\[
+  I^{a}_{s,h}=\operatorname{IQM}_{r}\{E^{a}_{s,r,h}\},
   \qquad
-  I^{\rm Dense}_{s,h}
-  =
-  \operatorname{IQM}_{r}\!\left\{E^{\rm Dense}_{s,r,h}\right\}.
-\end{equation}
-Each system then contributes one paired log effect
-\begin{equation}
-  d_{s,h} =
-  \log_{10} I^{\rm cand}_{s,h} -
-  \log_{10} I^{\rm Dense}_{s,h}.
-\end{equation}
-The compact Dysts table superscripts come from an exact one-sided sign test on
-the number of systems with \(d_{s,h}<0\). Equivalently, for \(n\) retained
-systems and \(w\) systems improved over Dense, the raw \(p\)-value is
-\[
-  \Pr\{\operatorname{Binomial}(n,1/2)\geq w\}.
+  I^{\rm Dense}_{s,h}=\operatorname{IQM}_{r}\{E^{\rm Dense}_{s,r,h}\}.
 \]
-These sign-test \(p\)-values are Holm-corrected across the non-Dense
-model--horizon comparisons in the Dysts analysis family, and the compact table
-reads the corrected sign-test values. The signed-rank and \(t\)-test values kept
-in the Dysts sidecar CSVs are audit diagnostics only; they do not determine the
-compact table superscripts. With \(10\) retained Dysts systems and this
-correction, a displayed Dysts superscript corresponds to improvement on all
-\(10/10\) systems in that cell.
-
-\paragraph{System-level support-conditioned routing.}
-The \(F_{\rm top8}\)-local routing stars in \cref{tab:self_routing} test a
-cross-system claim: whether the post-hoc support-family routed predictor reduces
-MSE relative to the same checkpoint's global-\(K\) rollout. Seeds are nested
-inside systems, so they are not treated as independent systems.
-
-For each system and horizon, the evaluator first keeps mutually finite positive
-seed-level routed/global pairs and computes
+Each system contributes one paired effect
 \[
-  \log_{10}\!\left(E^{\rm routed}_{s,r,h}/E^{\rm global}_{s,r,h}\right).
+  d_{s,h}=\log_{10}I^{a}_{s,h}-\log_{10}I^{\rm Dense}_{s,h}.
 \]
-These finite seed-level log ratios are summarized within system by IQM, giving
-\(D_{s,h}\). The table reports \(10^{\operatorname{mean}_s D_{s,h}}\), so values
-below one favor routing. The confirmatory \(p\)-value is a one-sided exact
-sign-flip test over the finite system effects \(D_{s,h}\) with alternative
-\(\operatorname{mean}_s D_{s,h}<0\). The test enumerates all \(2^n\) sign
-assignments of the observed magnitudes \(|D_{s,h}|\), compares their signed mean
-with the observed signed mean, and divides the number at least as favorable to
-the alternative by \(2^n\). These raw \(p\)-values are Holm-corrected over the
-displayed all-state \(F_{\rm top8}\)-local model--horizon cells; \(\ast\) and
-\(\ast\ast\) denote corrected \(p<0.05\) and \(p<0.01\), respectively.
+The compact-table superscript uses an exact one-sided sign test on the number of retained systems with \(d_{s,h}<0\). Holm correction is one family of \(40\) tests: five non-Dense models at each of the eight evaluated horizons \(100,500,1000,1500,2000,3000,4000,5000\), not only the three displayed columns. With \(10\) retained systems and this correction, a displayed star corresponds to improvement on all \(10/10\) systems in that cell. LISTA is starred at H100 and H4000; LISTA--BD at H2000 and H4000; Sparse MLP--BD only at H4000; Sparse MLP at H100 and H2000; and LISTA--SB at none of the three displayed horizons.
 
-The companion ``system wins'' column is directional and diagnostic, not the
-confirmatory \(p\)-value. It uses a censored all-seed-slot comparison so invalid
-long rollouts do not disappear from the count. For horizon \(h\), a cap
-\[
-  C=1+\left\lceil
-    \max\!\left(12,\max_{\rm finite}
-    \left|\log_{10}(E^{\rm routed}/E^{\rm global})\right|
-    \right)
-  \right\rceil
-\]
-is chosen outside the observed finite log-ratio range. Finite positive routed
-and global MSEs use the ordinary log ratio. A finite routed MSE paired with an
-invalid same-model global MSE is encoded as \(-C\); the reverse is encoded as
-\(+C\). Both invalid, missing, or both-zero seed slots are encoded as \(0\). The
-per-system direction is then summarized from these censored seed slots.
+\paragraph{Descriptive comparisons.}
+The standalone DMD, EDMD, and local-linear controls configure three seeds and use independently generated evaluation trajectories; their per-system summaries omit nonfinite seed values, so they are not included in paired KAE tests. The staged support-family result reports \(225\) system--seed pairs nested within \(15\) systems, plus MSE ratios, without a confirmatory \(p\)-value. Its checkpoint score applies the same finite-prefix state-summed error reducer as the reported table, minimizes separately over the eight cadences at H100, H500, and H1000, and averages those three minima. The \(32\) selector starts are the first \(32\) of the \(100\) reported starts, whereas the global baseline selects its checkpoint on \(16\) distinct starts with an H200 final-error proxy. This \(32\%\) staged overlap and selector asymmetry make the comparison optimistic and preclude interpreting the paired win counts as held-out causal evidence. The Local-linear gates coordinate intervention uses one LISTA checkpoint at seed \(0\); bootstrap intervals summarize its \(100\) starts, while random-support medians and interquartile ranges pool \(2{,}000\) dependent point--shuffle outcomes per horizon. These describe within-checkpoint variability only.
 
-\paragraph{Routing robustness and partition-control brackets.}
-The route-form robustness table in \cref{tab:self_routing_deep} and the
-partition-control table in \cref{tab:self_routing_partition_controls} use the
-same censored seed-slot rule as the routing diagnostic counts above. Their
-displayed ratios are finite routed/global MSE ratios summarized by seed-IQM
-within each system and arithmetic mean across systems. Their bracketed \(K/N\)
-counts are within-system one-sided Wilcoxon/Holm counts over the censored
-seed-level log deltas, with alternative routed \(<\) global. These brackets are
-diagnostics for route-form and partition-control robustness; the main
-confirmatory routing stars remain the system-level finite-pair sign-flip tests
-described above.
-
-\paragraph{Support refresh.}
-\Cref{tab:support_refresh} is a descriptive mechanism check rather than a
-hypothesis-test table. The current paper-facing support-refresh diagnostic uses
-controlled source-to-target transfers on the retained \(15\) multibasin systems,
-training seeds \(0,\ldots,14\), \(F_{\rm top8}\) support families, and refresh
-periods \(m\in\{1,5,10,20\}\). Between scheduled events, the latent is advanced
-only with the learned global \(K\). At each event after target entry, the
-``stale'' label is the target-family indicator for the \(F_{\rm top8}\) family
-of the globally propagated latent before re-encoding, and the ``re-encoded''
-label is the target-family indicator after encoding the current controlled
-transfer state. Each period cell reports the aggregate target-family fraction
-before re-encoding \(\to\) after re-encoding. The no-transfer column reports the
-maximum after-reencoding target-family fraction over matched no-transfer
-controls. No support-conditioned local map, support-gated transition, or
-statistical significance test is used for this main refresh table.
-
-\paragraph{Support-coordinate interventions.}
-\Cref{fig:support_coordinate_interventions} is also a mechanism diagnostic
-rather than a cross-system significance table. The coordinate-dropping panel
-reports mean MSE curves over the selected held-out starts, with \(95\%\)
-bootstrap intervals from \(2000\) bootstrap resamples of starts. The random
-support-shuffle panel preserves active coefficient values, moves them to random
-inactive coordinates, repeats the shuffle procedure, and displays the
-interquartile range, median, and mean over the shuffle outcomes. These intervals
-describe intervention variability for the representative system and seed; they
-are not Holm-corrected hypothesis-test annotations.
+\paragraph{Holm correction and assumptions.}
+For each formal family, eligible raw \(p\)-values are sorted, multiplied by the number of remaining hypotheses, made monotone by a running maximum, and clipped at one. Paired Wilcoxon tests assume the common seed differences are the relevant exchangeable units within a controlled system. Dysts sign tests treat benchmark systems as the independent units. All conclusions condition on the fixed benchmark roster. Evaluation-set period selection, finite-prefix omission, staged checkpoint-selection overlap, selector asymmetry, and transductive family fitting are protocol limitations independent of the multiple-comparison correction.

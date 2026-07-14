@@ -8,7 +8,7 @@ Usage:
     uv run python tools/train.py --config generic_sparse --env duffing --num_steps 20000
 
 Or use it programmatically:
-    from train import train
+    from tools.train import train
     cfg = get_config("generic_sparse")
     cfg.ENV.ENV_NAME = "duffing"
     train(cfg, log_dir="./runs/experiment_001")
@@ -54,6 +54,59 @@ print("Model loaded.")
 print("All core imports loaded.")
 
 
+def _supports_device_sequence_generation(vector_env: VectorWrapper, device: str) -> bool:
+    if device not in {"cuda", "mps"}:
+        return False
+    if bool(getattr(vector_env, "_device_sequence_generation_failed", False)):
+        return False
+    base_env = getattr(vector_env, "unwrapped", vector_env)
+    module = str(base_env.__class__.__module__).lower()
+    class_name = str(base_env.__class__.__name__).lower()
+    if "dysts" in module or class_name == "dystsenv":
+        return False
+    return True
+
+
+def generate_sequence_batch_for_device(
+    vector_env: VectorWrapper,
+    rng: torch.Generator,
+    *,
+    window_length: int,
+    device: str,
+) -> torch.Tensor:
+    """Generate a training sequence directly on accelerator when safe.
+
+    Most built-in environments are pure PyTorch, so their step functions can
+    advance a CUDA batch once reset states are moved to the target device.
+    Dysts and other NumPy-backed environments stay on the existing CPU path.
+    """
+
+    if _supports_device_sequence_generation(vector_env, device):
+        try:
+            init_states = vector_env.reset(rng).to(device)
+            trajectories = generate_trajectory(
+                vector_env.step,
+                init_states,
+                length=window_length,
+            )
+            if trajectories.device.type != torch.device(device).type:
+                raise RuntimeError(
+                    f"environment trajectory stayed on {trajectories.device}, expected {device}"
+                )
+            return torch.cat(
+                [init_states.unsqueeze(0), trajectories],
+                dim=0,
+            ).transpose(0, 1)
+        except Exception as exc:
+            setattr(vector_env, "_device_sequence_generation_failed", True)
+            print(
+                "[train] accelerator-side sequence generation failed once; "
+                f"falling back to CPU batches ({exc})",
+                flush=True,
+            )
+    return vector_env.generate_sequence_batch(rng, window_length=window_length).to(device)
+
+
 class MetricsLogger:
     """Simple file-based metrics logger.
     
@@ -62,13 +115,15 @@ class MetricsLogger:
     Uses buffered writes to reduce I/O overhead.
     """
     
-    def __init__(self, log_dir: Path, flush_interval: int = 100):
+    def __init__(self, log_dir: Path, flush_interval: int = 100, save_history: bool = False):
         self.log_dir = log_dir
+        self.save_history = bool(save_history)
         self.metrics_file = log_dir / 'metrics_history.jsonl'
         self.metrics_history: List[Dict] = []
         self.buffer: List[str] = []
         self.flush_interval = flush_interval
         self.step_count = 0
+        self._summary_state: Dict[str, Dict[str, Any]] = {}
     
     def log_scalar(self, name: str, value: float, step: int):
         """Log a scalar metric."""
@@ -77,9 +132,11 @@ class MetricsLogger:
             'name': name,
             'value': value,
         }
-        # Buffer writes to reduce I/O overhead
-        self.buffer.append(json.dumps(entry) + '\n')
-        self.metrics_history.append(entry)
+        if self.save_history:
+            # Buffer writes to reduce I/O overhead.
+            self.buffer.append(json.dumps(entry) + '\n')
+            self.metrics_history.append(entry)
+        self._update_summary(name, value)
         self.step_count += 1
         
         # Flush buffer periodically
@@ -88,7 +145,7 @@ class MetricsLogger:
     
     def flush(self):
         """Flush buffered metrics to disk."""
-        if self.buffer:
+        if self.save_history and self.buffer:
             with open(self.metrics_file, 'a') as f:
                 f.writelines(self.buffer)
             self.buffer.clear()
@@ -105,35 +162,43 @@ class MetricsLogger:
         self.flush()
         
         summary_file = self.log_dir / 'metrics_summary.json'
-        
-        # Compute summary statistics
-        summary = {}
-        metrics_by_name = {}
-        for entry in self.metrics_history:
-            name = entry['name']
-            if name not in metrics_by_name:
-                metrics_by_name[name] = []
-            metrics_by_name[name].append(entry['value'])
-        
-        for name, values in metrics_by_name.items():
-            numeric_values = [
-                float(value)
-                for value in values
-                if isinstance(value, (int, float)) and math.isfinite(float(value))
-            ]
-            comparable_values = []
-            first_type = type(values[0]) if values else None
-            if first_type is not None and all(isinstance(value, first_type) for value in values):
-                comparable_values = values
-            summary[name] = {
-                'final': values[-1] if values else None,
-                'min': min(comparable_values) if comparable_values else (min(numeric_values) if numeric_values else None),
-                'max': max(comparable_values) if comparable_values else (max(numeric_values) if numeric_values else None),
-                'mean': (sum(numeric_values) / len(numeric_values)) if numeric_values else None,
+        summary = {
+            name: {
+                "final": state["final"],
+                "min": state["min"],
+                "max": state["max"],
+                "mean": (
+                    state["sum"] / state["count"]
+                    if state["count"] > 0
+                    else None
+                ),
             }
+            for name, state in self._summary_state.items()
+        }
         
         with open(summary_file, 'w') as f:
             json.dump(summary, f, indent=2)
+
+    def _update_summary(self, name: str, value: float):
+        state = self._summary_state.setdefault(
+            name,
+            {"final": None, "min": None, "max": None, "sum": 0.0, "count": 0},
+        )
+        state["final"] = value
+        if isinstance(value, (int, float)) and math.isfinite(float(value)):
+            numeric_value = float(value)
+            state["sum"] += numeric_value
+            state["count"] += 1
+            state["min"] = (
+                numeric_value
+                if state["min"] is None
+                else min(float(state["min"]), numeric_value)
+            )
+            state["max"] = (
+                numeric_value
+                if state["max"] is None
+                else max(float(state["max"]), numeric_value)
+            )
 
 
 def parse_optional_bool(value: str) -> bool:
@@ -160,7 +225,7 @@ def train_step(
         model: Koopman machine model
         optimizer: PyTorch optimizer
         x_seq: Sequence window [batch_size, horizon+1, observation_size]
-        step: Current training step (for StructuredLISTAKM exclusivity warmup)
+        step: Current training step
         
     Returns:
         Dictionary of metrics
@@ -187,9 +252,6 @@ def train_step(
     x_recon_true = model.decode(z_true.reshape(batch_size * horizon, -1)).reshape(batch_size, horizon, obs_size)
 
     block_losses: Optional[Dict[str, Any]] = None
-    loss_weights: Optional[Dict[str, float]] = None
-    structured_latent: Optional[torch.Tensor] = None
-    temporal_latent_sequence: Optional[torch.Tensor] = None
     homogeneous_loss: Optional[torch.Tensor] = None
 
     if hasattr(model, "_block_loss_cfg") and getattr(model._block_loss_cfg, "ENABLED", False):
@@ -203,26 +265,22 @@ def train_step(
             "top1_gap": block_metrics["block_top1_gap"],
         }
 
-    if hasattr(model, "_structured_sparsity_from_z"):
-        structured_latent = z_pred
-        temporal_latent_sequence = torch.cat([z0.unsqueeze(1), z_pred], dim=1)
-        weight_overrides: Dict[str, float] = {}
-        if hasattr(model, "get_exclusivity_weight"):
-            weight_overrides["exclusivity"] = model.get_exclusivity_weight(step)
-        if hasattr(model, "get_entropy_weight"):
-            weight_overrides["entropy"] = model.get_entropy_weight(step)
-        if hasattr(model, "get_dominance_weight"):
-            weight_overrides["dominance"] = model.get_dominance_weight(step)
-        if hasattr(model, "get_sparsity_weight"):
-            weight_overrides["sparsity"] = model.get_sparsity_weight(step)
-        if hasattr(model, "get_temporal_weight"):
-            weight_overrides["temporal"] = model.get_temporal_weight(step)
-        if weight_overrides:
-            loss_weights = weight_overrides
-
     if getattr(model, "use_homogeneous", False) and hasattr(model, "get_homogeneous_coord"):
         c_hat = model.get_homogeneous_coord(z_pred.reshape(batch_size * horizon, -1))
         homogeneous_loss = torch.mean((c_hat - 1.0) ** 2)
+
+    sparsity_target = getattr(model.cfg.MODEL, "SPARSITY_TARGET", "rollout")
+    if sparsity_target == "rollout":
+        sparsity_latent = z_pred
+    elif sparsity_target == "encoded":
+        sparsity_latent = z_true
+    elif sparsity_target == "encoded_rollout":
+        sparsity_latent = 0.5 * (z_true.abs() + z_pred.abs())
+    else:
+        raise ValueError(
+            "Unknown MODEL.SPARSITY_TARGET "
+            f"{sparsity_target!r}; expected rollout, encoded, or encoded_rollout"
+        )
 
     loss, metrics = model.loss(
         x_pred=x_pred,
@@ -232,12 +290,9 @@ def train_step(
         z_pred=z_pred,
         z_true=z_true,
         reconstruction_error=torch.norm(x_true - x_recon_true, dim=-1).mean(),
-        sparsity_latent=z_pred,
+        sparsity_latent=sparsity_latent,
         homogeneous_loss=homogeneous_loss,
         block_losses=block_losses,
-        structured_latent=structured_latent,
-        temporal_latent_sequence=temporal_latent_sequence,
-        loss_weights=loss_weights,
         step=step,
     )
     
@@ -334,11 +389,7 @@ def train(
     log_dir: Optional[str] = None,
     checkpoint_path: Optional[str] = None,
     device: str = 'cuda',
-    monitor_support: bool = False,
-    support_monitor_every: int = 500,
-    support_threshold: float = 1e-3,
     skip_eval: bool = False,
-    skip_basin_eval: bool = False,
     eval_profile: str = "full",
     eval_use_dynamics_prior: bool = False,
     eval_event_trigger_proj_threshold: Optional[float] = None,
@@ -348,6 +399,13 @@ def train(
     eval_event_trigger_support_threshold: float = 1e-3,
     eval_event_trigger_min_dwell: int = 0,
     eval_event_trigger_max_interval: int = 0,
+    save_metrics_history: bool = False,
+    save_training_plot: bool = False,
+    save_last_checkpoint: bool = False,
+    save_eval_rollout_artifacts: bool = False,
+    save_eval_plots: bool = False,
+    save_eval_per_ic_values: bool = False,
+    save_eval_error_curves: bool = False,
 ) -> nn.Module:
     """Main training function.
 
@@ -356,10 +414,6 @@ def train(
         log_dir: Directory for tensorboard logs and checkpoints
         checkpoint_path: Path to checkpoint to resume from
         device: Device to train on ('cpu', 'cuda', 'mps')
-        monitor_support: Enable training-time support monitoring
-        support_monitor_every: Compute support diagnostics every N steps
-        support_threshold: Threshold for active support dimensions
-
     Returns:
         Trained model
     """
@@ -380,7 +434,7 @@ def train(
     run_dir.mkdir(parents=True, exist_ok=True)
     cfg.to_json(str(run_dir / 'config.json'))
     
-    logger = MetricsLogger(run_dir)
+    logger = MetricsLogger(run_dir, save_history=save_metrics_history or save_training_plot)
     
     print("Setting random seed...")
     torch.manual_seed(cfg.SEED)
@@ -422,7 +476,11 @@ def train(
     if checkpoint_path is not None:
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        optimizer_state = checkpoint.get('optimizer_state_dict')
+        if optimizer_state is not None:
+            optimizer.load_state_dict(optimizer_state)
+        else:
+            print("Checkpoint has no optimizer state; resuming with a fresh optimizer.")
         start_step = checkpoint.get('step', 0)
         print(f"Resumed from checkpoint at step {start_step}")
     
@@ -482,7 +540,12 @@ def train(
             device=device,
         )
     else:
-        val_seq = eval_env.generate_sequence_batch(val_rng, window_length=val_window).to(device)
+        val_seq = generate_sequence_batch_for_device(
+            eval_env,
+            val_rng,
+            window_length=val_window,
+            device=device,
+        )
     val_x = val_seq[:16, 0, :]
     
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
@@ -501,27 +564,9 @@ def train(
     print(f"Log directory: {run_dir}")
     print("-" * 80)
 
-    # Initialize support monitor if enabled (for multi-basin systems)
-    support_monitor = None
-    if monitor_support:
-        system_name = cfg.ENV.ENV_NAME.lower()
-        if system_name in ['duffing', 'lyapunov', 'blended'] or system_name.startswith('multiwell'):
-            from skae.support_monitor import SupportMonitor
-            print(f"Initializing support monitor for {system_name}...")
-            support_monitor = SupportMonitor(
-                cfg,
-                device=device,
-                num_trajectories_per_basin=5,
-                trajectory_length=100,
-                support_threshold=support_threshold,
-                seed=cfg.SEED + 888888,
-            )
-            print(f"  Monitoring {support_monitor.num_basins} basins, eval every {support_monitor_every} steps")
-        else:
-            print(f"Warning: support monitoring not supported for {system_name}, skipping")
-
     best_eval_final_error = float('inf')
     
+    last_checkpoint_dict: Optional[Dict[str, Any]] = None
     for step in range(start_step, cfg.TRAIN.NUM_STEPS):
         # Generate batch
         rng = rngs[step % num_batches]
@@ -534,7 +579,12 @@ def train(
                 device=device,
             )
         else:
-            x_seq = train_env.generate_sequence_batch(rng, window_length=cfg.TRAIN.SEQUENCE_LENGTH).to(device)
+            x_seq = generate_sequence_batch_for_device(
+                train_env,
+                rng,
+                window_length=cfg.TRAIN.SEQUENCE_LENGTH,
+                device=device,
+            )
 
         metrics = train_step(model, optimizer, x_seq, step=step)
         
@@ -555,16 +605,6 @@ def train(
                 log_str += f" | Homog: {metrics['homogeneous_loss']:.4f}"
             print(log_str)
         
-        # Support monitoring for basin correspondence (if enabled)
-        if support_monitor is not None and step > 0 and step % support_monitor_every == 0:
-            try:
-                diagnostics = support_monitor.compute(model)
-                support_metrics = support_monitor.to_log_dict(diagnostics)
-                logger.log_dict(support_metrics, step, prefix='support')
-                print(f"  {diagnostics.summary_str()}")
-            except Exception as e:
-                print(f"  Support monitor error: {e}")
-
         # Periodic evaluation and checkpoint saving
         # Note: skip step=0 to avoid expensive eval before any learning happened.
         if (step > 0 and step % cfg.TRAIN.EVAL_EVERY == 0) or step == cfg.TRAIN.NUM_STEPS - 1:
@@ -591,43 +631,45 @@ def train(
             checkpoint_dict = {
                 'step': step,
                 'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict() if save_last_checkpoint else None,
                 'config': cfg.to_dict(),
                 'metrics': metrics,
             }
+            last_checkpoint_dict = checkpoint_dict
             
-            # Save latest checkpoint
-            torch.save(checkpoint_dict, run_dir / 'last.pt')
+            if save_last_checkpoint:
+                torch.save(checkpoint_dict, run_dir / 'last.pt')
             
             # Save best checkpoint if eval error improved
             if eval_results['final_error'] < best_eval_final_error:
                 best_eval_final_error = eval_results['final_error']
                 torch.save(checkpoint_dict, run_dir / 'checkpoint.pt')
                 print(f"  Saved best checkpoint (final eval error: {best_eval_final_error:.4f})")
-    
+
+    if not (run_dir / 'checkpoint.pt').exists() and last_checkpoint_dict is not None:
+        torch.save(last_checkpoint_dict, run_dir / 'checkpoint.pt')
+        print("  Saved final checkpoint to checkpoint.pt (no finite best eval was found)")
+
     # Save final metrics and close logger
     with open(run_dir / 'final_metrics.json', 'w') as f:
         json.dump(metrics, f, indent=2)
     
     logger.close()
 
-    # Plot training metrics
-    print("-" * 80)
-    print("Plotting training metrics...")
-    try:
+    if save_training_plot:
+        print("-" * 80)
+        print("Plotting training metrics...")
         from tools.plot_training_metrics import plot_metrics
-    except ImportError:
-        from plot_training_metrics import plot_metrics
-    try:
-        plot_metrics(
-            log_dir=run_dir,
-            metrics_to_plot=None,  # Plot all metrics
-            save_path=run_dir / 'training_metrics.png'
-        )
-        print(f"Training metrics plot saved to {run_dir / 'training_metrics.png'}")
-    except Exception as e:
-        print(f"Warning: Failed to plot training metrics: {e}")
-        print("Continuing with evaluation...")
+        try:
+            plot_metrics(
+                log_dir=run_dir,
+                metrics_to_plot=None,  # Plot all metrics
+                save_path=run_dir / 'training_metrics.png'
+            )
+            print(f"Training metrics plot saved to {run_dir / 'training_metrics.png'}")
+        except Exception as e:
+            print(f"Warning: Failed to plot training metrics: {e}")
+            print("Continuing with evaluation...")
 
     if not skip_eval:
         print("-" * 80)
@@ -665,7 +707,10 @@ def train(
             # Create evaluation settings
             eval_settings = EvaluationSettings()
             eval_settings.systems = [cfg.ENV.ENV_NAME]
-            eval_settings.save_rollout_artifacts = True
+            eval_settings.save_rollout_artifacts = bool(save_eval_rollout_artifacts)
+            eval_settings.save_plots = bool(save_eval_plots)
+            eval_settings.include_per_ic_values = bool(save_eval_per_ic_values)
+            eval_settings.include_error_curves = bool(save_eval_error_curves)
             if eval_profile == "smoke":
                 # Keep H1000 for compatibility checks, but reduce expensive eval breadth.
                 eval_settings.batch_size = 32
@@ -785,7 +830,8 @@ def train(
             print(f"  Evaluation artifacts saved to {eval_dir}")
             return eval_results
 
-        # Evaluate both checkpoints
+        # Evaluate the compact best checkpoint by default. last.pt is optional
+        # because it duplicates weights and evaluation output for most runs.
         last_checkpoint = run_dir / 'last.pt'
         best_checkpoint = run_dir / 'checkpoint.pt'
 
@@ -801,7 +847,9 @@ def train(
             )
             shutil.copy2(last_checkpoint, best_checkpoint)
 
-        eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
+        eval_results_last = None
+        if save_last_checkpoint:
+            eval_results_last = evaluate_checkpoint(last_checkpoint, "last")
         eval_results_best = evaluate_checkpoint(best_checkpoint, "best")
 
         # Also save a combined summary
@@ -813,141 +861,6 @@ def train(
             summary_file = run_dir / "evaluation_summary.json"
             with open(summary_file, "w") as f:
                 json.dump(summary, f, indent=2)
-
-    # Run basin structure evaluation for StructuredLISTAKM models
-    if cfg.MODEL.STRUCTURED.ENABLED and not skip_basin_eval:
-        print("-" * 80)
-        print("Running basin structure evaluation for StructuredLISTAKM...")
-        try:
-            from evaluate_basin_structure import (
-                BasinLabeledDataset,
-                BasinStructureAnalyzer,
-                compute_basin_assignment_accuracy,
-                plot_phase_portrait_basin_comparison,
-                plot_confusion_matrix,
-                plot_basin_norm_timeseries,
-                plot_activation_distributions,
-            )
-            from skae.model import StructuredLISTAKM
-            from dataclasses import asdict
-
-            # Load best checkpoint for basin analysis
-            best_ckpt_path = run_dir / 'checkpoint.pt'
-            if best_ckpt_path.exists():
-                print(f"Loading best checkpoint for basin analysis...")
-                ckpt = torch.load(best_ckpt_path, map_location=device)
-
-                # Create model and load weights
-                basin_eval_env = make_env(cfg)
-                basin_eval_model = make_model(cfg, basin_eval_env.observation_size)
-                basin_eval_model.load_state_dict(ckpt['model_state_dict'])
-                basin_eval_model = basin_eval_model.to(device)
-                basin_eval_model.eval()
-
-                if isinstance(basin_eval_model, StructuredLISTAKM):
-                    print(f"Model: {basin_eval_model.num_basins} model basins, "
-                          f"d_global={basin_eval_model.d_global}, d_basin={basin_eval_model.d_basin}")
-
-                    # Create basin-labeled dataset
-                    # Only run for systems with known basins (duffing, lyapunov)
-                    system_name = cfg.ENV.ENV_NAME.lower()
-                    if system_name in ['duffing', 'lyapunov']:
-                        print(f"Generating basin-labeled trajectories for {system_name}...")
-                        basin_dataset = BasinLabeledDataset(
-                            system=system_name,
-                            cfg=cfg,
-                            num_trajectories=100,
-                            trajectory_length=500,
-                            seed=cfg.SEED + 777777,  # Different seed for eval
-                        )
-
-                        # Run analysis
-                        basin_output_dir = run_dir / "basin_structure_analysis"
-                        basin_output_dir.mkdir(parents=True, exist_ok=True)
-
-                        analyzer = BasinStructureAnalyzer(
-                            basin_eval_model, basin_dataset, device=device
-                        )
-                        results = analyzer.run_full_analysis()
-
-                        # Get best mapping for visualizations
-                        _, confusion_matrix, best_mapping = compute_basin_assignment_accuracy(
-                            analyzer.activations_list,
-                            analyzer.ground_truth_basins,
-                            basin_dataset.num_basins,
-                            basin_eval_model.num_basins,
-                        )
-
-                        # Save results
-                        results_path = basin_output_dir / 'analysis_results.json'
-                        with open(results_path, 'w') as f:
-                            json.dump(asdict(results), f, indent=2)
-                        print(f"Saved basin analysis results to {results_path}")
-
-                        # Generate visualizations
-                        print("Generating basin structure visualizations...")
-
-                        plot_phase_portrait_basin_comparison(
-                            basin_dataset,
-                            analyzer.activations_list,
-                            best_mapping,
-                            output_path=basin_output_dir / 'phase_portrait_comparison.png',
-                        )
-
-                        plot_confusion_matrix(
-                            confusion_matrix,
-                            basin_dataset.basin_names,
-                            basin_eval_model.num_basins,
-                            output_path=basin_output_dir / 'confusion_matrix.png',
-                        )
-
-                        # Basin norm timeseries for a few examples
-                        for i in range(min(5, len(basin_dataset))):
-                            plot_basin_norm_timeseries(
-                                analyzer.activations_list[i],
-                                basin_dataset.trajectories[i].final_basin,
-                                title=f'Trajectory {i} (GT Basin: {basin_dataset.trajectories[i].final_basin})',
-                                output_path=basin_output_dir / f'basin_norms_traj_{i}.png',
-                            )
-
-                        plot_activation_distributions(
-                            analyzer.activations_list,
-                            analyzer.ground_truth_basins,
-                            basin_dataset.num_basins,
-                            output_path=basin_output_dir / 'activation_distributions.png',
-                        )
-
-                        # Print summary
-                        print("\n" + "=" * 60)
-                        print("BASIN STRUCTURE ANALYSIS SUMMARY")
-                        print("=" * 60)
-                        print(f"System: {results.system_name}")
-                        print(f"Ground-truth basins: {results.num_ground_truth_basins}")
-                        print(f"Model basins: {results.num_model_basins}")
-                        print("-" * 60)
-                        print(f"Basin Assignment Accuracy: {results.basin_assignment_accuracy:.4f}")
-                        print(f"Temporal Consistency: {results.temporal_consistency:.4f}")
-                        print(f"Mean Activation Entropy: {results.mean_activation_entropy:.4f}")
-                        print(f"Within-Basin Similarity: {results.within_basin_similarity:.4f}")
-                        print(f"Cross-Basin Separation: {results.cross_basin_separation:.4f}")
-                        print("-" * 60)
-                        print("Per-Basin Accuracy:")
-                        for gt_basin, acc in results.per_basin_accuracy.items():
-                            basin_name = basin_dataset.basin_names[gt_basin] if gt_basin < len(basin_dataset.basin_names) else f"Basin {gt_basin}"
-                            print(f"  {basin_name}: {acc:.4f}")
-                        print("=" * 60)
-                        print(f"Basin structure artifacts saved to {basin_output_dir}")
-                    else:
-                        print(f"Skipping basin structure analysis: system '{system_name}' "
-                              "does not have known basin labels (supported: duffing, lyapunov)")
-                else:
-                    print("Warning: Model is not StructuredLISTAKM, skipping basin analysis")
-            else:
-                print("Warning: Best checkpoint not found, skipping basin structure analysis")
-        except Exception as e:
-            print(f"Warning: Basin structure evaluation failed: {e}")
-            import traceback
-            traceback.print_exc()
 
     print("-" * 80)
     print(f"Training complete! Checkpoints saved to {run_dir}")
@@ -987,8 +900,10 @@ def get_device(device_arg: str) -> str:
         if torch.cuda.is_available():
             return 'cuda'
         else:
-            print("CUDA not available, falling back to CPU")
-            return 'cpu'
+            raise RuntimeError(
+                "Requested --device cuda, but CUDA is not available. "
+                "Use --device auto or --device cpu for CPU fallback."
+            )
     
     # Auto-detect: prefer MPS on macOS, then CUDA, then CPU
     if device_arg == 'auto' or device_arg == 'cuda':
@@ -1021,7 +936,7 @@ Examples:
   uv run python tools/train.py --config lista --env dysts:Chua --target_size 1024
 
   # Train on Claude transition-rich catalog system
-  uv run python tools/train.py --config generic_sparse --env claude:cal_triangle_3 --num_steps 10000
+  uv run python tools/train.py --config generic_sparse --env claude:cal_square_4 --num_steps 10000
 
   # List available environments
   uv run python tools/train.py --list-envs
@@ -1038,31 +953,12 @@ Examples:
     parser.add_argument('--env', type=str, default='duffing',
                         help='Environment name. Built-in: duffing, pendulum, lotka_volterra, '
                              'lorenz63, parabolic, lyapunov, blended, '
-                             'kuramoto, hopfield, competitive_lv, '
                              'multiwell, multiwell:<mode>, multiwell_*_hd. '
                              'For Claude catalog systems: use "claude:SystemName" '
-                             '(e.g., "claude:cal_triangle_3"). '
+                             '(e.g., "claude:cal_square_4"). '
                              'For dysts systems: use "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")')
     parser.add_argument('--env_dt', type=float, default=None,
                         help='Override the integration timestep for the active environment')
-    parser.add_argument('--kuramoto_num_oscillators', type=int, default=None,
-                        help='Override ENV.KURAMOTO.NUM_OSCILLATORS')
-    parser.add_argument('--kuramoto_topology', type=str, default=None,
-                        help='Override ENV.KURAMOTO.TOPOLOGY')
-    parser.add_argument('--kuramoto_omega_mode', type=str, default=None,
-                        help='Override ENV.KURAMOTO.OMEGA_MODE')
-    parser.add_argument('--kuramoto_omega_spread', type=float, default=None,
-                        help='Override ENV.KURAMOTO.OMEGA_SPREAD')
-    parser.add_argument('--hopfield_num_neurons', type=int, default=None,
-                        help='Override ENV.HOPFIELD.NUM_NEURONS')
-    parser.add_argument('--hopfield_num_patterns', type=int, default=None,
-                        help='Override ENV.HOPFIELD.NUM_PATTERNS')
-    parser.add_argument('--competitive_lv_num_species', type=int, default=None,
-                        help='Override ENV.COMPETITIVE_LV.NUM_SPECIES')
-    parser.add_argument('--competitive_lv_interaction_scale', type=float, default=None,
-                        help='Override ENV.COMPETITIVE_LV.INTERACTION_SCALE')
-    parser.add_argument('--competitive_lv_system_seed', type=int, default=None,
-                        help='Override ENV.COMPETITIVE_LV.SYSTEM_SEED for fixed-system CLV sweeps')
     parser.add_argument('--lyapunov_dim', type=int, default=None,
                         help='Lyapunov state dimension (default: 2)')
     parser.add_argument('--lyapunov_num_basins', type=int, default=None,
@@ -1152,6 +1048,9 @@ Examples:
                         help='Latent dimension (overrides config default)')
     parser.add_argument('--sparsity_coeff', type=float, default=None,
                         help='Sparsity loss weight (overrides config default)')
+    parser.add_argument('--sparsity_target', type=str, default=None,
+                        choices=['rollout', 'encoded', 'encoded_rollout'],
+                        help='Latent tensor for L1 sparsity: rollout, encoded, or average of both')
     parser.add_argument('--reconst_coeff', type=float, default=None,
                         help='Reconstruction loss weight (overrides config default)')
     parser.add_argument('--pred_coeff', type=float, default=None,
@@ -1192,6 +1091,8 @@ Examples:
                         help='Keep only the top-k latent groups before within-group thresholding (0 disables)')
     parser.add_argument('--decoder_coherence_weight', type=float, default=None,
                         help='Weight for the normalized decoder coherence penalty')
+    parser.add_argument('--normalize_decoder_atoms', type=parse_optional_bool, default=None,
+                        help='Normalize GenericKM linear decoder atoms at decode time')
 
     # Koopman matrix structure
     parser.add_argument('--k_structure', type=str, default=None,
@@ -1237,6 +1138,8 @@ Examples:
                         help='HyperLISTA momentum scaling C_BETA (overrides config default)')
     parser.add_argument('--hyperlista_c_ss', type=float, default=None,
                         help='HyperLISTA support-selection scaling C_SS (overrides config default)')
+    parser.add_argument('--hyperlista_step_scale', type=float, default=None,
+                        help='HyperLISTA gradient step multiplier applied to 1/L')
     parser.add_argument('--hyperlista_use_ss', type=parse_optional_bool, default=None,
                         help='Enable or disable HyperLISTA support selection')
     parser.add_argument('--hyperlista_use_momentum', type=parse_optional_bool, default=None,
@@ -1246,32 +1149,6 @@ Examples:
     parser.add_argument('--hyperlista_c_theta_min', type=float, default=None,
                         help='Minimum HyperLISTA c_theta value when constrained')
     
-    # Structured latent space (StructuredLISTAKM)
-    parser.add_argument('--structured', action='store_true',
-                        help='Enable structured latent space with basin-aware Koopman')
-    parser.add_argument('--d_global', type=int, default=None,
-                        help='Global block dimension (default: 8)')
-    parser.add_argument('--num_basins', type=int, default=None,
-                        help='Number of basin slots (default: 20)')
-    parser.add_argument('--d_basin', type=int, default=None,
-                        help='Per-basin block dimension (default: 8)')
-    parser.add_argument('--lambda_global', type=float, default=None,
-                        help='Global sparsity weight (default: 1e-4)')
-    parser.add_argument('--lambda_local', type=float, default=None,
-                        help='Local sparsity weight (default: 1e-3)')
-    parser.add_argument('--lambda_exclusivity', type=float, default=None,
-                        help='Final exclusivity penalty weight (default: 1e-2)')
-    parser.add_argument('--lambda_sparsity', type=float, default=None,
-                        help='Explicit L1 sparsity weight on full z (default: 1e-3)')
-    parser.add_argument('--lambda_entropy', type=float, default=None,
-                        help='Entropy-based exclusivity weight (penalizes multiple active basins, default: 0)')
-    parser.add_argument('--lambda_dominance', type=float, default=None,
-                        help='Top-1 dominance loss weight (encourages one basin to dominate, default: 0)')
-    parser.add_argument('--lambda_temporal', type=float, default=None,
-                        help='Temporal consistency loss weight for sequence training (penalizes basin changes within trajectory, default: 0)')
-    parser.add_argument('--excl_warmup_steps', type=int, default=None,
-                        help='Steps to ramp exclusivity/sparsity from 0 to final (default: 1000)')
-    
     parser.add_argument('--sequence_length', type=int, default=1,
                         help='Unified rollout horizon H (H=1 matches former pairwise training)')
     parser.add_argument('--eval_every', type=int, default=None,
@@ -1280,8 +1157,6 @@ Examples:
                         help='Rollout horizon for the quick eval during training (overrides config default)')
     parser.add_argument('--skip_eval', action='store_true',
                         help='Skip standardized evaluation suite after training')
-    parser.add_argument('--skip_basin_eval', action='store_true',
-                        help='Skip basin structure evaluation after training')
     parser.add_argument('--eval_profile', type=str, default='full', choices=['full', 'smoke'],
                         help='Evaluation profile for post-training standardized evaluation')
     parser.add_argument('--eval_use_dynamics_prior', type=parse_optional_bool, default=None,
@@ -1300,15 +1175,21 @@ Examples:
                         help='Minimum number of steps between event-triggered resets during standardized evaluation')
     parser.add_argument('--eval_event_trigger_max_interval', type=int, default=0,
                         help='Maximum steps allowed between event-triggered resets during standardized evaluation (0 disables)')
+    parser.add_argument('--save_metrics_history', action='store_true',
+                        help='Write raw per-step metrics_history.jsonl. Off by default; metrics_summary.json is always written.')
+    parser.add_argument('--save_training_plot', action='store_true',
+                        help='Render training_metrics.png after training. Implies --save_metrics_history.')
+    parser.add_argument('--save_last_checkpoint', action='store_true',
+                        help='Also save last.pt for resumability/debugging. checkpoint.pt is always saved.')
+    parser.add_argument('--save_eval_rollout_artifacts', action='store_true',
+                        help='Save raw standardized-evaluation rollout tensors.')
+    parser.add_argument('--save_eval_plots', action='store_true',
+                        help='Render standardized-evaluation qualitative plots.')
+    parser.add_argument('--save_eval_per_ic_values', action='store_true',
+                        help='Include per-initial-condition metric arrays in evaluation JSON.')
+    parser.add_argument('--save_eval_error_curves', action='store_true',
+                        help='Include long per-step error curves in evaluation JSON.')
 
-    # Support monitoring (for basin-support correspondence diagnostics)
-    parser.add_argument('--monitor_support', action='store_true',
-                        help='Enable training-time support monitoring for basin correspondence')
-    parser.add_argument('--support_monitor_every', type=int, default=500,
-                        help='Compute support diagnostics every N steps (default: 500)')
-    parser.add_argument('--support_threshold', type=float, default=1e-3,
-                        help='Threshold for determining active support dimensions (default: 1e-3)')
-    
     # Logging
     parser.add_argument('--log_dir', type=str, default=None,
                         help='Directory for logs and checkpoints (defaults: ./runs/hyperlista for LISTAKM+hyperlista, ./runs/lista for other LISTAKM, ./runs/kae otherwise)')
@@ -1343,7 +1224,7 @@ Examples:
                     print("  " + "  ".join(f"{s:<20}" for s in row))
                 print(
                     "\nUsage: --env claude:SystemName "
-                    '(e.g., --env claude:cal_triangle_3)'
+                    '(e.g., --env claude:cal_square_4)'
                 )
             else:
                 print("  (Claude catalog not available)")
@@ -1371,26 +1252,6 @@ Examples:
     cfg.TRAIN.NUM_STEPS = args.num_steps
     cfg.TRAIN.BATCH_SIZE = args.batch_size
     cfg.SEED = args.seed
-
-    # Environment overrides
-    if args.kuramoto_num_oscillators is not None:
-        cfg.ENV.KURAMOTO.NUM_OSCILLATORS = args.kuramoto_num_oscillators
-    if args.kuramoto_topology is not None:
-        cfg.ENV.KURAMOTO.TOPOLOGY = args.kuramoto_topology
-    if args.kuramoto_omega_mode is not None:
-        cfg.ENV.KURAMOTO.OMEGA_MODE = args.kuramoto_omega_mode
-    if args.kuramoto_omega_spread is not None:
-        cfg.ENV.KURAMOTO.OMEGA_SPREAD = args.kuramoto_omega_spread
-    if args.hopfield_num_neurons is not None:
-        cfg.ENV.HOPFIELD.NUM_NEURONS = args.hopfield_num_neurons
-    if args.hopfield_num_patterns is not None:
-        cfg.ENV.HOPFIELD.NUM_PATTERNS = args.hopfield_num_patterns
-    if args.competitive_lv_num_species is not None:
-        cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = args.competitive_lv_num_species
-    if args.competitive_lv_interaction_scale is not None:
-        cfg.ENV.COMPETITIVE_LV.INTERACTION_SCALE = args.competitive_lv_interaction_scale
-    if args.competitive_lv_system_seed is not None:
-        cfg.ENV.COMPETITIVE_LV.SYSTEM_SEED = args.competitive_lv_system_seed
 
     # Lyapunov environment overrides
     if args.lyapunov_dim is not None:
@@ -1488,6 +1349,10 @@ Examples:
         cfg.MODEL.ENCODER.HYPERLISTA.TOPK_GROUPS = args.encoder_topk_groups
     if args.decoder_coherence_weight is not None:
         cfg.MODEL.DECODER_COHERENCE_WEIGHT = args.decoder_coherence_weight
+    if args.normalize_decoder_atoms is not None:
+        cfg.MODEL.DECODER.NORMALIZE_ATOMS = args.normalize_decoder_atoms
+    if args.sparsity_target is not None:
+        cfg.MODEL.SPARSITY_TARGET = args.sparsity_target
     if args.k_structure is not None:
         cfg.MODEL.K_STRUCTURE = args.k_structure
         print(f"Using Koopman matrix structure: {args.k_structure}")
@@ -1536,6 +1401,8 @@ Examples:
         cfg.MODEL.ENCODER.HYPERLISTA.C_BETA = args.hyperlista_c_beta
     if args.hyperlista_c_ss is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.C_SS = args.hyperlista_c_ss
+    if args.hyperlista_step_scale is not None:
+        cfg.MODEL.ENCODER.HYPERLISTA.STEP_SCALE = args.hyperlista_step_scale
     if args.hyperlista_use_ss is not None:
         cfg.MODEL.ENCODER.HYPERLISTA.USE_SUPPORT_SELECTION = args.hyperlista_use_ss
     if args.hyperlista_use_momentum is not None:
@@ -1624,34 +1491,6 @@ Examples:
     if args.eval_num_steps is not None:
         cfg.TRAIN.EVAL_NUM_STEPS = int(args.eval_num_steps)
 
-    # Structured latent space config
-    if args.structured:
-        cfg.MODEL.STRUCTURED.ENABLED = True
-        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
-        print("Enabling structured latent space with StructuredLISTAKM")
-    if args.d_global is not None:
-        cfg.MODEL.STRUCTURED.D_GLOBAL = args.d_global
-    if args.num_basins is not None:
-        cfg.MODEL.STRUCTURED.NUM_BASINS = args.num_basins
-    if args.d_basin is not None:
-        cfg.MODEL.STRUCTURED.D_BASIN = args.d_basin
-    if args.lambda_global is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_GLOBAL = args.lambda_global
-    if args.lambda_local is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_LOCAL = args.lambda_local
-    if args.lambda_exclusivity is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_EXCLUSIVITY = args.lambda_exclusivity
-    if args.lambda_sparsity is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_SPARSITY = args.lambda_sparsity
-    if args.lambda_entropy is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_ENTROPY = args.lambda_entropy
-    if args.lambda_dominance is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_DOMINANCE = args.lambda_dominance
-    if args.lambda_temporal is not None:
-        cfg.MODEL.STRUCTURED.LAMBDA_TEMPORAL = args.lambda_temporal
-    if args.excl_warmup_steps is not None:
-        cfg.MODEL.STRUCTURED.EXCL_WARMUP_STEPS = args.excl_warmup_steps
-
     # Auto-detect device
     device = get_device(args.device)
     print(f"Using device: {device}")
@@ -1668,11 +1507,7 @@ Examples:
         log_dir=args.log_dir,
         checkpoint_path=args.checkpoint,
         device=device,
-        monitor_support=args.monitor_support,
-        support_monitor_every=args.support_monitor_every,
-        support_threshold=args.support_threshold,
         skip_eval=args.skip_eval,
-        skip_basin_eval=args.skip_basin_eval,
         eval_profile=args.eval_profile,
         eval_use_dynamics_prior=bool(args.eval_use_dynamics_prior) if args.eval_use_dynamics_prior is not None else False,
         eval_event_trigger_proj_threshold=args.eval_event_trigger_proj_threshold,
@@ -1682,6 +1517,13 @@ Examples:
         eval_event_trigger_support_threshold=args.eval_event_trigger_support_threshold,
         eval_event_trigger_min_dwell=args.eval_event_trigger_min_dwell,
         eval_event_trigger_max_interval=args.eval_event_trigger_max_interval,
+        save_metrics_history=args.save_metrics_history,
+        save_training_plot=args.save_training_plot,
+        save_last_checkpoint=args.save_last_checkpoint,
+        save_eval_rollout_artifacts=args.save_eval_rollout_artifacts,
+        save_eval_plots=args.save_eval_plots,
+        save_eval_per_ic_values=args.save_eval_per_ic_values,
+        save_eval_error_curves=args.save_eval_error_curves,
     )
 
 

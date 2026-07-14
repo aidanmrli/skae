@@ -1,0 +1,195 @@
+{
+  "comparison_scope": "three seeds with independently generated trajectories; descriptive and unmatched",
+  "configured_seeds": [
+    0,
+    1,
+    2
+  ],
+  "description": "Aggregate inputs for the six unmatched standalone controls rendered in the forecasting table.",
+  "evidence_level": "sanitized row-level method/system/seed/horizon evidence is frozen",
+  "finite_coverage": {
+    "dysts": {
+      "complete_three_seed_cells": 170,
+      "configured_rows": 540,
+      "expected_system_cells": 180,
+      "finite_metric_rows": 519,
+      "finite_seed_count_distribution": {
+        "0": 1,
+        "1": 9,
+        "2": 0,
+        "3": 170
+      },
+      "finite_system_cells": 179,
+      "incomplete_cells": [
+        {
+          "finite_seeds": 1,
+          "horizon": 100,
+          "method": "dmd",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 2000,
+          "method": "dmd",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 4000,
+          "method": "dmd",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 100,
+          "method": "edmd_poly",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 2000,
+          "method": "edmd_poly",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 4000,
+          "method": "edmd_poly",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 100,
+          "method": "rbf_dictionary_edmd",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 2000,
+          "method": "rbf_dictionary_edmd",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 1,
+          "horizon": 4000,
+          "method": "rbf_dictionary_edmd",
+          "system": "dysts:Sakarya"
+        },
+        {
+          "finite_seeds": 0,
+          "horizon": 4000,
+          "method": "kmeans_hard",
+          "system": "dysts:LuChenCheng"
+        }
+      ],
+      "partial_finite_seed_cells": 9,
+      "status_counts": {
+        "ok": 540
+      },
+      "zero_finite_seed_cells": 1
+    },
+    "multibasin": {
+      "complete_three_seed_cells": 270,
+      "configured_rows": 810,
+      "expected_system_cells": 270,
+      "finite_metric_rows": 810,
+      "finite_seed_count_distribution": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 270
+      },
+      "finite_system_cells": 270,
+      "incomplete_cells": [],
+      "partial_finite_seed_cells": 0,
+      "status_counts": {
+        "ok": 810
+      },
+      "zero_finite_seed_cells": 0
+    }
+  },
+  "generated_by": "tools/summarize_paper_baseline_suite.py",
+  "horizons": {
+    "dysts": [
+      100,
+      2000,
+      4000
+    ],
+    "multibasin": [
+      100,
+      500,
+      1000
+    ]
+  },
+  "included_methods": [
+    "dmd",
+    "edmd_poly",
+    "rbf_dictionary_edmd",
+    "kmeans_hard",
+    "gmm_hard",
+    "gmm_soft"
+  ],
+  "inputs": {
+    "paper_baseline_dysts_rows.csv": {
+      "bytes": 92330,
+      "columns": [
+        "benchmark",
+        "source_family",
+        "system",
+        "seed",
+        "method",
+        "status",
+        "horizon",
+        "mse",
+        "finite_start_fraction",
+        "metric_protocol",
+        "source_file"
+      ],
+      "rows": 540,
+      "sha256": "959b8adbcec6da0c33eb47234871ab2693aec906e61fa811e2bbcd6140cd9d97"
+    },
+    "paper_baseline_multibasin_rows.csv": {
+      "bytes": 153869,
+      "columns": [
+        "benchmark",
+        "source_family",
+        "system",
+        "seed",
+        "method",
+        "status",
+        "horizon",
+        "mse",
+        "finite_start_fraction",
+        "metric_protocol",
+        "source_file"
+      ],
+      "rows": 810,
+      "sha256": "bf748f240806506de1efbbbfa6d06c1cab866d1a1578c61d7eff9e0fd1e286dc"
+    }
+  },
+  "metric_protocols": {
+    "finite_step_prefix_mean": "Mixture-local controls: mean finite steps per start, so a finite prefix may contribute.",
+    "ordinary_through_h_mean_finite_starts": "Classical DMD/EDMD: ordinary through-H mean per start; only starts with a finite mean contribute."
+  },
+  "outputs": {
+    "paper_baseline_dysts_per_system.csv": {
+      "rows": 179,
+      "sha256": "a5343ab635612762c46bae56372ddce7be0bcdfcd4d3d1fb241646a9645642dd"
+    },
+    "paper_baseline_dysts_summary.csv": {
+      "rows": 18,
+      "sha256": "6c638e681351f95232e9958f03dfc1dc5992ccac5c6b2d52c07eaaf0ae7b4ff9"
+    },
+    "paper_baseline_multibasin_per_system.csv": {
+      "rows": 270,
+      "sha256": "b47cf6d57ec41f12be5d198e34ef94c93746ef0bac9b818d4b29e643c8a97eb4"
+    },
+    "paper_baseline_multibasin_summary.csv": {
+      "rows": 18,
+      "sha256": "92dfccf79492664ea29d2b6b0501165ee736b746bea437ebffa53ad322d4c934"
+    }
+  },
+  "provenance": "_data/paper_baseline_evidence_provenance.json",
+  "schema_version": 2,
+  "seed_summary_convention": "scipy.stats.trim_mean(proportiontocut=0.25)"
+}

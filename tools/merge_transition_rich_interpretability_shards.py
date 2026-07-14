@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Merge per-root interpretability shards into the standard final artifacts."""
+"""Merge compact per-root controlled alignment shards."""
 
 from __future__ import annotations
 
 import argparse
 import csv
-import importlib.util
 import json
-import sys
 from pathlib import Path
 from typing import Dict, List, Sequence
+
+from skae.benchmarks.controlled_alignment import (
+    OUTPUT_COLUMNS,
+    alignment_protocol_metadata,
+)
+from tools.reduce_transition_rich_interpretability_metrics import _write_csv
 
 
 def _parse_args() -> argparse.Namespace:
@@ -31,7 +35,13 @@ def _read_rows(path: Path) -> List[Dict[str, object]]:
     if not path.is_file() or path.stat().st_size == 0:
         return []
     with path.open("r", newline="") as handle:
-        rows = list(csv.DictReader(handle))
+        reader = csv.DictReader(handle)
+        if tuple(reader.fieldnames or ()) != OUTPUT_COLUMNS:
+            raise ValueError(
+                f"Shard {path} does not use the active alignment schema: "
+                f"{reader.fieldnames}"
+            )
+        rows = list(reader)
     normalized: List[Dict[str, object]] = []
     for row in rows:
         normalized.append(
@@ -47,17 +57,6 @@ def _read_failures(path: Path) -> List[Dict[str, object]]:
     if not path.is_file() or path.stat().st_size == 0:
         return []
     return json.loads(path.read_text())
-
-
-def _load_reducer_helpers():
-    reducer_path = Path(__file__).with_name("reduce_transition_rich_interpretability_metrics.py")
-    spec = importlib.util.spec_from_file_location("reduce_transition_rich_interpretability_metrics", reducer_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Could not load reducer helpers from {reducer_path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 def main() -> None:
@@ -77,6 +76,10 @@ def main() -> None:
         manifest: Dict[str, object] = {}
         if manifest_path.is_file():
             manifest = json.loads(manifest_path.read_text())
+            if manifest.get("protocol") != alignment_protocol_metadata():
+                raise ValueError(
+                    f"Shard {shard_dir} does not use the frozen alignment protocol"
+                )
         shard_summaries.append(
             {
                 "path": str(shard_dir),
@@ -88,14 +91,15 @@ def main() -> None:
             }
         )
 
-    reducer = _load_reducer_helpers()
-    reducer._write_csv(output_dir / "interpretability_rows.csv", rows)
-    reducer._write_summary(output_dir / "interpretability_summary.md", rows)
-    (output_dir / "failures.json").write_text(json.dumps(failures, indent=2))
+    _write_csv(output_dir / "interpretability_rows.csv", rows)
+    (output_dir / "failures.json").write_text(json.dumps(failures, indent=2) + "\n")
+    shard_failed = any(summary["status"] != "complete" for summary in shard_summaries)
+    final_status = "failed" if failures or shard_failed else "complete"
     (output_dir / "manifest.json").write_text(
         json.dumps(
             {
                 "rows_csv": args.rows_csv,
+                "protocol": alignment_protocol_metadata(),
                 "root_labels": _parse_csv(args.root_labels),
                 "systems": _parse_csv(args.systems),
                 "seeds": _parse_csv(args.seeds),
@@ -103,7 +107,7 @@ def main() -> None:
                 "shard_count": len(shard_dirs),
                 "num_rows": len(rows),
                 "num_failures": len(failures),
-                "status": "complete",
+                "status": final_status,
                 "shards": shard_summaries,
             },
             indent=2,
@@ -131,6 +135,8 @@ def main() -> None:
             indent=2,
         )
     )
+    if final_status != "complete":
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

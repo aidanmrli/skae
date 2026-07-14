@@ -33,11 +33,13 @@ This repository is a PyTorch-based research codebase for sparse Koopman autoenco
 
 Common paths:
 - `skae/`: core library (models, data environments, evaluation utilities, config presets).
+- `skae/benchmarks/paper_protocol.py`: frozen paper roster and training-budget contract.
 - `tools/`: CLI scripts used for training and evaluation (e.g., `tools/train.py`).
+- `tools/README.md`: map from paper evidence to maintained Python entry points.
+- `scripts/README.md`: map of maintained SLURM launchers and dependency chains.
 - `tests/`: pytest suites (`tests/test_*.py`).
-- `experiments/` and `scripts/`: experiment code and shell scripts (sweeps/sbatch).
+- `scripts/`: paper experiment queues and SLURM workers.
 - `docs/`: active NeurIPS draft sources plus archived historical notes.
-- `notebooks/`: exploratory analysis.
 - `runs/`: training outputs (gitignored).
 
 ## Build, Test, and Development Commands
@@ -48,9 +50,9 @@ Use `uv` for reproducible environments.
 - `uv pip install -e .`: editable install (alternative without lockfile).
 - `uv run python tools/train.py --config generic_sparse --env duffing --sequence_length 1 --num_steps 20000`: example training run.
 - `uv run python tools/evaluate_checkpoints.py --run_dir runs/<model>/<timestamp> --system lyapunov`: evaluate checkpoints.
-- `pytest`: run the full test suite.
-- `pytest tests/test_model.py -v`: run a focused test module.
-- `pytest --cov=skae --cov-report=html`: coverage report (optional).
+- `uv run pytest`: run the full test suite.
+- `uv run pytest tests/test_model.py -v`: run a focused test module.
+- `uv run pytest --cov=skae --cov-report=html`: coverage report (optional).
 
 ## Compute Node Policy
 - **NEVER run programs directly on the login node.** This includes Python scripts, training runs, evaluation scripts, validation sweeps, and any compute-intensive work.
@@ -79,6 +81,7 @@ Use `uv` for reproducible environments.
 - Framework: `pytest`.
 - Naming: tests live in `tests/` and follow `test_*.py` / `test_*` function names.
 - Add tests alongside new model features or configuration options, especially for expected errors and shape checks.
+- Run every test command through `uv run` inside a compute allocation.
 
 ## Commit & Pull Request Guidelines
 - Commit messages follow Conventional Commits as seen in history: `feat: ...`, `docs: ...`, `fix: ...`.
@@ -87,4 +90,4 @@ Use `uv` for reproducible environments.
 
 ## Configuration & Outputs
 - Configuration presets live in `skae/config.py`; prefer adding new presets over hard-coded arguments.
-- Training artifacts are written to `runs/` and are not versioned; capture important results in `docs/` or `notebooks/`.
+- Training artifacts are written to `runs/` and are not versioned. Preserve compact row-level evidence and provenance for active claims under `docs/figures/neurips_paper_2026/_data/`; keep generated paper tables under the adjacent `_tables/` directory.

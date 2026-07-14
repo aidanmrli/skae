@@ -1,0 +1,369 @@
+{
+  "aggregation": {
+    "complete_cell_retained_seed_count": 9,
+    "controlled_alignment_all_system_sensitivity_count": 15,
+    "controlled_alignment_primary_system_count": 14,
+    "controlled_forecasting_system_count": 15,
+    "cross_system_summary": "arithmetic_mean",
+    "within_system_seed_summary": "scipy.stats.trim_mean(proportiontocut=0.25)"
+  },
+  "description": "Frozen row-level evidence for the paper's headline forecasting and support tables.",
+  "filters": {
+    "controlled_roots": [
+      "lista_dense_signsplit_p256_hardinit_basin_partition",
+      "lista_blockdiag_signsplit_hardinit_basin_partition",
+      "lista_dense_softblock_signsplit_p256_hardinit_basin_partition",
+      "mlp_sparse_blockdiag_hardinit_basin_partition_control",
+      "mlp_sparse_hardinit_basin_partition_control",
+      "mlp_zero_sparse_hardinit_basin_partition_control"
+    ],
+    "controlled_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "controlled_systems": [
+      "gated_local_linear",
+      "gated_transfer_linear",
+      "claude_arrested_spiral",
+      "claude_cal_asymmetric_3",
+      "claude_cal_high_cross_3",
+      "claude_cal_hexagon_6",
+      "claude_cal_octagon_8",
+      "claude_cal_pentagon_5",
+      "claude_cal_square_4",
+      "claude_duffing_triple_well",
+      "claude_snic_multi",
+      "claude_transition_routes_4",
+      "claude_var_depth_gradient_4",
+      "claude_var_diamond_4",
+      "claude_var_l_shape_5"
+    ],
+    "dysts_roots": [
+      "lista",
+      "lista_bd",
+      "lista_sb",
+      "sparse_mlp_bd",
+      "sparse_mlp",
+      "dense_mlp_tanh"
+    ],
+    "dysts_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "dysts_systems": [
+      "dysts:Chua",
+      "dysts:Dadras",
+      "dysts:DequanLi",
+      "dysts:Hadley",
+      "dysts:LuChenCheng",
+      "dysts:QiChen",
+      "dysts:Sakarya",
+      "dysts:SanUmSrisuchinwong",
+      "dysts:ShimizuMorioka",
+      "dysts:WangSun"
+    ],
+    "family_jaccard_threshold": 0.5,
+    "support_alignment_eligibility_criterion": "at_least_two_observed_evaluation_labels_in_the_frozen_proxy_assignment",
+    "support_alignment_excluded_observed_label_counts": {
+      "claude_duffing_triple_well": 1
+    },
+    "support_alignment_excluded_systems": [
+      "claude_duffing_triple_well"
+    ],
+    "support_alignment_observed_label_counts": {
+      "claude_arrested_spiral": 5,
+      "claude_cal_asymmetric_3": 3,
+      "claude_cal_hexagon_6": 6,
+      "claude_cal_high_cross_3": 3,
+      "claude_cal_octagon_8": 8,
+      "claude_cal_pentagon_5": 5,
+      "claude_cal_square_4": 4,
+      "claude_duffing_triple_well": 1,
+      "claude_snic_multi": 3,
+      "claude_transition_routes_4": 4,
+      "claude_var_depth_gradient_4": 4,
+      "claude_var_diamond_4": 4,
+      "claude_var_l_shape_5": 5,
+      "gated_local_linear": 3,
+      "gated_transfer_linear": 3
+    },
+    "support_alignment_primary_systems": [
+      "gated_local_linear",
+      "gated_transfer_linear",
+      "claude_arrested_spiral",
+      "claude_cal_asymmetric_3",
+      "claude_cal_high_cross_3",
+      "claude_cal_hexagon_6",
+      "claude_cal_octagon_8",
+      "claude_cal_pentagon_5",
+      "claude_cal_square_4",
+      "claude_snic_multi",
+      "claude_transition_routes_4",
+      "claude_var_depth_gradient_4",
+      "claude_var_diamond_4",
+      "claude_var_l_shape_5"
+    ],
+    "support_alignment_protocol": {
+      "center_margin_definition": "second_nearest_center_distance_minus_nearest",
+      "center_margin_quantile": 0.75,
+      "center_margin_quantile_method": "numpy_default_linear",
+      "center_margin_selection_rule": "margin_greater_than_or_equal_to_empirical_q75_tie_inclusive",
+      "center_margin_tie_semantics": "retain_margin_greater_than_or_equal_to_q75; ties_can_make_the_scored_slice_larger_than_25_percent",
+      "entropy_formula": "H(basin,family)-H(family)",
+      "entropy_log_offset": 1e-12,
+      "entropy_units": "nats",
+      "evaluation_seed": 42,
+      "family_assignment_tie_break": "earliest_created_family",
+      "family_count_semantics": "observed_family_ids_on_scored_high_margin_slice",
+      "family_fit_scope": "all_generated_evaluation_trajectory_states",
+      "family_jaccard_threshold": 0.5,
+      "kmeans_assignment_tie_break": "first_center_index",
+      "kmeans_early_stop_rule": "torch.allclose_with_library_defaults",
+      "kmeans_empty_cluster_rule": "retain_previous_center",
+      "kmeans_farthest_tie_break": "first_endpoint_index",
+      "kmeans_initial_center": "first_advanced_endpoint",
+      "kmeans_max_iterations": 25,
+      "labels_with_fewer_than_four_states": "retain_all_states",
+      "mask_serialization": "numpy.packbits_default_big_bit_order_then_bytes",
+      "mask_visit_order": "descending_frequency_then_ascending_packbits_bytes",
+      "native_center_source": "env.points",
+      "native_label_source": "env.basin_label",
+      "native_label_systems": [
+        "gated_local_linear",
+        "gated_transfer_linear"
+      ],
+      "num_evaluation_trajectories": 128,
+      "output_columns": [
+        "root_label",
+        "system_name",
+        "seed",
+        "support_scheme",
+        "subset",
+        "num_states",
+        "observed_label_count",
+        "family_jaccard_threshold",
+        "family_h_basin_given_family",
+        "family_unique_count"
+      ],
+      "proxy_basin_count_source": "known_benchmark_count_for_evaluation_only",
+      "proxy_center_estimator": "deterministic_farthest_first_kmeans_on_advanced_endpoints",
+      "proxy_endpoint_rollout_steps": 5000,
+      "proxy_label_systems": [
+        "claude:arrested_spiral",
+        "claude:cal_asymmetric_3",
+        "claude:cal_high_cross_3",
+        "claude:cal_hexagon_6",
+        "claude:cal_octagon_8",
+        "claude:cal_pentagon_5",
+        "claude:cal_square_4",
+        "claude:duffing_triple_well",
+        "claude:snic_multi",
+        "claude:transition_routes_4",
+        "claude:var_depth_gradient_4",
+        "claude:var_diamond_4",
+        "claude:var_l_shape_5"
+      ],
+      "proxy_state_label_rule": "nearest_estimated_center",
+      "proxy_state_label_tie_break": "first_center_index",
+      "scoring_scope": "per_observed_label_high_margin_tie_inclusive",
+      "states_per_trajectory": 129,
+      "support_scheme": "absolute:0.001",
+      "trajectory_transitions": 128
+    },
+    "support_alignment_raw_rows_retained": true,
+    "support_alignment_sensitivity_artifact": "../_tables/controlled_support_alignment_sensitivity.csv",
+    "support_family_fit_population": "all generated evaluation-trajectory states",
+    "support_scheme": "absolute:0.001",
+    "support_score_population": "per-observed-label center-margin >= empirical q75 subset (tie-inclusive)",
+    "support_subset": "deep"
+  },
+  "outputs": {
+    "controlled_forecasting_rows.csv": {
+      "bytes": 207091,
+      "columns": [
+        "root_label",
+        "system_name",
+        "seed",
+        "h100_best_periodic_mean",
+        "h500_best_periodic_mean",
+        "h1000_best_periodic_mean",
+        "h100_best_periodic_is_finite",
+        "h500_best_periodic_is_finite",
+        "h1000_best_periodic_is_finite"
+      ],
+      "rows": 1350,
+      "sha256": "72d88ba16c44e4da864882b3b42c39271df6e0865423969d992d47abef77c200"
+    },
+    "controlled_support_rows.csv": {
+      "bytes": 165469,
+      "columns": [
+        "root_label",
+        "system_name",
+        "seed",
+        "support_scheme",
+        "subset",
+        "num_states",
+        "observed_label_count",
+        "family_jaccard_threshold",
+        "family_h_basin_given_family",
+        "family_unique_count"
+      ],
+      "rows": 1350,
+      "sha256": "7d23a08792184f744c3377efd34c03a7809cd1c088f81a3209475fb321620a39"
+    },
+    "dysts_forecasting_rows.csv": {
+      "bytes": 472329,
+      "columns": [
+        "root_label",
+        "system_key",
+        "seed",
+        "status",
+        "h100_best_periodic_mean",
+        "h100_best_periodic_mode",
+        "h100_best_periodic_full_finite_fraction",
+        "h100_best_periodic_finite_step_fraction",
+        "h100_best_periodic_num_full_horizon_finite",
+        "h100_best_periodic_median_finite_prefix_length",
+        "h100_best_periodic_min_finite_prefix_length",
+        "h500_best_periodic_mean",
+        "h500_best_periodic_mode",
+        "h500_best_periodic_full_finite_fraction",
+        "h500_best_periodic_finite_step_fraction",
+        "h500_best_periodic_num_full_horizon_finite",
+        "h500_best_periodic_median_finite_prefix_length",
+        "h500_best_periodic_min_finite_prefix_length",
+        "h1000_best_periodic_mean",
+        "h1000_best_periodic_mode",
+        "h1000_best_periodic_full_finite_fraction",
+        "h1000_best_periodic_finite_step_fraction",
+        "h1000_best_periodic_num_full_horizon_finite",
+        "h1000_best_periodic_median_finite_prefix_length",
+        "h1000_best_periodic_min_finite_prefix_length",
+        "h1500_best_periodic_mean",
+        "h1500_best_periodic_mode",
+        "h1500_best_periodic_full_finite_fraction",
+        "h1500_best_periodic_finite_step_fraction",
+        "h1500_best_periodic_num_full_horizon_finite",
+        "h1500_best_periodic_median_finite_prefix_length",
+        "h1500_best_periodic_min_finite_prefix_length",
+        "h2000_best_periodic_mean",
+        "h2000_best_periodic_mode",
+        "h2000_best_periodic_full_finite_fraction",
+        "h2000_best_periodic_finite_step_fraction",
+        "h2000_best_periodic_num_full_horizon_finite",
+        "h2000_best_periodic_median_finite_prefix_length",
+        "h2000_best_periodic_min_finite_prefix_length",
+        "h3000_best_periodic_mean",
+        "h3000_best_periodic_mode",
+        "h3000_best_periodic_full_finite_fraction",
+        "h3000_best_periodic_finite_step_fraction",
+        "h3000_best_periodic_num_full_horizon_finite",
+        "h3000_best_periodic_median_finite_prefix_length",
+        "h3000_best_periodic_min_finite_prefix_length",
+        "h4000_best_periodic_mean",
+        "h4000_best_periodic_mode",
+        "h4000_best_periodic_full_finite_fraction",
+        "h4000_best_periodic_finite_step_fraction",
+        "h4000_best_periodic_num_full_horizon_finite",
+        "h4000_best_periodic_median_finite_prefix_length",
+        "h4000_best_periodic_min_finite_prefix_length",
+        "h5000_best_periodic_mean",
+        "h5000_best_periodic_mode",
+        "h5000_best_periodic_full_finite_fraction",
+        "h5000_best_periodic_finite_step_fraction",
+        "h5000_best_periodic_num_full_horizon_finite",
+        "h5000_best_periodic_median_finite_prefix_length",
+        "h5000_best_periodic_min_finite_prefix_length"
+      ],
+      "rows": 900,
+      "sha256": "2d7a51d51a97cbf3b1ad388f867da48d6b628f861b30d32d61077d4a7e03a088"
+    }
+  },
+  "replacement_policy": {
+    "mlp_sparse_blockdiag_hardinit_basin_partition_control": "controlled_sparse_mlp_bd_repair",
+    "sparse_mlp_bd": "dysts_dt30_sparse_mlp_bd_repair",
+    "support:mlp_sparse_blockdiag_hardinit_basin_partition_control": "controlled_support_sparse_mlp_bd_repair"
+  },
+  "schema_notes": {
+    "controlled_support_rows.csv": "Retains only row identity, the frozen absolute-support protocol, sample count, observed evaluation-label count, basin-given-family entropy, and observed family count. Superseded wrong-support-freeze diagnostics are intentionally excluded. num_states counts the tie-inclusive margin >= q75 slice, which can exceed 25% of a label's states."
+  },
+  "schema_version": 4,
+  "sources": [
+    {
+      "relative_to_results_root": "transition_rich_table2_5model_seed15_backfill_20260428/collect_pass0/forecasting_rows.csv",
+      "sha256": "2f9c0f378145fb230484af65065dc592918d91e77a69e7c87f9086d1558e7815",
+      "source_id": "controlled_backfill"
+    },
+    {
+      "relative_to_results_root": "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/collect_pass0/forecasting_rows.csv",
+      "sha256": "67c937d8ed0b995f12f573c8eb1f669297b3ec541f2d83e7f2dc02808adda25f",
+      "source_id": "controlled_lista_sb"
+    },
+    {
+      "relative_to_results_root": "transition_rich_lista_dense_p256_hardinit_table123_20260430/collect_pass0/forecasting_rows.csv",
+      "sha256": "f8ecf3bdaf60dd948eb7a8310982e160aaf666cccb4e90b0d2225f92dd4d26f2",
+      "source_id": "controlled_lista"
+    },
+    {
+      "relative_to_results_root": "transition_rich_sparse_mlp_bd_repaired_table1_20260506/collect_pass0/forecasting_rows.csv",
+      "sha256": "c4ff5cc6143ce08644d6bed2cb028819e100f3cadff49bd3305de90a6021cd38",
+      "source_id": "controlled_sparse_mlp_bd_repair"
+    },
+    {
+      "relative_to_results_root": "transition_rich_table2_5model_seed15_backfill_20260428/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+      "sha256": "0fb5a5a870428cbf566e0c4ad0d0febb4eaedc0e284bf0ad71511f2d6545c92f",
+      "source_id": "controlled_support_backfill"
+    },
+    {
+      "relative_to_results_root": "transition_rich_lista_sb_p256_hardinit_fairness_seed15_20260428/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+      "sha256": "a9e1696aec64b09d2ada4d00399f2b7b8e0787ab26d04d7f3dcf88ae23af0d99",
+      "source_id": "controlled_support_lista_sb"
+    },
+    {
+      "relative_to_results_root": "transition_rich_lista_dense_p256_hardinit_table123_20260430/interpretability_per_basin_deep_current_table1_pass0/interpretability_rows.csv",
+      "sha256": "f0884c0570fea1168818ab0525ca0e40742635fa0224be1bc9d10d75abc26a70",
+      "source_id": "controlled_support_lista"
+    },
+    {
+      "relative_to_results_root": "transition_rich_sparse_mlp_bd_repaired_table1_20260506/interpretability_per_basin_deep_pass0/interpretability_rows.csv",
+      "sha256": "56a4f1578ff0661f246a1c0d09397906381e4ed83d4a94c41a08e6ff20daed6c",
+      "source_id": "controlled_support_sparse_mlp_bd_repair"
+    },
+    {
+      "relative_to_results_root": "dysts_dt30_basinblock_p256_seq10_100k_20260430/long_horizon_eval/collect/forecasting_rows.csv",
+      "sha256": "e17086dc5d918ea0067ed6b131e4ac8e7a975d3d1232fa2a397a93c36c95b3ea",
+      "source_id": "dysts_dt30"
+    },
+    {
+      "relative_to_results_root": "dysts_dt30_sparse_mlp_bd_repaired_20260506/long_horizon_eval/collect/forecasting_rows.csv",
+      "sha256": "17770e5d8d1696d45adb4f4b1a82adf4135a4e705c90728667d375e4e257d7a6",
+      "source_id": "dysts_dt30_sparse_mlp_bd_repair"
+    }
+  ]
+}
