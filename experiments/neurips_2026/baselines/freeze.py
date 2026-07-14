@@ -12,21 +12,17 @@ from pathlib import Path
 from typing import Sequence
 
 from experiments.neurips_2026.protocol import (
+    CLASSICAL_BASELINE_METHOD_IDS,
     CONTROLLED_PAPER_PROTOCOL,
     DYSTS_PAPER_PROTOCOL,
+    LOCAL_LINEAR_BASELINE_METHOD_IDS,
+    STANDALONE_BASELINE_METHOD_IDS,
 )
 from experiments.neurips_2026.paths import PAPER_DATA_DIR
 
 
 DEFAULT_OUT_DIR = PAPER_DATA_DIR
-METHOD_ORDER = [
-    "dmd",
-    "edmd_poly",
-    "rbf_dictionary_edmd",
-    "kmeans_hard",
-    "gmm_hard",
-    "gmm_soft",
-]
+METHOD_ORDER = list(STANDALONE_BASELINE_METHOD_IDS)
 HORIZONS = {
     "multibasin": (100, 500, 1000),
     "dysts": (100, 2000, 4000),
@@ -40,8 +36,8 @@ OUTPUT_NAMES = {
     "dysts": "paper_baseline_dysts_rows.csv",
 }
 FAMILY_METHODS = {
-    "classical_koopman": {"dmd", "edmd_poly", "rbf_dictionary_edmd"},
-    "mixture_local_linear": {"kmeans_hard", "gmm_hard", "gmm_soft"},
+    "classical_koopman": set(CLASSICAL_BASELINE_METHOD_IDS),
+    "mixture_local_linear": set(LOCAL_LINEAR_BASELINE_METHOD_IDS),
 }
 METRIC_FIELDS = {
     "classical_koopman": ("cumulative_mse_mean", "finite_fraction"),

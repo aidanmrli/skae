@@ -19,6 +19,9 @@ from experiments.neurips_2026.interventions.evaluate import (
     _plot_drop_absolute_curves_with_bands,
     _plot_random_absolute_band,
 )
+from experiments.neurips_2026.interventions.protocol import (
+    validate_intervention_protocol_record,
+)
 from experiments.neurips_2026.paths import PAPER_DATA_DIR, PAPER_EVIDENCE_DIR, REPO_ROOT
 
 
@@ -47,6 +50,8 @@ def verify_frozen_inputs() -> dict[str, object]:
         actual = hashlib.sha256(path.read_bytes()).hexdigest()
         if actual != record["sha256"]:
             raise ValueError(f"Frozen input hash mismatch for {filename}")
+    for condition in ("coordinate_dropping", "random_support"):
+        validate_intervention_protocol_record(provenance["protocol"][condition])
     return provenance
 
 

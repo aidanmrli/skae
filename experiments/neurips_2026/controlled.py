@@ -1,7 +1,7 @@
 """Frozen controlled multibasin systems and model recipes for the paper.
 
-The exploratory transition-rich sweep has been retired.  This module now
-contains only the 15 systems and six KAE rows reported in the paper.  Basin
+Earlier exploratory sweeps have been retired. This module contains only the
+15 systems and six KAE rows reported in the paper. Basin
 counts are benchmark metadata used to size the two structured-transition
 diagnostics and to score post-hoc alignment; they are never training labels.
 """
@@ -14,23 +14,20 @@ from typing import Dict, List, Optional, Sequence
 from experiments.neurips_2026.protocol import (
     CONTROLLED_MODEL_ROW_IDS,
     CONTROLLED_PAPER_PROTOCOL,
+    PAPER_CONTROLLED_SYSTEMS,
 )
 from skae.config import Config, get_env_dt
 
 
-TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS = CONTROLLED_PAPER_PROTOCOL.num_steps
-TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE = CONTROLLED_PAPER_PROTOCOL.batch_size
-TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE = CONTROLLED_PAPER_PROTOCOL.target_size
-TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH = (
-    CONTROLLED_PAPER_PROTOCOL.sequence_length
-)
-TRANSITION_RICH_BASIN_PARTITION_SEEDS: Sequence[int] = (
-    CONTROLLED_PAPER_PROTOCOL.seeds
-)
+CONTROLLED_NUM_STEPS = CONTROLLED_PAPER_PROTOCOL.num_steps
+CONTROLLED_BATCH_SIZE = CONTROLLED_PAPER_PROTOCOL.batch_size
+CONTROLLED_TARGET_SIZE = CONTROLLED_PAPER_PROTOCOL.target_size
+CONTROLLED_SEQUENCE_LENGTH = CONTROLLED_PAPER_PROTOCOL.sequence_length
+CONTROLLED_SEEDS: Sequence[int] = CONTROLLED_PAPER_PROTOCOL.seeds
 
 
 @dataclass(frozen=True)
-class TransitionRichBasinPartitionSystem:
+class ControlledSystem:
     """One retained controlled benchmark system."""
 
     system_key: str
@@ -45,7 +42,7 @@ class TransitionRichBasinPartitionSystem:
 
 
 @dataclass(frozen=True)
-class TransitionRichBasinPartitionModel:
+class ControlledModel:
     """One retained controlled KAE recipe."""
 
     variant: str
@@ -80,39 +77,17 @@ class TransitionRichBasinPartitionModel:
     soft_block_norm: Optional[str] = None
 
 
-def _system(
-    system_key: str,
-    basin_count: int,
-    paper_role: str,
-) -> TransitionRichBasinPartitionSystem:
-    group = "native" if not system_key.startswith("claude:") else "claude_catalog"
-    return TransitionRichBasinPartitionSystem(
-        system_key=system_key,
-        env_name=system_key,
-        system_group=group,
-        basin_count=basin_count,
-        paper_role=paper_role,
+CONTROLLED_SYSTEMS: Sequence[ControlledSystem] = tuple(
+    ControlledSystem(
+        system_key=system.system_key,
+        env_name=system.system_key,
+        system_group=(
+            "native" if system.alignment_label_source == "native" else "analytic"
+        ),
+        basin_count=system.basin_count,
+        paper_role=system.paper_role,
     )
-
-
-TRANSITION_RICH_BASIN_PARTITION_SYSTEMS: Sequence[
-    TransitionRichBasinPartitionSystem
-] = (
-    _system("gated_local_linear", 3, "clean mechanistic chart-switch positive"),
-    _system("gated_transfer_linear", 3, "explicit-transfer native stress test"),
-    _system("claude:arrested_spiral", 5, "spiral-to-capture control"),
-    _system("claude:cal_asymmetric_3", 3, "asymmetric three-basin control"),
-    _system("claude:cal_high_cross_3", 3, "high-crossing three-basin control"),
-    _system("claude:cal_hexagon_6", 6, "mid-high basin polygon control"),
-    _system("claude:cal_octagon_8", 8, "high-basin polygon control"),
-    _system("claude:cal_pentagon_5", 5, "mid-count polygon control"),
-    _system("claude:cal_square_4", 4, "clean four-basin baseline"),
-    _system("claude:duffing_triple_well", 3, "triple-well Duffing control"),
-    _system("claude:snic_multi", 3, "non-multiwell mechanistic outlier"),
-    _system("claude:transition_routes_4", 4, "explicit route-choice benchmark"),
-    _system("claude:var_depth_gradient_4", 4, "occupancy-skew stress test"),
-    _system("claude:var_diamond_4", 4, "rotated-separatrix geometry mismatch"),
-    _system("claude:var_l_shape_5", 5, "non-convex geometry case"),
+    for system in PAPER_CONTROLLED_SYSTEMS
 )
 
 
@@ -123,20 +98,18 @@ _LISTA_COMMON = {
     "lista_final_op": "sign_split",
 }
 
-TRANSITION_RICH_BASIN_PARTITION_MODELS: Sequence[
-    TransitionRichBasinPartitionModel
-] = (
-    TransitionRichBasinPartitionModel(
+CONTROLLED_MODELS: Sequence[ControlledModel] = (
+    ControlledModel(
         variant="lista_dense_signsplit_p256_hardinit_basin_partition",
         **_LISTA_COMMON,
     ),
-    TransitionRichBasinPartitionModel(
+    ControlledModel(
         variant="lista_blockdiag_signsplit_hardinit_basin_partition",
         k_structure="block_diagonal",
         use_basin_count_for_blocks=True,
         **_LISTA_COMMON,
     ),
-    TransitionRichBasinPartitionModel(
+    ControlledModel(
         variant="lista_dense_softblock_signsplit_p256_hardinit_basin_partition",
         soft_block=True,
         use_basin_count_for_soft_block_num_blocks=True,
@@ -144,125 +117,115 @@ TRANSITION_RICH_BASIN_PARTITION_MODELS: Sequence[
         soft_block_norm="l1",
         **_LISTA_COMMON,
     ),
-    TransitionRichBasinPartitionModel(
+    ControlledModel(
         variant="mlp_sparse_blockdiag_hardinit_basin_partition_control",
         config_name="generic_sparse",
         k_structure="block_diagonal",
         use_basin_count_for_blocks=True,
     ),
-    TransitionRichBasinPartitionModel(
+    ControlledModel(
         variant="mlp_sparse_hardinit_basin_partition_control",
         config_name="generic_sparse",
     ),
-    TransitionRichBasinPartitionModel(
+    ControlledModel(
         variant="mlp_zero_sparse_hardinit_basin_partition_control",
         config_name="generic_no_shrink",
         sparsity_coeff=0.0,
     ),
 )
 
-if tuple(model.variant for model in TRANSITION_RICH_BASIN_PARTITION_MODELS) != (
+if tuple(model.variant for model in CONTROLLED_MODELS) != (
     CONTROLLED_MODEL_ROW_IDS
 ):
     raise RuntimeError("Controlled model recipes do not match PAPER_MODEL_ROWS")
-if tuple(system.system_key for system in TRANSITION_RICH_BASIN_PARTITION_SYSTEMS) != (
+if tuple(system.system_key for system in CONTROLLED_SYSTEMS) != (
     CONTROLLED_PAPER_PROTOCOL.system_keys
 ):
     raise RuntimeError("Controlled system metadata does not match the paper protocol")
 
 
-def transition_rich_basin_partition_systems() -> List[
-    TransitionRichBasinPartitionSystem
-]:
+def controlled_systems() -> List[ControlledSystem]:
     """Return the ordered 15-system paper roster."""
 
-    return list(TRANSITION_RICH_BASIN_PARTITION_SYSTEMS)
+    return list(CONTROLLED_SYSTEMS)
 
 
-def transition_rich_basin_partition_models() -> List[
-    TransitionRichBasinPartitionModel
-]:
+def controlled_models() -> List[ControlledModel]:
     """Return the ordered six-row paper roster."""
 
-    return list(TRANSITION_RICH_BASIN_PARTITION_MODELS)
+    return list(CONTROLLED_MODELS)
 
 
-def get_transition_rich_basin_partition_system(
-    system_key: str,
-) -> TransitionRichBasinPartitionSystem:
+def get_controlled_system(system_key: str) -> ControlledSystem:
     """Look up one retained controlled system."""
 
-    for spec in TRANSITION_RICH_BASIN_PARTITION_SYSTEMS:
+    for spec in CONTROLLED_SYSTEMS:
         if spec.system_key == system_key:
             return spec
     raise KeyError(f"Unknown controlled paper system '{system_key}'")
 
 
-def get_transition_rich_basin_partition_model(
-    variant: str,
-) -> TransitionRichBasinPartitionModel:
+def get_controlled_model(variant: str) -> ControlledModel:
     """Look up one retained controlled model row."""
 
-    for spec in TRANSITION_RICH_BASIN_PARTITION_MODELS:
+    for spec in CONTROLLED_MODELS:
         if spec.variant == variant:
             return spec
     raise KeyError(f"Unknown controlled paper model '{variant}'")
 
 
-def resolve_transition_rich_default_dt(system_key: str) -> float:
+def resolve_controlled_default_dt(system_key: str) -> float:
     """Resolve the configured observation timestep for a retained system."""
 
-    spec = get_transition_rich_basin_partition_system(system_key)
+    spec = get_controlled_system(system_key)
     cfg = Config()
     cfg.ENV.ENV_NAME = spec.env_name
     return float(get_env_dt(cfg))
 
 
-def get_transition_rich_basin_count(system_key: str) -> int:
+def get_controlled_basin_count(system_key: str) -> int:
     """Return the known basin count used by evaluation and block diagnostics."""
 
-    return int(get_transition_rich_basin_partition_system(system_key).basin_count)
+    return int(get_controlled_system(system_key).basin_count)
 
 
-def transition_rich_basin_partition_manifest_jsonable() -> Dict[str, object]:
+def controlled_manifest_jsonable() -> Dict[str, object]:
     """Return a JSON-serializable snapshot of the frozen paper protocol."""
 
     return {
         "protocol_id": CONTROLLED_PAPER_PROTOCOL.protocol_id,
-        "num_steps": TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS,
-        "batch_size": TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE,
-        "target_size": TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE,
-        "sequence_length": TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH,
-        "seeds": list(TRANSITION_RICH_BASIN_PARTITION_SEEDS),
+        "num_steps": CONTROLLED_NUM_STEPS,
+        "batch_size": CONTROLLED_BATCH_SIZE,
+        "target_size": CONTROLLED_TARGET_SIZE,
+        "sequence_length": CONTROLLED_SEQUENCE_LENGTH,
+        "seeds": list(CONTROLLED_SEEDS),
         "systems": [
             {
                 **asdict(spec),
                 "system_slug": spec.system_slug,
-                "resolved_default_dt": resolve_transition_rich_default_dt(
-                    spec.system_key
-                ),
+                "resolved_default_dt": resolve_controlled_default_dt(spec.system_key),
             }
-            for spec in TRANSITION_RICH_BASIN_PARTITION_SYSTEMS
+            for spec in CONTROLLED_SYSTEMS
         ],
-        "models": [asdict(spec) for spec in TRANSITION_RICH_BASIN_PARTITION_MODELS],
+        "models": [asdict(spec) for spec in CONTROLLED_MODELS],
     }
 
 
 __all__ = [
-    "TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS",
-    "TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE",
-    "TRANSITION_RICH_BASIN_PARTITION_TARGET_SIZE",
-    "TRANSITION_RICH_BASIN_PARTITION_SEQUENCE_LENGTH",
-    "TRANSITION_RICH_BASIN_PARTITION_SEEDS",
-    "TransitionRichBasinPartitionSystem",
-    "TransitionRichBasinPartitionModel",
-    "TRANSITION_RICH_BASIN_PARTITION_SYSTEMS",
-    "TRANSITION_RICH_BASIN_PARTITION_MODELS",
-    "transition_rich_basin_partition_systems",
-    "transition_rich_basin_partition_models",
-    "get_transition_rich_basin_partition_system",
-    "get_transition_rich_basin_partition_model",
-    "resolve_transition_rich_default_dt",
-    "get_transition_rich_basin_count",
-    "transition_rich_basin_partition_manifest_jsonable",
+    "CONTROLLED_NUM_STEPS",
+    "CONTROLLED_BATCH_SIZE",
+    "CONTROLLED_TARGET_SIZE",
+    "CONTROLLED_SEQUENCE_LENGTH",
+    "CONTROLLED_SEEDS",
+    "ControlledSystem",
+    "ControlledModel",
+    "CONTROLLED_SYSTEMS",
+    "CONTROLLED_MODELS",
+    "controlled_systems",
+    "controlled_models",
+    "get_controlled_system",
+    "get_controlled_model",
+    "resolve_controlled_default_dt",
+    "get_controlled_basin_count",
+    "controlled_manifest_jsonable",
 ]

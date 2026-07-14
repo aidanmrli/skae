@@ -18,7 +18,9 @@ import torch.nn as nn
 from skae.config import Config
 from skae.data import VectorWrapper, generate_trajectory
 from skae.evaluation import EvaluationSettings
-from skae.support.routing import (
+from experiments.neurips_2026.local_operators.contract import (
+    FINAL_EVALUATION_BATCH_SIZE,
+    FINAL_EVALUATION_SEED_OFFSET,
     FAMILY_CLUSTERING_RULE,
     FAMILY_JACCARD_THRESHOLD,
     FAMILY_REPRESENTATIVE_RULE,
@@ -31,31 +33,26 @@ from skae.support.routing import (
     FIT_TRANSITIONS,
     FIT_UNIQUE_SOURCE_TRANSITIONS,
     FIT_UNIQUE_TRAJECTORIES,
+    LEGACY_ROUTE_PROTOCOLS,
+    LOCAL_MAP_PARAMETERIZATION,
     MIN_FAMILY_TRANSITIONS,
+    PAPER_REENCODE_PERIODS,
+    REENCODING_ROLE,
+    ROUTE_PROTOCOL,
+    ROUTE_SCHEMA_VERSION,
+    ROUTING_CADENCE,
+    STAGE1_TRAINING_STEPS,
+    STAGE2_SELECTION_BATCH_SIZE,
+    STAGE2_SELECTION_CANDIDATE_STEPS,
+    STAGE2_SELECTION_HORIZONS,
+    STAGE2_SELECTION_SEED_OFFSET,
+    STAGE2_TRAINING_STEPS,
     SUPPORT_DEFINITION,
+    SUPPORT_SCHEME,
+    SUPPORT_THRESHOLD,
+    TARGET_CENTER_RULE,
+    TOTAL_TRAINING_STEPS,
 )
-
-
-ROUTE_PROTOCOL = "staged_fabs_route_source_v3"
-ROUTE_SCHEMA_VERSION = 3
-ROUTING_CADENCE = "every_latent_transition_step"
-REENCODING_ROLE = "periodic_decode_encode_refreshes_latent_before_next_route"
-LEGACY_ROUTE_PROTOCOLS = (None, "staged_fabs_route_v1")
-TOTAL_TRAINING_STEPS = 200_000
-STAGE1_TRAINING_STEPS = 100_000
-STAGE2_TRAINING_STEPS = 100_000
-LOCAL_MAP_PARAMETERIZATION = "source_target_affine_learned_intercept"
-TARGET_CENTER_RULE = "learned target center initialized as source_center @ frozen_global_k"
-PAPER_REENCODE_PERIODS = (1, 2, 5, 10, 20, 25, 50, 100)
-STAGE2_SELECTION_HORIZONS = (100, 500, 1000)
-STAGE2_SELECTION_BATCH_SIZE = 32
-STAGE2_SELECTION_SEED_OFFSET = 12_345
-STAGE2_SELECTION_CANDIDATE_STEPS = (
-    *range(100_500, 200_000, 500),
-    199_999,
-)
-FINAL_EVALUATION_BATCH_SIZE = 100
-FINAL_EVALUATION_SEED_OFFSET = 12_345
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -92,7 +89,7 @@ def _parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def _support_definition(raw: str) -> Tuple[str, float]:
     if raw != SUPPORT_DEFINITION:
         raise ValueError(f"The staged protocol requires {SUPPORT_DEFINITION}, got {raw!r}.")
-    return "absolute", 1e-3
+    return SUPPORT_SCHEME, SUPPORT_THRESHOLD
 
 
 def _parse_int_csv(raw: Optional[str]) -> Tuple[int, ...]:

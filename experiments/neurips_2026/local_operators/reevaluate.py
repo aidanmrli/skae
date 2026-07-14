@@ -32,7 +32,14 @@ from experiments.neurips_2026.local_operators.protocol import (
     _support_definition,
     _validate_frozen_fabs_artifact,
 )
-from skae.support.routing import FIT_SEED_OFFSET
+from experiments.neurips_2026.local_operators.contract import (
+    FAMILY_JACCARD_THRESHOLD,
+    FINAL_EVALUATION_BATCH_SIZE,
+    FIT_SEED_OFFSET,
+    PAPER_REENCODE_PERIODS,
+    STAGE2_SELECTION_HORIZONS,
+    SUPPORT_DEFINITION,
+)
 from experiments.neurips_2026.local_operators.reevaluation_io import (
     CACHE_SCHEMA_VERSION,
     RunKey,
@@ -320,11 +327,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--staged_root", required=True)
     parser.add_argument("--global_root", required=True)
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--horizons", default="100,500,1000")
-    parser.add_argument("--periods", default="1,2,5,10,20,25,50,100")
-    parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--support_definition", default="absolute:0.001")
-    parser.add_argument("--family_jaccard_threshold", type=float, default=0.4)
+    parser.add_argument(
+        "--horizons",
+        default=",".join(str(value) for value in STAGE2_SELECTION_HORIZONS),
+    )
+    parser.add_argument(
+        "--periods",
+        default=",".join(str(value) for value in PAPER_REENCODE_PERIODS),
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=FINAL_EVALUATION_BATCH_SIZE,
+    )
+    parser.add_argument("--support_definition", default=SUPPORT_DEFINITION)
+    parser.add_argument(
+        "--family_jaccard_threshold",
+        type=float,
+        default=FAMILY_JACCARD_THRESHOLD,
+    )
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry_run", action="store_true")

@@ -75,7 +75,7 @@ def render_dysts_figure(
             format="pdf",
             bbox_inches="tight",
             metadata={
-                "Creator": "tools/build_dysts_paper_evidence.py",
+                "Creator": "experiments.neurips_2026.evidence.dysts",
                 "CreationDate": None,
                 "ModDate": None,
             },

@@ -4,6 +4,12 @@
 implementation. Python behavior is exposed through `skae-train`,
 `skae-evaluate`, and `skae-paper`.
 
+Launchers may select an execution subset, but they must not duplicate a frozen
+system roster, model-row roster, or metric protocol as shell defaults. Task and
+result manifests emitted by the Python workflow are the authoritative record;
+queue manifests record operational facts such as job IDs, paths, and explicit
+overrides.
+
 Submit every file containing `#SBATCH` with `sbatch`. The maintained launchers
 use the `long` partition. Do not execute their payloads on the login node.
 
@@ -37,6 +43,11 @@ execute another script containing `#SBATCH`.
 - `queue_alignment_shards.sh`, `reduce_alignment.sh`, and
   `merge_alignment.sh`: support-alignment dependency chain.
 
+The reducer defaults to the canonical model rows in
+`experiments/neurips_2026/alignment.py`. Pass `ROOT_LABELS_CSV` or
+`ROOT_LABELS_FILE` only to run an explicit subset; the shell worker does not
+carry another copy of the paper roster.
+
 Canonical launch:
 
 ```bash
@@ -67,6 +78,11 @@ sbatch scripts/neurips_2026/dysts/queue_training.sh
   the wide periodic grid.
 - `neurips_2026/interventions/run.sh`: checkpoint-based coordinate intervention
   replay.
+
+Both mechanism launchers resolve scientific defaults from their Python
+`protocol.py`/`contract.py` modules. Environment variables are explicit subset
+or ablation overrides; shell files retain only resources, paths, dependency
+order, and immutable checkpoint identities.
 
 ## Storage and portability
 

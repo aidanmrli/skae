@@ -14,6 +14,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from experiments.neurips_2026.paths import PAPER_DATA_DIR, REPO_ROOT, results_root
+from experiments.neurips_2026.interventions.protocol import (
+    NUM_INITIAL_POINTS,
+    validate_intervention_protocol_record,
+)
 
 
 ROOT = REPO_ROOT
@@ -21,7 +25,6 @@ DEFAULT_SOURCE_ROOT = results_root() / "support_coordinate_interventions_2026050
 DEFAULT_OUTPUT_DIR = PAPER_DATA_DIR / "interventions"
 DROP_RUN = "gated_local_linear_lista_seed0_n100"
 RANDOM_RUN = "gated_local_linear_lista_seed0_n100_random"
-NUM_INITIAL_POINTS = 100
 
 
 @dataclass(frozen=True)
@@ -164,6 +167,7 @@ def protocol_record(source_root: Path, source_id: str) -> dict[str, object]:
     summary = json.loads(verified_source(source_root, source_id).read_text(encoding="utf-8"))
     record = {field: summary[field] for field in PROTOCOL_FIELDS}
     record["num_initial_points"] = NUM_INITIAL_POINTS
+    validate_intervention_protocol_record(record)
     return record
 
 

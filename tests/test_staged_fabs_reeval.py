@@ -158,14 +158,15 @@ def test_mixed_error_rows_are_written_then_fail(tmp_path: Path) -> None:
         _raise_for_error_rows(rows)
 
 
-def test_reevaluation_launcher_has_gpu_guard_and_fixed_grid() -> None:
+def test_reevaluation_launcher_has_gpu_guard_and_delegates_the_grid() -> None:
     text = (
         ROOT / "scripts/neurips_2026/local_operators/reevaluate.sh"
     ).read_text()
     assert "source scripts/common/gpu_guard.sh" in text
     assert "gpu_guard_assert_cuda_visible" in text
     assert "gpu_guard_start_sampler" in text
-    assert "1,2,5,10,20,25,50,100" in text
+    assert "experiments.neurips_2026.local_operators.contract" in text
+    assert "1,2,5,10,20,25,50,100" not in text
     loader_text = (
         ROOT / "experiments/neurips_2026/local_operators/reevaluate.py"
     ).read_text()

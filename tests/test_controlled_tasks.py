@@ -23,7 +23,7 @@ def _base_args() -> Namespace:
     return Namespace(
         output_tsv="unused.tsv",
         output_manifest_json=None,
-        phase_label="transition_rich_basin_partition",
+        phase_label=CONTROLLED_PAPER_PROTOCOL.protocol_id,
         systems_csv=None,
         model_variants_csv=None,
         seeds_csv=None,

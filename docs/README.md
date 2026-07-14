@@ -31,6 +31,10 @@ copy; the TeX source takes precedence if they differ.
   data. `_tables/` contains generated table inputs; `_data/`, when present,
   contains frozen row-level evidence needed to reproduce a paper result;
   `manifest.json` maps displays to generators and inputs.
+- `figures/neurips_paper_2026/ground_truth_vector_fields/manifest.json`: exact
+  ordered inventory and SHA-256 hashes for the composite plus 15 individual
+  benchmark PDFs. The top-level manifest points to this nested inventory
+  instead of encoding a human-readable filename placeholder.
 - `archive/`: dated, non-current provenance, old drafts, and superseded plans.
   Nothing in the archive is an active instruction or status tracker.
 

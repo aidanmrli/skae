@@ -5,21 +5,33 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import subprocess
 import sys
 from dataclasses import asdict
 from typing import Sequence
 
 from experiments.neurips_2026.controlled import (
-    get_transition_rich_basin_partition_model,
-    transition_rich_basin_partition_manifest_jsonable,
+    controlled_manifest_jsonable,
+    get_controlled_model,
 )
+from experiments.neurips_2026.interventions.protocol import (
+    intervention_protocol_metadata,
+)
+from experiments.neurips_2026.local_operators.contract import (
+    route_protocol_metadata,
+)
+from experiments.neurips_2026.alignment import alignment_protocol_metadata
 from experiments.neurips_2026.protocol import (
+    CLASSICAL_BASELINE_METHOD_IDS,
     CONTROLLED_MODEL_ROW_IDS,
     CONTROLLED_PAPER_PROTOCOL,
     DYSTS_MODEL_ROW_IDS,
     DYSTS_PAPER_PROTOCOL,
+    LOCAL_LINEAR_BASELINE_METHOD_IDS,
+    PAPER_CONTROLLED_SYSTEMS,
     PAPER_MODEL_ROWS,
     PAPER_SEEDS,
+    STANDALONE_BASELINE_SEEDS,
 )
 from experiments.neurips_2026.paths import PAPER_EVIDENCE_DIR, REPO_ROOT
 from skae.config import get_config
@@ -33,6 +45,10 @@ COMMANDS = {
         "dysts-evaluation",
     ): "experiments.neurips_2026.workflows.dysts_evaluation_tasks",
     ("tasks", "baselines"): "experiments.neurips_2026.baselines.tasks",
+    (
+        "tasks",
+        "local-operators",
+    ): "experiments.neurips_2026.local_operators.prepare_tasks",
     ("train", "local-operators"): "experiments.neurips_2026.local_operators.train",
     ("evaluate", "checkpoints"): "skae.cli.evaluate",
     ("evaluate", "dysts"): "experiments.neurips_2026.workflows.dysts_evaluation",
@@ -76,6 +92,7 @@ CHECKS = (
     ("experiments.neurips_2026.baselines.summarize", ("--check",)),
     ("experiments.neurips_2026.evidence.local_operator_tables", ("--check",)),
     ("experiments.neurips_2026.interventions.artifacts", ("--check",)),
+    ("experiments.neurips_2026.evidence.ground_truth", ("--check",)),
 )
 
 
@@ -95,13 +112,32 @@ def _invoke(module_name: str, args: Sequence[str]) -> None:
         sys.argv = previous_argv
 
 
+def _invoke_isolated(module_name: str, args: Sequence[str]) -> None:
+    """Run one evidence builder without leaking process-global plot state."""
+
+    subprocess.run(
+        [sys.executable, "-m", module_name, *args],
+        cwd=REPO_ROOT,
+        check=True,
+    )
+
+
 def protocol_summary() -> dict[str, object]:
     """Return the human- and machine-readable frozen experiment roster."""
 
     return {
-        "controlled": transition_rich_basin_partition_manifest_jsonable(),
+        "controlled": controlled_manifest_jsonable(),
         "dysts": asdict(DYSTS_PAPER_PROTOCOL),
         "model_rows": [asdict(row) for row in PAPER_MODEL_ROWS],
+        "alignment": alignment_protocol_metadata(),
+        "intervention_case_study": intervention_protocol_metadata(),
+        "local_operator": route_protocol_metadata(),
+        "standalone_baselines": {
+            "systems": list(CONTROLLED_PAPER_PROTOCOL.system_keys),
+            "seeds": list(STANDALONE_BASELINE_SEEDS),
+            "classical_methods": list(CLASSICAL_BASELINE_METHOD_IDS),
+            "local_linear_methods": list(LOCAL_LINEAR_BASELINE_METHOD_IDS),
+        },
     }
 
 
@@ -120,6 +156,10 @@ def validate_protocol() -> None:
         raise RuntimeError("The paper seed roster must be exactly seeds 0 through 14")
     if len(PAPER_MODEL_ROWS) != 6:
         raise RuntimeError("The paper must map exactly six neural model rows")
+    if tuple(system.system_key for system in PAPER_CONTROLLED_SYSTEMS) != (
+        CONTROLLED_PAPER_PROTOCOL.system_keys
+    ):
+        raise RuntimeError("Controlled system metadata drifted from the frozen roster")
     if tuple(row.controlled_variant for row in PAPER_MODEL_ROWS) != CONTROLLED_MODEL_ROW_IDS:
         raise RuntimeError("Controlled model order has drifted from PAPER_MODEL_ROWS")
     if tuple(row.dysts_variant for row in PAPER_MODEL_ROWS) != DYSTS_MODEL_ROW_IDS:
@@ -135,7 +175,7 @@ def validate_protocol() -> None:
     ):
         raise RuntimeError("A frozen paper training budget has drifted")
 
-    dense_recipe = get_transition_rich_basin_partition_model(
+    dense_recipe = get_controlled_model(
         "mlp_zero_sparse_hardinit_basin_partition_control"
     )
     dense_cfg = get_config(dense_recipe.config_name)
@@ -143,6 +183,23 @@ def validate_protocol() -> None:
         raise RuntimeError("Dense no-sparsity baseline must use tanh activation")
     if dense_cfg.MODEL.SPARSITY_COEFF != 0.0:
         raise RuntimeError("Dense no-sparsity baseline has a nonzero sparsity coefficient")
+
+    dysts_tasks = importlib.import_module(
+        "experiments.neurips_2026.workflows.dysts_tasks"
+    )
+    if tuple(dysts_tasks.DYSTS_SYSTEM_SPECS) != DYSTS_PAPER_PROTOCOL.system_keys:
+        raise RuntimeError("Dysts task metadata drifted from the frozen paper roster")
+
+    baseline_modules = (
+        importlib.import_module("experiments.neurips_2026.baselines.tasks"),
+        importlib.import_module("experiments.neurips_2026.baselines.classical"),
+        importlib.import_module("experiments.neurips_2026.baselines.local_linear"),
+    )
+    if any(
+        tuple(module.DEFAULT_SYSTEMS) != CONTROLLED_PAPER_PROTOCOL.system_keys
+        for module in baseline_modules
+    ):
+        raise RuntimeError("A standalone baseline roster drifted from the protocol")
 
     manifest_path = PAPER_EVIDENCE_DIR / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
@@ -158,9 +215,18 @@ def validate_protocol() -> None:
         )
     if manifest.get("complete_check_inside_allocation") != "uv run skae-paper check":
         raise RuntimeError("The active-evidence manifest lacks the canonical full check")
-    for group in manifest["evidence_groups"]:
+    groups = manifest.get("evidence_groups")
+    if not isinstance(groups, list) or not all(
+        isinstance(group, dict) and isinstance(group.get("id"), str)
+        for group in groups
+    ):
+        raise RuntimeError("Active evidence groups must have string IDs")
+    if len({group["id"] for group in groups}) != len(groups):
+        raise RuntimeError("Active evidence groups must have unique IDs")
+    canonical_commands = set(COMMANDS.values())
+    for group in groups:
         build_tool = group.get("build_tool", "")
-        if not build_tool.startswith("experiments.neurips_2026."):
+        if build_tool not in canonical_commands:
             raise RuntimeError(
                 f"Evidence group {group['id']!r} has a noncanonical builder"
             )
@@ -180,13 +246,20 @@ def validate_protocol() -> None:
                     f"{relative_path!r}"
                 )
         for output in group.get("outputs", []):
-            if output.startswith("15 individual PDFs"):
-                continue
+            if not isinstance(output, str):
+                raise RuntimeError(f"Evidence group {group['id']!r} has an invalid output")
             output_path = manifest_path.parent / output
-            if not output_path.exists():
+            if not output_path.is_file():
                 raise RuntimeError(
                     f"Evidence group {group['id']!r} is missing output {output!r}"
                 )
+        if group.get("id") == "controlled_ground_truth_vector_fields":
+            ground_truth = importlib.import_module(
+                "experiments.neurips_2026.evidence.ground_truth"
+            )
+            ground_truth.validate_manifest(
+                manifest_path.parent / str(group["manifest"])
+            )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -211,6 +284,11 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     raw_args = list(sys.argv[1:] if argv is None else argv)
     parser = _parser()
+    if len(raw_args) >= 2:
+        module_name = COMMANDS.get((raw_args[0], raw_args[1]))
+        if module_name is not None:
+            _invoke(module_name, raw_args[2:])
+            return
     known, forwarded = parser.parse_known_args(raw_args)
     if known.command is None:
         parser.print_help()
@@ -229,14 +307,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             parser.error("check accepts no additional arguments")
         validate_protocol()
         for module_name, check_args in CHECKS:
-            _invoke(module_name, check_args)
+            _invoke_isolated(module_name, check_args)
         print("All frozen paper evidence checks passed.")
         return
 
-    module_name = COMMANDS.get((known.command, known.target))
-    if module_name is None:
-        parser.error(f"unknown operation: {known.command} {known.target or ''}".rstrip())
-    _invoke(module_name, forwarded)
+    parser.error(f"unknown operation: {known.command} {known.target or ''}".rstrip())
 
 
 if __name__ == "__main__":

@@ -12,7 +12,35 @@ import statistics
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
+from experiments.neurips_2026.local_operators.contract import (
+    FAMILY_JACCARD_THRESHOLD,
+    FINAL_EVALUATION_BATCH_SIZE,
+    FINAL_EVALUATION_SEED_OFFSET,
+    FIT_CONFIGURED_ROWS,
+    FIT_DUPLICATION_FACTOR,
+    FIT_SEED_OFFSET,
+    FIT_SOURCE_TRANSITIONS,
+    FIT_STATES,
+    FIT_SUPPORTS_CONSIDERED,
+    FIT_TRANSITIONS,
+    FIT_UNIQUE_SOURCE_TRANSITIONS,
+    FIT_UNIQUE_TRAJECTORIES,
+    MIN_FAMILY_TRANSITIONS,
+    PAPER_REENCODE_PERIODS,
+    STAGE1_TRAINING_STEPS,
+    STAGE2_SELECTION_BATCH_SIZE,
+    STAGE2_SELECTION_CANDIDATE_STEPS,
+    STAGE2_SELECTION_HORIZONS,
+    STAGE2_SELECTION_SEED_OFFSET,
+    STAGE2_TRAINING_STEPS,
+    SUPPORT_DEFINITION,
+    TOTAL_TRAINING_STEPS,
+)
 from experiments.neurips_2026.paths import PAPER_DATA_DIR, PAPER_TABLE_DIR, REPO_ROOT
+from experiments.neurips_2026.protocol import (
+    CONTROLLED_PAPER_PROTOCOL,
+    PAPER_SEEDS,
+)
 
 
 DATA_DIR = PAPER_DATA_DIR
@@ -26,8 +54,8 @@ SOURCE_REPOSITORY_PATH = (
     "wide_periodic_reeval/wide_periodic_reeval_rows.csv"
 )
 SOURCE_SHA256 = "b0b621e250256e577c29b8d1c9196792d80fc3d3584f098d65660dd5bed6b644"
-HORIZONS = (100, 500, 1000)
-PERIODS = (1, 2, 5, 10, 20, 25, 50, 100)
+HORIZONS = STAGE2_SELECTION_HORIZONS
+PERIODS = PAPER_REENCODE_PERIODS
 PATH_COLUMNS = ("staged_run_dir", "global_run_dir")
 
 
@@ -66,60 +94,65 @@ def _sanitize_source(source: Path) -> int:
 def _provenance_payload(row_count: int) -> dict[str, object]:
     return {
         "schema_version": 3,
-        "generated_by": "tools/build_local_map_forecasting_tables.py",
+        "generated_by": "experiments.neurips_2026.evidence.local_operator_tables",
         "machine_specific_columns_removed": list(PATH_COLUMNS),
         "training_contract": {
             "shared": {
                 "architecture": "LISTA sparse Koopman autoencoder",
                 "latent_dimension": 256,
-                "total_training_steps": 200_000,
+                "total_training_steps": TOTAL_TRAINING_STEPS,
                 "task_rows": "same system/seed architecture and training-budget recipe",
             },
             "staged_fabs": {
-                "stage1_joint_steps": 100_000,
-                "stage2_local_map_steps": 100_000,
+                "stage1_joint_steps": STAGE1_TRAINING_STEPS,
+                "stage2_local_map_steps": STAGE2_TRAINING_STEPS,
                 "frozen_during_stage2": "encoder, decoder, and global K",
                 "local_map": "source_target_affine_learned_intercept",
                 "route_fit": {
-                    "support_definition": "absolute:0.001",
-                    "family_jaccard_threshold": 0.4,
-                    "configured_rows": 512,
-                    "unique_trajectories": 256,
-                    "duplication_factor": 2,
+                    "support_definition": SUPPORT_DEFINITION,
+                    "family_jaccard_threshold": FAMILY_JACCARD_THRESHOLD,
+                    "configured_rows": FIT_CONFIGURED_ROWS,
+                    "unique_trajectories": FIT_UNIQUE_TRAJECTORIES,
+                    "duplication_factor": FIT_DUPLICATION_FACTOR,
                     "construction": (
                         "two bitwise-identical copies of one 256-row "
                         "training-distribution batch"
                     ),
-                    "transitions_per_trajectory": 192,
-                    "states_per_trajectory": 193,
-                    "seed_offset": 271_828,
-                    "supports_clustered": 98_816,
+                    "transitions_per_trajectory": FIT_TRANSITIONS,
+                    "states_per_trajectory": FIT_STATES,
+                    "seed_offset": FIT_SEED_OFFSET,
+                    "supports_clustered": FIT_SUPPORTS_CONSIDERED,
                     "clustering_scope": (
                         "all 193 states per configured row, including terminal states"
                     ),
-                    "map_fit_source_transitions": 98_304,
-                    "unique_map_fit_source_transitions": 49_152,
+                    "map_fit_source_transitions": FIT_SOURCE_TRANSITIONS,
+                    "unique_map_fit_source_transitions": (
+                        FIT_UNIQUE_SOURCE_TRANSITIONS
+                    ),
                     "map_fit_scope": "first 192 source states per configured row",
                     "family_representative": "modal source-state support mask",
-                    "minimum_family_transitions": 1,
+                    "minimum_family_transitions": MIN_FAMILY_TRANSITIONS,
                 },
             },
             "global_k": {
-                "joint_training_steps": 200_000,
+                "joint_training_steps": TOTAL_TRAINING_STEPS,
                 "local_map_stage": False,
             },
         },
         "checkpoint_selection_contract": {
             "staged_fabs": {
                 "candidate_steps": {
-                    "first_regular": 100_500,
-                    "last_regular": 199_500,
-                    "regular_interval": 500,
-                    "final": 199_999,
-                    "count": 200,
+                    "first_regular": STAGE2_SELECTION_CANDIDATE_STEPS[0],
+                    "last_regular": STAGE2_SELECTION_CANDIDATE_STEPS[-2],
+                    "regular_interval": (
+                        STAGE2_SELECTION_CANDIDATE_STEPS[1]
+                        - STAGE2_SELECTION_CANDIDATE_STEPS[0]
+                    ),
+                    "final": STAGE2_SELECTION_CANDIDATE_STEPS[-1],
+                    "count": len(STAGE2_SELECTION_CANDIDATE_STEPS),
                 },
-                "starts": 32,
-                "seed_offset": 12_345,
+                "starts": STAGE2_SELECTION_BATCH_SIZE,
+                "seed_offset": STAGE2_SELECTION_SEED_OFFSET,
                 "horizons": list(HORIZONS),
                 "periods": list(PERIODS),
                 "metric": (
@@ -144,15 +177,17 @@ def _provenance_payload(row_count: int) -> dict[str, object]:
             "selector_is_asymmetric": True,
         },
         "evaluation_contract": {
-            "systems": 15,
-            "seeds": list(range(15)),
-            "paired_rows": 225,
+            "systems": len(CONTROLLED_PAPER_PROTOCOL.system_keys),
+            "seeds": list(PAPER_SEEDS),
+            "paired_rows": (
+                len(CONTROLLED_PAPER_PROTOCOL.system_keys) * len(PAPER_SEEDS)
+            ),
             "horizons": list(HORIZONS),
             "periodic_reencoding_periods": list(PERIODS),
-            "reported_evaluation_starts_per_pair": 100,
-            "seed_offset": 12_345,
-            "support_definition": "absolute:0.001",
-            "family_jaccard_threshold": 0.4,
+            "reported_evaluation_starts_per_pair": FINAL_EVALUATION_BATCH_SIZE,
+            "seed_offset": FINAL_EVALUATION_SEED_OFFSET,
+            "support_definition": SUPPORT_DEFINITION,
+            "family_jaccard_threshold": FAMILY_JACCARD_THRESHOLD,
             "staged_routing_cadence": "support route is recomputed before every latent transition",
             "periodic_reencoding_role": (
                 "decode-encode refreshes the latent on the selected cadence; "
@@ -168,8 +203,10 @@ def _provenance_payload(row_count: int) -> dict[str, object]:
                 "on the same 100 starts used to report that horizon"
             ),
             "staged_checkpoint_selector_overlap": {
-                "count": 32,
-                "fraction": 0.32,
+                "count": STAGE2_SELECTION_BATCH_SIZE,
+                "fraction": (
+                    STAGE2_SELECTION_BATCH_SIZE / FINAL_EVALUATION_BATCH_SIZE
+                ),
                 "relationship": (
                     "the selector's 32 starts are exactly the first 32 of the "
                     "100 reported evaluation starts because both use seed+12345"
@@ -225,12 +262,30 @@ def verify_provenance() -> Mapping[str, object]:
     provenance = json.loads(PROVENANCE_PATH.read_text(encoding="utf-8"))
     if provenance.get("schema_version") != 3:
         raise ValueError("Local-map provenance must use schema version 3")
+    if provenance.get("generated_by") != (
+        "experiments.neurips_2026.evidence.local_operator_tables"
+    ):
+        raise ValueError("Local-map provenance names a noncanonical generator")
     selection = provenance.get("checkpoint_selection_contract", {})
     evaluation = provenance.get("evaluation_contract", {})
+    training = provenance.get("training_contract", {})
+    staged_training = training.get("staged_fabs", {})
+    route_fit = staged_training.get("route_fit", {})
+    if training.get("shared", {}).get("total_training_steps") != TOTAL_TRAINING_STEPS:
+        raise ValueError("Local-map training budget drifted from the route contract")
+    if (
+        route_fit.get("support_definition") != SUPPORT_DEFINITION
+        or route_fit.get("family_jaccard_threshold") != FAMILY_JACCARD_THRESHOLD
+        or route_fit.get("configured_rows") != FIT_CONFIGURED_ROWS
+        or route_fit.get("unique_trajectories") != FIT_UNIQUE_TRAJECTORIES
+    ):
+        raise ValueError("Local-map route fit drifted from the route contract")
     if selection.get("selector_is_asymmetric") is not True:
         raise ValueError("Checkpoint-selector asymmetry is not recorded")
     overlap = evaluation.get("staged_checkpoint_selector_overlap", {})
-    if overlap.get("count") != 32 or overlap.get("fraction") != 0.32:
+    if overlap.get("count") != STAGE2_SELECTION_BATCH_SIZE or overlap.get(
+        "fraction"
+    ) != (STAGE2_SELECTION_BATCH_SIZE / FINAL_EVALUATION_BATCH_SIZE):
         raise ValueError("Staged selector/evaluation overlap is not recorded")
     if evaluation.get("staged_routing_cadence") != (
         "support route is recomputed before every latent transition"

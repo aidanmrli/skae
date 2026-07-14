@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from skae.runtime_paths import resolve_scratch_root
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DOCS_DIR = REPO_ROOT / "docs"
@@ -23,14 +25,7 @@ def results_root() -> Path:
 def scratch_root() -> Path:
     """Return a portable scratch root without embedding a contributor name."""
 
-    configured = os.environ.get("SKAE_SCRATCH_ROOT")
-    if configured:
-        return Path(configured).expanduser()
-    user = os.environ.get("USER", "user")
-    mila_root = Path("/network/scratch") / user[:1] / user / "skae"
-    if mila_root.parent.exists():
-        return mila_root
-    return REPO_ROOT / "runs"
+    return resolve_scratch_root(fallback=REPO_ROOT / "runs")
 
 
 __all__ = [

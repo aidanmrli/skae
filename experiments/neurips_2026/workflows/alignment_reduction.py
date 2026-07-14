@@ -1,6 +1,6 @@
 """Reduce the exact controlled-paper basin/support alignment protocol.
 
-The numerical protocol lives in ``skae.benchmarks.controlled_alignment``.
+The numerical protocol lives in ``experiments.neurips_2026.alignment``.
 This entry point only discovers checkpoints, executes the fixed evaluator,
 and writes compact restart-friendly artifacts.
 """

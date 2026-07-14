@@ -8,7 +8,7 @@ the system rosters, row identities, or training budgets reported in the paper.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -43,6 +43,17 @@ class DystsPaperRowOverride:
     lista_final_op: str
     source_campaign_system_count: int
     retained_paper_system_count: int
+
+
+@dataclass(frozen=True)
+class ControlledSystemContract:
+    """Paper-facing metadata for one retained controlled benchmark system."""
+
+    system_key: str
+    display_name: str
+    basin_count: int
+    paper_role: str
+    alignment_label_source: Literal["native", "proxy"]
 
 
 PAPER_MODEL_ROWS: Tuple[PaperModelRow, ...] = (
@@ -94,23 +105,145 @@ DYSTS_MODEL_DISPLAY_NAMES = {
 DYSTS_MODEL_DISPLAY_NAMES["sparse_mlp_bd"] = "Sparse MLP-BD"
 PAPER_SEEDS: Tuple[int, ...] = tuple(range(15))
 
+PAPER_CONTROLLED_SYSTEMS: Tuple[ControlledSystemContract, ...] = (
+    ControlledSystemContract(
+        "gated_local_linear",
+        "Local-linear gates",
+        3,
+        "clean mechanistic chart-switch positive",
+        "native",
+    ),
+    ControlledSystemContract(
+        "gated_transfer_linear",
+        "Transfer-gated local-linear",
+        3,
+        "explicit-transfer native stress test",
+        "native",
+    ),
+    ControlledSystemContract(
+        "claude:arrested_spiral",
+        "Arrested spiral",
+        5,
+        "spiral-to-capture control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:cal_asymmetric_3",
+        "Asymmetric three-well",
+        3,
+        "asymmetric three-basin control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:cal_high_cross_3",
+        "High-cross three-well",
+        3,
+        "high-crossing three-basin control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:cal_hexagon_6",
+        "Hexagonal six-well",
+        6,
+        "mid-high basin polygon control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:cal_octagon_8",
+        "Octagonal eight-well",
+        8,
+        "high-basin polygon control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:cal_pentagon_5",
+        "Pentagonal five-well",
+        5,
+        "mid-count polygon control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:cal_square_4",
+        "Square four-well",
+        4,
+        "clean four-basin baseline",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:duffing_triple_well",
+        "Triple-well Duffing",
+        3,
+        "triple-well Duffing control",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:snic_multi",
+        "SNIC multi-attractor",
+        3,
+        "non-multiwell mechanistic outlier",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:transition_routes_4",
+        "Transition-routes four-well",
+        4,
+        "explicit route-choice benchmark",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:var_depth_gradient_4",
+        "Depth-gradient four-well",
+        4,
+        "occupancy-skew stress test",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:var_diamond_4",
+        "Diamond four-well",
+        4,
+        "rotated-separatrix geometry mismatch",
+        "proxy",
+    ),
+    ControlledSystemContract(
+        "claude:var_l_shape_5",
+        "L-shaped five-well",
+        5,
+        "non-convex geometry case",
+        "proxy",
+    ),
+)
 CONTROLLED_SYSTEM_DISPLAY_NAMES = {
-    "gated_local_linear": "Local-linear gates",
-    "gated_transfer_linear": "Transfer-gated local-linear",
-    "claude:arrested_spiral": "Arrested spiral",
-    "claude:cal_asymmetric_3": "Asymmetric three-well",
-    "claude:cal_high_cross_3": "High-cross three-well",
-    "claude:cal_hexagon_6": "Hexagonal six-well",
-    "claude:cal_octagon_8": "Octagonal eight-well",
-    "claude:cal_pentagon_5": "Pentagonal five-well",
-    "claude:cal_square_4": "Square four-well",
-    "claude:duffing_triple_well": "Triple-well Duffing",
-    "claude:snic_multi": "SNIC multi-attractor",
-    "claude:transition_routes_4": "Transition-routes four-well",
-    "claude:var_depth_gradient_4": "Depth-gradient four-well",
-    "claude:var_diamond_4": "Diamond four-well",
-    "claude:var_l_shape_5": "L-shaped five-well",
+    system.system_key: system.display_name for system in PAPER_CONTROLLED_SYSTEMS
 }
+CONTROLLED_BENCHMARK_BASIN_COUNTS = {
+    system.system_key: system.basin_count for system in PAPER_CONTROLLED_SYSTEMS
+}
+CONTROLLED_NATIVE_LABEL_SYSTEM_KEYS: Tuple[str, ...] = tuple(
+    system.system_key
+    for system in PAPER_CONTROLLED_SYSTEMS
+    if system.alignment_label_source == "native"
+)
+CONTROLLED_PROXY_LABEL_SYSTEM_KEYS: Tuple[str, ...] = tuple(
+    system.system_key
+    for system in PAPER_CONTROLLED_SYSTEMS
+    if system.alignment_label_source == "proxy"
+)
+
+CLASSICAL_BASELINE_METHOD_IDS: Tuple[str, ...] = (
+    "dmd",
+    "edmd_poly",
+    "rbf_dictionary_edmd",
+)
+LOCAL_LINEAR_BASELINE_METHOD_IDS: Tuple[str, ...] = (
+    "kmeans_hard",
+    "gmm_hard",
+    "gmm_soft",
+)
+STANDALONE_BASELINE_METHOD_IDS: Tuple[str, ...] = (
+    *CLASSICAL_BASELINE_METHOD_IDS,
+    *LOCAL_LINEAR_BASELINE_METHOD_IDS,
+)
+STANDALONE_BASELINE_SEEDS: Tuple[int, ...] = (0, 1, 2)
 
 
 def canonical_controlled_system_key(system_key: str) -> str:
@@ -151,23 +284,7 @@ DYSTS_PAPER_ROW_OVERRIDES: Tuple[DystsPaperRowOverride, ...] = (
 
 CONTROLLED_PAPER_PROTOCOL = PaperBenchmarkProtocol(
     protocol_id="neurips_2026_controlled_multibasin_v1",
-    system_keys=(
-        "gated_local_linear",
-        "gated_transfer_linear",
-        "claude:arrested_spiral",
-        "claude:cal_asymmetric_3",
-        "claude:cal_high_cross_3",
-        "claude:cal_hexagon_6",
-        "claude:cal_octagon_8",
-        "claude:cal_pentagon_5",
-        "claude:cal_square_4",
-        "claude:duffing_triple_well",
-        "claude:snic_multi",
-        "claude:transition_routes_4",
-        "claude:var_depth_gradient_4",
-        "claude:var_diamond_4",
-        "claude:var_l_shape_5",
-    ),
+    system_keys=tuple(system.system_key for system in PAPER_CONTROLLED_SYSTEMS),
     seeds=PAPER_SEEDS,
     num_steps=200_000,
     batch_size=256,
@@ -240,13 +357,22 @@ __all__ = [
     "PaperBenchmarkProtocol",
     "PaperModelRow",
     "DystsPaperRowOverride",
+    "ControlledSystemContract",
     "PAPER_MODEL_ROWS",
     "CONTROLLED_MODEL_ROW_IDS",
     "DYSTS_MODEL_ROW_IDS",
     "CONTROLLED_MODEL_DISPLAY_NAMES",
     "DYSTS_MODEL_DISPLAY_NAMES",
     "PAPER_SEEDS",
+    "PAPER_CONTROLLED_SYSTEMS",
     "CONTROLLED_SYSTEM_DISPLAY_NAMES",
+    "CONTROLLED_BENCHMARK_BASIN_COUNTS",
+    "CONTROLLED_NATIVE_LABEL_SYSTEM_KEYS",
+    "CONTROLLED_PROXY_LABEL_SYSTEM_KEYS",
+    "CLASSICAL_BASELINE_METHOD_IDS",
+    "LOCAL_LINEAR_BASELINE_METHOD_IDS",
+    "STANDALONE_BASELINE_METHOD_IDS",
+    "STANDALONE_BASELINE_SEEDS",
     "canonical_controlled_system_key",
     "controlled_system_display_name",
     "model_display_name",

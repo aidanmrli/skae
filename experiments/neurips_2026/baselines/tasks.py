@@ -13,27 +13,17 @@ import json
 from pathlib import Path
 from typing import Dict, List, Sequence
 
-
-DEFAULT_SYSTEMS: Sequence[str] = (
-    "gated_local_linear",
-    "gated_transfer_linear",
-    "claude:arrested_spiral",
-    "claude:cal_asymmetric_3",
-    "claude:cal_high_cross_3",
-    "claude:cal_hexagon_6",
-    "claude:cal_octagon_8",
-    "claude:cal_pentagon_5",
-    "claude:cal_square_4",
-    "claude:duffing_triple_well",
-    "claude:snic_multi",
-    "claude:transition_routes_4",
-    "claude:var_depth_gradient_4",
-    "claude:var_diamond_4",
-    "claude:var_l_shape_5",
+from experiments.neurips_2026.protocol import (
+    CLASSICAL_BASELINE_METHOD_IDS,
+    CONTROLLED_PAPER_PROTOCOL,
+    LOCAL_LINEAR_BASELINE_METHOD_IDS,
+    STANDALONE_BASELINE_SEEDS,
 )
-DEFAULT_SEEDS: Sequence[int] = (0, 1, 2)
-CLASSICAL_METHODS: Sequence[str] = ("dmd", "edmd_poly", "rbf_dictionary_edmd")
-MIXTURE_METHODS: Sequence[str] = ("kmeans_hard", "gmm_hard", "gmm_soft")
+
+DEFAULT_SYSTEMS: Sequence[str] = CONTROLLED_PAPER_PROTOCOL.system_keys
+DEFAULT_SEEDS: Sequence[int] = STANDALONE_BASELINE_SEEDS
+CLASSICAL_METHODS: Sequence[str] = CLASSICAL_BASELINE_METHOD_IDS
+MIXTURE_METHODS: Sequence[str] = LOCAL_LINEAR_BASELINE_METHOD_IDS
 BASELINE_FAMILIES: Sequence[str] = (
     "classical_koopman",
     "mixture_local_linear",

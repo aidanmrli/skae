@@ -70,12 +70,7 @@ from experiments.neurips_2026.local_operators.training import (
     _run_stage_one,
     _run_stage_two,
 )
-from skae.training import (
-    MetricsLogger,
-    build_optimizer,
-    get_device,
-)
-from skae.support.routing import (
+from experiments.neurips_2026.local_operators.contract import (
     FAMILY_JACCARD_THRESHOLD,
     FIT_CONFIGURED_ROWS,
     FIT_DUPLICATION_FACTOR,
@@ -87,8 +82,12 @@ from skae.support.routing import (
     FIT_UNIQUE_TRAJECTORIES,
     SUPPORT_DEFINITION,
 )
-
-
+from experiments.neurips_2026.protocol import CONTROLLED_PAPER_PROTOCOL
+from skae.training import (
+    MetricsLogger,
+    build_optimizer,
+    get_device,
+)
 def main() -> None:
     args = _parse_args()
     row = _read_task_row(
@@ -103,7 +102,7 @@ def main() -> None:
         raise ValueError("The source protocol requires training batch_size=256.")
     scheme, support_value = _support_definition(SUPPORT_DEFINITION)
     device = get_device(args.device)
-    phase = _safe_str(row.get("phase")) or "transition_rich_basin_partition"
+    phase = _safe_str(row.get("phase")) or CONTROLLED_PAPER_PROTOCOL.protocol_id
     variant = _safe_str(row.get("model_variant")) or "lista_fabs_local_k_staged"
     system_slug = _safe_str(row.get("system_slug")) or _safe_str(
         row.get("system_key")

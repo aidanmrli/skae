@@ -17,10 +17,11 @@ import torch
 
 from experiments.neurips_2026.protocol import (
     CONTROLLED_MODEL_ROW_IDS,
-    CONTROLLED_PAPER_PROTOCOL,
+    CONTROLLED_NATIVE_LABEL_SYSTEM_KEYS,
+    CONTROLLED_PROXY_LABEL_SYSTEM_KEYS,
 )
 from experiments.neurips_2026.controlled import (
-    get_transition_rich_basin_count,
+    get_controlled_basin_count,
 )
 from skae.checkpoint_compat import load_model_state_dict_compat
 from skae.config import Config
@@ -52,8 +53,8 @@ NUM_EVALUATION_TRAJECTORIES = 128
 TRAJECTORY_TRANSITIONS = 128
 EVALUATION_SEED = 42
 ENDPOINT_ROLLOUT_STEPS = 5000
-NATIVE_LABEL_SYSTEMS = CONTROLLED_PAPER_PROTOCOL.system_keys[:2]
-PROXY_LABEL_SYSTEMS = CONTROLLED_PAPER_PROTOCOL.system_keys[2:]
+NATIVE_LABEL_SYSTEMS = CONTROLLED_NATIVE_LABEL_SYSTEM_KEYS
+PROXY_LABEL_SYSTEMS = CONTROLLED_PROXY_LABEL_SYSTEM_KEYS
 NATIVE_LABEL_SOURCE = "native_env_basin_label_with_env_points"
 PROXY_LABEL_SOURCE = "evaluation_only_nearest_estimated_center_proxy"
 ENTROPY_UNITS = "nats"
@@ -221,7 +222,7 @@ def _label_sequences_and_centers(
     system_key: str,
     endpoint_rollout_steps: int,
 ) -> Tuple[torch.Tensor, torch.Tensor, str]:
-    basin_count = int(get_transition_rich_basin_count(system_key))
+    basin_count = int(get_controlled_basin_count(system_key))
     points = getattr(env, "points", None)
     centers = (
         points.to(dtype=trajectories.dtype)

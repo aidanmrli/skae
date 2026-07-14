@@ -113,12 +113,7 @@ echo "Repo: ${ROOT_DIR}"
 echo "Git commit: $(git rev-parse HEAD)"
 echo "Start Time: $(date)"
 echo "Task: ${task_id} (${system_key}, seed ${seed}, dt ${env_dt})"
-echo "Protocol: 100k joint + 100k local affine learned-intercept steps"
-echo "Route fit: F_abs=1e-3, Jaccard=0.40, 512 configured rows = 2 exact copies of 256 unique trajectories"
-echo "Route fit sequence: 193 states (192 transitions); cluster all states, fit maps on 192 source states"
-echo "Family minimum: 1 source transition"
-echo "Stage-2 selector: 200 candidates, 32 starts at seed+12345, H100/H500/H1000"
-echo "Selection/final cadence grid: 1,2,5,10,20,25,50,100"
+echo "Protocol: experiments.neurips_2026.local_operators.contract"
 echo "Output: ${SEED_DIR}"
 
 module load cuda/12.6.0

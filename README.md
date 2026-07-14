@@ -49,6 +49,12 @@ paper belongs in `skae/`; choices tied to this paper belong in
 and durable evidence belong in `docs/`. Do not add new implementations to
 `tools/`.
 
+Each scientific choice has one owner. Protocol/contract modules define rosters,
+budgets, model rows, and baseline method sets; workflow modules consume that
+contract; builders turn versioned row evidence into displays; the paper cites
+those displays. Historical names survive only at compatibility and provenance
+boundaries, never as a second maintained implementation.
+
 ## Quick start
 
 Install the locked environment:

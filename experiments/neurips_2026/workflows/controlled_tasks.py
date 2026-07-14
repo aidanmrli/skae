@@ -11,13 +11,13 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 
 from experiments.neurips_2026.protocol import CONTROLLED_PAPER_PROTOCOL
 from experiments.neurips_2026.controlled import (
-    TransitionRichBasinPartitionModel,
-    TransitionRichBasinPartitionSystem,
-    get_transition_rich_basin_partition_model,
-    get_transition_rich_basin_partition_system,
-    resolve_transition_rich_default_dt,
-    transition_rich_basin_partition_models,
-    transition_rich_basin_partition_systems,
+    ControlledModel,
+    ControlledSystem,
+    controlled_models,
+    controlled_systems,
+    get_controlled_model,
+    get_controlled_system,
+    resolve_controlled_default_dt,
 )
 
 
@@ -47,20 +47,20 @@ def _read_dt_table(path: Path, value_column: str) -> Dict[Tuple[str, str], float
 
 def _selected_system_specs(
     args: argparse.Namespace,
-) -> List[TransitionRichBasinPartitionSystem]:
+) -> List[ControlledSystem]:
     requested = _parse_csv_list(args.systems_csv)
     if not requested:
-        return transition_rich_basin_partition_systems()
-    return [get_transition_rich_basin_partition_system(key) for key in requested]
+        return controlled_systems()
+    return [get_controlled_system(key) for key in requested]
 
 
 def _selected_model_specs(
     args: argparse.Namespace,
-) -> List[TransitionRichBasinPartitionModel]:
+) -> List[ControlledModel]:
     requested = _parse_csv_list(args.model_variants_csv)
     if not requested:
-        return transition_rich_basin_partition_models()
-    return [get_transition_rich_basin_partition_model(key) for key in requested]
+        return controlled_models()
+    return [get_controlled_model(key) for key in requested]
 
 
 def _optional(value: object | None) -> object:
@@ -75,8 +75,8 @@ def _row(
     *,
     task_id: int,
     args: argparse.Namespace,
-    model: TransitionRichBasinPartitionModel,
-    system: TransitionRichBasinPartitionSystem,
+    model: ControlledModel,
+    system: ControlledSystem,
     seed: int,
     env_dt: float,
 ) -> Dict[str, object]:
@@ -167,7 +167,7 @@ def _build_rows(args: argparse.Namespace) -> List[Dict[str, object]]:
             if args.dt_table is not None and env_dt is None:
                 continue
             if env_dt is None:
-                env_dt = resolve_transition_rich_default_dt(system.system_key)
+                env_dt = resolve_controlled_default_dt(system.system_key)
             for seed in seeds:
                 rows.append(
                     _row(
@@ -196,8 +196,8 @@ def _write_tsv(path: Path, rows: Sequence[Dict[str, object]]) -> None:
 def _manifest_payload(
     *,
     phase_label: str,
-    systems: Sequence[TransitionRichBasinPartitionSystem],
-    models: Sequence[TransitionRichBasinPartitionModel],
+    systems: Sequence[ControlledSystem],
+    models: Sequence[ControlledModel],
     seeds: Iterable[int],
     task_count: int,
     eval_profile: str,
@@ -224,9 +224,7 @@ def _manifest_payload(
             {
                 **asdict(spec),
                 "system_slug": spec.system_slug,
-                "resolved_default_dt": resolve_transition_rich_default_dt(
-                    spec.system_key
-                ),
+                "resolved_default_dt": resolve_controlled_default_dt(spec.system_key),
             }
             for spec in systems
         ],
@@ -244,7 +242,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_manifest_json", default=None)
     parser.add_argument(
         "--phase_label",
-        default="transition_rich_basin_partition",
+        default=CONTROLLED_PAPER_PROTOCOL.protocol_id,
     )
     parser.add_argument("--systems_csv", default=None)
     parser.add_argument("--model_variants_csv", default=None)

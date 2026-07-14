@@ -38,6 +38,24 @@ from experiments.neurips_2026.alignment import (
     _load_checkpoint_model,
     tie_inclusive_high_center_margin_mask,
 )
+from experiments.neurips_2026.interventions.protocol import (
+    DEPTH_SLICE_MODE,
+    ENDPOINT_ROLLOUT_STEPS,
+    EVALUATION_SEED,
+    HORIZONS,
+    MAX_DROP,
+    NUM_CANDIDATE_TRAJECTORIES,
+    NUM_INITIAL_POINTS,
+    PLOT_FORMATS,
+    RANDOM_SEED,
+    RANDOM_SUPPORT_REPEATS,
+    REQUIRE_STABLE_TRUE_BASIN,
+    ROOT_LABEL,
+    SUPPORT_DEFINITION,
+    SYSTEM_KEY,
+    TRAINING_SEED,
+    TRAJECTORY_LENGTH,
+)
 from experiments.neurips_2026.workflows.alignment_reduction import _load_latest_specs
 
 PAPER_PALETTE = {
@@ -74,7 +92,7 @@ def _configure_paper_style() -> None:
     )
 
 
-DEFAULT_HORIZONS = "1,3,5,7,9,11,13,15,17,19,21"
+DEFAULT_HORIZONS = ",".join(str(horizon) for horizon in HORIZONS)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -83,39 +101,55 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output_dir", required=True, help="directory for CSV, JSON, and plot artifacts")
     parser.add_argument(
         "--root_label",
-        default="lista_dense_signsplit_p256_hardinit_basin_partition",
+        default=ROOT_LABEL,
         help="single model root label to evaluate",
     )
-    parser.add_argument("--system", default="gated_local_linear", help="single system_key to evaluate")
-    parser.add_argument("--seed", type=int, default=0, help="single training seed to evaluate")
-    parser.add_argument("--num_initial_points", type=int, default=15)
-    parser.add_argument("--num_candidate_trajectories", type=int, default=256)
-    parser.add_argument("--trajectory_length", type=int, default=64)
-    parser.add_argument("--eval_seed", type=int, default=42)
-    parser.add_argument("--endpoint_rollout_steps", type=int, default=5000)
+    parser.add_argument("--system", default=SYSTEM_KEY, help="single system_key to evaluate")
+    parser.add_argument("--seed", type=int, default=TRAINING_SEED, help="single training seed to evaluate")
+    parser.add_argument("--num_initial_points", type=int, default=NUM_INITIAL_POINTS)
+    parser.add_argument(
+        "--num_candidate_trajectories",
+        type=int,
+        default=NUM_CANDIDATE_TRAJECTORIES,
+    )
+    parser.add_argument("--trajectory_length", type=int, default=TRAJECTORY_LENGTH)
+    parser.add_argument("--eval_seed", type=int, default=EVALUATION_SEED)
+    parser.add_argument(
+        "--endpoint_rollout_steps",
+        type=int,
+        default=ENDPOINT_ROLLOUT_STEPS,
+    )
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda", "mps"])
     parser.add_argument(
         "--support_definition",
-        default="absolute:0.001",
+        default=SUPPORT_DEFINITION,
         help="support rule used to define the initial active set",
     )
     parser.add_argument("--horizons", default=DEFAULT_HORIZONS)
-    parser.add_argument("--max_drop", type=int, default=10)
-    parser.add_argument("--random_support_repeats", type=int, default=20)
-    parser.add_argument("--random_seed", type=int, default=123)
+    parser.add_argument("--max_drop", type=int, default=MAX_DROP)
+    parser.add_argument(
+        "--random_support_repeats",
+        type=int,
+        default=RANDOM_SUPPORT_REPEATS,
+    )
+    parser.add_argument("--random_seed", type=int, default=RANDOM_SEED)
     parser.add_argument(
         "--depth_slice_mode",
         choices=["global", "per_basin"],
-        default="per_basin",
+        default=DEPTH_SLICE_MODE,
         help="candidate initial states are sampled from this deep-slice rule",
     )
     parser.add_argument(
         "--require_stable_true_basin",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=REQUIRE_STABLE_TRUE_BASIN,
         help="only select starts whose true trajectory stays in the initial basin through max horizon",
     )
-    parser.add_argument("--plot_format", default="pdf,png", help="comma-separated plot extensions")
+    parser.add_argument(
+        "--plot_format",
+        default=PLOT_FORMATS,
+        help="comma-separated plot extensions",
+    )
     return parser.parse_args()
 
 

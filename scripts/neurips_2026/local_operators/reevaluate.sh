@@ -9,12 +9,12 @@
 #   OUT_DIR=<output directory>
 #
 # Optional:
-#   HORIZONS_CSV=100,500,1000
-#   PERIODS_CSV=1,2,5,10,20,25,50,100
-#   BATCH_SIZE=100
-#   SUPPORT_DEFINITION=absolute:0.001
-#   FAMILY_JACCARD_THRESHOLD=0.4
+#   HORIZONS_CSV, PERIODS_CSV, BATCH_SIZE
+#   SUPPORT_DEFINITION, FAMILY_JACCARD_THRESHOLD
 #   FORCE=0
+#
+# Unset scientific values resolve from
+# experiments.neurips_2026.local_operators.contract.
 
 #SBATCH --job-name=wide_periodic_k
 #SBATCH --ntasks=1
@@ -46,11 +46,11 @@ gpu_guard_print_context "Staged vs Global Wide-Periodic Re-evaluation"
 STAGED_ROOT="${STAGED_ROOT:?STAGED_ROOT is required}"
 GLOBAL_ROOT="${GLOBAL_ROOT:?GLOBAL_ROOT is required}"
 OUT_DIR="${OUT_DIR:?OUT_DIR is required}"
-HORIZONS_CSV="${HORIZONS_CSV:-100,500,1000}"
-PERIODS_CSV="${PERIODS_CSV:-1,2,5,10,20,25,50,100}"
-BATCH_SIZE="${BATCH_SIZE:-100}"
-SUPPORT_DEFINITION="${SUPPORT_DEFINITION:-absolute:0.001}"
-FAMILY_JACCARD_THRESHOLD="${FAMILY_JACCARD_THRESHOLD:-0.4}"
+HORIZONS_CSV="${HORIZONS_CSV:-}"
+PERIODS_CSV="${PERIODS_CSV:-}"
+BATCH_SIZE="${BATCH_SIZE:-}"
+SUPPORT_DEFINITION="${SUPPORT_DEFINITION:-}"
+FAMILY_JACCARD_THRESHOLD="${FAMILY_JACCARD_THRESHOLD:-}"
 FORCE="${FORCE:-0}"
 
 echo "============================================="
@@ -59,24 +59,28 @@ echo "Job ID: ${SLURM_JOB_ID:-local}"
 echo "Staged root: ${STAGED_ROOT}"
 echo "Global root: ${GLOBAL_ROOT}"
 echo "Output: ${OUT_DIR}"
-echo "Horizons: ${HORIZONS_CSV}"
-echo "Periods: ${PERIODS_CSV}"
-echo "Batch size: ${BATCH_SIZE}"
-echo "Support: ${SUPPORT_DEFINITION}"
-echo "Family Jaccard: ${FAMILY_JACCARD_THRESHOLD}"
+echo "Protocol: experiments.neurips_2026.local_operators.contract"
 echo "============================================="
 
 ARGS=(
   --staged_root "${STAGED_ROOT}"
   --global_root "${GLOBAL_ROOT}"
   --output_dir "${OUT_DIR}"
-  --horizons "${HORIZONS_CSV}"
-  --periods "${PERIODS_CSV}"
-  --batch_size "${BATCH_SIZE}"
-  --support_definition "${SUPPORT_DEFINITION}"
-  --family_jaccard_threshold "${FAMILY_JACCARD_THRESHOLD}"
   --device cuda
 )
+
+append_override() {
+  local flag="$1"
+  local value="$2"
+  if [[ -n "${value}" ]]; then
+    ARGS+=("${flag}" "${value}")
+  fi
+}
+append_override --horizons "${HORIZONS_CSV}"
+append_override --periods "${PERIODS_CSV}"
+append_override --batch_size "${BATCH_SIZE}"
+append_override --support_definition "${SUPPORT_DEFINITION}"
+append_override --family_jaccard_threshold "${FAMILY_JACCARD_THRESHOLD}"
 
 if [[ "${FORCE}" == "1" ]]; then
   ARGS+=(--force)

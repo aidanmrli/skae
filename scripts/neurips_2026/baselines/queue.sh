@@ -1,18 +1,20 @@
 #!/bin/bash
 #
-# Queue standalone baselines for three seeds on the retained
-# 15-system multibasin benchmark used by docs/neurips_sparse_koopman_multibasin.tex.
+# Queue the standalone-baseline task contract used by the paper. Scientific
+# defaults are resolved by experiments.neurips_2026.baselines.tasks.
 #
 # Submit with:
 #   sbatch scripts/neurips_2026/baselines/queue.sh
 #
 # Optional env vars:
 #   EXPERIMENT_TAG=paper_baseline_retained15_20260512
-#   SYSTEMS_CSV=gated_local_linear,gated_transfer_linear,claude:arrested_spiral,...
-#   SEEDS_CSV=0,1,2
-#   BASELINE_FAMILIES=classical_koopman,mixture_local_linear
-#   DYSTS_DT_MULTIPLIER=30
-#   DYSTS_STANDARDIZE=1
+#   SYSTEMS_CSV=<explicit system subset override>
+#   SEEDS_CSV=<explicit seed subset override>
+#   BASELINE_FAMILIES=<explicit family subset override>
+#   HORIZONS, NUM_TRAJECTORIES, TRAJECTORY_LENGTH, TRAIN_FRACTION
+#   RIDGE_LAMBDA, EDMD_DEGREE, KERNEL_CENTERS, KERNEL_GAMMA
+#   MAX_TRAIN_PAIRS, NUM_COMPONENTS, COMPONENT_MODE, ENV_DT
+#   DYSTS_DT_MULTIPLIER, DYSTS_STANDARDIZE, CONFIG_NAME, TORCH_THREADS
 #   ARRAY_THROTTLE=32
 #
 #SBATCH --job-name=queue_paper_base
@@ -43,51 +45,60 @@ TASK_TSV="${TASK_TSV:-${RESULTS_DIR}/paper_baseline_tasks.tsv}"
 MANIFEST_JSON="${MANIFEST_JSON:-${RESULTS_DIR}/paper_baseline_manifest.json}"
 LOG_DIR="${LOG_DIR:-${RESULTS_DIR}/logs}"
 BASE_OUT="${BASE_OUT:-${RESULTS_DIR}/runs}"
-SYSTEMS_CSV="${SYSTEMS_CSV:-gated_local_linear,gated_transfer_linear,claude:arrested_spiral,claude:cal_asymmetric_3,claude:cal_high_cross_3,claude:cal_hexagon_6,claude:cal_octagon_8,claude:cal_pentagon_5,claude:cal_square_4,claude:duffing_triple_well,claude:snic_multi,claude:transition_routes_4,claude:var_depth_gradient_4,claude:var_diamond_4,claude:var_l_shape_5}"
-SEEDS_CSV="${SEEDS_CSV:-0,1,2}"
-BASELINE_FAMILIES="${BASELINE_FAMILIES:-classical_koopman,mixture_local_linear}"
-HORIZONS="${HORIZONS:-100,500,1000}"
-NUM_TRAJECTORIES="${NUM_TRAJECTORIES:-256}"
-TRAJECTORY_LENGTH="${TRAJECTORY_LENGTH:-1000}"
-TRAIN_FRACTION="${TRAIN_FRACTION:-0.6}"
-RIDGE_LAMBDA="${RIDGE_LAMBDA:-1e-6}"
-EDMD_DEGREE="${EDMD_DEGREE:-3}"
-KERNEL_CENTERS="${KERNEL_CENTERS:-128}"
-KERNEL_GAMMA="${KERNEL_GAMMA:-0.0}"
-MAX_TRAIN_PAIRS="${MAX_TRAIN_PAIRS:-0}"
-NUM_COMPONENTS="${NUM_COMPONENTS:-4}"
-COMPONENT_MODE="${COMPONENT_MODE:-fixed}"
-ENV_DT="${ENV_DT:-0.0}"
-DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-0.0}"
-DYSTS_STANDARDIZE="${DYSTS_STANDARDIZE:-0}"
-CONFIG_NAME="${CONFIG_NAME:-default}"
-TORCH_THREADS="${TORCH_THREADS:-1}"
+SYSTEMS_CSV="${SYSTEMS_CSV:-}"
+SEEDS_CSV="${SEEDS_CSV:-}"
+BASELINE_FAMILIES="${BASELINE_FAMILIES:-}"
+HORIZONS="${HORIZONS:-}"
+NUM_TRAJECTORIES="${NUM_TRAJECTORIES:-}"
+TRAJECTORY_LENGTH="${TRAJECTORY_LENGTH:-}"
+TRAIN_FRACTION="${TRAIN_FRACTION:-}"
+RIDGE_LAMBDA="${RIDGE_LAMBDA:-}"
+EDMD_DEGREE="${EDMD_DEGREE:-}"
+KERNEL_CENTERS="${KERNEL_CENTERS:-}"
+KERNEL_GAMMA="${KERNEL_GAMMA:-}"
+MAX_TRAIN_PAIRS="${MAX_TRAIN_PAIRS:-}"
+NUM_COMPONENTS="${NUM_COMPONENTS:-}"
+COMPONENT_MODE="${COMPONENT_MODE:-}"
+ENV_DT="${ENV_DT:-}"
+DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-}"
+DYSTS_STANDARDIZE="${DYSTS_STANDARDIZE:-}"
+CONFIG_NAME="${CONFIG_NAME:-}"
+TORCH_THREADS="${TORCH_THREADS:-}"
 ARRAY_THROTTLE="${ARRAY_THROTTLE:-32}"
 
 mkdir -p "${RESULTS_DIR}" "${LOG_DIR}" "${BASE_OUT}"
 
-uv run skae-paper tasks baselines \
-  --output_tsv "${TASK_TSV}" \
-  --output_manifest_json "${MANIFEST_JSON}" \
-  --systems "${SYSTEMS_CSV}" \
-  --seeds "${SEEDS_CSV}" \
-  --baseline_families "${BASELINE_FAMILIES}" \
-  --horizons "${HORIZONS}" \
-  --num_trajectories "${NUM_TRAJECTORIES}" \
-  --trajectory_length "${TRAJECTORY_LENGTH}" \
-  --train_fraction "${TRAIN_FRACTION}" \
-  --ridge_lambda "${RIDGE_LAMBDA}" \
-  --edmd_degree "${EDMD_DEGREE}" \
-  --kernel_centers "${KERNEL_CENTERS}" \
-  --kernel_gamma "${KERNEL_GAMMA}" \
-  --max_train_pairs "${MAX_TRAIN_PAIRS}" \
-  --num_components "${NUM_COMPONENTS}" \
-  --component_mode "${COMPONENT_MODE}" \
-  --env_dt "${ENV_DT}" \
-  --dysts_dt_multiplier "${DYSTS_DT_MULTIPLIER}" \
-  --dysts_standardize "${DYSTS_STANDARDIZE}" \
-  --config_name "${CONFIG_NAME}" \
-  --torch_threads "${TORCH_THREADS}"
+TASK_ARGS=(
+  --output_tsv "${TASK_TSV}"
+  --output_manifest_json "${MANIFEST_JSON}"
+)
+append_override() {
+  local flag="$1"
+  local value="$2"
+  if [[ -n "${value}" ]]; then
+    TASK_ARGS+=("${flag}" "${value}")
+  fi
+}
+append_override --systems "${SYSTEMS_CSV}"
+append_override --seeds "${SEEDS_CSV}"
+append_override --baseline_families "${BASELINE_FAMILIES}"
+append_override --horizons "${HORIZONS}"
+append_override --num_trajectories "${NUM_TRAJECTORIES}"
+append_override --trajectory_length "${TRAJECTORY_LENGTH}"
+append_override --train_fraction "${TRAIN_FRACTION}"
+append_override --ridge_lambda "${RIDGE_LAMBDA}"
+append_override --edmd_degree "${EDMD_DEGREE}"
+append_override --kernel_centers "${KERNEL_CENTERS}"
+append_override --kernel_gamma "${KERNEL_GAMMA}"
+append_override --max_train_pairs "${MAX_TRAIN_PAIRS}"
+append_override --num_components "${NUM_COMPONENTS}"
+append_override --component_mode "${COMPONENT_MODE}"
+append_override --env_dt "${ENV_DT}"
+append_override --dysts_dt_multiplier "${DYSTS_DT_MULTIPLIER}"
+append_override --dysts_standardize "${DYSTS_STANDARDIZE}"
+append_override --config_name "${CONFIG_NAME}"
+append_override --torch_threads "${TORCH_THREADS}"
+uv run skae-paper tasks baselines "${TASK_ARGS[@]}"
 
 TASK_COUNT=$(( $(wc -l < "${TASK_TSV}") - 1 ))
 if [[ "${TASK_COUNT}" -le 0 ]]; then
@@ -115,11 +126,10 @@ cat > "${RESULTS_DIR}/queue.json" <<EOF
   "task_tsv": "${TASK_TSV}",
   "manifest_json": "${MANIFEST_JSON}",
   "base_out": "${BASE_OUT}",
-  "systems_csv": "${SYSTEMS_CSV}",
-  "seeds_csv": "${SEEDS_CSV}",
-  "baseline_families": "${BASELINE_FAMILIES}",
-  "dysts_dt_multiplier": "${DYSTS_DT_MULTIPLIER}",
-  "dysts_standardize": "${DYSTS_STANDARDIZE}",
+  "systems_override": "${SYSTEMS_CSV}",
+  "resolved_roster_source": "${MANIFEST_JSON}",
+  "seeds_override": "${SEEDS_CSV}",
+  "baseline_families_override": "${BASELINE_FAMILIES}",
   "task_count": ${TASK_COUNT},
   "array_spec": "${ARRAY_SPEC}",
   "baseline_job_id": "${BASELINE_JOB_ID}"

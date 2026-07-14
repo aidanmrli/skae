@@ -1,68 +1,51 @@
-"""Support-family route construction and runtime assignment primitives.
+"""Parameter-driven support-family construction and route assignment.
 
-This module intentionally contains only the route construction and runtime
-assignment shared by staged training and evaluation.  It is not a standalone
-trainer; the frozen paper protocol lives under :mod:`experiments.neurips_2026`.
+This module contains reusable numerical mechanics only.  Experiment-specific
+thresholds, fit packets, and artifact labels belong to the experiment package
+that selects them.
 """
 
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from typing import Dict, List, Sequence
+from typing import Dict
 
 import numpy as np
 import torch
 
 
-SUPPORT_DEFINITION = "absolute:0.001"
-SUPPORT_SCHEME = "absolute"
-SUPPORT_THRESHOLD = 1e-3
-FAMILY_JACCARD_THRESHOLD = 0.40
-# Historical source-route fitting contract.  The nominal 512-row packet was
-# produced by calling ``VectorWrapper.generate_sequence_batch`` twice with one
-# generator.  ``VectorWrapper.reset`` reads (but does not advance) that
-# generator's initial seed, so the two 256-row batches were bitwise identical.
-# Keep that behavior deliberately: a 512-unique-trajectory fit is a new
-# protocol and must not silently reuse the published checkpoint/result label.
-FIT_CONFIGURED_ROWS = 512
-FIT_UNIQUE_TRAJECTORIES = 256
-FIT_DUPLICATION_FACTOR = 2
-FIT_TRANSITIONS = 192
-FIT_STATES = FIT_TRANSITIONS + 1
-FIT_SEED_OFFSET = 271_828
-FIT_SUPPORTS_CONSIDERED = FIT_CONFIGURED_ROWS * FIT_STATES
-FIT_SOURCE_TRANSITIONS = FIT_CONFIGURED_ROWS * FIT_TRANSITIONS
-FIT_UNIQUE_SOURCE_TRANSITIONS = FIT_UNIQUE_TRAJECTORIES * FIT_TRANSITIONS
-
-# Compatibility aliases used by historical loaders and downstream utilities.
-FIT_NUM_TRAJECTORIES = FIT_CONFIGURED_ROWS
-FIT_TRAJECTORY_LENGTH = FIT_TRANSITIONS
-MIN_FAMILY_TRANSITIONS = 1
-FAMILY_REPRESENTATIVE_RULE = "modal_source_support"
-FAMILY_CLUSTERING_RULE = "all_193_states_then_fit_on_first_192_sources"
+def _validate_support_definition(scheme: str, value: float) -> float:
+    if scheme != "absolute":
+        raise ValueError(f"Unsupported support scheme {scheme!r}; expected 'absolute'.")
+    threshold = float(value)
+    if not np.isfinite(threshold) or threshold < 0.0:
+        raise ValueError("The absolute support threshold must be finite and nonnegative.")
+    return threshold
 
 
-def _validate_protocol(scheme: str, value: float, family_jaccard_threshold: float) -> None:
-    if scheme != SUPPORT_SCHEME or not np.isclose(float(value), SUPPORT_THRESHOLD):
-        raise ValueError(
-            "The staged paper route is fixed to absolute support threshold 1e-3; "
-            f"received {scheme}:{value}."
-        )
-    if not np.isclose(float(family_jaccard_threshold), FAMILY_JACCARD_THRESHOLD):
-        raise ValueError(
-            "The staged paper route is fixed to Jaccard threshold 0.40; "
-            f"received {family_jaccard_threshold}."
-        )
+def _validate_jaccard_threshold(value: float) -> float:
+    threshold = float(value)
+    if not np.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+        raise ValueError("The family Jaccard threshold must lie in [0, 1].")
+    return threshold
 
 
-def _support_mask(latents: np.ndarray) -> np.ndarray:
-    return np.abs(np.asarray(latents)) > SUPPORT_THRESHOLD
+def _support_mask(
+    latents: np.ndarray,
+    *,
+    scheme: str,
+    value: float,
+) -> np.ndarray:
+    threshold = _validate_support_definition(scheme, value)
+    return np.abs(np.asarray(latents)) > threshold
 
 
 def _support_keys(mask: np.ndarray) -> np.ndarray:
     packed = np.packbits(mask.astype(np.uint8), axis=-1)
     flat = packed.reshape(-1, packed.shape[-1])
-    return np.asarray([row.tobytes() for row in flat], dtype=object).reshape(mask.shape[:-1])
+    return np.asarray([row.tobytes() for row in flat], dtype=object).reshape(
+        mask.shape[:-1]
+    )
 
 
 def _binary_jaccard(mask_a: np.ndarray, mask_b: np.ndarray) -> float:
@@ -71,13 +54,13 @@ def _binary_jaccard(mask_a: np.ndarray, mask_b: np.ndarray) -> float:
     return 1.0 if union == 0.0 else intersection / union
 
 
-def _support_family_labels(support_mask: np.ndarray) -> np.ndarray:
-    """Cluster all states in frequency order, including terminal states.
-
-    The source artifact clustered all 193 states per nominal trajectory before
-    restricting map counts, centers, and exact-key routing to the first 192
-    source states.  Terminal-state supports therefore affect family formation.
-    """
+def _support_family_labels(
+    support_mask: np.ndarray,
+    *,
+    family_jaccard_threshold: float,
+) -> np.ndarray:
+    """Cluster states in frequency order, including terminal states."""
+    threshold = _validate_jaccard_threshold(family_jaccard_threshold)
     if support_mask.ndim != 3:
         raise ValueError("support_mask must have shape [trajectories, length, latent_dim]")
     flat_masks = support_mask.reshape(-1, support_mask.shape[-1])
@@ -92,13 +75,15 @@ def _support_family_labels(support_mask: np.ndarray) -> np.ndarray:
     for key, _count in sorted(counts.items(), key=lambda item: (-item[1], item[0])):
         mask = key_masks[key]
         similarities = [_binary_jaccard(mask, prototype) for prototype in prototypes]
-        if similarities and max(similarities) >= FAMILY_JACCARD_THRESHOLD:
+        if similarities and max(similarities) >= threshold:
             key_to_family[key] = int(np.argmax(similarities))
         else:
             key_to_family[key] = len(prototypes)
             prototypes.append(mask)
 
-    labels = np.asarray([key_to_family[key] for key in flat_keys.tolist()], dtype=np.int64)
+    labels = np.asarray(
+        [key_to_family[key] for key in flat_keys.tolist()], dtype=np.int64
+    )
     return labels.reshape(support_mask.shape[:-1])
 
 
@@ -107,7 +92,7 @@ def _prototype_masks(
     support_keys: np.ndarray,
     support_masks: np.ndarray,
 ) -> Dict[object, np.ndarray]:
-    """Return each family's modal *source* support, with first-seen tie breaks."""
+    """Return each family's modal source support, with first-seen tie breaks."""
     key_to_mask: Dict[object, np.ndarray] = {}
     family_support_counts: Dict[object, Counter[object]] = defaultdict(Counter)
     for family_id, key, mask in zip(
@@ -121,64 +106,45 @@ def _prototype_masks(
     }
 
 
-def _generate_source_route_fit_batches(
-    train_env: object,
-    *,
-    seed: int,
-) -> List[torch.Tensor]:
-    """Build the published 512-row route-fit packet from 256 unique paths.
-
-    Only one environment batch is sampled.  It is cloned explicitly to avoid
-    depending on the current implementation of ``VectorWrapper.initial_seed``
-    behavior while preserving the historical numerical route fit.
-    """
-    batch_size = int(getattr(train_env, "batch_size", -1))
-    if batch_size != FIT_UNIQUE_TRAJECTORIES:
-        raise ValueError(
-            "The source route-fit protocol requires a 256-row VectorWrapper; "
-            f"received batch_size={batch_size}."
-        )
-    rng = torch.Generator().manual_seed(int(seed))
-    unique = train_env.generate_sequence_batch(
-        rng,
-        window_length=FIT_TRANSITIONS,
-    ).float().cpu().contiguous()
-    if unique.shape[0] != FIT_UNIQUE_TRAJECTORIES or unique.shape[1] != FIT_STATES:
-        raise RuntimeError(
-            "Route-fit generation violated the source protocol: expected "
-            f"({FIT_UNIQUE_TRAJECTORIES}, {FIT_STATES}, ...), got {tuple(unique.shape)}."
-        )
-    duplicate = unique.clone()
-    if not torch.equal(unique.view(torch.uint8), duplicate.view(torch.uint8)):
-        raise RuntimeError("The explicit route-fit duplicate is not bitwise identical.")
-    return [unique, duplicate]
-
-
 def _build_route_codebook(
     fit_latents: np.ndarray,
     *,
-    scheme: str = SUPPORT_SCHEME,
-    value: float = SUPPORT_THRESHOLD,
-    min_operator_transitions: int = MIN_FAMILY_TRANSITIONS,
-    family_jaccard_threshold: float = FAMILY_JACCARD_THRESHOLD,
+    scheme: str,
+    value: float,
+    min_operator_transitions: int,
+    family_jaccard_threshold: float,
+    family_representative_rule: str,
+    family_clustering_rule: str,
 ) -> Dict[str, object]:
-    """Fit frozen route families and their mean source latent centers."""
-    _validate_protocol(scheme, value, family_jaccard_threshold)
-    if int(min_operator_transitions) != MIN_FAMILY_TRANSITIONS:
-        raise ValueError("The staged paper route retains families with at least one transition.")
+    """Fit support families and their mean source latent centers."""
+    _validate_support_definition(scheme, value)
+    threshold = _validate_jaccard_threshold(family_jaccard_threshold)
+    minimum = int(min_operator_transitions)
+    if minimum < 1:
+        raise ValueError("min_operator_transitions must be at least one.")
     if fit_latents.ndim != 3 or fit_latents.shape[1] < 2:
         raise ValueError("fit_latents must have shape [trajectories, length>=2, latent_dim]")
 
-    support_mask = _support_mask(fit_latents)
+    support_mask = _support_mask(fit_latents, scheme=scheme, value=value)
     support_keys = _support_keys(support_mask)
-    family_labels = _support_family_labels(support_mask)
+    family_labels = _support_family_labels(
+        support_mask,
+        family_jaccard_threshold=threshold,
+    )
     sources = fit_latents[:, :-1, :].reshape(-1, fit_latents.shape[-1]).astype(
         np.float32, copy=False
     )
     source_keys = support_keys[:, :-1].reshape(-1).astype(object)
     source_families = family_labels[:, :-1].reshape(-1).astype(object)
     family_counts = Counter(source_families.tolist())
-    fitted_family_ids = sorted(family_counts, key=str)
+    fitted_family_ids = sorted(
+        (
+            family_id
+            for family_id, count in family_counts.items()
+            if count >= minimum
+        ),
+        key=str,
+    )
     centers = {
         family_id: sources[source_families == family_id].mean(axis=0).astype(
             np.float32, copy=False
@@ -186,10 +152,20 @@ def _build_route_codebook(
         for family_id in fitted_family_ids
     }
     source_masks = support_mask[:, :-1, :].reshape(-1, support_mask.shape[-1])
-    family_prototypes = _prototype_masks(source_families, source_keys, source_masks)
+    fitted_set = set(fitted_family_ids)
+    retained = np.asarray(
+        [family_id in fitted_set for family_id in source_families.tolist()],
+        dtype=bool,
+    )
+    family_prototypes = _prototype_masks(
+        source_families[retained],
+        source_keys[retained],
+        source_masks[retained],
+    )
     support_key_to_family: Dict[object, object] = {}
     for key, family_id in zip(source_keys.tolist(), source_families.tolist()):
-        support_key_to_family.setdefault(key, family_id)
+        if family_id in fitted_set:
+            support_key_to_family.setdefault(key, family_id)
 
     return {
         "support_mask": support_mask,
@@ -201,9 +177,9 @@ def _build_route_codebook(
         "support_key_to_family": support_key_to_family,
         "routing_object": "support_family",
         "runtime_routing_kind": "support_jaccard",
-        "route_jaccard_threshold": FAMILY_JACCARD_THRESHOLD,
-        "family_representative_rule": FAMILY_REPRESENTATIVE_RULE,
-        "family_clustering_rule": FAMILY_CLUSTERING_RULE,
+        "route_jaccard_threshold": threshold,
+        "family_representative_rule": family_representative_rule,
+        "family_clustering_rule": family_clustering_rule,
         "clustering_state_count": int(fit_latents.shape[0] * fit_latents.shape[1]),
         "source_transition_count": int(sources.shape[0]),
     }
@@ -212,11 +188,15 @@ def _build_route_codebook(
 def _assign_family_ids_np(
     latents: np.ndarray,
     *,
+    scheme: str,
+    value: float,
+    family_jaccard_threshold: float,
     support_key_to_family: Dict[object, object],
     family_prototypes: Dict[object, np.ndarray],
     family_cache: Dict[object, object],
 ) -> np.ndarray:
-    masks = _support_mask(latents)
+    threshold = _validate_jaccard_threshold(family_jaccard_threshold)
+    masks = _support_mask(latents, scheme=scheme, value=value)
     keys = _support_keys(masks)
     assigned = np.empty(masks.shape[0], dtype=object)
     for index, (key, mask) in enumerate(zip(keys.tolist(), masks)):
@@ -233,8 +213,7 @@ def _assign_family_ids_np(
                     best_similarity = similarity
             family_id = (
                 best_family
-                if best_family is not None
-                and best_similarity >= FAMILY_JACCARD_THRESHOLD
+                if best_family is not None and best_similarity >= threshold
                 else None
             )
             family_cache[key] = family_id
@@ -245,17 +224,19 @@ def _assign_family_ids_np(
 def _route_indices_np(
     latents: np.ndarray,
     *,
-    scheme: str = SUPPORT_SCHEME,
-    value: float = SUPPORT_THRESHOLD,
-    family_jaccard_threshold: float = FAMILY_JACCARD_THRESHOLD,
+    scheme: str,
+    value: float,
+    family_jaccard_threshold: float,
     support_key_to_family: Dict[object, object],
     family_prototypes: Dict[object, np.ndarray],
     family_to_index: Dict[str, int],
     family_cache: Dict[object, object],
 ) -> np.ndarray:
-    _validate_protocol(scheme, value, family_jaccard_threshold)
     family_ids = _assign_family_ids_np(
         latents,
+        scheme=scheme,
+        value=value,
+        family_jaccard_threshold=family_jaccard_threshold,
         support_key_to_family=support_key_to_family,
         family_prototypes=family_prototypes,
         family_cache=family_cache,

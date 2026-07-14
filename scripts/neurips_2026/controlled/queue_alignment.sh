@@ -2,9 +2,8 @@
 #
 # Queue fixed support-alignment evaluation for all six controlled rows.
 #
-# The run is evaluation-only and reuses saved checkpoints. The reducer fixes
-# the protocol to absolute support 1e-3, Jaccard 0.50, and every state at or
-# above the within-label center-margin q75 (ties included).
+# The run is evaluation-only and reuses saved checkpoints. The reducer imports
+# the frozen scientific contract from experiments.neurips_2026.alignment.
 
 set -euo pipefail
 
@@ -32,7 +31,7 @@ echo "==============================================="
 echo "Repo: ${REPO_ROOT}"
 echo "Results root: ${RESULTS_ROOT}"
 echo "Output dir name: ${OUT_DIR_NAME}"
-echo "Protocol: support=absolute:0.001 scoring=within-label-margin>=q75-tie-inclusive Jaccard=0.50 entropy=nats"
+echo "Protocol: experiments.neurips_2026.alignment"
 echo "==============================================="
 
 ROWS_CSV="${PACKET_BACKFILL}/collect_pass0/forecasting_rows.csv" \

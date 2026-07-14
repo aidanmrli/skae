@@ -124,10 +124,10 @@
       "id": "controlled_ground_truth_vector_fields",
       "build_tool": "experiments.neurips_2026.evidence.ground_truth",
       "command_inside_allocation": "uv run skae-paper build ground-truth --formats pdf",
+      "check_command_inside_allocation": "uv run skae-paper build ground-truth --check",
       "manifest": "ground_truth_vector_fields/manifest.json",
       "outputs": [
-        "ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf",
-        "15 individual PDFs listed in ground_truth_vector_fields/manifest.json"
+        "ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf"
       ]
     }
   ]

@@ -40,27 +40,15 @@ from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from sklearn.mixture import GaussianMixture
 
 from experiments.neurips_2026.paths import results_root
+from experiments.neurips_2026.protocol import (
+    CONTROLLED_PAPER_PROTOCOL,
+    LOCAL_LINEAR_BASELINE_METHOD_IDS,
+)
 from skae.config import apply_env_dt_override, get_config, get_env_dt
 from skae.data import generate_trajectory, make_env
 
 
-DEFAULT_SYSTEMS = (
-    "gated_local_linear",
-    "gated_transfer_linear",
-    "claude:arrested_spiral",
-    "claude:cal_asymmetric_3",
-    "claude:cal_high_cross_3",
-    "claude:cal_hexagon_6",
-    "claude:cal_octagon_8",
-    "claude:cal_pentagon_5",
-    "claude:cal_square_4",
-    "claude:duffing_triple_well",
-    "claude:snic_multi",
-    "claude:transition_routes_4",
-    "claude:var_depth_gradient_4",
-    "claude:var_diamond_4",
-    "claude:var_l_shape_5",
-)
+DEFAULT_SYSTEMS = CONTROLLED_PAPER_PROTOCOL.system_keys
 METHOD_ALIASES = {
     "kmeans": "kmeans_hard",
     "kmeans_hard": "kmeans_hard",
@@ -70,6 +58,8 @@ METHOD_ALIASES = {
     "gmm_soft": "gmm_soft",
     "soft_gmm": "gmm_soft",
 }
+if set(METHOD_ALIASES.values()) != set(LOCAL_LINEAR_BASELINE_METHOD_IDS):
+    raise RuntimeError("Local-linear method aliases drifted from the paper protocol")
 EPS = 1e-12
 MAX_ABS_STATE_FOR_FIT = 1e6
 

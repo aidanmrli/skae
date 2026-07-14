@@ -31,7 +31,7 @@ source .venv/bin/activate
 
 DATE_TAG="${DATE_TAG:-$(date +%Y%m%d)}"
 EXPERIMENT_TAG="${EXPERIMENT_TAG:-staged_fabs_local_affine_k_lista_table1_${DATE_TAG}}"
-PHASE_LABEL="${PHASE_LABEL:-transition_rich_basin_partition}"
+PHASE_LABEL="${PHASE_LABEL:-neurips_2026_controlled_multibasin_v1}"
 BASE_OUT="${BASE_OUT:-${SKAE_SCRATCH_ROOT}/${EXPERIMENT_TAG}}"
 RESULTS_DIR="${RESULTS_DIR:-results/${EXPERIMENT_TAG}}"
 TASK_DIR="${TASK_DIR:-${RESULTS_DIR}/task_tables}"
@@ -47,7 +47,7 @@ TARGET_VARIANT="lista_fabs_local_affine_k_staged_p256_hardinit_basin_partition"
 BASELINE_ROOT_LABEL="${BASELINE_ROOT_LABEL:-${SOURCE_VARIANT}}"
 BASELINE_ROOT="${BASELINE_ROOT:-${SKAE_SCRATCH_ROOT}/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/${SOURCE_VARIANT}}"
 
-SEEDS_CSV="${SEEDS_CSV:-0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}"
+SEEDS_CSV="${SEEDS_CSV:-}"
 SYSTEMS_CSV="${SYSTEMS_CSV:-}"
 EXPECTED_TASK_COUNT="${EXPECTED_TASK_COUNT:-225}"
 ARRAY_THROTTLE="${ARRAY_THROTTLE:-32}"
@@ -88,144 +88,30 @@ BUILD_ARGS=(
   --output_tsv "${BASE_TASK_TSV}"
   --output_manifest_json "${BASE_MANIFEST_JSON}"
   --model_variants_csv "${SOURCE_VARIANT}"
-  --seeds_csv "${SEEDS_CSV}"
   --eval_profile full
 )
+if [[ -n "${SEEDS_CSV}" ]]; then
+  BUILD_ARGS+=(--seeds_csv "${SEEDS_CSV}")
+fi
 if [[ -n "${SYSTEMS_CSV}" ]]; then
   BUILD_ARGS+=(--systems_csv "${SYSTEMS_CSV}")
 fi
 uv run skae-paper tasks controlled "${BUILD_ARGS[@]}"
 
-PHASE_LABEL="${PHASE_LABEL}" \
-TARGET_VARIANT="${TARGET_VARIANT}" \
-BASE_OUT="${BASE_OUT}" \
-SKIP_COMPLETED="${SKIP_COMPLETED}" \
-  uv run python - \
-    "${BASE_TASK_TSV}" \
-    "${BASE_MANIFEST_JSON}" \
-    "${TASK_TSV}" \
-    "${MANIFEST_JSON}" <<'PY'
-import csv
-import json
-import os
-import sys
-from collections import Counter
-from pathlib import Path
-
-base_tsv, base_manifest, output_tsv, output_manifest = map(Path, sys.argv[1:])
-target_variant = os.environ["TARGET_VARIANT"]
-phase = os.environ["PHASE_LABEL"]
-base_out = Path(os.environ["BASE_OUT"])
-skip_completed = os.environ["SKIP_COMPLETED"] == "1"
-
-def tagify(value):
-    return str(value).replace("-", "m").replace(".", "p")
-
-def completed_run(row):
-    seed_dir = (
-        base_out
-        / phase
-        / target_variant
-        / row["system_slug"]
-        / f"dt_{tagify(row['env_dt'])}"
-        / f"seed_{int(row['seed'])}"
-    )
-    candidates = [
-        path
-        for path in seed_dir.glob("20*")
-        if path.is_dir() and (path / "evaluation_results_best.json").is_file()
-    ]
-    return sorted(candidates)[-1] if candidates else None
-
-with base_tsv.open(newline="") as handle:
-    reader = csv.DictReader(handle, delimiter="\t")
-    fields = list(reader.fieldnames or [])
-    source_rows = [dict(row) for row in reader]
-
-rows = []
-skipped = []
-for source in source_rows:
-    row = dict(source)
-    row["phase"] = phase
-    row["model_variant"] = target_variant
-    prior = completed_run(row) if skip_completed else None
-    if prior is not None:
-        skipped.append(
-            {
-                "system_key": row["system_key"],
-                "seed": int(row["seed"]),
-                "completed_run": str(prior),
-            }
-        )
-        continue
-    if int(row["num_steps"]) != 200_000:
-        raise SystemExit(f"Expected 200000 steps, got {row['num_steps']}")
-    row["task_id"] = str(len(rows))
-    rows.append(row)
-
-with output_tsv.open("w", newline="") as handle:
-    writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
-    writer.writeheader()
-    writer.writerows(rows)
-
-manifest = json.loads(base_manifest.read_text())
-manifest.update(
-    {
-        "experiment_family": "staged_fabs_route_source_v3",
-        "source_variant": "lista_dense_signsplit_p256_hardinit_basin_partition",
-        "target_variant": target_variant,
-        "task_tsv": str(output_tsv),
-        "task_count": len(rows),
-        "counts_by_system": dict(Counter(row["system_key"] for row in rows)),
-        "skipped_completed_count": len(skipped),
-        "skipped_completed_rows": skipped,
-        "staged_protocol": {
-            "route_schema_version": 3,
-            "total_steps": 200_000,
-            "stage1_joint_steps": 100_000,
-            "stage2_local_steps": 100_000,
-            "support_definition": "absolute:0.001",
-            "family_jaccard_threshold": 0.40,
-            "fit_source": "training_distribution_trajectories",
-            "fit_construction": "two_bitwise_identical_copies_of_one_256_row_batch",
-            "fit_configured_rows": 512,
-            "fit_unique_trajectories": 256,
-            "fit_duplication_factor": 2,
-            "fit_transitions": 192,
-            "fit_states": 193,
-            "fit_supports_considered": 98_816,
-            "fit_source_transitions": 98_304,
-            "fit_unique_source_transitions": 49_152,
-            "fit_seed_offset": 271_828,
-            "family_clustering": "all_193_states_then_fit_on_first_192_sources",
-            "family_representative": "modal_source_support",
-            "min_family_transitions": 1,
-            "routing_cadence": "every_latent_transition_step",
-            "reencoding_role": "periodic_decode_encode_refreshes_latent_before_next_route",
-            "local_map": "source_target_affine_learned_intercept",
-            "checkpoint_selection": {
-                "candidate_count": 200,
-                "first_regular_step": 100_500,
-                "last_regular_step": 199_500,
-                "final_step": 199_999,
-                "batch_size": 32,
-                "seed_offset": 12_345,
-                "horizons": [100, 500, 1000],
-                "periods": [1, 2, 5, 10, 20, 25, 50, 100],
-                "metric": "finite_prefix_state_summed_squared_error",
-                "improvement": "strict_less_than"
-            },
-            "final_evaluation": {
-                "batch_size": 100,
-                "seed_offset": 12_345,
-                "selector_overlap_count": 32,
-                "selector_overlap_fraction": 0.32
-            },
-        },
-    }
+PREPARE_ARGS=(
+  --base-task-tsv "${BASE_TASK_TSV}"
+  --base-manifest-json "${BASE_MANIFEST_JSON}"
+  --output-tsv "${TASK_TSV}"
+  --output-manifest-json "${MANIFEST_JSON}"
+  --source-variant "${SOURCE_VARIANT}"
+  --target-variant "${TARGET_VARIANT}"
+  --phase-label "${PHASE_LABEL}"
+  --base-out "${BASE_OUT}"
 )
-output_manifest.write_text(json.dumps(manifest, indent=2) + "\n")
-PY
+if [[ "${SKIP_COMPLETED}" == "1" ]]; then
+  PREPARE_ARGS+=(--skip-completed)
+fi
+uv run skae-paper tasks local-operators "${PREPARE_ARGS[@]}"
 rm -f "${BASE_TASK_TSV}" "${BASE_MANIFEST_JSON}"
 
 TASK_COUNT=$(( $(wc -l < "${TASK_TSV}") - 1 ))
@@ -307,11 +193,6 @@ if [[ "${QUEUE_WIDE_PERIODIC_REEVAL}" == "1" ]]; then
     STAGED_ROOT="${BASE_OUT}/${PHASE_LABEL}/${TARGET_VARIANT}" \
     GLOBAL_ROOT="${BASELINE_ROOT}" \
     OUT_DIR="${WIDE_REEVAL_DIR}" \
-    HORIZONS_CSV="100,500,1000" \
-    PERIODS_CSV="1,2,5,10,20,25,50,100" \
-    BATCH_SIZE="100" \
-    SUPPORT_DEFINITION="absolute:0.001" \
-    FAMILY_JACCARD_THRESHOLD="0.4" \
     FORCE="1" \
       sbatch --parsable "${WIDE_DEPENDENCY[@]}" \
         scripts/neurips_2026/local_operators/reevaluate.sh
@@ -334,6 +215,8 @@ import json
 import os
 from pathlib import Path
 
+from experiments.neurips_2026.local_operators.contract import ROUTE_PROTOCOL
+
 keys = (
     "EXPERIMENT_TAG",
     "TARGET_VARIANT",
@@ -347,7 +230,7 @@ keys = (
 )
 payload = {key.lower(): os.environ[key] for key in keys}
 payload["task_count"] = int(os.environ["TASK_COUNT"])
-payload["protocol"] = "staged_fabs_route_source_v3"
+payload["protocol"] = ROUTE_PROTOCOL
 Path(os.environ["QUEUE_JSON_PATH"]).write_text(json.dumps(payload, indent=2) + "\n")
 PY
 
@@ -362,7 +245,8 @@ PY
   printf 'COLLECT_JOB_ID=%q\n' "${COLLECT_JOB_ID}"
   printf 'COMPARE_JOB_ID=%q\n' "${COMPARE_JOB_ID}"
   printf 'WIDE_REEVAL_JOB_ID=%q\n' "${WIDE_REEVAL_JOB_ID}"
-  printf 'PROTOCOL=%q\n' 'staged_fabs_route_source_v3'
+  printf 'PROTOCOL_SOURCE=%q\n' \
+    'experiments.neurips_2026.local_operators.contract'
 } > "${QUEUE_LOG_DIR}/launch_record.env"
 
 echo "Queued staged F_abs local affine LISTA experiment."

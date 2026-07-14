@@ -33,7 +33,7 @@ source .venv/bin/activate
 
 DATE_TAG="${DATE_TAG:-$(date +%Y%m%d)}"
 EXPERIMENT_TAG="${EXPERIMENT_TAG:-controlled_paper_training_${DATE_TAG}}"
-PHASE_LABEL="${PHASE_LABEL:-transition_rich_basin_partition}"
+PHASE_LABEL="${PHASE_LABEL:-neurips_2026_controlled_multibasin_v1}"
 BASE_OUT="${BASE_OUT:-${SKAE_SCRATCH_ROOT}/${EXPERIMENT_TAG}}"
 RESULTS_DIR="${RESULTS_DIR:-results/${EXPERIMENT_TAG}}"
 TASK_DIR="${TASK_DIR:-${RESULTS_DIR}/task_tables}"

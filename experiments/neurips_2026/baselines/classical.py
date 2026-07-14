@@ -21,29 +21,17 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import torch
 
+from experiments.neurips_2026.protocol import (
+    CLASSICAL_BASELINE_METHOD_IDS,
+    CONTROLLED_PAPER_PROTOCOL,
+)
 from skae.config import apply_env_dt_override, get_config, get_env_dt
 from skae.data import VectorWrapper, make_env
 
 
-DEFAULT_SYSTEMS: Tuple[str, ...] = (
-    "gated_local_linear",
-    "gated_transfer_linear",
-    "claude:arrested_spiral",
-    "claude:cal_asymmetric_3",
-    "claude:cal_high_cross_3",
-    "claude:cal_hexagon_6",
-    "claude:cal_octagon_8",
-    "claude:cal_pentagon_5",
-    "claude:cal_square_4",
-    "claude:duffing_triple_well",
-    "claude:snic_multi",
-    "claude:transition_routes_4",
-    "claude:var_depth_gradient_4",
-    "claude:var_diamond_4",
-    "claude:var_l_shape_5",
-)
+DEFAULT_SYSTEMS: Tuple[str, ...] = CONTROLLED_PAPER_PROTOCOL.system_keys
 
-SUPPORTED_METHODS: Tuple[str, ...] = ("dmd", "edmd_poly", "rbf_dictionary_edmd")
+SUPPORTED_METHODS: Tuple[str, ...] = CLASSICAL_BASELINE_METHOD_IDS
 EPS = 1e-12
 
 

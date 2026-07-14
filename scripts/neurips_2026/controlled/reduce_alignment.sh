@@ -15,11 +15,8 @@
 #   PROGRESS_EVERY_RUNS=1
 #   FLUSH_EVERY_RUNS=0
 #
-# Scientific settings are not configurable here: evaluation seed 42; 128
-# trajectories with 128 transitions; absolute support 1e-3; Jaccard 0.50;
-# native labels/centers for the two gated systems; endpoint-estimated proxy
-# centers after 5,000 steps for the 13 catalog systems; and the tie-inclusive
-# within-label high-center-margin slice scored with natural-log entropy.
+# Scientific settings are owned by experiments.neurips_2026.alignment and are
+# recorded in each reducer manifest; this worker exposes execution scope only.
 #
 #SBATCH --job-name=tr_align_reduce
 #SBATCH --ntasks=1
@@ -52,8 +49,6 @@ if [[ -z "${ROOT_LABELS_CSV}" ]]; then
       awk -F= 'NF>=1 && $1!="" && !seen[$1]++ {print $1}' "${ROOT_LABELS_FILE}"
     )
     ROOT_LABELS_CSV="$(IFS=,; echo "${ROOT_LABELS[*]}")"
-  else
-    ROOT_LABELS_CSV="lista_dense_signsplit_p256_hardinit_basin_partition,lista_blockdiag_signsplit_hardinit_basin_partition,lista_dense_softblock_signsplit_p256_hardinit_basin_partition,mlp_sparse_blockdiag_hardinit_basin_partition_control,mlp_sparse_hardinit_basin_partition_control,mlp_zero_sparse_hardinit_basin_partition_control"
   fi
 fi
 
@@ -62,19 +57,21 @@ echo "Repo: ${ROOT_DIR}"
 echo "Git commit: $(git rev-parse HEAD)"
 echo "Rows: ${ROWS_CSV}"
 echo "Output: ${OUT_DIR}"
-echo "Roots: ${ROOT_LABELS_CSV}"
+echo "Roots: ${ROOT_LABELS_CSV:-<canonical paper rows>}"
 echo "Systems: ${SYSTEMS_CSV:-<all paper systems>}"
 echo "Seeds: ${SEEDS_CSV:-<all discovered seeds>}"
-echo "Protocol: seed=42 trajectories=128 transitions=128 endpoint_steps=5000 support=absolute:0.001 scoring=within-label-margin>=q75-tie-inclusive Jaccard=0.50 entropy=nats"
+echo "Protocol: experiments.neurips_2026.alignment"
 
 ARGS=(
   --rows_csv "${ROWS_CSV}"
   --output_dir "${OUT_DIR}"
-  --root_labels "${ROOT_LABELS_CSV}"
   --device "${DEVICE}"
   --progress_every_runs "${PROGRESS_EVERY_RUNS}"
   --flush_every_runs "${FLUSH_EVERY_RUNS}"
 )
+if [[ -n "${ROOT_LABELS_CSV}" ]]; then
+  ARGS+=(--root_labels "${ROOT_LABELS_CSV}")
+fi
 if [[ -n "${SYSTEMS_CSV}" ]]; then
   ARGS+=(--systems "${SYSTEMS_CSV}")
 fi

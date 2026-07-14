@@ -20,6 +20,8 @@ rosters, evidence builders, and experiment-specific trainers live in
 | Checkpoint evaluation | `cli/evaluate.py` | General `skae-evaluate` implementation |
 | Historical checkpoint loading | `checkpoint_compat.py` | Compatibility for retained artifacts |
 | Observation timesteps | `benchmarks/timesteps.py` | Shared timestep lookup |
+| Portable runtime storage | `runtime_paths.py` | Shared scratch-root precedence used by library and paper workflows |
+| Support-routed dynamics | `support/` | Parameterized masking, family construction, and local-map mechanics; no paper thresholds |
 
 `claude_catalog/` and paper-focused modules under `benchmarks/` are temporary
 import-compatibility namespaces. New code should use `skae.dynamics.analytic`
@@ -37,6 +39,11 @@ skae maintained code       -/->  experiments/neurips_2026
 The reusable implementation must not import the current paper package. The
 small historical compatibility shims under `skae/benchmarks/` are the sole
 temporary exception; they forward old imports without owning any logic.
+
+Compatibility names are boundary adapters, not a second API. Maintained code
+uses the descriptive names in `experiments.neurips_2026.controlled`; immutable
+historical names remain only in shims and artifact provenance so old
+checkpoints can still be replayed.
 
 ## Environment names
 

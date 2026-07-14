@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from typing import Dict
 
+from skae.runtime_paths import resolve_scratch_root
+
 
 DYSTS_CACHE_PROFILES: Dict[str, Dict[str, int]] = {
     "smoke": {
@@ -25,20 +27,15 @@ DYSTS_CACHE_PROFILES: Dict[str, Dict[str, int]] = {
     },
 }
 
+
 def default_dysts_cache_dir() -> str:
     """Pick a cache root without embedding a contributor-specific path."""
 
     configured = os.environ.get("DYSTS_CACHE_DIR")
     if configured:
         return str(Path(configured).expanduser())
-    scratch = os.environ.get("SKAE_SCRATCH_ROOT")
-    if scratch:
-        return str(Path(scratch).expanduser() / "dysts_native_cache")
-    user = os.environ.get("USER", "user")
-    user_scratch = Path("/network/scratch") / user[:1] / user
-    if user_scratch.exists():
-        return str(user_scratch / "skae" / "dysts_native_cache")
-    return "runs/dysts_native_cache"
+    scratch = resolve_scratch_root(fallback=Path("runs"))
+    return str(scratch / "dysts_native_cache")
 
 
 def apply_dysts_cache_profile(cfg, profile_name: str) -> Dict[str, int]:
