@@ -4,7 +4,7 @@ import json
 
 import numpy as np
 
-from tools.plot_multibasin_ground_truth_vector_fields import (
+from experiments.neurips_2026.evidence.ground_truth import (
     FieldData,
     RETAINED_15_SYSTEMS,
     write_manifest,

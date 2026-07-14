@@ -31,13 +31,11 @@ copy; the TeX source takes precedence if they differ.
   data. `_tables/` contains generated table inputs; `_data/`, when present,
   contains frozen row-level evidence needed to reproduce a paper result;
   `manifest.json` maps displays to generators and inputs.
-- `figures/dysts_dt30_phase_portraits_seed0_h1000_h5000_all_models_20260501/`:
-  retained qualitative Dysts diagnostic packet for 12 source systems, six
-  model variants, and horizons 1000--5000. Two systems are outside the current
-  10-system paper roster. The rendered packet is valid, but its manifest points
-  to historical source CSV and rollout artifacts that are no longer retained.
 - `archive/`: dated, non-current provenance, old drafts, and superseded plans.
   Nothing in the archive is an active instruction or status tracker.
+
+The complete code-to-evidence-to-PDF procedure is maintained once in
+[`../experiments/neurips_2026/README.md`](../experiments/neurips_2026/README.md).
 
 Exact code/configuration names and cluster paths belong in machine-readable
 provenance or reproduction commands, not in the paper-facing explanation to
@@ -71,5 +69,5 @@ Do not recreate `EXPERIMENTS.md`, `PAPER_TRACK_STATUS.md`,
   PDFs are generated or archived material.
 - Before removing an artifact, confirm that it is neither included by active TeX
   nor the sole surviving source for a reported value.
-- Run the builders listed in the active figure manifest with `--check` before a
-  paper handoff; run all Python commands inside a compute allocation.
+- Run `uv run skae-paper check` before a paper handoff, then build the TeX source;
+  run all Python commands inside a compute allocation.

@@ -11,7 +11,7 @@ import torch
 
 from skae.config import get_config
 from skae.data import VectorWrapper
-from tools.train_staged_support_family_local_k import (
+from experiments.neurips_2026.local_operators.train import (
     FINAL_EVALUATION_BATCH_SIZE,
     FINAL_EVALUATION_SEED_OFFSET,
     FAMILY_JACCARD_THRESHOLD,
@@ -42,12 +42,12 @@ from tools.train_staged_support_family_local_k import (
     _strictly_improves,
     _validate_frozen_fabs_artifact,
 )
-from tools.staged_fabs_protocol import _finite_prefix_start_mean
-from tools.staged_fabs_io import (
+from experiments.neurips_2026.local_operators.protocol import _finite_prefix_start_mean
+from experiments.neurips_2026.local_operators.artifact_io import (
     _restore_training_rng_states,
     _save_checkpoint,
 )
-from tools.train_support_family_local_maps import (
+from skae.support.routing import (
     FAMILY_CLUSTERING_RULE,
     FAMILY_REPRESENTATIVE_RULE,
     MIN_FAMILY_TRANSITIONS,
@@ -375,8 +375,12 @@ def test_resume_validation_accepts_legacy_fabs_and_rejects_new_512_unique(
 
 
 def test_launchers_expose_only_the_frozen_route_contract() -> None:
-    queue_text = (ROOT / "scripts/queue_staged_support_family_local_k_table1.sh").read_text()
-    runner_text = (ROOT / "scripts/run_staged_support_family_local_k_array.sh").read_text()
+    queue_text = (
+        ROOT / "scripts/neurips_2026/local_operators/queue_training.sh"
+    ).read_text()
+    runner_text = (
+        ROOT / "scripts/neurips_2026/local_operators/run_array.sh"
+    ).read_text()
     combined = queue_text + runner_text
     for required in (
         "absolute:0.001",
@@ -400,7 +404,7 @@ def test_launchers_expose_only_the_frozen_route_contract() -> None:
         "staged_fabs_route_source_v2",
     ):
         assert removed not in combined
-    assert "build_transition_rich_basin_partition_tasks.py" in queue_text
+    assert "skae-paper tasks controlled" in queue_text
     assert "--paper_protocol" in queue_text
     assert "SOURCE_TSV" not in queue_text
     heredocs = re.findall(r"<<'PY'\n(.*?)\nPY", combined, flags=re.DOTALL)
@@ -411,16 +415,17 @@ def test_launchers_expose_only_the_frozen_route_contract() -> None:
 
 def test_staged_modules_respect_active_text_line_cap() -> None:
     paths = [
-        ROOT / "tools/train_staged_support_family_local_k.py",
-        ROOT / "tools/train_support_family_local_maps.py",
-        *sorted((ROOT / "tools").glob("staged_fabs_*.py")),
-        ROOT / "tools/reevaluate_staged_vs_global_wide_periodic.py",
+        ROOT / "skae/support/routing.py",
+        ROOT / "skae/support/local_operator.py",
+        *sorted((ROOT / "experiments/neurips_2026/local_operators").glob("*.py")),
     ]
     assert all(len(path.read_text().splitlines()) <= 500 for path in paths)
 
 
 def test_best_and_last_stage2_checkpoints_are_resumable() -> None:
-    source = (ROOT / "tools/staged_fabs_training.py").read_text()
+    source = (
+        ROOT / "experiments/neurips_2026/local_operators/training.py"
+    ).read_text()
     tree = ast.parse(source)
     checkpoint_calls = [
         node

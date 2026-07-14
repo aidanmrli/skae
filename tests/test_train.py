@@ -17,8 +17,8 @@ from pathlib import Path
 from skae.config import get_config
 from skae.data import make_env, VectorWrapper
 from skae.model import make_model
-import tools.train as train_module
-from tools.train import (
+import skae.training.runner as train_module
+from skae.training.runner import (
     DYSTS_CACHE_PROFILES,
     apply_dysts_cache_profile,
     train_step,
@@ -50,54 +50,54 @@ def make_unified_loss_inputs(model, x: torch.Tensor, nx: torch.Tensor):
 
 class TestTrainStep:
     """Test training step function."""
-    
+
     def test_train_step_reduces_loss(self):
         """Test that training step updates parameters and computes metrics."""
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 8
         cfg.MODEL.ENCODER.LAYERS = [8]
         cfg.TRAIN.BATCH_SIZE = 4
-        
+
         env = make_env(cfg)
         model = make_model(cfg, env.observation_size)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-        
+
         # Generate batch
         rng = torch.Generator().manual_seed(42)
         x_seq = torch.randn(4, 2, env.observation_size)
-        
+
         # Store initial parameters
         initial_params = [p.clone() for p in model.parameters()]
-        
+
         # Training step
         metrics = train_step(model, optimizer, x_seq)
-        
+
         # Check metrics are computed
         assert 'loss' in metrics
         assert 'alignment_loss' in metrics
         assert 'reconst_loss' in metrics
         assert 'sparsity_loss' in metrics
         assert isinstance(metrics['loss'], float)
-        
+
         # Check parameters were updated
         for p_before, p_after in zip(initial_params, model.parameters()):
             assert not torch.allclose(p_before, p_after), "Parameters should be updated"
-    
+
     def test_train_step_gradient_flow(self):
         """Test that gradients flow through all parameters."""
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 8
         cfg.MODEL.ENCODER.LAYERS = [8]
-        
+
         env = make_env(cfg)
         model = make_model(cfg, env.observation_size)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-        
+
         x_seq = torch.randn(4, 2, env.observation_size)
-        
+
         # Training step
         metrics = train_step(model, optimizer, x_seq)
-        
+
         # Check that at least some parameters have been updated
         has_update = False
         for name, param in model.named_parameters():
@@ -105,7 +105,7 @@ class TestTrainStep:
                 # After optimizer step, gradients should be zeroed
                 # but parameters should have changed
                 has_update = True
-        
+
         assert has_update, "At least some parameters should require gradients"
 
     @pytest.mark.parametrize("horizon", [1, 8])
@@ -163,22 +163,22 @@ class TestTrainStep:
 
 class TestEvaluate:
     """Test evaluation function."""
-    
+
     def test_evaluate_returns_trajectories(self):
         """Test that evaluate returns trajectory predictions."""
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 8
         cfg.MODEL.ENCODER.LAYERS = [8]
-        
+
         env = make_env(cfg)
         env_vec = VectorWrapper(env, 4)
         model = make_model(cfg, env.observation_size)
-        
+
         rng = torch.Generator().manual_seed(42)
         x = env_vec.reset(rng)
-        
+
         results = evaluate(model, x, lambda s: env_vec.step(s), num_steps=10)
-        
+
         assert 'true_trajectory' in results
         assert 'pred_trajectory' in results
         assert 'pred_error' in results
@@ -187,28 +187,28 @@ class TestEvaluate:
         assert 'mean_error_per_dim' in results
         assert 'final_error' in results
         assert 'final_error_per_dim' in results
-        
+
         # Check shapes
         assert results['true_trajectory'].shape == (10, 4, env.observation_size)
         assert results['pred_trajectory'].shape == (10, 4, env.observation_size)
         assert results['pred_error'].shape == (10,)
         assert results['pred_error_per_dim'].shape == (10,)
-    
+
     def test_evaluate_no_gradient(self):
         """Test that evaluation doesn't compute gradients."""
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 8
         cfg.MODEL.ENCODER.LAYERS = [8]
-        
+
         env = make_env(cfg)
         env_vec = VectorWrapper(env, 4)
         model = make_model(cfg, env.observation_size)
-        
+
         rng = torch.Generator().manual_seed(42)
         x = env_vec.reset(rng)
-        
+
         results = evaluate(model, x, lambda s: env_vec.step(s), num_steps=5)
-        
+
         # Check that results don't require grad
         assert not results['true_trajectory'].requires_grad
         assert not results['pred_trajectory'].requires_grad
@@ -216,7 +216,7 @@ class TestEvaluate:
 
 class TestTrain:
     """Test full training loop."""
-    
+
     def test_train_short_run(self):
         """Test that training runs without errors (short run)."""
         cfg = get_config("generic")
@@ -226,7 +226,7 @@ class TestTrain:
         cfg.TRAIN.BATCH_SIZE = 4
         cfg.TRAIN.DATA_SIZE = 16
         cfg.TRAIN.EVAL_NUM_STEPS = 5
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             model = train(
                 cfg,
@@ -235,19 +235,19 @@ class TestTrain:
                 skip_eval=True,
                 save_last_checkpoint=True,
             )
-            
+
             # Check model was returned
             assert model is not None
             assert isinstance(model, torch.nn.Module)
-            
+
             # Check checkpoints were saved
             run_dirs = list(Path(tmpdir).iterdir())
             assert len(run_dirs) > 0
-            
+
             run_dir = run_dirs[0]
             assert (run_dir / 'config.json').exists()
             assert (run_dir / 'last.pt').exists()
-    
+
     def test_train_saves_checkpoint(self):
         """Test that training saves checkpoints correctly."""
         cfg = get_config("generic")
@@ -257,7 +257,7 @@ class TestTrain:
         cfg.TRAIN.BATCH_SIZE = 4
         cfg.TRAIN.DATA_SIZE = 16
         cfg.TRAIN.EVAL_NUM_STEPS = 5
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             model = train(
                 cfg,
@@ -266,14 +266,14 @@ class TestTrain:
                 skip_eval=True,
                 save_last_checkpoint=True,
             )
-            
+
             # Find run directory
             run_dirs = list(Path(tmpdir).iterdir())
             run_dir = run_dirs[0]
-            
+
             # Load checkpoint
             checkpoint = torch.load(run_dir / 'last.pt', map_location='cpu')
-            
+
             assert 'step' in checkpoint
             assert 'model_state_dict' in checkpoint
             assert 'optimizer_state_dict' in checkpoint
@@ -644,7 +644,7 @@ class TestOptimizer:
         cfg.TRAIN.BATCH_SIZE = 4
         cfg.TRAIN.DATA_SIZE = 16
         cfg.TRAIN.EVAL_NUM_STEPS = 5
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # First training run
             model1 = train(
@@ -654,19 +654,19 @@ class TestOptimizer:
                 skip_eval=True,
                 save_last_checkpoint=True,
             )
-            
+
             # Get checkpoint path
             run_dirs = list(Path(tmpdir).iterdir())
             checkpoint_path = run_dirs[0] / 'last.pt'
-            
+
             # Load checkpoint and check
             checkpoint = torch.load(checkpoint_path, map_location='cpu')
             assert checkpoint['step'] == cfg.TRAIN.NUM_STEPS - 1
-    
+
     def test_train_different_configs(self):
         """Test training with different configuration presets."""
         configs_to_test = ['generic', 'generic_sparse']
-        
+
         for config_name in configs_to_test:
             cfg = get_config(config_name)
             cfg.MODEL.TARGET_SIZE = 8
@@ -675,7 +675,7 @@ class TestOptimizer:
             cfg.TRAIN.BATCH_SIZE = 4
             cfg.TRAIN.DATA_SIZE = 16
             cfg.TRAIN.EVAL_NUM_STEPS = 5
-            
+
             with tempfile.TemporaryDirectory() as tmpdir:
                 model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
                 assert model is not None
@@ -683,11 +683,11 @@ class TestOptimizer:
 
 class TestTrainIntegration:
     """Integration tests for training pipeline."""
-    
+
     def test_train_all_environments(self):
         """Test training on all available environments."""
         environments = ['duffing', 'pendulum', 'lotka_volterra']
-        
+
         for env_name in environments:
             cfg = get_config("generic")
             cfg.ENV.ENV_NAME = env_name
@@ -697,7 +697,7 @@ class TestTrainIntegration:
             cfg.TRAIN.BATCH_SIZE = 4
             cfg.TRAIN.DATA_SIZE = 16
             cfg.TRAIN.EVAL_NUM_STEPS = 5
-            
+
             with tempfile.TemporaryDirectory() as tmpdir:
                 model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
                 assert model is not None
@@ -738,19 +738,19 @@ class TestTrainLearning:
         cfg.TRAIN.DATA_SIZE = 128
         cfg.TRAIN.EVAL_NUM_STEPS = 5
         cfg.TRAIN.LR = 1e-3
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # Train model
             model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
-            
+
             # Evaluate the trained model on a deterministic batch.
             env = make_env(cfg)
             env = VectorWrapper(env, cfg.TRAIN.BATCH_SIZE)
-            
+
             rng = torch.Generator().manual_seed(42)
             x = env.reset(rng)
             nx = env.step(x)
-            
+
             with torch.no_grad():
                 loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
                 assert torch.isfinite(loss)

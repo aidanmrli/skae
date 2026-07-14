@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "description": "PDF vector-field displays for the 15 controlled multibasin systems retained by the paper.",
-  "generated_by": "tools/plot_multibasin_ground_truth_vector_fields.py",
+  "generated_by": "experiments.neurips_2026.evidence.ground_truth",
   "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
-  "reproduction_command_inside_allocation": "uv run python tools/plot_multibasin_ground_truth_vector_fields.py --formats pdf",
+  "reproduction_command_inside_allocation": "uv run skae-paper build ground-truth --formats pdf",
   "grid_points": 80,
   "composite": "ground_truth_vector_fields_retained15.pdf",
   "systems": [

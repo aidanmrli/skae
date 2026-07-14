@@ -23,7 +23,7 @@ def test_env_creation():
     cfg.ENV.ENV_NAME = "duffing"
     cfg.ENV.DUFFING.DT = 0.01
     env = make_env(cfg)
-    
+
     assert env.observation_size == 2
     assert env.action_size == 0
     assert env.unwrapped is env
@@ -35,7 +35,7 @@ def test_env_reset():
     cfg.ENV.ENV_NAME = "duffing"
     cfg.ENV.DUFFING.DT = 0.01
     env = make_env(cfg)
-    
+
     # Reset with generator seed
     rng1 = torch.Generator()
     rng1.manual_seed(42)
@@ -43,13 +43,13 @@ def test_env_reset():
     assert isinstance(state1, torch.Tensor)
     assert state1.shape == (2,)
     assert torch.all(torch.isfinite(state1))
-    
+
     # Reset with same seed should give same state
     rng2 = torch.Generator()
     rng2.manual_seed(42)
     state2 = env.reset(rng2)
     assert torch.allclose(state1, state2)
-    
+
     # Reset with different seed should give different state
     rng3 = torch.Generator()
     rng3.manual_seed(123)
@@ -66,13 +66,13 @@ def test_env_step():
     rng = torch.Generator()
     rng.manual_seed(42)
     state = env.reset(rng)
-    
+
     # Take a step
     next_state = env.step(state)
     assert isinstance(next_state, torch.Tensor)
     assert next_state.shape == state.shape
     assert torch.all(torch.isfinite(next_state))
-    
+
     # State should change (not stuck)
     assert not torch.allclose(state, next_state)
 
@@ -86,10 +86,10 @@ def test_env_step_deterministic():
     rng = torch.Generator()
     rng.manual_seed(42)
     state = env.reset(rng)
-    
+
     next1 = env.step(state)
     next2 = env.step(state)
-    
+
     assert torch.allclose(next1, next2)
 
 
@@ -100,12 +100,12 @@ def test_wrapper_delegation():
     cfg.ENV.PENDULUM.DT = 0.01
     base_env = make_env(cfg)
     wrapper = Wrapper(base_env)
-    
+
     # Check delegation
     assert wrapper.observation_size == base_env.observation_size
     assert wrapper.action_size == base_env.action_size
     assert wrapper.unwrapped is base_env
-    
+
     # Check reset delegation
     rng = torch.Generator()
     rng.manual_seed(42)
@@ -114,7 +114,7 @@ def test_wrapper_delegation():
     rng2.manual_seed(42)
     state2 = wrapper.reset(rng2)
     assert torch.allclose(state1, state2)
-    
+
     # Check step delegation
     next1 = base_env.step(state1)
     next2 = wrapper.step(state2)
@@ -129,16 +129,16 @@ def test_vector_wrapper_reset():
     env = make_env(cfg)
     batch_size = 32
     vec_env = VectorWrapper(env, batch_size)
-    
+
     rng = torch.Generator()
     rng.manual_seed(42)
     states = vec_env.reset(rng)
-    
+
     # Check shape
     assert isinstance(states, torch.Tensor)
     assert states.shape == (batch_size, 2)
     assert torch.all(torch.isfinite(states))
-    
+
     # Check diversity (not all the same)
     assert not torch.allclose(states[0], states[1])
 
@@ -151,19 +151,19 @@ def test_vector_wrapper_step():
     env = make_env(cfg)
     batch_size = 16
     vec_env = VectorWrapper(env, batch_size)
-    
+
     rng = torch.Generator()
     rng.manual_seed(42)
     states = vec_env.reset(rng)
     next_states = vec_env.step(states)
-    
+
     # Check output shape
     assert next_states.shape == states.shape
     assert torch.all(torch.isfinite(next_states))
-    
+
     # Check that states evolved
     assert not torch.allclose(states, next_states)
-    
+
     # Verify vectorization matches individual steps
     individual_next = env.step(states[0])
     assert torch.allclose(next_states[0], individual_next, atol=1e-5)
@@ -179,13 +179,13 @@ def test_generate_trajectory_single():
     rng.manual_seed(42)
     init_state = env.reset(rng)
     length = 50
-    
+
     traj = generate_trajectory(env.step, init_state, length=length)
-    
+
     # Check shape: (length, state_dim)
     assert traj.shape == (length, 2)
     assert torch.all(torch.isfinite(traj))
-    
+
     # Verify trajectory evolves
     assert not torch.allclose(traj[0], traj[-1])
 
@@ -198,14 +198,14 @@ def test_generate_trajectory_batch():
     env = make_env(cfg)
     batch_size = 8
     vec_env = VectorWrapper(env, batch_size)
-    
+
     rng = torch.Generator()
     rng.manual_seed(42)
     init_states = vec_env.reset(rng)
     length = 50
-    
+
     traj = generate_trajectory(vec_env.step, init_states, length=length)
-    
+
     # Check shape: (length, batch, state_dim)
     assert traj.shape == (length, batch_size, 2)
     assert torch.all(torch.isfinite(traj))
@@ -220,10 +220,10 @@ def test_generate_trajectory_reproducibility():
     rng = torch.Generator()
     rng.manual_seed(123)
     init_state = env.reset(rng)
-    
+
     traj1 = generate_trajectory(env.step, init_state, length=30)
     traj2 = generate_trajectory(env.step, init_state, length=30)
-    
+
     assert torch.allclose(traj1, traj2)
 
 
@@ -242,7 +242,7 @@ def test_make_env_registry():
         "multiwell_strong_transition",
         "multiwell_gradient_hd",
     ]
-    
+
     for name in systems:
         cfg = Config()
         cfg.ENV.ENV_NAME = name
@@ -259,7 +259,7 @@ def test_make_env_registry():
         env = make_env(cfg)
         assert isinstance(env, Env)
         assert env.observation_size > 0
-        
+
         # Verify reset and step work
         rng = torch.Generator()
         rng.manual_seed(42)
@@ -268,10 +268,11 @@ def test_make_env_registry():
         assert next_state.shape == state.shape
 
 
-def test_make_env_claude_catalog_system():
-    """Claude catalog systems should be available through the standard factory."""
+@pytest.mark.parametrize("prefix", ["analytic", "claude"])
+def test_make_env_analytic_system(prefix):
+    """Analytic systems and their historical aliases use the common factory."""
     cfg = Config()
-    cfg.ENV.ENV_NAME = "claude:cal_square_4"
+    cfg.ENV.ENV_NAME = f"{prefix}:cal_square_4"
     env = make_env(cfg)
 
     rng = torch.Generator()
@@ -288,12 +289,14 @@ def test_make_env_claude_catalog_system():
     assert torch.all(torch.isfinite(next_state))
 
 
-def test_get_available_environments_includes_claude_catalog():
-    """Environment listing should expose the Claude catalog separately."""
+def test_get_available_environments_includes_analytic_systems():
+    """Environment listing exposes the maintained and compatibility names."""
     from skae.data import get_available_environments
 
     envs = get_available_environments()
 
+    assert "analytic" in envs
+    assert "cal_square_4" in envs["analytic"]
     assert "claude_catalog" in envs
     assert "cal_square_4" in envs["claude_catalog"]
 
@@ -329,7 +332,7 @@ def test_vector_wrapper_properties():
     cfg.ENV.LOTKA_VOLTERRA.DT = 0.01
     env = make_env(cfg)
     vec_env = VectorWrapper(env, 10)
-    
+
     assert vec_env.observation_size == env.observation_size
     assert vec_env.action_size == env.action_size
     assert vec_env.unwrapped is env
@@ -344,7 +347,7 @@ def test_trajectory_length_consistency():
     rng = torch.Generator()
     rng.manual_seed(42)
     init_state = env.reset(rng)
-    
+
     for length in [1, 10, 100, 500]:
         traj = generate_trajectory(env.step, init_state, length=length)
         assert traj.shape[0] == length
@@ -357,18 +360,18 @@ def test_env_batch_consistency():
     cfg.ENV.PENDULUM.DT = 0.01
     env = make_env(cfg)
     vec_env = VectorWrapper(env, 1)
-    
+
     # Single state
     rng1 = torch.Generator()
     rng1.manual_seed(42)
     state_single = env.reset(rng1)
     next_single = env.step(state_single)
-    
+
     # Batch of 1
     rng2 = torch.Generator()
     rng2.manual_seed(42)
     state_batch = vec_env.reset(rng2)
     next_batch = vec_env.step(state_batch)
-    
+
     # Results should match
     assert torch.allclose(next_single, next_batch[0], atol=1e-5)

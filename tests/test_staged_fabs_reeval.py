@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from skae.config import apply_env_dt_override, get_config
-from tools.reevaluate_staged_vs_global_wide_periodic import (
+from experiments.neurips_2026.local_operators.reevaluate import (
     _best_periodic_metrics,
     _evaluation_settings,
     _raise_for_error_rows,
@@ -16,7 +16,10 @@ from tools.reevaluate_staged_vs_global_wide_periodic import (
     _write_csv,
     _write_summary,
 )
-from tools.staged_fabs_reeval_io import _cache_fingerprint, _discover_runs
+from experiments.neurips_2026.local_operators.reevaluation_io import (
+    _cache_fingerprint,
+    _discover_runs,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -156,12 +159,14 @@ def test_mixed_error_rows_are_written_then_fail(tmp_path: Path) -> None:
 
 
 def test_reevaluation_launcher_has_gpu_guard_and_fixed_grid() -> None:
-    text = (ROOT / "scripts/reevaluate_staged_vs_global_wide_periodic.sh").read_text()
-    assert "source scripts/slurm_gpu_guard.sh" in text
+    text = (
+        ROOT / "scripts/neurips_2026/local_operators/reevaluate.sh"
+    ).read_text()
+    assert "source scripts/common/gpu_guard.sh" in text
     assert "gpu_guard_assert_cuda_visible" in text
     assert "gpu_guard_start_sampler" in text
     assert "1,2,5,10,20,25,50,100" in text
     loader_text = (
-        ROOT / "tools/reevaluate_staged_vs_global_wide_periodic.py"
+        ROOT / "experiments/neurips_2026/local_operators/reevaluate.py"
     ).read_text()
     assert "learn_target_centers=True" in loader_text

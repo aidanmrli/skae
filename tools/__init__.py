@@ -1,1 +1,1 @@
-"""CLI tools for SKAE."""
+"""Historical command shims; maintained CLIs live in installed packages."""

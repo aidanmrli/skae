@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import torch
 
-from skae.benchmarks.controlled_alignment import (
+from experiments.neurips_2026.alignment import (
     ENDPOINT_ROLLOUT_STEPS,
     ENTROPY_UNITS,
     FAMILY_JACCARD_THRESHOLD,
@@ -31,11 +31,11 @@ from skae.benchmarks.controlled_alignment import (
     support_family_labels,
     tie_inclusive_high_center_margin_mask,
 )
-from tools.reduce_transition_rich_interpretability_metrics import (
+from experiments.neurips_2026.workflows.alignment_reduction import (
     _load_latest_specs,
     _write_csv,
 )
-from tools import reduce_transition_rich_interpretability_metrics as reducer
+from experiments.neurips_2026.workflows import alignment_reduction as reducer
 
 
 def test_active_output_schema_is_exact() -> None:
@@ -295,8 +295,8 @@ def test_failed_run_flushes_failed_manifest_and_exits_nonzero(
 
 def test_retired_reducer_surfaces_are_absent() -> None:
     source = Path(
-        "tools/reduce_transition_rich_interpretability_metrics.py"
-    ).read_text() + Path("skae/benchmarks/controlled_alignment.py").read_text()
+        "experiments/neurips_2026/workflows/alignment_reduction.py"
+    ).read_text() + Path("experiments/neurips_2026/alignment.py").read_text()
     for retired in (
         "relative_thresholds",
         "topk_values",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from argparse import Namespace
 
-from tools.build_dysts_dt30_basinblock_tasks import (
+from experiments.neurips_2026.workflows.dysts_tasks import (
     DYSTS_SYSTEM_SPECS,
     _build_parser,
     _build_rows,

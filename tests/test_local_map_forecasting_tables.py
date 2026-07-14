@@ -2,7 +2,7 @@
 
 import hashlib
 
-from tools.build_local_map_forecasting_tables import (
+from experiments.neurips_2026.evidence.local_operator_tables import (
     DATA_PATH,
     PATH_COLUMNS,
     TABLE_PATH,

@@ -34,10 +34,10 @@ class Env(ABC):
     @abstractmethod
     def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
         """Reset environment to initial state.
-        
+
         Args:
             rng: Random number generator for reproducibility
-            
+
         Returns:
             Initial state tensor
         """
@@ -46,11 +46,11 @@ class Env(ABC):
     @abstractmethod
     def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Take one step in the environment.
-        
+
         Args:
             state: Current state tensor
             action: Optional action tensor (for controlled systems)
-            
+
         Returns:
             Next state tensor
         """
@@ -111,19 +111,19 @@ class VectorWrapper(Wrapper):
 
     def reset(self, rng: Optional[torch.Generator] = None) -> torch.Tensor:
         """Reset multiple environments in parallel with independent random seeds.
-        
+
         Mimics JAX's jax.random.split behavior by creating independent generators
         for each environment in the batch to ensure diverse initial states.
-        
+
         Args:
             rng: Random number generator (if None, creates a new one)
-            
+
         Returns:
             Batch of initial states with shape [batch_size, state_dim]
         """
         if rng is None:
             rng = torch.Generator()
-        
+
         # Create independent generators for each environment (like jax.random.split)
         base_seed = rng.initial_seed()
         states = []
@@ -134,11 +134,11 @@ class VectorWrapper(Wrapper):
 
     def step(self, state: torch.Tensor, action: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Step multiple environments in parallel.
-        
+
         Args:
             state: Batch of states with shape [batch_size, state_dim]
             action: Optional batch of actions
-            
+
         Returns:
             Batch of next states with shape [batch_size, state_dim]
         """
@@ -150,7 +150,7 @@ class VectorWrapper(Wrapper):
             return torch.vmap(lambda s, a: self.env.step(s, a))(state, action)
         if self._vmap_supported is False:
             return self.env.step(state, action)
-        
+
         try:
             if action is None:
                 result = torch.vmap(lambda s: self.env.step(s, None))(state)
@@ -165,24 +165,24 @@ class VectorWrapper(Wrapper):
                 self._vmap_supported = False
                 return self.env.step(state, action)
             raise
-    
+
     def generate_sequence_batch(
-        self, 
+        self,
         rng: Optional[torch.Generator] = None,
         window_length: int = 10,
     ) -> torch.Tensor:
         """Generate a batch of sequence windows using vectorized operations.
-        
+
         Args:
             rng: Random number generator
             window_length: Length of sequence (T steps after initial state)
-            
+
         Returns:
             Batch of sequences with shape [batch_size, window_length+1, state_dim]
             Each sequence contains [x_t, x_{t+1}, ..., x_{t+T}]
         """
         init_states = self.reset(rng)  # [batch_size, state_dim]
-        
+
         # Vectorized sequence generation: use generate_trajectory with batched step
         # This is much faster than the Python loop
         trajectories = generate_trajectory(
@@ -190,13 +190,13 @@ class VectorWrapper(Wrapper):
             init_states,
             length=window_length
         )  # [window_length, batch_size, state_dim]
-        
+
         # Stack initial states with trajectories: [batch_size, window_length+1, state_dim]
         sequences = torch.cat([
             init_states.unsqueeze(0),  # [1, batch_size, state_dim]
             trajectories
         ], dim=0)  # [window_length+1, batch_size, state_dim]
-        
+
         # Transpose to [batch_size, window_length+1, state_dim]
         return sequences.transpose(0, 1)
 
@@ -483,7 +483,7 @@ class DystsTrajectoryCache:
             return 2
         digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()
         return int(digest[:8], 16) % 1_000_000
-    
+
     def __init__(
         self,
         env,
@@ -502,7 +502,7 @@ class DystsTrajectoryCache:
         self.cache_reuse = bool(getattr(cfg.ENV.DYSTS, "CACHE_REUSE", False))
         self.cache_split = str(getattr(cfg.ENV.DYSTS, "CACHE_SPLIT", "train")).strip().lower() or "train"
         self.cache_num_workers = max(1, int(getattr(cfg.ENV.DYSTS, "CACHE_NUM_WORKERS", 1)))
-        
+
         if self.cache_steps < 2:
             raise ValueError("Dysts cache requires CACHE_STEPS >= 2")
 
@@ -663,7 +663,7 @@ class DystsTrajectoryCache:
                         flush=True,
                     )
         return [traj for traj in trajectories if traj is not None]
-    
+
     def _build_cache(self) -> torch.Tensor:
         """Generate cached trajectories using dysts native integrator."""
         base_ic = self.env._ic.detach().cpu().numpy()
@@ -677,7 +677,7 @@ class DystsTrajectoryCache:
         original_ic = None
         if hasattr(self.env.system, "ic"):
             original_ic = np.array(self.env.system.ic, copy=True)
-        
+
         trajectories: List[torch.Tensor] = []
         t0 = time.perf_counter()
 
@@ -719,10 +719,10 @@ class DystsTrajectoryCache:
                 if traj.dtype != torch.float32:
                     traj = traj.to(dtype=torch.float32)
                 trajectories.append(traj)
-        
+
         if original_ic is not None:
             self.env.system.ic = original_ic
-        
+
         elapsed = time.perf_counter() - t0
         print(
             f"[dysts cache] done: trajectories={len(trajectories)}, "
@@ -730,7 +730,7 @@ class DystsTrajectoryCache:
             f"(total={elapsed:.1f}s)",
             flush=True,
         )
-        
+
         if len(trajectories) == 1:
             stacked = trajectories[0].unsqueeze(0)
         else:
@@ -738,11 +738,11 @@ class DystsTrajectoryCache:
 
         self._save_cached_trajectories(cache_path, stacked)
         return stacked
-    
+
     @property
     def trajectories(self) -> torch.Tensor:
         return self._trajectories
-    
+
     def sample_pair_batch(
         self,
         rng: torch.Generator,
@@ -754,17 +754,17 @@ class DystsTrajectoryCache:
         max_start = steps - 1
         if max_start <= 0:
             raise ValueError("Cached trajectories are too short for pairwise sampling.")
-        
+
         traj_idx = torch.randint(0, traj_count, (batch_size,), generator=rng)
         time_idx = torch.randint(0, max_start, (batch_size,), generator=rng)
         x = self._trajectories[traj_idx, time_idx]
         nx = self._trajectories[traj_idx, time_idx + 1]
-        
+
         if device is not None:
             x = x.to(device)
             nx = nx.to(device)
         return x, nx
-    
+
     def sample_sequence_batch(
         self,
         rng: torch.Generator,
@@ -780,13 +780,13 @@ class DystsTrajectoryCache:
                 "Cached trajectories are too short for sequence sampling. "
                 "Increase CACHE_STEPS or reduce SEQUENCE_LENGTH."
             )
-        
+
         traj_idx = torch.randint(0, traj_count, (batch_size,), generator=rng)
         time_idx = torch.randint(0, max_start + 1, (batch_size,), generator=rng)
         offsets = torch.arange(window_length + 1)
         seq_idx = time_idx[:, None] + offsets[None, :]
         sequences = self._trajectories[traj_idx[:, None], seq_idx]
-        
+
         if device is not None:
             sequences = sequences.to(device)
         return sequences
@@ -803,13 +803,13 @@ def integrate_euler(
     dynamics_fn: Callable[[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]
 ) -> torch.Tensor:
     """Euler integration step for ODE.
-    
+
     Args:
         x: Current state
         u: Optional control input
         dt: Time step
         dynamics_fn: Function computing state derivatives
-        
+
     Returns:
         Next state using Euler integration
     """
@@ -823,17 +823,17 @@ def integrate_rk4(
     dynamics_fn: Callable[[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]
 ) -> torch.Tensor:
     """Fourth-order Runge-Kutta (RK4) integration step for ODE.
-    
+
     The RK4 method is a higher-order numerical integrator that provides
     better accuracy than Euler integration by using a weighted average
     of four slope estimates.
-    
+
     Args:
         x: Current state
         u: Optional control input
         dt: Time step
         dynamics_fn: Function computing state derivatives
-        
+
     Returns:
         Next state using RK4 integration
     """
@@ -841,7 +841,7 @@ def integrate_rk4(
     k2 = dynamics_fn(x + 0.5 * dt * k1, u)
     k3 = dynamics_fn(x + 0.5 * dt * k2, u)
     k4 = dynamics_fn(x + dt * k3, u)
-    
+
     return x + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
 
@@ -853,14 +853,14 @@ def generate_trajectory(
     actions: Optional[torch.Tensor] = None
 ) -> torch.Tensor:
     """Generate a trajectory by repeatedly applying environment step.
-    
+
     Args:
         env_step: Function that takes state (and optionally action) and returns next state
         init_state: Initial state tensor
         length: Number of steps (required if actions is None)
         rng: Random number generator (unused, for API compatibility)
         actions: Optional sequence of actions with shape [length, action_dim]
-        
+
     Returns:
         Trajectory tensor with shape [length, state_dim] or [length, batch_size, state_dim]
     """
@@ -887,12 +887,12 @@ def generate_sequence_window(
     window_length: int,
 ) -> torch.Tensor:
     """Generate a sequence window including the initial state.
-    
+
     Args:
         env_step: Function that takes state (and optionally action) and returns next state
         init_state: Initial state tensor
         window_length: Length of sequence window (T+1 total states including initial)
-        
+
     Returns:
         Sequence tensor with shape [window_length+1, state_dim] or [window_length+1, batch_size, state_dim]
         This includes x_t, x_{t+1}, ..., x_{t+T}
@@ -912,11 +912,11 @@ def generate_sequence_window(
 
 class Pendulum(Env):
     """Pendulum model - freely swinging pole.
-    
+
     State: [angle, angular_velocity]
     The angle x1 is measured in radians from the downward vertical position.
     Initial conditions sampled uniformly from [-π, π] × [-2, 2].
-    
+
     Dynamics:
         dot(x1) = x2
         dot(x2) = -(g/L) * sin(x1)
@@ -950,12 +950,12 @@ class Pendulum(Env):
 
 class Duffing(Env):
     """Duffing Oscillator - damped and force-driven particle model.
-    
+
     Nonlinear second-order ODE: x'' = x - x^3
-    
+
     Admits two center points at (x, x') = (±1, 0) and an unstable fixed point at origin.
     Initial conditions sampled uniformly from [-2, 2] × [-1, 1].
-    
+
     Dynamics:
         dot(x1) = x2
         dot(x2) = x1 - x1^3
@@ -988,14 +988,14 @@ class Duffing(Env):
 
 class LotkaVolterra(Env):
     """Lotka-Volterra predator-prey model.
-    
+
     Models population dynamics with predator-prey interactions.
     State: [prey_population, predator_population]
-    
+
     Dynamics:
         dot(x1) = alpha * x1 - beta * x1 * x2
         dot(x2) = delta * x1 * x2 - gamma * x2
-    
+
     Parameters: alpha = beta = gamma = delta = 0.2
     Fixed points: origin and center at (gamma/delta, alpha/beta) = (1, 1)
     Initial conditions sampled uniformly from [0.02, 3.0] × [0.02, 3.0]
@@ -1345,15 +1345,15 @@ class CompetitiveLotkaVolterra(Env):
 
 class Lorenz63(Env):
     """Lorenz 63 system - chaotic three-dimensional system.
-    
+
     Famous for the "butterfly effect" and sensitivity to initial conditions.
     Exhibits chaotic behavior with strange attractor.
-    
+
     Dynamics:
         dot(x1) = sigma * (x2 - x1)
         dot(x2) = x1 * (rho - x3) - x2
         dot(x3) = x1 * x2 - beta * x3
-    
+
     Standard parameters: sigma=10, rho=28, beta=8/3 (Lorenz 1963)
     Initial conditions: perturbations around (0, 1, 1.05) with std=1.0
     """
@@ -1389,16 +1389,16 @@ class Lorenz63(Env):
 
 class Parabolic(Env):
     """Parabolic Attractor - two-dimensional system with parabolic manifold.
-    
+
     Dynamics admit solution asymptotically attracted to x2 = x1^2 for lambda < mu < 0.
-    
+
     Dynamics:
         dot(x1) = mu * x1
         dot(x2) = lambda * (x2 - x1^2)
-    
+
     The Koopman embedding z = [x1, x2, x1^2] has globally linear dynamics:
         dot(z) = [mu*z1, lambda*z2 - lambda*z3, 2*mu*z3]
-    
+
     Parameters: lambda=-1.0, mu=-0.1
     Initial conditions sampled uniformly from [-1, 1] × [-1, 1]
     """
@@ -1437,7 +1437,7 @@ class Parabolic(Env):
 
 class LyapunovMultiAttractor(Env):
     """Nonlinear 2D system with many exponentially stable equilibria.
-    
+
     Implements the vector field described in the notebook, with equilibria at
     a fixed set of 13 points and dynamics built from Gaussian bump functions.
     """
@@ -2414,12 +2414,12 @@ class BlendedLinearSystem(Env):
         return self.matrices[basin_idx]  # [..., 2, 2]
 
 
-class ClaudeCatalogEnv(Env):
-    """Adapter exposing a Claude catalog system through the standard Env API."""
+class AnalyticMultibasinEnv(Env):
+    """Expose a retained analytic multibasin system through the Env API."""
 
     def __init__(self, cfg: Config, system_name: str):
         super().__init__(cfg)
-        from skae.claude_catalog import ensure_catalog_registered, get_system
+        from skae.dynamics.analytic import ensure_catalog_registered, get_system
 
         ensure_catalog_registered()
         dt_override = float(cfg.ENV.CLAUDE_CATALOG.DT)
@@ -2444,6 +2444,10 @@ class ClaudeCatalogEnv(Env):
             return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
         next_state = self.system.step(state.to(dtype=torch.float64))
         return next_state.to(dtype=state.dtype if state.is_floating_point() else torch.float32)
+
+
+# Public compatibility alias used by historical code and serialized naming.
+ClaudeCatalogEnv = AnalyticMultibasinEnv
 
 
 # ---------------------------------------------------------------------------
@@ -2487,38 +2491,39 @@ _ENV_REGISTRY = {
 
 def make_env(cfg: Config) -> Env:
     """Factory function to create environment from configuration.
-    
+
     Supports both built-in environments and dysts systems.
-    
+
     For built-in environments:
         cfg.ENV.ENV_NAME should be one of: "duffing", "pendulum", "lotka_volterra",
         "lorenz63", "parabolic", "lyapunov", "blended", "multiwell",
-        "kuramoto", "hopfield", "competitive_lv", "claude:SystemName",
+        "kuramoto", "hopfield", "competitive_lv", "analytic:SystemName",
         "multiwell_<variant>", "multiwell_<variant>_hd"
-    
-    For Claude catalog systems:
-        cfg.ENV.ENV_NAME should be "claude:SystemName"
-        (e.g., "claude:cal_square_4")
+
+    For analytic paper systems:
+        cfg.ENV.ENV_NAME should be "analytic:SystemName"
+        (e.g., "analytic:cal_square_4"). Historical ``claude:`` keys remain
+        accepted for frozen run compatibility.
 
     For dysts systems:
         cfg.ENV.ENV_NAME should be "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")
         or just the system name directly (e.g., "Lorenz") if not in the built-in registry.
-    
+
     Args:
         cfg: Configuration object with ENV.ENV_NAME specifying the system
-        
+
     Returns:
         Environment instance
-        
+
     Raises:
         ValueError: If ENV_NAME is not found in registry or dysts
     """
     env_name = cfg.ENV.ENV_NAME
 
-    if env_name.startswith("claude:"):
+    if env_name.startswith(("analytic:", "claude:")):
         system_name = env_name.split(":", 1)[1]
-        return ClaudeCatalogEnv(cfg, system_name)
-    
+        return AnalyticMultibasinEnv(cfg, system_name)
+
     # Check for explicit dysts prefix
     if env_name.startswith("dysts:"):
         system_name = env_name.split(":", 1)[1]
@@ -2528,35 +2533,35 @@ def make_env(cfg: Config) -> Env:
     if env_name.startswith("multiwell:"):
         mode = env_name.split(":", 1)[1]
         return MultiWellTransition(cfg, dynamics_mode=mode)
-    
+
     # Check built-in registry first
     if env_name in _ENV_REGISTRY:
         return _ENV_REGISTRY[env_name](cfg)
-    
+
     # Try as a dysts system name (without prefix)
     # This allows using system names directly like "Lorenz" instead of "dysts:Lorenz"
     try:
         return _make_dysts_env(env_name, cfg)
     except (ImportError, ValueError):
         pass
-    
+
     # Not found anywhere
     raise ValueError(
         f"Unknown environment '{env_name}'. "
         f"Built-in environments: {list(_ENV_REGISTRY.keys())}. "
-        "For Claude catalog systems, use 'claude:SystemName' "
-        "(e.g., 'claude:cal_square_4'). "
+        "For analytic systems, use 'analytic:SystemName' "
+        "(e.g., 'analytic:cal_square_4'). "
         f"For dysts systems, use 'dysts:SystemName' (e.g., 'dysts:Lorenz')."
     )
 
 
 def _make_dysts_env(system_name: str, cfg: Config):
     """Create a dysts environment with config settings.
-    
+
     Args:
         system_name: Name of the dysts system (e.g., "Lorenz", "Chua")
         cfg: Configuration object
-        
+
     Returns:
         DystsEnv instance
     """
@@ -2566,18 +2571,18 @@ def _make_dysts_env(system_name: str, cfg: Config):
         raise ImportError(
             "benchmarks module not found. Make sure the benchmarks/ directory exists."
         )
-    
+
     if not is_dysts_available():
         raise ImportError(
             "dysts library is not available. Install with: pip install dysts "
             "or ensure the dysts submodule is present at ./dysts/"
         )
-    
+
     # Get dysts-specific config
     dt_override = cfg.ENV.DYSTS.DT_OVERRIDE if cfg.ENV.DYSTS.DT_OVERRIDE > 0 else None
     ic_noise_scale = cfg.ENV.DYSTS.IC_NOISE_SCALE
     standardize = cfg.ENV.DYSTS.STANDARDIZE
-    
+
     return DystsEnv(
         system_name=system_name,
         dt_override=dt_override,
@@ -2588,30 +2593,34 @@ def _make_dysts_env(system_name: str, cfg: Config):
 
 def get_available_environments() -> dict:
     """Get information about all available environments.
-    
+
     Returns:
-        Dictionary with 'builtin', 'claude_catalog', and 'dysts' keys listing
+        Dictionary with 'builtin', 'analytic', and 'dysts' keys. The historical
+        'claude_catalog' key mirrors 'analytic' for compatibility.
         available systems.
     """
     result = {
         "builtin": sorted(_ENV_REGISTRY.keys()),
+        "analytic": [],
         "claude_catalog": [],
         "dysts": [],
     }
 
     try:
-        from skae.claude_catalog import ensure_catalog_registered, list_systems
+        from skae.dynamics.analytic import ensure_catalog_registered, list_systems
 
         ensure_catalog_registered()
-        result["claude_catalog"] = list_systems()
+        analytic_systems = list_systems()
+        result["analytic"] = analytic_systems
+        result["claude_catalog"] = analytic_systems
     except ImportError:
         pass
-    
+
     try:
         from skae.benchmarks.dysts_adapter import get_dysts_systems, is_dysts_available
         if is_dysts_available():
             result["dysts"] = get_dysts_systems()
     except ImportError:
         pass
-    
+
     return result

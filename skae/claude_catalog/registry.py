@@ -1,26 +1,17 @@
-"""Registry for all catalog systems."""
+"""Compatibility imports for :mod:`skae.dynamics.analytic.registry`."""
 
-from typing import Dict, List, Type
-from skae.claude_catalog.base import CatalogSystem
+from skae.dynamics.analytic.registry import (
+    ANALYTIC_REGISTRY,
+    CATALOG_REGISTRY,
+    get_system,
+    list_systems,
+    register,
+)
 
-CATALOG_REGISTRY: Dict[str, Type[CatalogSystem]] = {}
-
-
-def register(cls: Type[CatalogSystem]) -> Type[CatalogSystem]:
-    """Decorator to register a system class."""
-    CATALOG_REGISTRY[cls.name] = cls
-    return cls
-
-
-def get_system(name: str, **kwargs) -> CatalogSystem:
-    """Instantiate a system by name."""
-    if name not in CATALOG_REGISTRY:
-        raise ValueError(
-            f"Unknown system '{name}'. Available: {list(CATALOG_REGISTRY.keys())}"
-        )
-    return CATALOG_REGISTRY[name](**kwargs)
-
-
-def list_systems() -> List[str]:
-    """List all registered system names."""
-    return sorted(CATALOG_REGISTRY.keys())
+__all__ = [
+    "ANALYTIC_REGISTRY",
+    "CATALOG_REGISTRY",
+    "register",
+    "get_system",
+    "list_systems",
+]

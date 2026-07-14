@@ -7,11 +7,11 @@ from argparse import Namespace
 
 import pytest
 
-from skae.benchmarks.paper_protocol import (
+from experiments.neurips_2026.protocol import (
     CONTROLLED_MODEL_ROW_IDS,
     CONTROLLED_PAPER_PROTOCOL,
 )
-from tools.build_transition_rich_basin_partition_tasks import (
+from experiments.neurips_2026.workflows.controlled_tasks import (
     _build_rows,
     _manifest_payload,
     _selected_model_specs,

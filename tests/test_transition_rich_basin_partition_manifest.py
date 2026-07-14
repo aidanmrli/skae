@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from skae.benchmarks.paper_protocol import (
+from experiments.neurips_2026.protocol import (
     CONTROLLED_MODEL_ROW_IDS,
     CONTROLLED_PAPER_PROTOCOL,
 )
-from skae.benchmarks.transition_rich_basin_partition_manifest import (
+from experiments.neurips_2026.controlled import (
     TRANSITION_RICH_BASIN_PARTITION_BATCH_SIZE,
     TRANSITION_RICH_BASIN_PARTITION_NUM_STEPS,
     TRANSITION_RICH_BASIN_PARTITION_SEEDS,

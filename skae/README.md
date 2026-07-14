@@ -1,67 +1,70 @@
-# Core package map
+# Reusable library map
 
-`skae/` contains reusable model and benchmark implementation. Paper-specific
-commands belong in `tools/`, and cluster orchestration belongs in `scripts/`.
-The current scientific contract is the manuscript, not this map.
+`skae/` contains code that is reusable beyond the current paper. Frozen paper
+rosters, evidence builders, and experiment-specific trainers live in
+`experiments/neurips_2026/`.
 
-## Main modules
+## Feature map
 
-- `model.py`: encoders, decoders, latent transition operators, sparse Koopman
-  autoencoders, and model construction.
-- `data.py`: trajectory environments, controlled dynamical systems, reset
-  distributions, and dataset generation.
-- `config.py`: configuration dataclasses, presets, and environment timestep
-  resolution.
-- `evaluation.py`: rollout evaluation and diagnostic plotting shared by the
-  maintained CLIs.
-- `checkpoint_compat.py`: compatibility loading for retained historical
-  checkpoints.
+| Feature | Maintained location | Notes |
+|---|---|---|
+| Sparse Koopman autoencoders | `model.py` | Encoders, decoders, latent operators, model construction |
+| Environments and trajectory sampling | `data.py` | Common environment interface and dataset generation |
+| Analytic multibasin systems | `dynamics/analytic/` | Registry, equations, integration, and retained system definitions |
+| External Dysts systems | `benchmarks/dysts_adapter.py` | Dysts interface; deterministic cache profiles are in `dysts_cache_profiles.py` |
+| Configuration | `config.py` | Dataclasses, presets, and environment parsing |
+| Rollout metrics and diagnostics | `evaluation.py` | Shared evaluation behavior used by general and paper CLIs |
+| Support families | `support/routing.py` | Support signatures, family fitting, and runtime assignment |
+| Routed local operators | `support/local_operator.py` | Reusable local affine transition module |
+| Training | `training/runner.py` | General `skae-train` implementation |
+| Checkpoint evaluation | `cli/evaluate.py` | General `skae-evaluate` implementation |
+| Historical checkpoint loading | `checkpoint_compat.py` | Compatibility for retained artifacts |
+| Observation timesteps | `benchmarks/timesteps.py` | Shared timestep lookup |
 
-## Benchmark modules
+`claude_catalog/` and paper-focused modules under `benchmarks/` are temporary
+import-compatibility namespaces. New code should use `skae.dynamics.analytic`
+and `experiments.neurips_2026` directly.
 
-- `benchmarks/paper_protocol.py`: frozen controlled and Dysts paper roster,
-  model rows, seeds, budgets, and architecture-specific overrides. New paper
-  task builders should import this contract instead of duplicating constants.
-- `benchmarks/timesteps.py`: canonical observation-timestep lookup.
-- `benchmarks/controlled_alignment.py`: frozen evaluation-only support-family
-  construction, native/proxy label construction, tie-inclusive high-center-
-  margin scoring, and alignment metrics.
-- `benchmarks/transition_rich_basin_partition_manifest.py`: the exact 15
-  controlled systems and six reported KAE recipes, plus lookup metadata used
-  by evaluators.
-- `benchmarks/dysts_adapter.py` and `dysts_cache_profiles.py`: external Dysts
-  integration and deterministic cache settings. The paper Dysts roster lives
-  only in `benchmarks/paper_protocol.py`.
-- `claude_catalog/paper_systems.py`: the 13 analytic catalog systems retained
-  by the controlled paper roster. The registry/factory API remains stable; the
-  screening candidates were removed. The directory name is historical
-  provenance, while paper-facing text uses descriptive system names.
+## Dependency direction
 
-## Non-negotiable experiment semantics
+```text
+experiments/neurips_2026  --->  skae
+scripts                   --->  installed CLI entry points
+docs evidence builders    --->  experiments/neurips_2026
+skae maintained code       -/->  experiments/neurips_2026
+```
 
-- Training and deployment methods cannot require a known basin count, a basin
-  label, or a trajectory-to-basin assignment. Benchmark labels are allowed for
-  evaluation; structured-transition rows that use the known count solely to
-  choose a block count must remain labeled as diagnostics.
-- Dense no-sparsity baselines use tanh hidden activations. Dense ReLU is an
-  ablation, not the baseline.
-- Spatialized reaction--diffusion lifts must satisfy `d_z >= 4 * d_x`.
-- The paper's current forecasting summaries use test-set oracle selection over
-  periodic re-encoding cadences and omit nonfinite steps. Do not silently call
-  these values validation-selected or strict full-horizon errors.
-- Alignment and routing use different frozen family definitions: the
-  transductive alignment slice uses Jaccard `0.50`, while the staged route uses
-  `0.40`.
+The reusable implementation must not import the current paper package. The
+small historical compatibility shims under `skae/benchmarks/` are the sole
+temporary exception; they forward old imports without owning any logic.
 
-## Where to test changes
+## Environment names
 
-- Model shapes and construction: `tests/test_model.py`,
-  `tests/test_hyperlista.py`.
-- Environments and deterministic systems: `tests/test_data.py`,
-  `tests/test_env_interface.py`, and the retained transition-rich tests.
-- Rollout semantics: `tests/test_evaluation.py`.
-- Paper task contracts: `tests/test_paper_protocol.py` and the task-builder
-  tests.
+- `analytic:<system>` is the maintained prefix for registered analytic systems.
+- `dysts:<system>` selects an external Dysts system.
+- Unprefixed controlled environments such as `gated_local_linear` remain part
+  of the common environment interface.
+- `claude:<system>` remains accepted only so historical configs and artifact
+  identifiers replay exactly.
 
-Run Python and pytest only through `uv run` on a compute node. See the root
-`AGENTS.md` for allocation and SLURM rules.
+## Scientific invariants
+
+- Methods used at training/deployment time cannot require known basin counts or
+  basin assignments. Benchmark labels are evaluation-only.
+- Dense no-sparsity baselines use tanh. Dense ReLU must be named as an ablation.
+- Spatialized reaction--diffusion lifts satisfy `d_z >= 4 * d_x`.
+- Alignment and routed-local-operator experiments use separately frozen family
+  thresholds (`0.50` and `0.40`, respectively); these settings belong in the
+  paper package, not as universal library defaults.
+
+## Tests by area
+
+- Models and shapes: `tests/test_model.py`, `tests/test_hyperlista.py`
+- Environments and systems: `tests/test_data.py`, `tests/test_env_interface.py`
+- Evaluation behavior: `tests/test_evaluation.py`
+- Frozen paper contracts: `tests/test_paper_protocol.py` and the paper workflow
+  tests
+- Repository boundaries and CLI dispatch: `tests/test_repository_architecture.py`
+
+Run all Python and pytest commands through `uv run` inside a compute allocation,
+as specified in the root `AGENTS.md`.

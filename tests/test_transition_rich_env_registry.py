@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import torch
 
-from skae.benchmarks.transition_rich_basin_partition_manifest import (
+from experiments.neurips_2026.controlled import (
     resolve_transition_rich_default_dt,
     transition_rich_basin_partition_systems,
 )
-from skae.benchmarks.paper_protocol import CONTROLLED_PAPER_PROTOCOL
+from experiments.neurips_2026.protocol import CONTROLLED_PAPER_PROTOCOL
 from skae.config import Config
 from skae.data import get_available_environments, make_env
 
@@ -42,6 +42,7 @@ def test_catalog_registers_only_the_thirteen_retained_paper_systems():
         if key.startswith("claude:")
     }
 
+    assert set(envs["analytic"]) == expected
     assert set(envs["claude_catalog"]) == expected
 
 

@@ -1,15 +1,17 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "description": "Active evidence and display map for the current sparse-Koopman multibasin paper.",
   "paper_source": "docs/neurips_sparse_koopman_multibasin.tex",
+  "workflow_guide": "experiments/neurips_2026/README.md",
+  "complete_check_inside_allocation": "uv run skae-paper check",
   "paths_relative_to": "docs/figures/neurips_paper_2026",
   "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
   "evidence_groups": [
     {
       "id": "headline_kae_forecasting_and_alignment",
-      "freeze_tool": "tools/freeze_main_paper_evidence.py",
-      "build_tool": "tools/build_table1_forecasting_support.py",
-      "check_command_inside_allocation": "uv run python tools/build_table1_forecasting_support.py --check",
+      "freeze_tool": "experiments.neurips_2026.evidence.freeze",
+      "build_tool": "experiments.neurips_2026.evidence.headline_tables",
+      "check_command_inside_allocation": "uv run skae-paper build headline --check",
       "inputs": [
         "_data/controlled_forecasting_rows.csv",
         "_data/controlled_support_rows.csv",
@@ -19,7 +21,7 @@
         "_tables/paper_baseline_dysts_summary.csv"
       ],
       "provenance": "_data/main_paper_evidence_provenance.json",
-      "freeze_check_command_inside_allocation": "uv run python tools/freeze_main_paper_evidence.py --compact-existing-support --check",
+      "freeze_check_command_inside_allocation": "uv run skae-paper freeze headline --compact-existing-support --check",
       "aggregation_contract": "Within each system, summarize finite seed values with scipy.stats.trim_mean(proportiontocut=0.25); a complete 15-seed cell retains the central nine sorted observations. Then take an arithmetic mean across systems. Ordinary q25/q75 display ranges remain NumPy percentiles.",
       "support_contract": "At evaluation seed 42, generate 128 trajectories with 128 transitions (129 states) each. Use native env.basin_label labels and env.points centers for the two gated systems. For the 13 catalog systems, use the known benchmark count for evaluation only, advance endpoints 5,000 steps, estimate centers by deterministic farthest-first K-means, and assign each state its nearest-center proxy label. Form absolute-threshold (1e-3) support families at Jaccard 0.50 over every generated evaluation state. Within each observed label, compute the empirical q75 of the second-nearest minus nearest center-distance margin and retain every state with margin >= q75; this is tie-inclusive and can retain more than 25%. Report H(B|F_abs) in nats and the number of fitted family IDs observed on that scored high-margin slice. Wrong-support-freeze diagnostics are not active paper evidence.",
       "outputs": [
@@ -30,8 +32,8 @@
     },
     {
       "id": "controlled_per_system_tests",
-      "build_tool": "tools/build_controlled_per_system_tables.py",
-      "check_command_inside_allocation": "uv run python tools/build_controlled_per_system_tables.py --check",
+      "build_tool": "experiments.neurips_2026.evidence.controlled_tables",
+      "check_command_inside_allocation": "uv run skae-paper build controlled --check",
       "inputs": [
         "_data/controlled_forecasting_rows.csv",
         "_data/controlled_support_rows.csv"
@@ -46,8 +48,8 @@
     },
     {
       "id": "dysts_appendix",
-      "build_tool": "tools/build_dysts_paper_evidence.py",
-      "check_command_inside_allocation": "uv run python tools/build_dysts_paper_evidence.py --check",
+      "build_tool": "experiments.neurips_2026.evidence.dysts",
+      "check_command_inside_allocation": "uv run skae-paper build dysts --check",
       "inputs": [
         "_data/dysts_forecasting_rows.csv"
       ],
@@ -64,9 +66,9 @@
     },
     {
       "id": "standalone_controls",
-      "freeze_tool": "tools/freeze_paper_baseline_evidence.py",
-      "build_tool": "tools/summarize_paper_baseline_suite.py",
-      "check_command_inside_allocation": "uv run python tools/summarize_paper_baseline_suite.py --check",
+      "freeze_tool": "experiments.neurips_2026.baselines.freeze",
+      "build_tool": "experiments.neurips_2026.baselines.summarize",
+      "check_command_inside_allocation": "uv run skae-paper build baselines --check",
       "inputs": [
         "_data/paper_baseline_multibasin_rows.csv",
         "_data/paper_baseline_dysts_rows.csv"
@@ -84,8 +86,8 @@
     },
     {
       "id": "staged_support_family_forecasting",
-      "build_tool": "tools/build_local_map_forecasting_tables.py",
-      "check_command_inside_allocation": "uv run python tools/build_local_map_forecasting_tables.py --check",
+      "build_tool": "experiments.neurips_2026.evidence.local_operator_tables",
+      "check_command_inside_allocation": "uv run skae-paper build local-operators --check",
       "inputs": [
         "_data/fabs_local_map_forecasting_rows.csv"
       ],
@@ -97,9 +99,9 @@
     },
     {
       "id": "coordinate_intervention",
-      "freeze_tool": "tools/freeze_intervention_evidence.py",
-      "build_tool": "tools/build_intervention_artifacts.py",
-      "check_command_inside_allocation": "uv run python tools/build_intervention_artifacts.py --check",
+      "freeze_tool": "experiments.neurips_2026.interventions.freeze",
+      "build_tool": "experiments.neurips_2026.interventions.artifacts",
+      "check_command_inside_allocation": "uv run skae-paper build interventions --check",
       "inputs": [
         "_data/interventions/drop_horizon_metrics.csv.gz",
         "_data/interventions/drop_initial_points.csv.gz",
@@ -120,8 +122,8 @@
     },
     {
       "id": "controlled_ground_truth_vector_fields",
-      "build_tool": "tools/plot_multibasin_ground_truth_vector_fields.py",
-      "command_inside_allocation": "uv run python tools/plot_multibasin_ground_truth_vector_fields.py --formats pdf",
+      "build_tool": "experiments.neurips_2026.evidence.ground_truth",
+      "command_inside_allocation": "uv run skae-paper build ground-truth --formats pdf",
       "manifest": "ground_truth_vector_fields/manifest.json",
       "outputs": [
         "ground_truth_vector_fields/ground_truth_vector_fields_retained15.pdf",

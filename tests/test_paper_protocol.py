@@ -1,6 +1,6 @@
 """Contract tests for the frozen paper-facing benchmark protocol."""
 
-from skae.benchmarks.paper_protocol import (
+from experiments.neurips_2026.protocol import (
     CONTROLLED_MODEL_ROW_IDS,
     CONTROLLED_PAPER_PROTOCOL,
     DYSTS_MODEL_ROW_IDS,

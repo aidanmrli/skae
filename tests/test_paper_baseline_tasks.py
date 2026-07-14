@@ -4,8 +4,8 @@ from argparse import Namespace
 
 import pytest
 
-from tools.build_paper_baseline_tasks import _build_rows
-from tools.summarize_paper_baseline_suite import METHOD_ORDER, _summarize
+from experiments.neurips_2026.baselines.tasks import _build_rows
+from experiments.neurips_2026.baselines.summarize import METHOD_ORDER, _summarize
 
 
 def _args(baseline_families: str) -> Namespace:
