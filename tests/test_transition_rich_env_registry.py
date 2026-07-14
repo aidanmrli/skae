@@ -8,6 +8,7 @@ from skae.benchmarks.transition_rich_basin_partition_manifest import (
     resolve_transition_rich_default_dt,
     transition_rich_basin_partition_systems,
 )
+from skae.benchmarks.paper_protocol import CONTROLLED_PAPER_PROTOCOL
 from skae.config import Config
 from skae.data import get_available_environments, make_env
 
@@ -31,6 +32,17 @@ def test_transition_rich_native_envs_appear_in_environment_listing():
     envs = get_available_environments()
     assert "gated_local_linear" in envs["builtin"]
     assert "gated_transfer_linear" in envs["builtin"]
+
+
+def test_catalog_registers_only_the_thirteen_retained_paper_systems():
+    envs = get_available_environments()
+    expected = {
+        key.removeprefix("claude:")
+        for key in CONTROLLED_PAPER_PROTOCOL.system_keys
+        if key.startswith("claude:")
+    }
+
+    assert set(envs["claude_catalog"]) == expected
 
 
 def test_transition_rich_shortlist_envs_construct_with_benchmark_dt():

@@ -210,13 +210,41 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Runs
-runs/*
-plots/*
-results/*
+# Project outputs and cluster artifacts
+/runs/
+/results
+/plots/
+/logs/
+/data/
+/reports/
+/diagnostics/
+slurm-*.out
+slurm-*.err
+.claude_resources*.json
+/9224265
+/.tmp_pptx/
+
+# LaTeX build products (the current paper PDF remains versioned)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+missfont.log
+_minted-*/
 
 # Generated large rollout tensors
 docs/figures/dysts_phase_portraits/*_rollouts.pt
 
 .DS_Store
-slurm-*.out

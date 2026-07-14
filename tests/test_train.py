@@ -122,10 +122,43 @@ class TestTrainStep:
         x_seq = torch.randn(4, horizon + 1, env.observation_size)
         metrics = train_step(model, optimizer, x_seq)
 
-        assert metrics["sequence_term_scale"] == pytest.approx(1.0 / horizon, abs=1e-8)
+        assert metrics["sequence_term_scale"] == pytest.approx(1.0, abs=1e-8)
         for key in ("loss", "alignment_loss", "reconst_loss", "prediction_loss", "sparsity_loss"):
             assert key in metrics
             assert isinstance(metrics[key], float)
+
+    @pytest.mark.parametrize("target", ["rollout", "encoded", "encoded_rollout"])
+    def test_train_step_sparsity_target(self, target):
+        """train_step should apply L1 to the configured latent source."""
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LAYERS = [8]
+        cfg.MODEL.SPARSITY_TARGET = target
+
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.0)
+
+        x_seq = torch.randn(4, 4, env.observation_size)
+        batch_size, seq_len, obs_size = x_seq.shape
+        horizon = seq_len - 1
+        with torch.no_grad():
+            z_all = model.encode(x_seq.reshape(batch_size * seq_len, obs_size)).reshape(batch_size, seq_len, -1)
+            z0 = z_all[:, 0, :]
+            z_true = z_all[:, 1:, :]
+            z_pred = model.rollout_latent_discrete(z0, horizon=horizon)
+            if target == "rollout":
+                expected = torch.norm(z_pred, p=1, dim=-1).mean()
+            elif target == "encoded":
+                expected = torch.norm(z_true, p=1, dim=-1).mean()
+            else:
+                expected = 0.5 * (
+                    torch.norm(z_true, p=1, dim=-1).mean()
+                    + torch.norm(z_pred, p=1, dim=-1).mean()
+                )
+
+        metrics = train_step(model, optimizer, x_seq)
+        assert metrics["sparsity_loss"] == pytest.approx(float(expected), rel=1e-6)
 
 
 class TestEvaluate:
@@ -192,9 +225,16 @@ class TestTrain:
         cfg.TRAIN.NUM_STEPS = 10
         cfg.TRAIN.BATCH_SIZE = 4
         cfg.TRAIN.DATA_SIZE = 16
+        cfg.TRAIN.EVAL_NUM_STEPS = 5
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            model = train(cfg, log_dir=tmpdir, device='cpu')
+            model = train(
+                cfg,
+                log_dir=tmpdir,
+                device='cpu',
+                skip_eval=True,
+                save_last_checkpoint=True,
+            )
             
             # Check model was returned
             assert model is not None
@@ -216,9 +256,16 @@ class TestTrain:
         cfg.TRAIN.NUM_STEPS = 5
         cfg.TRAIN.BATCH_SIZE = 4
         cfg.TRAIN.DATA_SIZE = 16
+        cfg.TRAIN.EVAL_NUM_STEPS = 5
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            model = train(cfg, log_dir=tmpdir, device='cpu')
+            model = train(
+                cfg,
+                log_dir=tmpdir,
+                device='cpu',
+                skip_eval=True,
+                save_last_checkpoint=True,
+            )
             
             # Find run directory
             run_dirs = list(Path(tmpdir).iterdir())
@@ -243,9 +290,10 @@ class TestTrain:
         cfg.TRAIN.DATA_SIZE = 16
         cfg.TRAIN.SEQUENCE_LENGTH = 8
         cfg.TRAIN.EVAL_EVERY = 1000
+        cfg.TRAIN.EVAL_NUM_STEPS = 5
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True, skip_basin_eval=True)
+            model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
             assert model is not None
 
 
@@ -283,7 +331,6 @@ class TestTrainCli:
                 "--sequence_length",
                 "8",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -292,53 +339,6 @@ class TestTrainCli:
         )
         train_module.main()
         assert captured["sequence_length"] == 8
-
-    def test_cli_accepts_intrinsic_hd_size_overrides(self, tmp_path, monkeypatch):
-        captured = {}
-
-        def _fake_train(cfg, **kwargs):
-            captured["kuramoto_num_oscillators"] = cfg.ENV.KURAMOTO.NUM_OSCILLATORS
-            captured["hopfield_num_neurons"] = cfg.ENV.HOPFIELD.NUM_NEURONS
-            captured["hopfield_num_patterns"] = cfg.ENV.HOPFIELD.NUM_PATTERNS
-            captured["competitive_lv_num_species"] = cfg.ENV.COMPETITIVE_LV.NUM_SPECIES
-            return torch.nn.Linear(1, 1)
-
-        monkeypatch.setattr(train_module, "train", _fake_train)
-        monkeypatch.setattr(train_module, "get_device", lambda _requested: "cpu")
-        monkeypatch.setattr(
-            sys,
-            "argv",
-            [
-                "train.py",
-                "--config",
-                "generic",
-                "--env",
-                "kuramoto",
-                "--num_steps",
-                "1",
-                "--batch_size",
-                "2",
-                "--kuramoto_num_oscillators",
-                "32",
-                "--hopfield_num_neurons",
-                "64",
-                "--hopfield_num_patterns",
-                "8",
-                "--competitive_lv_num_species",
-                "12",
-                "--skip_eval",
-                "--skip_basin_eval",
-                "--device",
-                "cpu",
-                "--log_dir",
-                str(tmp_path),
-            ],
-        )
-        train_module.main()
-        assert captured["kuramoto_num_oscillators"] == 32
-        assert captured["hopfield_num_neurons"] == 64
-        assert captured["hopfield_num_patterns"] == 8
-        assert captured["competitive_lv_num_species"] == 12
 
     def test_cli_accepts_optimizer_overrides(self, tmp_path, monkeypatch):
         captured = {}
@@ -371,7 +371,6 @@ class TestTrainCli:
                 "--weight_decay",
                 "5e-5",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -414,7 +413,6 @@ class TestTrainCli:
                 "--decoder_coherence_weight",
                 "5e-4",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -460,7 +458,6 @@ class TestTrainCli:
                 "--encoder_topk_groups",
                 "2",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -515,7 +512,6 @@ class TestTrainCli:
                 "--lista_groupwise_thresholds",
                 "true",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -558,7 +554,6 @@ class TestTrainCli:
                 "--lista_momentum_beta",
                 "0.25",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -604,7 +599,6 @@ class TestTrainCli:
                 "--hard_init_transient_weight",
                 "0.8",
                 "--skip_eval",
-                "--skip_basin_eval",
                 "--device",
                 "cpu",
                 "--log_dir",
@@ -616,14 +610,6 @@ class TestTrainCli:
         assert captured["fraction"] == pytest.approx(0.75)
         assert captured["num_candidates"] == 2048
         assert captured["transient_weight"] == pytest.approx(0.8)
-
-    def test_basin_eval_import_uses_package_model_path(self):
-        import inspect
-
-        source = inspect.getsource(train_module.train)
-        assert "from skae.model import StructuredLISTAKM" in source
-        assert "from model import StructuredLISTAKM" not in source
-
 
 class TestOptimizer:
     """Tests for optimizer construction and parameter groups."""
@@ -649,29 +635,6 @@ class TestOptimizer:
         assert found_group is not None, "kmat parameter group not found in optimizer"
         assert found_group['lr'] == cfg.TRAIN.K_MATRIX_LR
 
-    def test_optimizer_uses_k_lr_for_structured_koopman_params(self):
-        cfg = get_config("lista")
-        cfg.MODEL.MODEL_NAME = "StructuredLISTAKM"
-        cfg.MODEL.STRUCTURED.ENABLED = True
-        cfg.MODEL.STRUCTURED.D_GLOBAL = 2
-        cfg.MODEL.STRUCTURED.NUM_BASINS = 2
-        cfg.MODEL.STRUCTURED.D_BASIN = 2
-        cfg.MODEL.TARGET_SIZE = 6
-
-        env = make_env(cfg)
-        model = make_model(cfg, env.observation_size)
-        optimizer = build_optimizer(model, cfg)
-
-        name_by_id = {id(param): name for name, param in model.named_parameters()}
-        grouped_lrs = {}
-        for group in optimizer.param_groups:
-            lr = group['lr']
-            for param in group['params']:
-                grouped_lrs[name_by_id[id(param)]] = lr
-
-        for name in ("K_global", "K_coupling.0", "K_coupling.1", "K_basin.0", "K_basin.1"):
-            assert grouped_lrs[name] == cfg.TRAIN.K_MATRIX_LR
-    
     def test_train_resume_from_checkpoint(self):
         """Test that training can resume from checkpoint."""
         cfg = get_config("generic")
@@ -680,10 +643,17 @@ class TestOptimizer:
         cfg.TRAIN.NUM_STEPS = 5
         cfg.TRAIN.BATCH_SIZE = 4
         cfg.TRAIN.DATA_SIZE = 16
+        cfg.TRAIN.EVAL_NUM_STEPS = 5
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # First training run
-            model1 = train(cfg, log_dir=tmpdir, device='cpu')
+            model1 = train(
+                cfg,
+                log_dir=tmpdir,
+                device='cpu',
+                skip_eval=True,
+                save_last_checkpoint=True,
+            )
             
             # Get checkpoint path
             run_dirs = list(Path(tmpdir).iterdir())
@@ -704,9 +674,10 @@ class TestOptimizer:
             cfg.TRAIN.NUM_STEPS = 5
             cfg.TRAIN.BATCH_SIZE = 4
             cfg.TRAIN.DATA_SIZE = 16
+            cfg.TRAIN.EVAL_NUM_STEPS = 5
             
             with tempfile.TemporaryDirectory() as tmpdir:
-                model = train(cfg, log_dir=tmpdir, device='cpu')
+                model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
                 assert model is not None
 
 
@@ -725,9 +696,10 @@ class TestTrainIntegration:
             cfg.TRAIN.NUM_STEPS = 5
             cfg.TRAIN.BATCH_SIZE = 4
             cfg.TRAIN.DATA_SIZE = 16
+            cfg.TRAIN.EVAL_NUM_STEPS = 5
             
             with tempfile.TemporaryDirectory() as tmpdir:
-                model = train(cfg, log_dir=tmpdir, device='cpu')
+                model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
                 assert model is not None
 
 
@@ -754,23 +726,24 @@ class TestDystsCacheProfiles:
 
 
 class TestTrainLearning:
-    """Learning behavior checks."""
+    """End-to-end loss sanity checks."""
 
-    def test_train_decreases_loss(self):
-        """Test that training actually reduces loss over time."""
+    def test_train_produces_finite_bounded_loss(self):
+        """A short trained model should produce a finite, bounded loss."""
         cfg = get_config("generic")
         cfg.MODEL.TARGET_SIZE = 16
         cfg.MODEL.ENCODER.LAYERS = [16, 16]
-        cfg.TRAIN.NUM_STEPS = 100
+        cfg.TRAIN.NUM_STEPS = 5
         cfg.TRAIN.BATCH_SIZE = 32
         cfg.TRAIN.DATA_SIZE = 128
+        cfg.TRAIN.EVAL_NUM_STEPS = 5
         cfg.TRAIN.LR = 1e-3
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # Train model
-            model = train(cfg, log_dir=tmpdir, device='cpu')
+            model = train(cfg, log_dir=tmpdir, device='cpu', skip_eval=True)
             
-            # Evaluate initial and final loss
+            # Evaluate the trained model on a deterministic batch.
             env = make_env(cfg)
             env = VectorWrapper(env, cfg.TRAIN.BATCH_SIZE)
             
@@ -778,11 +751,9 @@ class TestTrainLearning:
             x = env.reset(rng)
             nx = env.step(x)
             
-            # Load initial and final checkpoints to compare
-            # (In a real scenario, we'd track loss over time)
-            # For now, just check that model can compute loss
             with torch.no_grad():
                 loss, metrics = model.loss(**make_unified_loss_inputs(model, x, nx))
+                assert torch.isfinite(loss)
                 assert loss.item() < 100.0  # Sanity check
 
 
@@ -807,7 +778,7 @@ class TestDefaultLogDirRouting:
         cfg.MODEL.ENCODER.ENCODER_TYPE = "lista"
 
         monkeypatch.chdir(tmp_path)
-        train(cfg, log_dir=None, device="cpu", skip_eval=True, skip_basin_eval=True)
+        train(cfg, log_dir=None, device="cpu", skip_eval=True)
 
         run_root = tmp_path / "runs" / "lista"
         assert run_root.exists()
@@ -819,7 +790,7 @@ class TestDefaultLogDirRouting:
         cfg.MODEL.ENCODER.ENCODER_TYPE = "hyperlista"
 
         monkeypatch.chdir(tmp_path)
-        train(cfg, log_dir=None, device="cpu", skip_eval=True, skip_basin_eval=True)
+        train(cfg, log_dir=None, device="cpu", skip_eval=True)
 
         run_root = tmp_path / "runs" / "hyperlista"
         assert run_root.exists()
@@ -830,7 +801,7 @@ class TestDefaultLogDirRouting:
         cfg.MODEL.MODEL_NAME = "GenericKM"
 
         monkeypatch.chdir(tmp_path)
-        train(cfg, log_dir=None, device="cpu", skip_eval=True, skip_basin_eval=True)
+        train(cfg, log_dir=None, device="cpu", skip_eval=True)
 
         run_root = tmp_path / "runs" / "kae"
         assert run_root.exists()

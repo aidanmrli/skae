@@ -75,7 +75,7 @@ def main() -> None:
     parser.add_argument(
         "--profiles",
         nargs="+",
-        default=["smoke", "full"],
+        default=["full"],
         choices=sorted(DYSTS_CACHE_PROFILES.keys()),
         help="Cache profiles to build",
     )
@@ -93,8 +93,8 @@ def main() -> None:
     parser.add_argument(
         "--dt_multiplier",
         type=float,
-        default=1.0,
-        help="Multiplier applied to each Dysts system's intrinsic timestep.",
+        default=30.0,
+        help="Multiplier applied to each Dysts system's intrinsic timestep (paper default: 30).",
     )
     parser.add_argument(
         "--standardize",

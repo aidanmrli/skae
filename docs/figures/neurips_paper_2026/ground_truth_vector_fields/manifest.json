@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "description": "PDF vector-field displays for the 15 controlled multibasin systems retained by the paper.",
+  "generated_by": "tools/plot_multibasin_ground_truth_vector_fields.py",
+  "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
+  "reproduction_command_inside_allocation": "uv run python tools/plot_multibasin_ground_truth_vector_fields.py --formats pdf",
+  "grid_points": 80,
+  "composite": "ground_truth_vector_fields_retained15.pdf",
+  "systems": [
+    {
+      "system_key": "gated_local_linear",
+      "display_name": "Local-linear gates",
+      "basins": 3,
+      "pdf": "ground_truth_vector_field_gated_local_linear.pdf"
+    },
+    {
+      "system_key": "gated_transfer_linear",
+      "display_name": "Transfer-gated local-linear",
+      "basins": 3,
+      "pdf": "ground_truth_vector_field_gated_transfer_linear.pdf"
+    },
+    {
+      "system_key": "claude:arrested_spiral",
+      "display_name": "Arrested spiral",
+      "basins": 5,
+      "pdf": "ground_truth_vector_field_arrested_spiral.pdf"
+    },
+    {
+      "system_key": "claude:cal_asymmetric_3",
+      "display_name": "Asymmetric three-well",
+      "basins": 3,
+      "pdf": "ground_truth_vector_field_cal_asymmetric_3.pdf"
+    },
+    {
+      "system_key": "claude:cal_high_cross_3",
+      "display_name": "High-cross three-well",
+      "basins": 3,
+      "pdf": "ground_truth_vector_field_cal_high_cross_3.pdf"
+    },
+    {
+      "system_key": "claude:cal_hexagon_6",
+      "display_name": "Hexagonal six-well",
+      "basins": 6,
+      "pdf": "ground_truth_vector_field_cal_hexagon_6.pdf"
+    },
+    {
+      "system_key": "claude:cal_octagon_8",
+      "display_name": "Octagonal eight-well",
+      "basins": 8,
+      "pdf": "ground_truth_vector_field_cal_octagon_8.pdf"
+    },
+    {
+      "system_key": "claude:cal_pentagon_5",
+      "display_name": "Pentagonal five-well",
+      "basins": 5,
+      "pdf": "ground_truth_vector_field_cal_pentagon_5.pdf"
+    },
+    {
+      "system_key": "claude:cal_square_4",
+      "display_name": "Square four-well",
+      "basins": 4,
+      "pdf": "ground_truth_vector_field_cal_square_4.pdf"
+    },
+    {
+      "system_key": "claude:duffing_triple_well",
+      "display_name": "Triple-well Duffing",
+      "basins": 3,
+      "pdf": "ground_truth_vector_field_duffing_triple_well.pdf"
+    },
+    {
+      "system_key": "claude:snic_multi",
+      "display_name": "SNIC multi-attractor",
+      "basins": 3,
+      "pdf": "ground_truth_vector_field_snic_multi.pdf"
+    },
+    {
+      "system_key": "claude:transition_routes_4",
+      "display_name": "Transition-routes four-well",
+      "basins": 4,
+      "pdf": "ground_truth_vector_field_transition_routes_4.pdf"
+    },
+    {
+      "system_key": "claude:var_depth_gradient_4",
+      "display_name": "Depth-gradient four-well",
+      "basins": 4,
+      "pdf": "ground_truth_vector_field_var_depth_gradient_4.pdf"
+    },
+    {
+      "system_key": "claude:var_diamond_4",
+      "display_name": "Diamond four-well",
+      "basins": 4,
+      "pdf": "ground_truth_vector_field_var_diamond_4.pdf"
+    },
+    {
+      "system_key": "claude:var_l_shape_5",
+      "display_name": "L-shaped five-well",
+      "basins": 5,
+      "pdf": "ground_truth_vector_field_var_l_shape_5.pdf"
+    }
+  ]
+}

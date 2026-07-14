@@ -1,13 +1,14 @@
 """
 Standalone script to evaluate trained checkpoints.
 
-This script loads checkpoint.pt and last.pt from a training run directory
-and runs the standardized evaluation suite on them.
+This script loads checkpoint.pt from a training run directory and runs the
+standardized evaluation suite. Additional checkpoints can be requested with
+``--checkpoints``.
 
 Usage:
-    python evaluate_checkpoints.py --run_dir runs/kae/20251114-111432 --system duffing
-    python evaluate_checkpoints.py --run_dir runs/kae/20251114-111432 --system pendulum --device cpu
-    python evaluate_checkpoints.py --run_dir runs/kae/20251114-111432 --system lorenz63 --checkpoints checkpoint.pt
+    uv run python tools/evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system duffing
+    uv run python tools/evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system pendulum --device cpu
+    uv run python tools/evaluate_checkpoints.py --run_dir runs/kae/<timestamp> --system lorenz63 --checkpoints checkpoint.pt
 """
 
 import argparse
@@ -90,12 +91,6 @@ def get_dt_from_config(cfg: Config) -> float:
         return cfg.ENV.PARABOLIC.DT
     elif env_name == 'lyapunov':
         return cfg.ENV.LYAPUNOV.DT
-    elif env_name == 'kuramoto':
-        return cfg.ENV.KURAMOTO.DT
-    elif env_name == 'hopfield':
-        return cfg.ENV.HOPFIELD.DT
-    elif env_name == 'competitive_lv':
-        return cfg.ENV.COMPETITIVE_LV.DT
     else:
         return 0.01  # default fallback
 
@@ -112,6 +107,10 @@ def evaluate_checkpoint(
     dysts_cache_dir: Optional[str] = None,
     dysts_cache_num_workers: Optional[int] = None,
     output_dir: Optional[Path] = None,
+    save_rollout_artifacts: bool = False,
+    save_plots: bool = False,
+    include_per_ic_values: bool = False,
+    include_error_curves: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """Load a checkpoint and evaluate it.
     
@@ -184,7 +183,10 @@ def evaluate_checkpoint(
     # Create evaluation settings
     eval_settings = EvaluationSettings()
     eval_settings.systems = [system]
-    eval_settings.save_rollout_artifacts = True
+    eval_settings.save_rollout_artifacts = bool(save_rollout_artifacts)
+    eval_settings.save_plots = bool(save_plots)
+    eval_settings.include_per_ic_values = bool(include_per_ic_values)
+    eval_settings.include_error_curves = bool(include_error_curves)
     
     # Evaluate
     if output_dir is None:
@@ -274,7 +276,7 @@ def main():
         '--checkpoints',
         type=str,
         nargs='+',
-        default=['checkpoint.pt', 'last.pt'],
+        default=['checkpoint.pt'],
         help='Checkpoint files to evaluate (relative to run_dir)'
     )
     
@@ -322,6 +324,26 @@ def main():
         type=int,
         default=None,
         help='Parallel workers for cache build fallback'
+    )
+    parser.add_argument(
+        '--save_rollout_artifacts',
+        action='store_true',
+        help='Save raw rollout tensors for each evaluated checkpoint'
+    )
+    parser.add_argument(
+        '--save_plots',
+        action='store_true',
+        help='Render qualitative evaluation plots'
+    )
+    parser.add_argument(
+        '--include_per_ic_values',
+        action='store_true',
+        help='Include per-initial-condition metric arrays in evaluation JSON'
+    )
+    parser.add_argument(
+        '--include_error_curves',
+        action='store_true',
+        help='Include long per-step error curves in evaluation JSON'
     )
     
     args = parser.parse_args()
@@ -407,6 +429,10 @@ def main():
             dysts_cache_dir=args.dysts_cache_dir,
             dysts_cache_num_workers=args.dysts_cache_num_workers,
             output_dir=output_dir,
+            save_rollout_artifacts=args.save_rollout_artifacts,
+            save_plots=args.save_plots,
+            include_per_ic_values=args.include_per_ic_values,
+            include_error_curves=args.include_error_curves,
         )
         
         if results is not None:

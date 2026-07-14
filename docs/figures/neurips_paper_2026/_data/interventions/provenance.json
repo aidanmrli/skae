@@ -1,0 +1,319 @@
+{
+  "active_artifacts_at_freeze": {
+    "docs/figures/neurips_paper_2026/_tables/table_support_coordinate_interventions_h21.tex": {
+      "bytes": 553,
+      "sha256": "9333b4b808d3db7838f7c3ba703b7ec95fc42d8085a38e3f102ff3180763c992"
+    },
+    "docs/figures/neurips_paper_2026/fig_support_coordinate_dropping_accumulated_mse.pdf": {
+      "bytes": 20165,
+      "sha256": "6d3da019bfc1f486c146a6cb5166b76be02ff95eed12365a44c574ec18e18c19"
+    },
+    "docs/figures/neurips_paper_2026/fig_support_coordinate_random_shuffle_accumulated_mse.pdf": {
+      "bytes": 17798,
+      "sha256": "94cf928cb1de7c13a4be6de6b25ad0553ccd36acf63e836dca8f22629a007da1"
+    },
+    "docs/figures/neurips_paper_2026/fig_support_coordinate_trajectories_random_support_19.pdf": {
+      "bytes": 68291,
+      "sha256": "a4e938aba1d2d97824acd7e32f70e4b11c1985bf1dd51d8f75ce5ab72e9e6378"
+    }
+  },
+  "description": "Sanitized evidence for the one-checkpoint coordinate-intervention case study.",
+  "limitations": {
+    "scope": "one system, one LISTA checkpoint, seed 0",
+    "trajectory_figure": "requires the external checkpoint and is pinned but not regenerated from compact rows"
+  },
+  "outputs": {
+    "drop_horizon_metrics.csv.gz": {
+      "bytes": 6615,
+      "columns": [
+        "condition",
+        "intervention_type",
+        "drop_count",
+        "random_repeat",
+        "horizon",
+        "num_initial_points",
+        "mse_at_h_mean",
+        "mse_at_h_median",
+        "cumulative_mse_sum_mean",
+        "cumulative_mse_sum_median",
+        "cumulative_mse_mean_mean",
+        "basin_mismatch_vs_true_future_fraction",
+        "basin_mismatch_vs_initial_fraction",
+        "any_basin_mismatch_vs_true_future_fraction"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 121,
+      "sha256": "aa64d4e4692cc44271a022c522653e70407391db4ff2d036e4d6368c56ce3bd9"
+    },
+    "drop_initial_points.csv.gz": {
+      "bytes": 7594,
+      "columns": [
+        "point_id",
+        "trajectory_index",
+        "time_index",
+        "initial_basin",
+        "support_size",
+        "top_indices",
+        "top_abs_values",
+        "x0"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 100,
+      "sha256": "720a4cd53c0e71c0b10fa701b011a9a6bbbf366aaf40c6b5d1ef43099d7cff33"
+    },
+    "drop_point_metrics.csv.gz": {
+      "bytes": 372962,
+      "columns": [
+        "condition",
+        "intervention_type",
+        "drop_count",
+        "random_repeat",
+        "point_id",
+        "horizon",
+        "mse_at_h",
+        "cumulative_mse_sum",
+        "cumulative_mse_mean",
+        "initial_basin",
+        "true_basin_at_h",
+        "pred_basin_at_h",
+        "basin_mismatch_vs_true_future",
+        "basin_mismatch_vs_initial"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 12100,
+      "sha256": "1c714d5869fa2d42577fec0f29eba5db63467c6d9a36d7a30d47d562fa3474e0"
+    },
+    "random_horizon_metrics.csv.gz": {
+      "bytes": 11685,
+      "columns": [
+        "condition",
+        "intervention_type",
+        "drop_count",
+        "random_repeat",
+        "horizon",
+        "num_initial_points",
+        "mse_at_h_mean",
+        "mse_at_h_median",
+        "cumulative_mse_sum_mean",
+        "cumulative_mse_sum_median",
+        "cumulative_mse_mean_mean",
+        "basin_mismatch_vs_true_future_fraction",
+        "basin_mismatch_vs_initial_fraction",
+        "any_basin_mismatch_vs_true_future_fraction"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 231,
+      "sha256": "e9a9b4881c4bcd2786b6f038cbad036aa818cb1c5aa58719d3d6101ed89217bb"
+    },
+    "random_initial_points.csv.gz": {
+      "bytes": 1849,
+      "columns": [
+        "point_id",
+        "trajectory_index",
+        "time_index",
+        "initial_basin",
+        "support_size",
+        "top_indices",
+        "top_abs_values",
+        "x0"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 100,
+      "sha256": "56696fdb67eb741a2dcaf46efe8359d732f8646a22c75f755cde9ef0511cbae1"
+    },
+    "random_point_metrics.csv.gz": {
+      "bytes": 656364,
+      "columns": [
+        "condition",
+        "intervention_type",
+        "drop_count",
+        "random_repeat",
+        "point_id",
+        "horizon",
+        "mse_at_h",
+        "cumulative_mse_sum",
+        "cumulative_mse_mean",
+        "initial_basin",
+        "true_basin_at_h",
+        "pred_basin_at_h",
+        "basin_mismatch_vs_true_future",
+        "basin_mismatch_vs_initial"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 23100,
+      "sha256": "4631bfcfde96c1aed2f3d3006f0c2b1b537fdaee4fecc13822382bf02b962be6"
+    },
+    "random_support_moves.csv.gz": {
+      "bytes": 266130,
+      "columns": [
+        "random_repeat",
+        "point_id",
+        "source_indices",
+        "destination_indices"
+      ],
+      "compression": "gzip level 9, mtime 0",
+      "rows": 2000,
+      "sha256": "5da62b7536216604487013647a05d403428447ca55e5045095b0962f9728c6d9"
+    }
+  },
+  "protocol": {
+    "coordinate_dropping": {
+      "conditions": [
+        "baseline",
+        "drop_top_1",
+        "drop_top_2",
+        "drop_top_3",
+        "drop_top_4",
+        "drop_top_5",
+        "drop_top_6",
+        "drop_top_7",
+        "drop_top_8",
+        "drop_top_9",
+        "drop_top_10"
+      ],
+      "depth_slice_mode": "per_basin",
+      "eval_seed": 42,
+      "horizons": [
+        1,
+        3,
+        5,
+        7,
+        9,
+        11,
+        13,
+        15,
+        17,
+        19,
+        21
+      ],
+      "label_source": "native_basin_label+env_points",
+      "max_horizon": 21,
+      "max_initial_support_size": 93,
+      "mean_initial_support_size": 85.7,
+      "min_initial_support_size": 79,
+      "num_candidate_trajectories": 512,
+      "num_initial_points": 100,
+      "root_label": "lista_dense_signsplit_p256_hardinit_basin_partition",
+      "seed": 0,
+      "support_definition": "absolute:0.001",
+      "system_key": "gated_local_linear",
+      "system_name": "gated_local_linear",
+      "trajectory_length": 64,
+      "worst_intervention_condition": "drop_top_10"
+    },
+    "random_support": {
+      "conditions": [
+        "baseline",
+        "random_support_0",
+        "random_support_1",
+        "random_support_10",
+        "random_support_11",
+        "random_support_12",
+        "random_support_13",
+        "random_support_14",
+        "random_support_15",
+        "random_support_16",
+        "random_support_17",
+        "random_support_18",
+        "random_support_19",
+        "random_support_2",
+        "random_support_3",
+        "random_support_4",
+        "random_support_5",
+        "random_support_6",
+        "random_support_7",
+        "random_support_8",
+        "random_support_9"
+      ],
+      "depth_slice_mode": "per_basin",
+      "eval_seed": 42,
+      "horizons": [
+        1,
+        3,
+        5,
+        7,
+        9,
+        11,
+        13,
+        15,
+        17,
+        19,
+        21
+      ],
+      "label_source": "native_basin_label+env_points",
+      "max_horizon": 21,
+      "max_initial_support_size": 93,
+      "mean_initial_support_size": 85.7,
+      "min_initial_support_size": 79,
+      "num_candidate_trajectories": 512,
+      "num_initial_points": 100,
+      "root_label": "lista_dense_signsplit_p256_hardinit_basin_partition",
+      "seed": 0,
+      "support_definition": "absolute:0.001",
+      "system_key": "gated_local_linear",
+      "system_name": "gated_local_linear",
+      "trajectory_length": 64,
+      "worst_intervention_condition": "random_support_12"
+    },
+    "random_support_summary_unit": "pooled dependent point-shuffle outcomes; 100 starts x 20 shuffles = 2000 per horizon",
+    "start_selection": {
+      "balance_rule": "equal allocation over sorted observed native labels; remainder to earliest label",
+      "candidate_subset": "tie-inclusive per-native-label center-margin >= q75",
+      "coordinate_drop_and_random_support_starts_identical": true,
+      "realized_native_label_counts": {
+        "0": 34,
+        "1": 33,
+        "2": 33
+      },
+      "stability_requirement": "native label remains equal to the initial label through max_horizon=21"
+    }
+  },
+  "schema_version": 2,
+  "sources": [
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100/initial_points.csv",
+      "sha256": "3bad4023ab53224cbd1f3f983af6d07ba7b90a9d7bb32c1e7ef3e5eab92c96d6",
+      "source_id": "drop_initial_points"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100/intervention_horizon_metrics.csv",
+      "sha256": "17953e480acd842e7eceef0ea9ee31b0294f7a95d6d768382fc3eb2e856f52b9",
+      "source_id": "drop_horizon_metrics"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100/intervention_point_metrics.csv",
+      "sha256": "3b546122dd38b5014b59d58ec837f67695f842fac4ce1941a6452338bbadec11",
+      "source_id": "drop_point_metrics"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100/run_summary.json",
+      "sha256": "8d30ad47973504ff9cea38cfa855f7ca1a0bd3212eb4e41d80c3e48c7e0acb78",
+      "source_id": "drop_summary"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100_random/initial_points.csv",
+      "sha256": "ce10ac97aa70c7d272fda30b73528089c685641476ce4ab804021921045e9a90",
+      "source_id": "random_initial_points"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100_random/intervention_horizon_metrics.csv",
+      "sha256": "0ab8e25d06f82f4a92b9480a0a0861d5bfabd0060bbc27fa9eded2a040e8fe2e",
+      "source_id": "random_horizon_metrics"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100_random/intervention_point_metrics.csv",
+      "sha256": "9c335102079c9c0949df25b080d3cd5c9354e814e2f2286b1697da0f47bd09f8",
+      "source_id": "random_point_metrics"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100_random/random_support_moves.csv",
+      "sha256": "a7ee159a144dcc4bd4405cf85c72d4516ba230b687352496a99af0db32035636",
+      "source_id": "random_support_moves"
+    },
+    {
+      "relative_to_source_root": "gated_local_linear_lista_seed0_n100_random/run_summary.json",
+      "sha256": "7c6b894a34f0bf0436483f80ea307df4ede88afb622dd5bb124e03cb382391b9",
+      "source_id": "random_summary"
+    }
+  ]
+}

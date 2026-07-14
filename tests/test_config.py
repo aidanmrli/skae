@@ -126,13 +126,15 @@ def test_config_dt_extraction():
     assert cfg.ENV.ENV_NAME == "duffing"
 
 
-def test_unknown_train_key_raises():
-    """Unknown TRAIN keys should fail fast (strict config parsing)."""
+def test_unknown_train_key_is_ignored_for_checkpoint_compatibility():
+    """Removed TRAIN keys in serialized checkpoints are ignored."""
     cfg_dict = get_default_config().to_dict()
     cfg_dict["TRAIN"]["USE_SEQUENCE_LOSS"] = True
 
-    with pytest.raises(TypeError):
-        Config.from_dict(cfg_dict)
+    cfg = Config.from_dict(cfg_dict)
+
+    assert not hasattr(cfg.TRAIN, "USE_SEQUENCE_LOSS")
+    assert cfg.TRAIN.LR == cfg_dict["TRAIN"]["LR"]
 
 
 def test_hyperlista_preset_uses_listakm():
@@ -159,25 +161,6 @@ def test_encoder_type_roundtrip_json(tmp_path):
     assert loaded.MODEL.ENCODER.ENCODER_TYPE == "hyperlista"
 
 
-def test_high_dim_env_config_from_dict_roundtrip():
-    """High-dimensional benchmark env configs should survive dict roundtrip."""
-    cfg = get_default_config()
-    cfg.ENV.ENV_NAME = "hopfield"
-    cfg.MODEL.OBS_LOSS_DIM_NORMALIZATION = "dim"
-    cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 32
-    cfg.ENV.HOPFIELD.NUM_NEURONS = 20
-    cfg.ENV.HOPFIELD.NUM_PATTERNS = 5
-    cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = 12
-
-    loaded = Config.from_dict(cfg.to_dict())
-
-    assert loaded.ENV.KURAMOTO.NUM_OSCILLATORS == 32
-    assert loaded.ENV.HOPFIELD.NUM_NEURONS == 20
-    assert loaded.ENV.HOPFIELD.NUM_PATTERNS == 5
-    assert loaded.ENV.COMPETITIVE_LV.NUM_SPECIES == 12
-    assert loaded.MODEL.OBS_LOSS_DIM_NORMALIZATION == "dim"
-
-
 def test_hard_init_oversample_roundtrip():
     """Training hard-init oversampling config should survive dict roundtrip."""
     cfg = get_default_config()
@@ -200,12 +183,11 @@ def test_hard_init_oversample_roundtrip():
         ("duffing", "duffing"),
         ("gated_local_linear", "gated_local_linear"),
         ("gated_transfer_linear", "gated_transfer_linear"),
-        ("claude:cal_triangle_3", "claude_catalog"),
+        ("claude:cal_square_4", "claude_catalog"),
         ("multiwell:energy", "multiwell"),
         ("blended", "blended"),
-        ("kuramoto", "kuramoto"),
-        ("dysts:LorenzCoupled", "dysts"),
-        ("LorenzCoupled", "dysts"),
+        ("dysts:Chua", "dysts"),
+        ("Chua", "dysts"),
     ],
 )
 def test_canonical_env_name(env_name, expected):
@@ -219,12 +201,11 @@ def test_canonical_env_name(env_name, expected):
         "duffing",
         "gated_local_linear",
         "gated_transfer_linear",
-        "claude:cal_triangle_3",
+        "claude:cal_square_4",
         "multiwell_rotational",
         "multiwell:energy",
         "blended",
-        "kuramoto",
-        "dysts:LorenzCoupled",
+        "dysts:Chua",
     ],
 )
 def test_apply_env_dt_override_sets_expected_bucket(env_name):
@@ -240,6 +221,6 @@ def test_apply_env_dt_override_sets_expected_bucket(env_name):
 def test_get_env_dt_uses_claude_default_when_not_overridden():
     """Claude catalog env dt should fall back to the system's intrinsic default."""
     cfg = get_default_config()
-    cfg.ENV.ENV_NAME = "claude:cal_triangle_3"
+    cfg.ENV.ENV_NAME = "claude:cal_square_4"
 
     assert get_env_dt(cfg) == pytest.approx(0.03)

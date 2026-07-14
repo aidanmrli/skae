@@ -1,0 +1,36 @@
+\section{Full per-system controlled-benchmark tables}
+\label{app:controlled_results}
+
+Tables \ref{tab:persystem_h100}--\ref{tab:persystem_h1000} report the per-system forecasting effects and Holm-corrected Wilcoxon \(p\)-values underlying the controlled columns of \cref{tab:forecasting_main}. Each displayed \(\Delta\) is the arithmetic mean over common completed seeds of the paired \(\log_{10}\)-MSE difference, candidate minus Dense MLP. The associated test is the one-sided paired Wilcoxon test on those seed effects. Bold entries pass Holm-corrected \(p<0.05\) in favor of the candidate. The rank test and arithmetic mean need not have the same sign under an extreme outlier: at H500 for Transfer-gated local-linear LISTA--BD, \(12/15\) paired seed effects are negative, but one divergent finite candidate seed makes the displayed mean positive.
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system forecasting effects at \(H=100\) on the \(15\)-system controlled benchmark. \(\Delta\) is the arithmetic mean paired \(\log_{10}\)-MSE difference over common seeds (candidate minus Dense MLP), not a median; \(p_{\rm H}\) is the one-sided paired Wilcoxon \(p\)-value Holm-corrected across retained systems within each candidate column.}
+\label{tab:persystem_h100}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h100.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system forecasting effects at \(H=500\). Effect and test definitions match \cref{tab:persystem_h100}.}
+\label{tab:persystem_h500}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h500.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system forecasting effects at \(H=1000\). Effect and test definitions match \cref{tab:persystem_h100}.}
+\label{tab:persystem_h1000}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_h1000.tex}}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Per-system transductive \(H(B\mid F_{\rm abs}^{\rm align})\) effects, in nats, on the within-label high center-margin slice. Families are fitted on all states in each evaluation trajectory collection and scored at or above each label's \(75\)th margin percentile, retaining ties; native or nearest-estimated-center proxy labels select only that subset, without equalizing label counts. The known benchmark count is used to estimate catalog-system centers but does not enter family formation. The family-count companion is the number of family IDs observed on the scored subset. The one-sided paired Wilcoxon alternative is candidate entropy \(<\) Dense MLP entropy, with Holm correction across eligible systems. Triple-well Duffing's proxy realizes one label and is excluded from primary alignment aggregation; its zero paired differences are a consequence. Displayed alignment stars pass on all \(14/14\) eligible systems.}
+\label{tab:persystem_hbf}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_persystem_HBgivenF.tex}}
+\end{table}

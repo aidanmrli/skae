@@ -2498,7 +2498,7 @@ def make_env(cfg: Config) -> Env:
     
     For Claude catalog systems:
         cfg.ENV.ENV_NAME should be "claude:SystemName"
-        (e.g., "claude:cal_triangle_3")
+        (e.g., "claude:cal_square_4")
 
     For dysts systems:
         cfg.ENV.ENV_NAME should be "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua")
@@ -2545,7 +2545,7 @@ def make_env(cfg: Config) -> Env:
         f"Unknown environment '{env_name}'. "
         f"Built-in environments: {list(_ENV_REGISTRY.keys())}. "
         "For Claude catalog systems, use 'claude:SystemName' "
-        "(e.g., 'claude:cal_triangle_3'). "
+        "(e.g., 'claude:cal_square_4'). "
         f"For dysts systems, use 'dysts:SystemName' (e.g., 'dysts:Lorenz')."
     )
 

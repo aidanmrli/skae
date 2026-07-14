@@ -12,7 +12,6 @@ from skae.data import (
     Env, Wrapper, VectorWrapper, HardInitialConditionWrapper,
     Pendulum, Duffing, LotkaVolterra, Lorenz63, Parabolic, MultiWellTransition,
     GatedTransferLinear,
-    KuramotoOscillators, ContinuousHopfield, CompetitiveLotkaVolterra,
     build_hard_initial_condition_pool, integrate_euler, integrate_rk4, generate_trajectory, make_env
 )
 
@@ -731,114 +730,6 @@ class TestParabolic(unittest.TestCase):
         self.assertLess(final_distance.item(), initial_distance)
 
 
-class TestKuramotoOscillators(unittest.TestCase):
-    """Test Kuramoto high-dimensional benchmark environment."""
-
-    def setUp(self):
-        self.cfg = Config()
-        self.cfg.SEED = 0
-        self.cfg.ENV.KURAMOTO.DT = 0.05
-        self.cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 8
-        self.cfg.ENV.KURAMOTO.K_COUPLING = 4.0
-        self.cfg.ENV.KURAMOTO.TOPOLOGY = "ring"
-        self.cfg.ENV.KURAMOTO.OMEGA_MODE = "identical"
-
-    def test_kuramoto_initialization(self):
-        env = KuramotoOscillators(self.cfg)
-        self.assertEqual(env.observation_size, 8)
-        self.assertEqual(env.action_size, 0)
-        self.assertEqual(env.omega.shape, (8,))
-
-    def test_kuramoto_step_shape(self):
-        env = KuramotoOscillators(self.cfg)
-        rng = torch.Generator().manual_seed(42)
-        state = env.reset(rng)
-        next_state = env.step(state)
-        self.assertEqual(next_state.shape, state.shape)
-        self.assertTrue(torch.all(torch.isfinite(next_state)))
-
-    def test_kuramoto_basin_label_winding_number(self):
-        env = KuramotoOscillators(self.cfg)
-        n = env.num_oscillators
-
-        sync_state = torch.zeros(n, dtype=torch.float32)
-        self.assertEqual(env.basin_label(sync_state), 0)
-
-        indices = torch.arange(n, dtype=torch.float32)
-        twisted_state = 2.0 * torch.pi * indices / float(n)
-        self.assertEqual(env.basin_label(twisted_state), 1)
-
-
-class TestContinuousHopfield(unittest.TestCase):
-    """Test Continuous Hopfield high-dimensional benchmark environment."""
-
-    def setUp(self):
-        self.cfg = Config()
-        self.cfg.SEED = 1
-        self.cfg.ENV.HOPFIELD.DT = 0.05
-        self.cfg.ENV.HOPFIELD.NUM_NEURONS = 10
-        self.cfg.ENV.HOPFIELD.NUM_PATTERNS = 3
-        self.cfg.ENV.HOPFIELD.PATTERN_MODE = "random"
-
-    def test_hopfield_initialization(self):
-        env = ContinuousHopfield(self.cfg)
-        self.assertEqual(env.observation_size, 10)
-        self.assertEqual(env.patterns.shape, (3, 10))
-        self.assertEqual(env.weight_matrix.shape, (10, 10))
-        self.assertEqual(env.num_basins, 3)
-
-    def test_hopfield_step_shape(self):
-        env = ContinuousHopfield(self.cfg)
-        rng = torch.Generator().manual_seed(7)
-        state = env.reset(rng)
-        next_state = env.step(state)
-        self.assertEqual(next_state.shape, state.shape)
-        self.assertTrue(torch.all(torch.isfinite(next_state)))
-
-    def test_hopfield_basin_label_matches_pattern(self):
-        env = ContinuousHopfield(self.cfg)
-        for idx, pattern in enumerate(env.patterns):
-            predicted = env.basin_label(pattern)
-            self.assertEqual(predicted, idx)
-
-
-class TestCompetitiveLotkaVolterraHD(unittest.TestCase):
-    """Test competitive high-dimensional Lotka-Volterra benchmark environment."""
-
-    def setUp(self):
-        self.cfg = Config()
-        self.cfg.SEED = 2
-        self.cfg.ENV.COMPETITIVE_LV.DT = 0.01
-        self.cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = 8
-        self.cfg.ENV.COMPETITIVE_LV.INTERACTION_MODE = "symmetric"
-        self.cfg.ENV.COMPETITIVE_LV.POSITIVITY_CLIP = True
-
-    def test_competitive_lv_initialization(self):
-        env = CompetitiveLotkaVolterra(self.cfg)
-        self.assertEqual(env.observation_size, 8)
-        self.assertEqual(env.growth_rates.shape, (8,))
-        self.assertEqual(env.interaction_matrix.shape, (8, 8))
-
-    def test_competitive_lv_reset_positive(self):
-        env = CompetitiveLotkaVolterra(self.cfg)
-        rng = torch.Generator().manual_seed(42)
-        state = env.reset(rng)
-        self.assertTrue(torch.all(state > 0.0))
-
-    def test_competitive_lv_step_clips_negative(self):
-        env = CompetitiveLotkaVolterra(self.cfg)
-        state = torch.full((8,), 0.1, dtype=torch.float32)
-        next_state = env.step(state)
-        self.assertTrue(torch.all(next_state >= 0.0))
-
-    def test_competitive_lv_basin_label_support_mask(self):
-        env = CompetitiveLotkaVolterra(self.cfg)
-        state = torch.tensor([1.0, 0.0, 0.3, 0.0, 0.0, 0.6, 0.0, 0.2], dtype=torch.float32)
-        label = env.basin_label(state)
-        expected = (1 << 0) + (1 << 2) + (1 << 5) + (1 << 7)
-        self.assertEqual(label, expected)
-
-
 class TestFactory(unittest.TestCase):
     """Test environment factory function."""
 
@@ -852,11 +743,6 @@ class TestFactory(unittest.TestCase):
         self.cfg.ENV.PARABOLIC.LAMBDA = -1.0
         self.cfg.ENV.PARABOLIC.MU = -0.1
         self.cfg.ENV.PARABOLIC.DT = 0.1
-        self.cfg.ENV.KURAMOTO.NUM_OSCILLATORS = 8
-        self.cfg.ENV.HOPFIELD.NUM_NEURONS = 8
-        self.cfg.ENV.HOPFIELD.NUM_PATTERNS = 3
-        self.cfg.ENV.COMPETITIVE_LV.NUM_SPECIES = 8
-
     def test_make_env_all_systems(self):
         """Test that make_env creates all registered systems."""
         systems = [
@@ -865,9 +751,6 @@ class TestFactory(unittest.TestCase):
             "lotka_volterra",
             "lorenz63",
             "parabolic",
-            "kuramoto",
-            "hopfield",
-            "competitive_lv",
             "multiwell_gradient",
             "multiwell_strong_transition_hd",
         ]
@@ -877,9 +760,6 @@ class TestFactory(unittest.TestCase):
             LotkaVolterra,
             Lorenz63,
             Parabolic,
-            KuramotoOscillators,
-            ContinuousHopfield,
-            CompetitiveLotkaVolterra,
             MultiWellTransition,
             MultiWellTransition,
         ]

@@ -13,7 +13,7 @@ from statistics import median
 from typing import Dict, Iterable, List, Optional, Sequence
 
 
-DEFAULT_HORIZONS: Sequence[int] = (5000, 10000, 20000, 30000)
+DEFAULT_HORIZONS: Sequence[int] = (100, 500, 1000, 1500, 2000, 3000, 4000, 5000)
 
 
 def _safe_float(value: object) -> Optional[float]:

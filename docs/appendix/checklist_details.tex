@@ -1,22 +1,118 @@
 \clearpage
-\section{NeurIPS checklist details}
+\section{Preliminary coauthor checklist}
 \label{app:checklist_details}
 \begingroup
 \sloppy
-\input{appendix/checklist_claims}
-\input{appendix/checklist_limitations}
-\input{appendix/checklist_theory_assumptions_proofs}
-\input{appendix/checklist_experimental_reproducibility}
-\input{appendix/checklist_open_data_code}
-\input{appendix/checklist_experimental_setting_details}
-\input{appendix/checklist_statistical_significance}
-\input{appendix/checklist_compute_resources}
-\input{appendix/checklist_code_of_ethics}
-\input{appendix/checklist_broader_impacts}
-\input{appendix/checklist_safeguards}
-\input{appendix/checklist_existing_asset_licenses}
-\input{appendix/checklist_new_assets}
-\input{appendix/checklist_human_subjects}
-\input{appendix/checklist_irb}
-\input{appendix/checklist_llm_usage}
+\paragraph{Status.}
+This is a factual pre-submission record for coauthor review, not the official
+venue questionnaire.  Application of the final venue style determines the
+official question set, numbering, and response format; these answers must then
+be reconciled with that form.  Nothing here asserts that a public artifact,
+anonymous URL, DOI, or release has been completed.
+\paragraph{Claims and evidence.}
+The manuscript makes three bounded empirical claims: sparse KAE rows improve
+forecasting over the reported Dense MLP KAE rows; LISTA support families align
+transductively with evaluation-only native or nearest-center-proxy labels on a
+controlled high center-margin slice;
+and a staged training-distribution support-family route has descriptively lower
+controlled-forecasting error than a same-budget global-\(K\) LISTA baseline
+under an optimistic asymmetric selector.  The paper states no new theorem
+or proof, no exact global linearization, and no out-of-sample basin-discovery
+guarantee.  Benchmark definitions and training/evaluation protocols are in
+\cref{app:controlled_inventory,app:dysts_inventory_full,app:experimental_details};
+support construction and inference are in
+\cref{app:support_definitions,app:statistical_testing}.
+\paragraph{Limits on interpretation.}
+\begin{itemize}
+  \item Best-periodic cadence is chosen on the test trajectories, and the MSE
+  reducer omits nonfinite steps, so finite prefixes of divergent rollouts can
+  contribute.
+  \item Alignment fits families on all states in each evaluation trajectory
+  collection.  Two gated systems use native labels and centers; the other
+  \(13\) use deterministic endpoint-estimated centers at the known benchmark
+  count and nearest-center proxy labels.  Scoring retains states at or above
+  each label's \(75\)th center-margin percentile, including ties, so it need
+  not retain exactly one quarter; Triple-well Duffing retains all \(16{,}512\)
+  states.  This margin need not equal true basin-boundary distance.  Labels
+  and centers select only the scored subset, label sample counts are not
+  equalized, and the reported family count includes only family IDs observed
+  on that subset.  Conditional entropy uses natural logarithms and is reported
+  in nats.  The result is transductive and two-dimensional; alignment uses
+  Jaccard threshold \(0.50\), while the separate staged route uses \(0.40\).
+  \item The staged route-fit packet has \(512\) configured rows but only
+  \(256\) unique trajectories because one batch is duplicated exactly.  Its
+  checkpoint selector uses the first \(32/100\) reported starts, while the
+  global baseline uses a distinct \(16\)-start, H200 final-error selector.
+  Thus the \(225\) nested system--seed comparisons are optimistic and
+  descriptive, not a clean held-out or causal comparison.
+  \item Standalone controls use three seeds and unmatched trajectories; the
+  intervention covers one checkpoint.
+  \item LISTA decoders are atom-normalized whereas MLP decoders are not.
+  Dysts LISTA--SB is a same-budget two-loop/sign-split ablation, unlike the
+  one-loop/ReLU LISTA and LISTA--BD rows. Structured-transition rows use a known
+  controlled-benchmark basin count or a hand-set Dysts lobe/scroll/equilibrium
+  count only to set the number of blocks.
+\end{itemize}
+\paragraph{Reproducibility and access status.}
+The working repository contains explicit controlled-system vector fields,
+benchmark adapters, training and evaluation code, seeds, locked dependencies,
+tests, manuscript sources, and paper-facing aggregate artifacts.  Controlled
+trajectories are regenerable from the explicit analytic or piecewise-analytic
+systems; Dysts trajectories are
+regenerable from the documented package and cache protocol.  Exact model,
+metric, split, cadence, support, and standalone-control recipes are recorded in
+\cref{app:experimental_details,app:support_definitions}.  Bitwise equality
+across GPU models and numerical-library versions is not claimed.  No verified
+public anonymous archive or DOI is identified in the manuscript, so open
+code/data availability is currently answered \emph{No}.
+\paragraph{Compute accounting.}
+The following are conservative SLURM allocation ceilings, not measured
+consumption or energy estimates:
+\begin{itemize}
+  \item Controlled training comprises \(15\times6\times15=1350\) runs, each
+  requesting one cluster-assigned GPU, four CPU cores, \(16\) GB host memory,
+  and at most \(24\) hours: at most \(32{,}400\) GPU-hours and \(129{,}600\)
+  allocated CPU-core-hours.
+  \item Dysts training comprises \(10\times6\times15=900\) runs packed up to
+  \(12\) per allocation, with one GPU, four CPU cores, \(16\) GB, and at most
+  \(72\) hours per full pack: at most \(5{,}400\) GPU-hours and \(21{,}600\)
+  allocated CPU-core-hours.
+  \item The staged routing packet comprises \(15\times15=225\) runs, each
+  requesting one GPU, four CPU cores, \(24\) GB, and at most three hours: at
+  most \(675\) GPU-hours and \(2{,}700\) allocated CPU-core-hours.
+  \item Retained Dysts cache/evaluation jobs add approximately \(4{,}700\)
+  CPU-core-hours; controlled support diagnostics add approximately \(290\)
+  CPU-core-hours; the one-checkpoint intervention allocation adds at most
+  \(3\) GPU-hours.
+\end{itemize}
+The GPU model was scheduler-assigned and is therefore unspecified.  These
+ceilings exclude superseded historical packets and can substantially exceed
+actual use because jobs may finish early and packed runs share allocations.
+\paragraph{Assets, attribution, and licenses.}
+The controlled benchmark contains \(15\) author-retained analytic or
+piecewise-analytic systems.
+Claude Opus 4.5 assisted system ideation; human authors audited the retained
+definitions and metadata before their experimental use.  The LLM is not part
+of model training, rollout, routing, metric computation, or statistical
+testing.  LLM assistance also contributed to manuscript and checklist editing;
+the authors remain responsible for the equations, protocols, and numerical
+claims.
+The external benchmark uses right-hand sides and metadata from
+\texttt{dysts} \(0.96\), with project-generated standardized trajectories, and
+the manuscript cites the associated Gilpin papers.  Local package metadata is
+not sufficient to state a definitive redistribution license: it contains an
+MIT license classifier but a bundled Apache-2.0 license text.  The authoritative
+Dysts license and any system-level attribution requirements therefore remain
+unresolved.  The repository itself has a top-level MIT license, but no public
+artifact or separate license for generated benchmark definitions, figures,
+tables, caches, or checkpoints is claimed here.
+\paragraph{Ethics, human subjects, and broader impact.}
+The experiments use simulated dynamical-system states and public benchmark
+definitions, with no participants, crowdworkers, personal data, private
+records, or human-generated labels.  Human-subject review, consent,
+compensation, and IRB approval are therefore not applicable.  This is
+methodological forecasting research, not a validated safety-critical control
+system.  Learned support families can be misread as physical or causal regimes,
+and failures near boundaries or in untested high-dimensional systems could be
+consequential; downstream use requires independent validation and safeguards.
 \endgroup

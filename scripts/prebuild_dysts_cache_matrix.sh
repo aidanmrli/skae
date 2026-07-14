@@ -5,13 +5,15 @@
 # Submit:
 #   sbatch scripts/prebuild_dysts_cache_matrix.sh
 #
+# Required at submission:
+#   SYSTEMS_FILE=<generated paper-system list>
+#   sbatch --array=0-$((systems * profiles * splits - 1)) ...
 # Optional overrides:
-#   SYSTEMS_FILE=scripts/dysts_cache_systems.txt
 #   CACHE_DIR=/network/scratch/l/lia/skae/dysts_native_cache
 #   CACHE_NUM_WORKERS=2
-#   PROFILES="smoke full"
+#   PROFILES="full"
 #   SPLITS="train val test"
-#   DYSTS_DT_MULTIPLIER=1
+#   DYSTS_DT_MULTIPLIER=30
 #
 #SBATCH --job-name=prebuild_dysts_cache
 #SBATCH --ntasks=1
@@ -21,19 +23,23 @@
 #SBATCH --time=24:00:00
 #SBATCH -o /network/scratch/l/lia/skae/prebuild-dysts-cache-%A_%a.out
 #SBATCH --requeue
-#SBATCH --array=0-95
 
 set -euo pipefail
 
-module load cuda/12.6.0
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+  ROOT_DIR="${SLURM_SUBMIT_DIR}"
+else
+  ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+cd "${ROOT_DIR}"
 source .venv/bin/activate
 
-SYSTEMS_FILE="${SYSTEMS_FILE:-scripts/dysts_cache_systems.txt}"
+SYSTEMS_FILE="${SYSTEMS_FILE:?SYSTEMS_FILE must point to a generated paper-system list}"
 CACHE_DIR="${CACHE_DIR:-/network/scratch/l/lia/skae/dysts_native_cache}"
 CACHE_NUM_WORKERS="${CACHE_NUM_WORKERS:-2}"
-PROFILES_STR="${PROFILES:-smoke full}"
+PROFILES_STR="${PROFILES:-full}"
 SPLITS_STR="${SPLITS:-train val test}"
-DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-1}"
+DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-30}"
 
 if [[ ! -f "${SYSTEMS_FILE}" ]]; then
   echo "Missing SYSTEMS_FILE=${SYSTEMS_FILE}"
@@ -49,7 +55,7 @@ NUM_PROFILES=${#PROFILES[@]}
 NUM_SPLITS=${#SPLITS[@]}
 TOTAL=$((NUM_SYSTEMS * NUM_PROFILES * NUM_SPLITS))
 
-TASK_ID=${SLURM_ARRAY_TASK_ID:-0}
+TASK_ID="${SLURM_ARRAY_TASK_ID:?submit this worker with an explicit --array range}"
 if (( TASK_ID < 0 || TASK_ID >= TOTAL )); then
   echo "Task ${TASK_ID} out of range for TOTAL=${TOTAL}. Exiting."
   exit 0

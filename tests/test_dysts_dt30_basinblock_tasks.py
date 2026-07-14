@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from argparse import Namespace
 
-from tools.build_dysts_dt30_basinblock_tasks import _build_rows
+from tools.build_dysts_dt30_basinblock_tasks import (
+    DYSTS_SYSTEM_SPECS,
+    _build_parser,
+    _build_rows,
+)
 
 
 def _args() -> Namespace:
@@ -36,7 +40,7 @@ def _args() -> Namespace:
     )
 
 
-def test_lista_sb_matches_lista_bd_encoder_and_only_softens_k_structure():
+def test_lista_sb_encodes_the_reported_row_specific_ablation():
     rows = _build_rows(_args())
 
     assert len(rows) == 2
@@ -51,8 +55,6 @@ def test_lista_sb_matches_lista_bd_encoder_and_only_softens_k_structure():
         "sequence_length",
         "sparsity_coeff",
         "lista_alpha",
-        "lista_num_loops",
-        "lista_final_op",
         "lr",
         "k_matrix_lr",
         "weight_decay",
@@ -71,3 +73,50 @@ def test_lista_sb_matches_lista_bd_encoder_and_only_softens_k_structure():
     assert sb["soft_block_num_blocks"] == 2
     assert sb["soft_block_weight"] == 1e-4
     assert sb["soft_block_norm"] == "l1"
+    assert sb["lista_num_loops"] == 2
+    assert sb["lista_final_op"] == "sign_split"
+    assert bd["diagnostic_structure_count"] == 2
+    assert "lobe" in bd["structure_count_note"]
+    assert "basin_count" not in bd
+    assert "block_count_note" not in bd
+
+
+def test_default_arguments_are_the_exact_dysts_paper_protocol():
+    args = _build_parser().parse_args(["--output_tsv", "unused.tsv"])
+    rows = _build_rows(args)
+
+    assert len(rows) == 10 * 6 * 15
+    assert list(dict.fromkeys(row["system_key"] for row in rows)) == [
+        "dysts:Chua",
+        "dysts:Dadras",
+        "dysts:DequanLi",
+        "dysts:Hadley",
+        "dysts:LuChenCheng",
+        "dysts:QiChen",
+        "dysts:Sakarya",
+        "dysts:SanUmSrisuchinwong",
+        "dysts:ShimizuMorioka",
+        "dysts:WangSun",
+    ]
+    assert tuple(DYSTS_SYSTEM_SPECS) == tuple(
+        dict.fromkeys(row["system_key"] for row in rows)
+    )
+    assert list(dict.fromkeys(row["model_variant"] for row in rows)) == [
+        "lista",
+        "lista_bd",
+        "lista_sb",
+        "sparse_mlp_bd",
+        "sparse_mlp",
+        "dense_mlp_tanh",
+    ]
+    assert {row["seed"] for row in rows} == set(range(15))
+    assert {row["num_steps"] for row in rows} == {100_000}
+    assert {row["sequence_length"] for row in rows} == {10}
+    assert {row["dt_multiplier"] for row in rows} == {"30"}
+    by_variant = {row["model_variant"]: row for row in rows}
+    assert by_variant["lista"]["lista_num_loops"] == 1
+    assert by_variant["lista"]["lista_final_op"] == "relu"
+    assert by_variant["lista_bd"]["lista_num_loops"] == 1
+    assert by_variant["lista_bd"]["lista_final_op"] == "relu"
+    assert by_variant["lista_sb"]["lista_num_loops"] == 2
+    assert by_variant["lista_sb"]["lista_final_op"] == "sign_split"

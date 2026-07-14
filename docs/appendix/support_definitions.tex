@@ -1,69 +1,42 @@
-\section{Support definitions and sensitivity}
+\section{Support definitions and family construction}
 \label{app:support_definitions}
 
-\Cref{sec:method_supports} defines the notation used in the main text. This appendix records the implementation-level objects behind that notation and explains how to read the corresponding diagnostics. All support objects are computed after training from the learned encoder output \(z=\Enc(x)\). Basin labels, basin counts, and trajectory-to-basin assignments are not used to train the model, define a support, or build a support family; when labels appear below they are evaluation-only quantities used to score or display the learned objects.
+All support objects are computed after or between training stages from \(z=\Enc(x)\). Basin labels, basin counts, and trajectory assignments do not define an exact support, merge masks, or route a rollout. The known count used to estimate catalog-system evaluation centers is therefore not an input to \(F_{\rm abs}^{\rm align}\), although it is an input to the label and scoring-slice construction applied afterward. The paper uses two protocol-specific absolute-threshold families and does not assume that they are the same partition.
 
-\paragraph{From a latent vector to an exact support key.}
-The reducers first convert each latent vector into a Boolean mask \(m(x)\in\{0,1\}^{d_z}\). The exact support \(S(x)\) is the index set of the true entries of this mask, but the code compares exact supports by serializing the Boolean mask itself: two states have the same exact support if and only if all \(d_z\) Boolean entries match. The main support rule used in the paper is
-\begin{align}
-  m_{{\rm abs},i}(x)
-  &=\mathbf{1}\{|z_i|>10^{-3}\},
-  &
-  S_{\rm abs}(x)
-  &=\{i:m_{{\rm abs},i}(x)=1\},
-\end{align}
-with \(\epsilon=10^{-12}\) in the implementation. The inequalities are strict. The epsilon only affects the degenerate all-zero relative-threshold case, where \(S_{\rm rel}\) is empty. \(S_{\rm abs}\) is a magnitude-thresholded active set, so \(|S_{\rm abs}|\) is a measured state-dependent statistic rather than a fixed sparsity budget. 
-% \(S_{\rm top8}\) instead always begins from eight active coordinates when \(d_z\ge 8\); it ignores absolute scale and gives every state a fixed-size exact key before family merging.
+\paragraph{Absolute support.}
+For every state,
+\[
+  m_{{\rm abs},i}(x)=\mathbf 1\{|z_i|>10^{-3}\},
+  \qquad
+  S_{\rm abs}(x)=\{i:m_{{\rm abs},i}(x)=1\}.
+\]
+The \(10^{-3}\) threshold is fixed in both experiments.
 
-\paragraph{From exact supports to support families.}
-For a chosen support rule and evaluation collection, the implementation counts distinct exact support keys, sorts them from most to least frequent, and uses the serialized key as a deterministic tie-breaker. It then performs the leader-style greedy Jaccard merge described in \cref{sec:method_supports}. Each family stores an actual Boolean support vector as its representative. A new exact mask joins the existing representative with the largest Jaccard similarity if that similarity is at least \(0.5\); otherwise it starts a new family. Representatives are not optimized, averaged, or updated as centroids. Family labels are therefore run- and collection-specific integer identifiers, and only their induced partition of states is meaningful.
+\paragraph{Deterministic greedy family merge.}
+For a specified state collection and Jaccard threshold \(\tau\), distinct Boolean masks are counted and ordered from most to least frequent; equal frequencies use ascending byte order after \texttt{numpy.packbits} with its default big-bit ordering. During the greedy merge, each family is compared against the first mask that opened it. For a new mask \(m\), compute
+\[
+  J(m,r_f)=\frac{|S(m)\cap S(r_f)|}{|S(m)\cup S(r_f)|},
+  \qquad J(0,0)=1.
+\]
+The mask joins the representative with largest \(J\) when that score is at least \(\tau\); equal Jaccard scores choose the earliest-created family. Otherwise it starts a new family. These merge-time representatives are not averaged or updated, so family identifiers are meaningful only through their induced partition for that fitted collection. The alignment diagnostic retains these representatives. The staged route subsequently replaces each runtime representative with that family's modal source-state support, as specified below.
 
-\paragraph{Support-family creation algorithm.}
-For completeness, the family construction used for both \(F_{\rm abs}\) and \(F_{\rm top8}\) is:
 \begin{quote}
-\small
-\textbf{Input:} evaluation states \(\mathcal X\), a support rule \(q\), and Jaccard threshold \(\tau=0.5\).\\
-\textbf{Output:} family label \(F_q(x)\) for each \(x\in\mathcal X\), and family representatives \(\{r_f\}\).
-\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=2.0em]
-  \item Compute one exact Boolean mask \(m_q(x)\in\{0,1\}^{d_z}\) for every \(x\in\mathcal X\).
-  \item Count the multiplicity \(c(m)\) of each distinct exact mask \(m\).
-  \item Sort the distinct masks in decreasing \(c(m)\), using the serialized Boolean mask as a deterministic tie-breaker.
-  \item Initialize an empty list of families and representatives.
-  \item For each distinct mask \(m\) in the sorted order:
-  \begin{enumerate}[label=\textbf{\alph*.},leftmargin=2.0em]
-    \item If no family exists, create a new family \(f\), set \(r_f\gets m\), and assign \(m\) to \(f\).
-    \item Otherwise compute \(f^\star=\operatorname*{arg\,max}_f J(m,r_f)\) over existing family representatives.
-    \item If \(J(m,r_{f^\star})\ge\tau\), assign every occurrence of \(m\) to family \(f^\star\).
-    \item If \(J(m,r_{f^\star})<\tau\), create a new family \(f\), set \(r_f\gets m\), and assign every occurrence of \(m\) to \(f\).
-  \end{enumerate}
-  \item For each state \(x\), return \(F_q(x)\), the family assigned to its exact mask \(m_q(x)\).
-\end{enumerate}
+\textbf{Input:} masks and counts from collection \(\mathcal X\); threshold \(\tau\).\\
+\textbf{Initialize:} ordered representative list \(R\leftarrow[\,]\).\\
+\textbf{For each distinct mask \(m\):} assign \(m\) to the best existing \(r\in R\) if \(J(m,r)\ge\tau\); otherwise append \(m\) to \(R\).\\
+\textbf{Output:} the fixed representatives and mask-to-family assignment.
 \end{quote}
-The representative update \(r_f\gets m\) occurs only when a new family is created. Existing representatives are never averaged, recomputed as majority masks, or moved toward later assigned masks.
 
-For top-eight masks, \(J(m,r)\ge 0.5\) is equivalent to at least six shared active coordinates because both masks have size eight. For \(S_{\rm abs}\), the same threshold is adaptive to mask size through the intersection-over-union denominator. A lower Jaccard threshold merges more exact supports and can collapse distinct basins; a higher threshold separates more masks and can make \(H(B\mid F)\) small by over-fragmenting each basin. We therefore fix \(0.5\) rather than tuning it post hoc and interpret any entropy result together with the corresponding family count.
+\paragraph{Alignment family.}
+\(F_{\rm abs}^{\rm align}\) uses \(\tau=0.50\). At evaluation seed \(42\), it is fitted on all \(128\times129=16{,}512\) states from \(128\) trajectories with \(128\) transitions each. The two gated environments supply native labels and centers. The \(13\) catalog environments supply neither, so the evaluator advances the \(128\) trajectory endpoints for \(5{,}000\) additional steps and estimates the known manifest number of centers by deterministic \(k\)-means. Initialization starts with the first converged endpoint and adds the endpoint farthest from its nearest current center; a farthest-point tie chooses the first endpoint index. Lloyd assignment ties choose the first center index, an empty cluster retains its prior center, and at most \(25\) updates follow; iteration stops early under PyTorch's default \texttt{allclose} test. Every evaluation state is then assigned the nearest estimated center as a proxy label, again with first-center tie breaking.
 
-\paragraph{Stable support component construction.}
-\(C_{\rm stab}\) is used in the staged local-linearization experiment, not as the primary object in the basin-support alignment table. It also starts from the absolute mask \(m_{\rm abs}(x)\), but the first label is not \(F_{\rm abs}\). For this experiment, exact \(m_{\rm abs}\) masks are merged into a finer base support-family label \(u_t\) with Jaccard threshold \(0.8\). Given a training-split trajectory, \(u_{i,t}\) denotes the base label of trajectory \(i\) at stored time \(t\). A transition \(u\to v\) means that consecutive stored observations satisfy \(u_{i,t}=u\) and \(u_{i,t+1}=v\). The empirical transition graph is built from 512 trajectories of length 192 after the first half of LISTA training, while the encoder and decoder are held fixed.
+Only after family fitting, each state's center-margin proxy \(d_2-d_1\) is computed from its second-nearest and nearest native or estimated center. The evaluator uses NumPy's default linear \(75\)th-percentile rule within each observed evaluation label and retains all ties at the cutoff; labels with fewer than four states retain all their states. It does not equalize label counts or enforce an exact one-quarter subset. Most system--seed subsets contain \(4{,}129\)--\(7{,}167\) states. Triple-well Duffing retains all \(16{,}512\) because of tied margins, but all states also receive one proxy label, so its \(H(B\mid F)=0\) for every model is uninformative. Primary alignment aggregates use the \(14\) systems with at least two observed labels. Duffing's raw rows are retained for an all-\(15\)-system sensitivity. The historical entropy reducer computes joint entropy minus family entropy with natural logarithms and \(-p\log(p+10^{-12})\) terms; values are reported in nats on this high-margin subset. Labels and centers do not enter the mask merge as features. The result is transductive because the fitting collection contains the scored states and, for catalog systems, the endpoints used to estimate centers. In the main alignment table, the compact notation \(F_{\rm abs}\) refers specifically to \(F_{\rm abs}^{\rm align}\).
 
-The graph is filtered to retain sufficiently frequent transitions, its strongly connected components are computed, and recurrent components are selected when they appear in trajectory tails and have small outbound transition mass. Each observed base label \(u\) is then assigned to the recurrent component that its future support trajectory reaches with high empirical confidence. This assignment is \(C_{\rm stab}(u)\). Thus \(C_{\rm stab}\) groups base support families by support-flow fate; it is neither a ground-truth basin label nor an estimate of a state-space fixed point.
+Low \(H(B\mid F_{\rm abs}^{\rm align})\) means that the fitted partition leaves little uncertainty about the native or proxy label on that slice. The margin expresses separation under a nearest-center construction; it need not equal distance from a true basin boundary or separatrix. The result does not imply a frozen classifier for new states, one family per basin, or recovery near basin boundaries. The reported family count is the number of family IDs observed on the scored high-margin slice, not the total number formed over all evaluation states; it is compared descriptively with the number of represented evaluation labels.
 
-\paragraph{Dense tail-fate control.}
-The dense control used to audit the local-linearization result deliberately removes the sparse support graph. It starts from the dense zero-sparsity MLP KAE, encodes route-fitting trajectories after the global training stage, and summarizes each dense latent trajectory by the mean, standard deviation, and final value of its tail. These continuous tail summaries are standardized, optionally PCA-compressed, and clustered with \(k\)-means using a silhouette-selected cluster count up to \(12\). All transitions from a trajectory inherit that trajectory's dense fate cluster. During forecasting, the future trajectory tail is unavailable, so the route is assigned by nearest centroid in the current dense latent space, using the mean current latent state for each fitted dense fate label. This is the intended contrast with \(C_{\rm stab}\): the dense control asks which dense fate centroid the current state is closest to, whereas \(C_{\rm stab}\) asks which recurrent support-flow component the current sparse support pattern is assigned to. Both objects can contain basin-fate information, but only \(C_{\rm stab}\) exposes an active-coordinate support graph and routes from the current support mask.
+\paragraph{Staged routing family.}
+\(F_{\rm abs}^{\rm route}\) uses \(\tau=0.40\) after stage one. The source artifact's nominal \(512\)-row route-fit packet is two exactly identical copies of \(256\) unique training-distribution trajectories, generated at seed offset \(271{,}828\). Each row contains \(193\) states and \(192\) transitions. The greedy family merge consumes all \(193\) supports, including the terminal state, for \(98{,}816\) nominal support observations. Only afterward are family counts, source centers, and exact mask-to-family keys restricted to the first \(192\) source states, for \(98{,}304\) nominal and \(49{,}152\) unique source transitions.
 
-\paragraph{Which support object is used where.}
-\begin{description}[leftmargin=1.6em,style=nextline]
-  \item[\(S_{\rm abs}\).]
-  This is the strict active-coordinate object. It is used to build \(F_{\rm abs}\), to report exact-support diagnostics such as \(H(B\mid S_{\rm abs})\), \(H(S_{\rm abs}\mid B)\), exact-support uniqueness, and \(|S_{\rm abs}|\), and to form canonical masks for wrong-support interventions. In the intervention code, the canonical mask for basin \(b\) is the most frequent \(S_{\rm abs}\) key among candidate deep-slice states from basin \(b\). The ``wrong'' condition replaces it with canonical masks from other represented basins and holds that mask fixed during the masked latent rollout.
+For runtime routing, each merged family's representative is replaced by the modal support among that family's source states; ties follow the first-seen source-key order. A family is retained for a local affine map when it has at least one source transition. During rollout, an exact source mask observed during fitting maps directly to its frozen family. An unseen mask is assigned to the modal source representative with greatest Jaccard overlap only if the overlap reaches \(0.40\); otherwise the rollout uses the frozen global \(K\). The current latent's support is recomputed and routed before every latent transition. A scheduled decode--re-encode event only refreshes that latent before the next transition; it is not the routing cadence. This modal-source replacement is part of the frozen source protocol; replacing it with the merge-opening mask or fitting \(512\) unique trajectories would define a new protocol.
 
-  \item[\(F_{\rm abs}\).]
-  This is the main basin-support alignment object in \cref{tab:fixed17_alignment}. It asks whether the many exact \(S_{\rm abs}\) masks produced by a sparse encoder compress into basin-scale families. The primary directional metric is \(H(B\mid F_{\rm abs})\): low values mean that knowing the support family leaves little uncertainty about the withheld basin label. The count \(\overline{|F_{\rm abs}|}\) is deliberately non-directional and should be compared with the number of basin labels represented in the evaluated slice.
-
-  \item[\(C_{\rm stab}\).]
-  This is the route object for the staged local affine maps in \cref{sec:cstab_local_linearizations}. During the second half of training, a latent source state is converted to \(m_{\rm abs}\), assigned to a base support-family label \(u_t\), mapped to \(c=C_{\rm stab}(u_t)\), and then used to choose the affine latent map \(T_c(z)=d_c+K_c(z-\bar z_c)\). All local maps are trained in parallel with the encoder and decoder frozen. During forecasting with periodic re-encoding, the route is recomputed from the model's current predicted state. Exact support masks observed when \(C_{\rm stab}\) was built map directly to their component; unseen masks are assigned to the nearest component prototype when their Jaccard overlap is at least \(0.4\); otherwise the rollout uses the frozen global \(K\) step.
-\end{description}
-
-\paragraph{How to read the diagnostics.}
-A low \(H(B\mid S_{\rm abs})\) or \(H(B\mid F_{\rm abs})\) means that the support object predicts basin identity on the evaluated benchmark states. It does not by itself imply a compact one-support-per-basin code: a model can achieve low \(H(B\mid S_{\rm abs})\) while assigning many different exact masks to the same basin. \(H(S_{\rm abs}\mid B)\), exact-support uniqueness, and \(|S_{\rm abs}|\) diagnose this fragmentation, while \(H(B\mid F_{\rm abs})\) and \(\overline{|F_{\rm abs}|}\) ask whether the fragmented exact masks merge into a basin-scale family structure.
-
-The takeaways are as follows. \(F_{\rm abs}\) is the object for the claim that sparse supports identify basin interiors. \(S_{\rm abs}\) is the intervention object for testing whether the active coordinates are functionally used. \(C_{\rm stab}\) is the route object for the staged local-linearization result; it is built from support transitions after stage-one training and then used to select local affine latent dynamics during stage-two training and periodic-reencoding rollout.
+The \(0.40\) routing merge and \(0.50\) alignment merge answer different questions and were applied to different state collections. Alignment statistics cannot be used to infer the route partition's entropy, and the staged forecasting result cannot be read as an out-of-sample validation of the transductive alignment partition.

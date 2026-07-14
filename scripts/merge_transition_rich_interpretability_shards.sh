@@ -1,7 +1,6 @@
 #!/bin/bash
 #
-# Merge per-root interpretability shard outputs into the standard reducer
-# artifacts consumed by the final paper-facing comparison summary.
+# Merge per-root alignment rows into the compact frozen-evidence source schema.
 #
 # Required env vars:
 #   SHARDS_DIR=<directory containing per-root shard outputs>
@@ -15,7 +14,7 @@
 #
 #SBATCH --job-name=tr_interp_merge
 #SBATCH --ntasks=1
-#SBATCH --partition=long-cpu
+#SBATCH --partition=long
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --time=00:30:00

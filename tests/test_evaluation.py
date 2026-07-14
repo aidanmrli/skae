@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 
+import skae.evaluation as evaluation_module
 from skae.config import get_config
 from skae.data import make_env
 from skae.evaluation import (
@@ -190,13 +191,26 @@ def test_finite_coverage_stats_reports_full_and_prefix_coverage():
     assert stats["min_finite_prefix_length"] == 2
 
 
-def test_evaluate_model_generates_outputs(tmp_path):
+def test_evaluate_model_generates_outputs(tmp_path, monkeypatch):
     model, _, cfg = _build_model_and_states("duffing")
+
+    rollout_calls = []
+    original_rollout = evaluation_module._rollout_periodic_reencode_with_diagnostics
+
+    def counted_rollout(*args, **kwargs):
+        rollout_calls.append((int(args[2]), int(kwargs["period"])))
+        return original_rollout(*args, **kwargs)
+
+    monkeypatch.setattr(
+        evaluation_module,
+        "_rollout_periodic_reencode_with_diagnostics",
+        counted_rollout,
+    )
 
     settings = EvaluationSettings(
         systems=("duffing",),
         horizons=(10,),
-        periodic_reencode_periods=(2,),
+        periodic_reencode_periods=(1, 2),
         event_trigger_proj_threshold=0.05,
         event_trigger_min_dwell=2,
         event_trigger_max_interval=5,
@@ -204,6 +218,7 @@ def test_evaluate_model_generates_outputs(tmp_path):
         batch_size=4,
         phase_portrait_samples=2,
         save_rollout_artifacts=True,
+        save_plots=True,
     )
 
     results = evaluate_model(
@@ -218,6 +233,7 @@ def test_evaluate_model_generates_outputs(tmp_path):
     duffing_metrics = results["duffing"]
     assert "modes" in duffing_metrics
     assert "no_reencode" in duffing_metrics["modes"]
+    assert "periodic_1" in duffing_metrics["modes"]
     assert "best_periodic" in duffing_metrics
     assert "best_reset" in duffing_metrics
     assert "10" in duffing_metrics["best_periodic"]
@@ -240,6 +256,17 @@ def test_evaluate_model_generates_outputs(tmp_path):
     assert payload["system"] == "duffing"
     assert payload["true_sequences"].shape[0] == settings.batch_size
     assert "no_reencode" in payload["predictions"]
+    assert torch.equal(
+        payload["predictions"]["every_step"],
+        payload["predictions"]["periodic_1"],
+    )
+    for key, every_value in payload["mode_diagnostics"]["every_step"].items():
+        torch.testing.assert_close(
+            every_value,
+            payload["mode_diagnostics"]["periodic_1"][key],
+            equal_nan=True,
+        )
+    assert [period for horizon, period in rollout_calls if horizon == 10] == [1, 2]
     assert payload["evaluation_settings"]["use_dynamics_prior"] is True
     assert payload["evaluation_settings"]["event_trigger_support_threshold"] == pytest.approx(1e-3)
     assert any(mode.startswith("event_proj_") for mode in payload["predictions"])

@@ -14,23 +14,25 @@ standardizes coordinates only after trajectories are generated.
 \centering
 \caption{The ten Dysts systems used in the \(dt{\times}30\) forecasting
 benchmark. The ``stored step'' column is \(30\) times the native Dysts
-integration interval.}
+integration interval. The final column gives the hand-specified diagnostic
+structure count used only to size the BD and SB transition parameterizations;
+it is a heuristic lobe, scroll, or equilibrium count, not basin truth.}
 \label{tab:dysts_inventory_full}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}l l c c c@{}}
+\begin{tabular}{@{}l c c c c@{}}
 \toprule
-Display name & System key & Dimension & Native \(dt\) & Stored step \(30dt\) \\
+Display name & Dimension & Native \(dt\) & Stored step \(30dt\) & Diagnostic count \\
 \midrule
-Chua & \texttt{Chua} & 3 & \(2.8474745791{\times}10^{-4}\) & \(8.5424237373{\times}10^{-3}\) \\
-Dadras & \texttt{Dadras} & 3 & \(6.5782963827{\times}10^{-4}\) & \(1.9734889148{\times}10^{-2}\) \\
-Dequan Li & \texttt{DequanLi} & 3 & \(1.6763993999{\times}10^{-5}\) & \(5.0291981997{\times}10^{-4}\) \\
-Hadley & \texttt{Hadley} & 3 & \(2.9086847808{\times}10^{-4}\) & \(8.7260543424{\times}10^{-3}\) \\
-Lu--Chen--Cheng & \texttt{LuChenCheng} & 3 & \(1.8469678280{\times}10^{-4}\) & \(5.5409034839{\times}10^{-3}\) \\
-Qi--Chen & \texttt{QiChen} & 3 & \(7.8371061844{\times}10^{-5}\) & \(2.3511318553{\times}10^{-3}\) \\
-Sakarya & \texttt{Sakarya} & 3 & \(9.9704617436{\times}10^{-4}\) & \(2.9911385231{\times}10^{-2}\) \\
-San--Um--Srisuchinwong & \texttt{SanUmSrisuchinwong} & 3 & \(1.4933288881{\times}10^{-3}\) & \(4.4799866644{\times}10^{-2}\) \\
-Shimizu--Morioka & \texttt{ShimizuMorioka} & 3 & \(2.4080013336{\times}10^{-3}\) & \(7.2240040007{\times}10^{-2}\) \\
-Wang--Sun & \texttt{WangSun} & 3 & \(5.3924987498{\times}10^{-3}\) & \(1.6177496249{\times}10^{-1}\) \\
+Chua & 3 & \(2.8474745791{\times}10^{-4}\) & \(8.5424237373{\times}10^{-3}\) & 2 \\
+Dadras & 3 & \(6.5782963827{\times}10^{-4}\) & \(1.9734889148{\times}10^{-2}\) & 2 \\
+Dequan Li & 3 & \(1.6763993999{\times}10^{-5}\) & \(5.0291981997{\times}10^{-4}\) & 3 \\
+Hadley & 3 & \(2.9086847808{\times}10^{-4}\) & \(8.7260543424{\times}10^{-3}\) & 3 \\
+Lu--Chen--Cheng & 3 & \(1.8469678280{\times}10^{-4}\) & \(5.5409034839{\times}10^{-3}\) & 4 \\
+Qi--Chen & 3 & \(7.8371061844{\times}10^{-5}\) & \(2.3511318553{\times}10^{-3}\) & 2 \\
+Sakarya & 3 & \(9.9704617436{\times}10^{-4}\) & \(2.9911385231{\times}10^{-2}\) & 2 \\
+San--Um--Srisuchinwong & 3 & \(1.4933288881{\times}10^{-3}\) & \(4.4799866644{\times}10^{-2}\) & 2 \\
+Shimizu--Morioka & 3 & \(2.4080013336{\times}10^{-3}\) & \(7.2240040007{\times}10^{-2}\) & 2 \\
+Wang--Sun & 3 & \(5.3924987498{\times}10^{-3}\) & \(1.6177496249{\times}10^{-1}\) & 4 \\
 \bottomrule
 \end{tabular}
 }
