@@ -8,14 +8,14 @@ SCRIPTS_DIR = REPO_ROOT / "scripts"
 
 WORKER_PAIRS = (
     (
-        "run_paper_benchmark_array.sh",
-        "run_paper_benchmark_packed_array.sh",
-        "run_paper_benchmark_task.sh",
+        "common/run_benchmark_array.sh",
+        "common/run_benchmark_packed_array.sh",
+        "common/run_benchmark_task.sh",
     ),
     (
-        "run_dysts_long_horizon_eval_array.sh",
-        "run_dysts_long_horizon_eval_packed_array.sh",
-        "run_dysts_long_horizon_eval_task.sh",
+        "neurips_2026/dysts/run_evaluation_array.sh",
+        "neurips_2026/dysts/run_evaluation_packed_array.sh",
+        "neurips_2026/dysts/run_evaluation_task.sh",
     ),
 )
 
@@ -36,8 +36,11 @@ def test_packed_workers_call_allocation_free_payloads() -> None:
 
 
 def test_controlled_alignment_queue_routes_the_exact_six_paper_rows() -> None:
-    text = (SCRIPTS_DIR / "queue_controlled_support_alignment.sh").read_text()
-    assert 'RESULTS_ROOT="${RESULTS_ROOT:-/network/scratch/l/lia/skae/results}"' in text
+    text = (
+        SCRIPTS_DIR / "neurips_2026/controlled/queue_alignment.sh"
+    ).read_text()
+    assert 'RESULTS_ROOT="${RESULTS_ROOT:-${SKAE_SCRATCH_ROOT}/results}"' in text
+    assert "source scripts/common/cluster_env.sh" in text
     assignments = {}
     for line in text.splitlines():
         if "_ROOTS_CSV=" not in line:
@@ -58,9 +61,9 @@ def test_controlled_alignment_queue_routes_the_exact_six_paper_rows() -> None:
 
 
 def test_coordinate_intervention_gpu_job_uses_guard_and_telemetry() -> None:
-    text = (SCRIPTS_DIR / "run_support_coordinate_interventions.sh").read_text()
+    text = (SCRIPTS_DIR / "neurips_2026/interventions/run.sh").read_text()
     assert "#SBATCH --gres=gpu:1" in text
-    assert "source scripts/slurm_gpu_guard.sh" in text
+    assert "source scripts/common/gpu_guard.sh" in text
     assert "module load cuda/12.6.0" in text
     assert "gpu_guard_assert_cuda_visible" in text
     assert "gpu_guard_start_sampler" in text

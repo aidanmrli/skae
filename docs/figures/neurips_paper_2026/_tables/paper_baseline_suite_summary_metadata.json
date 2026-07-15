@@ -108,7 +108,7 @@
       "zero_finite_seed_cells": 0
     }
   },
-  "generated_by": "tools/summarize_paper_baseline_suite.py",
+  "generated_by": "experiments.neurips_2026.baselines.summarize",
   "horizons": {
     "dysts": [
       100,

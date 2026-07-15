@@ -29,14 +29,17 @@
 - Spatialized multibasin PDE rule: Koopman lifting experiments must use an overcomplete latent. For the spatialized reaction-diffusion benchmark, enforce `d_z >= 4 * d_x`, where `d_x = channels * grid_size^2` (`channels=2` for the current PDE fields). Examples: grid `16` requires `d_x=512` and `d_z>=2048`; grid `32` requires `d_x=2048` and `d_z>=8192`. Do not launch or document new spatialized PDE runs with an undercomplete latent.
 
 ## Project Structure & Module Organization
-This repository is a PyTorch-based research codebase for sparse Koopman autoencoders. The layout is organized around a core package plus CLI tooling.
+This repository is a PyTorch-based research codebase for sparse Koopman autoencoders. Reusable library code and paper-specific experiment code have separate ownership.
 
 Common paths:
-- `skae/`: core library (models, data environments, evaluation utilities, config presets).
-- `skae/benchmarks/paper_protocol.py`: frozen paper roster and training-budget contract.
-- `tools/`: CLI scripts used for training and evaluation (e.g., `tools/train.py`).
-- `tools/README.md`: map from paper evidence to maintained Python entry points.
-- `scripts/README.md`: map of maintained SLURM launchers and dependency chains.
+- `skae/`: reusable library (models, environments, dynamics, support utilities, training, evaluation, config presets).
+- `experiments/neurips_2026/`: frozen paper protocol, experiment workflows, and evidence builders.
+- `experiments/neurips_2026/protocol.py`: frozen paper roster and training-budget contract.
+- `experiments/neurips_2026/README.md`: end-to-end result and manuscript reproduction guide.
+- `tools/`: compatibility shims for historical Python filenames; do not add new implementations here.
+- `scripts/common/`: shared SLURM workers and cluster helpers.
+- `scripts/neurips_2026/`: maintained launchers grouped by experiment family.
+- `scripts/README.md`: launcher and dependency-chain map.
 - `tests/`: pytest suites (`tests/test_*.py`).
 - `scripts/`: paper experiment queues and SLURM workers.
 - `docs/`: active NeurIPS draft sources plus archived historical notes.
@@ -48,8 +51,10 @@ Use `uv` for reproducible environments.
 
 - `uv sync`: install dependencies from `uv.lock`.
 - `uv pip install -e .`: editable install (alternative without lockfile).
-- `uv run python tools/train.py --config generic_sparse --env duffing --sequence_length 1 --num_steps 20000`: example training run.
-- `uv run python tools/evaluate_checkpoints.py --run_dir runs/<model>/<timestamp> --system lyapunov`: evaluate checkpoints.
+- `uv run skae-train --config generic_sparse --env duffing --sequence_length 1 --num_steps 20000`: example training run.
+- `uv run skae-evaluate --run_dir runs/<model>/<timestamp> --system lyapunov`: evaluate checkpoints.
+- `uv run skae-paper protocol validate`: validate the frozen paper roster and declared evidence.
+- `uv run skae-paper check`: verify all compact evidence used by the manuscript.
 - `uv run pytest`: run the full test suite.
 - `uv run pytest tests/test_model.py -v`: run a focused test module.
 - `uv run pytest --cov=skae --cov-report=html`: coverage report (optional).

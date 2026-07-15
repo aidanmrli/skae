@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from skae.benchmarks.paper_statistics import rowwise_interquartile_mean
-from tools.build_dysts_paper_evidence import (
+from experiments.neurips_2026.evidence.statistics import rowwise_interquartile_mean
+from experiments.neurips_2026.evidence.dysts import (
     DEFAULT_INPUT,
     DEFAULT_PROVENANCE,
     HORIZONS,
@@ -23,7 +23,7 @@ from tools.build_dysts_paper_evidence import (
     verify_provenance,
     write_or_check,
 )
-from tools.dysts_paper_rendering import render_dysts_figure
+from experiments.neurips_2026.evidence.dysts_rendering import render_dysts_figure
 
 
 def _synthetic_rows() -> pd.DataFrame:

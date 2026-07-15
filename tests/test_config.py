@@ -22,32 +22,32 @@ from skae.config import (
 def test_get_default_config():
     """Test that default config has expected structure and values."""
     cfg = get_default_config()
-    
+
     # Check top-level keys
     assert hasattr(cfg, "SEED")
     assert hasattr(cfg, "ENV")
     assert hasattr(cfg, "MODEL")
     assert hasattr(cfg, "TRAIN")
-    
+
     # Check ENV structure
     assert hasattr(cfg.ENV, "ENV_NAME")
     assert hasattr(cfg.ENV, "DUFFING")
     assert hasattr(cfg.ENV, "PARABOLIC")
     assert hasattr(cfg.ENV, "MULTIWELL")
     assert hasattr(cfg.ENV, "BLENDED")
-    
+
     # Check MODEL structure
     assert hasattr(cfg.MODEL, "MODEL_NAME")
     assert hasattr(cfg.MODEL, "TARGET_SIZE")
     assert hasattr(cfg.MODEL, "ENCODER")
     assert hasattr(cfg.MODEL, "DECODER")
-    
+
     # Check loss coefficients
     assert hasattr(cfg.MODEL, "RES_COEFF")
     assert hasattr(cfg.MODEL, "RECONST_COEFF")
     assert hasattr(cfg.MODEL, "PRED_COEFF")
     assert hasattr(cfg.MODEL, "SPARSITY_COEFF")
-    
+
     # Check TRAIN structure
     assert hasattr(cfg.TRAIN, "NUM_STEPS")
     assert hasattr(cfg.TRAIN, "BATCH_SIZE")
@@ -60,7 +60,7 @@ def test_get_named_configs():
     cfg_generic = get_train_generic_km_config()
     assert cfg_generic.MODEL.MODEL_NAME == "GenericKM"
     assert cfg_generic.MODEL.TARGET_SIZE == 64
-    
+
     # Test LISTA config
     cfg_lista = get_train_lista_config()
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"
@@ -84,7 +84,7 @@ def test_config_registry():
     """Test that config registry works."""
     cfg = get_config("default")
     assert cfg is not None
-    
+
     cfg_generic = get_config("generic")
     assert cfg_generic.MODEL.MODEL_NAME == "GenericKM"
 
@@ -93,7 +93,7 @@ def test_config_registry():
     assert cfg_no_shrink.MODEL.ENCODER.ACTIVATION == "tanh"
     assert cfg_no_shrink.MODEL.ENCODER.LAST_RELU is False
     assert cfg_no_shrink.MODEL.SPARSITY_COEFF == 0.0
-    
+
     cfg_lista = get_config("lista")
     assert cfg_lista.MODEL.MODEL_NAME == "LISTAKM"
 
@@ -109,7 +109,7 @@ def test_config_modification():
     """Test that config can be modified."""
     cfg = get_default_config()
     original_lr = cfg.TRAIN.LR
-    
+
     cfg.TRAIN.LR = 2000
     assert cfg.TRAIN.LR == 2000
     assert cfg.TRAIN.LR != original_lr
@@ -120,7 +120,7 @@ def test_config_dt_extraction():
     cfg = get_default_config()
     cfg.ENV.ENV_NAME = "duffing"
     cfg.ENV.DUFFING.DT = 0.02
-    
+
     # Check that dt is correctly set
     assert cfg.ENV.DUFFING.DT == 0.02
     assert cfg.ENV.ENV_NAME == "duffing"
@@ -183,6 +183,7 @@ def test_hard_init_oversample_roundtrip():
         ("duffing", "duffing"),
         ("gated_local_linear", "gated_local_linear"),
         ("gated_transfer_linear", "gated_transfer_linear"),
+        ("analytic:cal_square_4", "analytic"),
         ("claude:cal_square_4", "claude_catalog"),
         ("multiwell:energy", "multiwell"),
         ("blended", "blended"),
@@ -201,6 +202,7 @@ def test_canonical_env_name(env_name, expected):
         "duffing",
         "gated_local_linear",
         "gated_transfer_linear",
+        "analytic:cal_square_4",
         "claude:cal_square_4",
         "multiwell_rotational",
         "multiwell:energy",
@@ -218,9 +220,10 @@ def test_apply_env_dt_override_sets_expected_bucket(env_name):
     assert get_env_dt(cfg, env_name=env_name) == pytest.approx(0.123)
 
 
-def test_get_env_dt_uses_claude_default_when_not_overridden():
-    """Claude catalog env dt should fall back to the system's intrinsic default."""
+@pytest.mark.parametrize("prefix", ["analytic", "claude"])
+def test_get_env_dt_uses_analytic_default_when_not_overridden(prefix):
+    """Analytic env dt should fall back to the system's intrinsic default."""
     cfg = get_default_config()
-    cfg.ENV.ENV_NAME = "claude:cal_square_4"
+    cfg.ENV.ENV_NAME = f"{prefix}:cal_square_4"
 
     assert get_env_dt(cfg) == pytest.approx(0.03)

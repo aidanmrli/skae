@@ -11,7 +11,7 @@ import torch
 
 from skae.config import get_config
 from skae.data import VectorWrapper
-from tools.train_staged_support_family_local_k import (
+from experiments.neurips_2026.local_operators.train import (
     FINAL_EVALUATION_BATCH_SIZE,
     FINAL_EVALUATION_SEED_OFFSET,
     FAMILY_JACCARD_THRESHOLD,
@@ -42,18 +42,21 @@ from tools.train_staged_support_family_local_k import (
     _strictly_improves,
     _validate_frozen_fabs_artifact,
 )
-from tools.staged_fabs_protocol import _finite_prefix_start_mean
-from tools.staged_fabs_io import (
+from experiments.neurips_2026.local_operators.protocol import _finite_prefix_start_mean
+from experiments.neurips_2026.local_operators.artifact_io import (
     _restore_training_rng_states,
     _save_checkpoint,
 )
-from tools.train_support_family_local_maps import (
+from experiments.neurips_2026.local_operators.routing import (
     FAMILY_CLUSTERING_RULE,
     FAMILY_REPRESENTATIVE_RULE,
     MIN_FAMILY_TRANSITIONS,
     _build_route_codebook,
     _generate_source_route_fit_batches,
     _route_indices_np,
+)
+from skae.support.routing import (
+    _build_route_codebook as _build_parameterized_route_codebook,
 )
 
 
@@ -225,6 +228,21 @@ def test_route_builder_rejects_nonpaper_protocols(kwargs, match: str) -> None:
         _build_route_codebook(_two_family_latents(), **kwargs)
 
 
+def test_reusable_route_builder_accepts_explicit_nonpaper_parameters() -> None:
+    codebook = _build_parameterized_route_codebook(
+        _two_family_latents(),
+        scheme="absolute",
+        value=0.005,
+        min_operator_transitions=1,
+        family_jaccard_threshold=0.5,
+        family_representative_rule="test_modal_support",
+        family_clustering_rule="test_frequency_order",
+    )
+    assert len(codebook["fitted_family_ids"]) == 2
+    assert codebook["route_jaccard_threshold"] == pytest.approx(0.5)
+    assert codebook["family_representative_rule"] == "test_modal_support"
+
+
 def test_affine_bundle_starts_at_global_map_and_learns_intercept() -> None:
     global_k = np.asarray([[1.0, 2.0], [0.5, -1.0]], dtype=np.float32)
     source = {0: np.asarray([0.25, -0.5], dtype=np.float32)}
@@ -374,23 +392,26 @@ def test_resume_validation_accepts_legacy_fabs_and_rejects_new_512_unique(
         _validate_frozen_fabs_artifact(bad, {})
 
 
-def test_launchers_expose_only_the_frozen_route_contract() -> None:
-    queue_text = (ROOT / "scripts/queue_staged_support_family_local_k_table1.sh").read_text()
-    runner_text = (ROOT / "scripts/run_staged_support_family_local_k_array.sh").read_text()
+def test_launchers_delegate_the_frozen_route_contract_to_python() -> None:
+    queue_text = (
+        ROOT / "scripts/neurips_2026/local_operators/queue_training.sh"
+    ).read_text()
+    runner_text = (
+        ROOT / "scripts/neurips_2026/local_operators/run_array.sh"
+    ).read_text()
     combined = queue_text + runner_text
-    for required in (
+    assert "experiments.neurips_2026.local_operators.contract" in combined
+    assert "skae-paper tasks local-operators" in queue_text
+    for duplicated_setting in (
         "absolute:0.001",
-        "512",
-        "256",
         "193",
         "271_828",
-        "192",
         "1,2,5,10,20,25,50,100",
         "source_target_affine_learned_intercept",
         "staged_fabs_route_source_v3",
         "every_latent_transition_step",
     ):
-        assert required in combined
+        assert duplicated_setting not in combined
     for removed in (
         "ROUTING_OBJECT",
         "STABLE_BASE_OBJECT",
@@ -400,27 +421,28 @@ def test_launchers_expose_only_the_frozen_route_contract() -> None:
         "staged_fabs_route_source_v2",
     ):
         assert removed not in combined
-    assert "build_transition_rich_basin_partition_tasks.py" in queue_text
+    assert "skae-paper tasks controlled" in queue_text
     assert "--paper_protocol" in queue_text
     assert "SOURCE_TSV" not in queue_text
     heredocs = re.findall(r"<<'PY'\n(.*?)\nPY", combined, flags=re.DOTALL)
-    assert len(heredocs) == 3
+    assert len(heredocs) == 2
     for index, source in enumerate(heredocs):
         ast.parse(source, filename=f"staged-launcher-heredoc-{index}.py")
 
 
 def test_staged_modules_respect_active_text_line_cap() -> None:
     paths = [
-        ROOT / "tools/train_staged_support_family_local_k.py",
-        ROOT / "tools/train_support_family_local_maps.py",
-        *sorted((ROOT / "tools").glob("staged_fabs_*.py")),
-        ROOT / "tools/reevaluate_staged_vs_global_wide_periodic.py",
+        ROOT / "skae/support/routing.py",
+        ROOT / "skae/support/local_operator.py",
+        *sorted((ROOT / "experiments/neurips_2026/local_operators").glob("*.py")),
     ]
     assert all(len(path.read_text().splitlines()) <= 500 for path in paths)
 
 
 def test_best_and_last_stage2_checkpoints_are_resumable() -> None:
-    source = (ROOT / "tools/staged_fabs_training.py").read_text()
+    source = (
+        ROOT / "experiments/neurips_2026/local_operators/training.py"
+    ).read_text()
     tree = ast.parse(source)
     checkpoint_calls = [
         node

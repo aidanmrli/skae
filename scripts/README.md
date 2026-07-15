@@ -1,73 +1,113 @@
-# Paper launchers
+# SLURM launcher map
 
-`scripts/` contains only the launch and orchestration surface for evidence that
-is still represented in `docs/neurips_sparse_koopman_multibasin.tex`. Python
-implementations are mapped in `tools/README.md`. Submit scripts with `#SBATCH`
-headers using `sbatch`; do not execute their training or evaluation payloads on
-the login node.
+`scripts/` owns resource requests and dependency orchestration, not scientific
+implementation. Python behavior is exposed through `skae-train`,
+`skae-evaluate`, and `skae-paper`.
 
-## Shared workers
+Launchers may select an execution subset, but they must not duplicate a frozen
+system roster, model-row roster, or metric protocol as shell defaults. Task and
+result manifests emitted by the Python workflow are the authoritative record;
+queue manifests record operational facts such as job IDs, paths, and explicit
+overrides.
 
-- `run_paper_benchmark_array.sh` and
-  `run_paper_benchmark_packed_array.sh`: submitted controlled/Dysts training
-  wrappers. Both invoke the allocation-free `run_paper_benchmark_task.sh`
-  payload; packed workers never execute a script containing `#SBATCH`.
-- `slurm_gpu_guard.sh`: GPU-use preflight sourced by training workers.
-- `collect_transition_rich_basin_partition.sh` and
-  `compare_paper_benchmark.sh`: controlled collection and comparison.
+Submit every file containing `#SBATCH` with `sbatch`. The maintained launchers
+use the `long` partition. Do not execute their payloads on the login node.
 
-## Controlled multibasin evidence
+## Layout
 
-- `queue_controlled_paper_training.sh`: canonical 15-system, six-row, 15-seed
-  training queue. Optional system, model, and seed subsets support targeted
-  repairs without restoring historical one-off launchers. It packs tasks
-  sequentially on one GPU through the shared benchmark worker.
-- `queue_transition_rich_interpretability_shards.sh`,
-  `reduce_transition_rich_interpretability_metrics.sh`, and
-  `merge_transition_rich_interpretability_shards.sh`: current support-alignment
-  evaluation chain.
-- `queue_controlled_support_alignment.sh`: fixed absolute-1e-3,
-  Jaccard-0.50 alignment evaluation for all controlled rows. Families are fit
-  on every generated evaluation-trajectory state, then scored on each observed
-  label's tie-inclusive center-margin-at-or-above-q75 slice.
-- Per-system controlled tables are generated from frozen evidence by
-  `tools/build_controlled_per_system_tables.py`.
+```text
+common/
+  cluster_env.sh                 portable scratch/cache resolution
+  gpu_guard.sh                   CUDA preflight and utilization telemetry
+  run_benchmark_task.sh          allocation-free single training payload
+  run_benchmark_array.sh         one task per GPU allocation
+  run_benchmark_packed_array.sh  several sequential tasks per GPU allocation
+neurips_2026/
+  controlled/                    controlled training, collection, alignment
+  dysts/                         Dysts training, cache, evaluation, collection
+  baselines/                     classical/local-linear controls
+  local_operators/               staged routed-local-operator experiment
+  interventions/                coordinate intervention replay
+```
 
-## Dysts evidence
+Submitted array wrappers call allocation-free payloads; packed workers never
+execute another script containing `#SBATCH`.
 
-- `queue_dysts_dt30_basinblock_p256_seeds0to14.sh`: final Dysts training queue.
-- `prebuild_dysts_cache_matrix.sh`: deterministic CPU cache worker. Callers
-  must provide a generated system file and explicit SLURM array range; paper
-  defaults are the retained 10 systems, the full cache profile, and
-  (dt\times30).
-- `queue_dysts_long_horizon_eval.sh`,
-  `run_dysts_long_horizon_eval_array.sh`, and
-  `run_dysts_long_horizon_eval_packed_array.sh`: H100--H5000 paper evaluation
-  chain. The queue requires an explicit root-spec table from training. Both
-  submitted wrappers invoke `run_dysts_long_horizon_eval_task.sh`, which has
-  no allocation directives.
-- `collect_dysts_long_horizon_forecasting.sh`: Dysts collector.
+## Controlled benchmark
 
-## Baselines, staged models, and interventions
+- `neurips_2026/controlled/queue_training.sh`: build the frozen task table and
+  submit packed training.
+- `collect_forecasting.sh` and `compare_forecasting.sh`: collect reviewed runs
+  and compare model roots.
+- `queue_alignment.sh`: route all six paper rows to evaluation shards.
+- `queue_alignment_shards.sh`, `reduce_alignment.sh`, and
+  `merge_alignment.sh`: support-alignment dependency chain.
 
-- `queue_paper_baseline_suite.sh` and `run_paper_baseline_suite.sh`: retained
-  classical and local-linear baselines.
-- `queue_staged_support_family_local_k_table1.sh` and
-  `run_staged_support_family_local_k_array.sh`: current staged F_abs
-  local-operator training. The protocol is source-versioned: 512 configured
-  route-fit rows contain two exact copies of 256 unique trajectories, and the
-  fixed staged selector uses 32 starts at seed offset 12345. Support routing is
-  recomputed before every latent transition, while the selected periodic cadence
-  controls decode--encode refresh. Resumable `last.pt` checkpoints are enabled
-  by default; schema-3 checkpoints include local optimizer and stochastic-stream
-  states.
-- `reevaluate_staged_vs_global_wide_periodic.sh`: staged/global forecasting
-  reevaluation on the 100-start wide cadence grid; it does not repair the
-  staged selector's 32/100 overlap or the global selector asymmetry.
-- `run_support_coordinate_interventions.sh`: reproduce the intervention run;
-  frozen rows and paper displays are verified by the builders in
-  `tools/README.md`.
+The reducer defaults to the canonical model rows in
+`experiments/neurips_2026/alignment.py`. Pass `ROOT_LABELS_CSV` or
+`ROOT_LABELS_FILE` only to run an explicit subset; the shell worker does not
+carry another copy of the paper roster.
 
-Historical sweeps, rescue queues, galleries, and standalone mechanism campaigns
-are intentionally absent. Use Git history for their implementation provenance;
-do not recreate them as active launchers without first changing the paper plan.
+Canonical launch:
+
+```bash
+sbatch scripts/neurips_2026/controlled/queue_training.sh
+```
+
+## Dysts benchmark
+
+- `neurips_2026/dysts/queue_training.sh`: frozen 10-system training campaign.
+- `prebuild_cache.sh`: CPU cache materialization for explicit systems/profiles.
+- `queue_evaluation.sh`: H100--H5000 evaluation dependency chain.
+- `run_evaluation_array.sh`, `run_evaluation_packed_array.sh`, and
+  `run_evaluation_task.sh`: submitted wrappers and allocation-free payload.
+- `collect_evaluation.sh`: row collection after reevaluation.
+
+Canonical launch:
+
+```bash
+sbatch scripts/neurips_2026/dysts/queue_training.sh
+```
+
+## Controls and mechanism experiments
+
+- `neurips_2026/baselines/queue.sh`: standalone classical and mixture-local
+  controls; `run_array.sh` executes task rows.
+- `neurips_2026/local_operators/queue_training.sh`: staged support-routed local
+  affine operator campaign; `run_array.sh` trains and `reevaluate.sh` applies
+  the wide periodic grid.
+- `neurips_2026/interventions/run.sh`: checkpoint-based coordinate intervention
+  replay.
+
+Both mechanism launchers resolve scientific defaults from their Python
+`protocol.py`/`contract.py` modules. Environment variables are explicit subset
+or ablation overrides; shell files retain only resources, paths, dependency
+order, and immutable checkpoint identities.
+
+## Storage and portability
+
+`common/cluster_env.sh` resolves storage in this order:
+
+1. explicit `SKAE_SCRATCH_ROOT`;
+2. `$SCRATCH/skae`;
+3. `/network/scratch/<initial>/<user>/skae` when available;
+4. repository-local `runs/`.
+
+Set shared storage explicitly on another cluster:
+
+```bash
+export SKAE_SCRATCH_ROOT=/shared/path/skae
+export DYSTS_CACHE_DIR=/shared/path/skae/dysts_native_cache
+```
+
+SLURM stdout/stderr paths are relative and contain no contributor name.
+Launchers derive the repository root from Git, so their nested directory depth
+does not affect path resolution.
+
+## Before a GPU submission
+
+Read the launcher and called command, verify CUDA device selection, batching,
+task packing, CPU/GPU stage separation, and telemetry. Use `sbatch` from the
+repository root so relative log files and generated task manifests are easy to
+find. The complete evidence workflow is documented in
+[`experiments/neurips_2026/README.md`](../experiments/neurips_2026/README.md).

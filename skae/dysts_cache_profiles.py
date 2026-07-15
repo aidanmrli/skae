@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Dict
+
+from skae.runtime_paths import resolve_scratch_root
 
 
 DYSTS_CACHE_PROFILES: Dict[str, Dict[str, int]] = {
@@ -24,14 +27,15 @@ DYSTS_CACHE_PROFILES: Dict[str, Dict[str, int]] = {
     },
 }
 
-_DEFAULT_SHARED_CACHE_DIR = Path("/network/scratch/l/lia/skae/dysts_native_cache")
-
 
 def default_dysts_cache_dir() -> str:
-    """Pick a sensible cache root for the current machine."""
-    if _DEFAULT_SHARED_CACHE_DIR.parent.exists():
-        return str(_DEFAULT_SHARED_CACHE_DIR)
-    return "runs/dysts_native_cache"
+    """Pick a cache root without embedding a contributor-specific path."""
+
+    configured = os.environ.get("DYSTS_CACHE_DIR")
+    if configured:
+        return str(Path(configured).expanduser())
+    scratch = resolve_scratch_root(fallback=Path("runs"))
+    return str(scratch / "dysts_native_cache")
 
 
 def apply_dysts_cache_profile(cfg, profile_name: str) -> Dict[str, int]:

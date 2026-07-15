@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from tools.freeze_paper_baseline_evidence import _finite_text
-from tools.summarize_paper_baseline_suite import (
+from experiments.neurips_2026.baselines.freeze import _finite_text
+from experiments.neurips_2026.baselines.summarize import (
     DATA_DIR,
     DEFAULT_INPUTS,
     DEFAULT_PROVENANCE,

@@ -7,13 +7,13 @@ import hashlib
 import json
 from pathlib import Path
 
-from skae.benchmarks.controlled_alignment import (
+from experiments.neurips_2026.alignment import (
     ENTROPY_UNITS,
     FAMILY_COUNT_SEMANTICS,
     NATIVE_LABEL_SYSTEMS,
     PROXY_LABEL_SYSTEMS,
 )
-from skae.benchmarks.paper_protocol import (
+from experiments.neurips_2026.protocol import (
     CONTROLLED_ALIGNMENT_ELIGIBILITY_CRITERION,
     CONTROLLED_ALIGNMENT_OBSERVED_LABEL_COUNTS,
     CONTROLLED_ALIGNMENT_PRIMARY_SYSTEM_KEYS,

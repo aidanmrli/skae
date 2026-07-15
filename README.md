@@ -1,92 +1,69 @@
 # Sparse Koopman Autoencoders for Multibasin Dynamics
 
-This repository contains the PyTorch implementation and evidence package for
-the paper draft **“Sparse Koopman Supports for Multibasin Forecasting and
-Transductive Regime Alignment.”** The
-current project goal is to turn the completed multibasin experiments into a
-clear, reproducible NeurIPS submission.
+This repository contains the reusable PyTorch implementation and the frozen
+evidence workflow for **“Sparse Koopman Supports for Multibasin Forecasting and
+Transductive Regime Alignment.”** The research question is compact: whether
+sparse latent supports align with basins and provide useful coordinates for
+forecasting and local dynamics.
 
-The paper-facing question is whether sparse Koopman lifts learn latent support
-patterns that align with basins of attraction and provide useful coordinates
-for forecasting and local dynamics. The active claim set, experiment order,
-and interpretation live in
+The paper-facing source of truth is
 [`docs/neurips_sparse_koopman_multibasin.tex`](docs/neurips_sparse_koopman_multibasin.tex).
+The end-to-end code and evidence guide is
+[`experiments/neurips_2026/README.md`](experiments/neurips_2026/README.md).
 
-## Modeling and evaluation conventions
+## Where to look
 
-These constraints apply to new code, experiments, and documentation:
+| If you want to… | Start here | Responsibility |
+|---|---|---|
+| Read the claims and results | `docs/neurips_sparse_koopman_multibasin.tex` | Current narrative, claims, display order, and interpretation |
+| Reproduce every paper artifact | `experiments/neurips_2026/README.md` | One ordered workflow from environment setup to PDF |
+| Inspect the frozen protocol | `experiments/neurips_2026/protocol.py` | System rosters, seeds, budgets, model rows, display labels |
+| Trace a table or figure | `docs/figures/neurips_paper_2026/manifest.json` | Compact inputs, generators, outputs, and provenance |
+| Change reusable modeling code | `skae/README.md` | Core model, data, dynamics, support, training, and evaluation map |
+| Launch paper jobs | `scripts/README.md` | SLURM launchers grouped by experiment family |
+| Find a command | `uv run skae-paper --help` | Stable paper command surface |
+| Understand old filenames | `tools/README.md` | Compatibility wrappers and migration policy |
+| Find historical context | `docs/archive/` | Dated, non-current provenance only |
 
-- At training and deployment time, the number of basins and trajectory-to-basin
-  assignments are unknown. Ground-truth basin counts or labels must not be
-  required by the proposed method.
-- Known basin labels and counts may be used only for benchmark evaluation or an
-  explicitly labeled diagnostic ablation.
-- The primary representation objective is **basin-support alignment**: each
-  basin should map to a distinct sparse support in latent `z`. Basin-block
-  alignment is not the default objective.
-- The dense no-sparsity baseline uses `tanh` hidden activations. A dense ReLU
-  model is a ReLU ablation, not the dense baseline.
-- Spatialized multibasin PDE lifts must be overcomplete. Enforce
-  `d_z >= 4 * d_x`, where `d_x = channels * grid_size**2`. With two channels,
-  grid 16 requires `d_z >= 2048`, and grid 32 requires `d_z >= 8192`.
-
-## Sources of truth
-
-- [`AGENTS.md`](AGENTS.md): repository-wide operating, compute, testing, and
-  documentation rules.
-- [`docs/README.md`](docs/README.md): compact map of paper documentation and
-  evidence ownership.
-- [`docs/neurips_sparse_koopman_multibasin.tex`](docs/neurips_sparse_koopman_multibasin.tex):
-  current claims, narrative, display order, and interpretation.
-- [`docs/appendix/`](docs/appendix/): protocol and result details included by
-  the paper.
-- [`docs/figures/neurips_paper_2026/`](docs/figures/neurips_paper_2026/): active
-  displays, compact source data, and display provenance.
-- [`docs/archive/`](docs/archive/): dated, non-current provenance. Archived
-  plans and trackers are not active instructions.
-
-Do not create a second experiment-status or paper-status tracker. A result that
-changes a paper claim, protocol, display, or priority belongs in the paper or
-its single-purpose appendix. Other useful provenance belongs in a dated archive
-note.
-
-## Repository layout
+## Repository architecture
 
 ```text
-skae/       Core models, dynamical systems, configuration, and evaluation code
-tools/      Maintained training, evaluation, collection, and plotting CLIs
-scripts/    Maintained SLURM launchers and paper experiment orchestration
-tests/      Pytest suites
-docs/       Active paper, included appendices, evidence artifacts, and archive
-runs/       Local training outputs; ignored by Git
-results/    Local collected outputs; ignored by Git
+skae/                       reusable research library
+  dynamics/analytic/        maintained analytic multibasin systems
+  support/                  support families and routed local operators
+  training/                 general training runner and metric plotting
+  cli/                      general checkpoint evaluation
+experiments/neurips_2026/   paper-only protocol, workflows, and evidence code
+scripts/
+  common/                   shared SLURM workers and cluster helpers
+  neurips_2026/             paper launchers, separated by experiment family
+docs/                       paper source, appendices, compact evidence, archive
+tests/                      reusable-library and frozen-protocol regression tests
+tools/                      deprecated filename-compatible Python shims
+runs/, results/             unversioned execution outputs
 ```
 
-Keep reusable implementation in `skae/`, user-facing entry points in `tools/`,
-and cluster orchestration in `scripts/`. Avoid adding one-off Python files at
-the repository root.
+The segregation rule is simple: code that would remain useful for another
+paper belongs in `skae/`; choices tied to this paper belong in
+`experiments/neurips_2026/`; resource scheduling belongs in `scripts/`; claims
+and durable evidence belong in `docs/`. Do not add new implementations to
+`tools/`.
 
-## Environment
+Each scientific choice has one owner. Protocol/contract modules define rosters,
+budgets, model rows, and baseline method sets; workflow modules consume that
+contract; builders turn versioned row evidence into displays; the paper cites
+those displays. Historical names survive only at compatibility and provenance
+boundaries, never as a second maintained implementation.
 
-The lock file and `uv` are the supported environment path:
+## Quick start
+
+Install the locked environment:
 
 ```bash
 uv sync
 ```
 
-An editable installation without the lock file is available when necessary:
-
-```bash
-uv pip install -e .
-```
-
-Always invoke Python through `uv run`; do not call `python` or `python3`
-directly.
-
-## Cluster execution
-
-Do not run Python programs, tests, training, evaluation, or validation sweeps on
-the login node. First obtain a compute allocation:
+Do not run Python programs on the login node. Obtain a compute allocation first:
 
 ```bash
 # CPU
@@ -96,51 +73,54 @@ salloc --mem=8G -c 4 --partition=long
 salloc --gpus 1 --mem=8G -c 4 --partition=long
 ```
 
-Inside the allocation, typical entry points are:
+Inside the allocation, validate the frozen protocol and all compact evidence:
 
 ```bash
-uv run python tools/build_table1_forecasting_support.py --check
-uv run python tools/build_dysts_paper_evidence.py --check
-uv run pytest tests/test_model.py -v
+uv run skae-paper protocol validate
+uv run skae-paper check
+uv run pytest
 ```
 
-Submit scripts containing `#SBATCH` directives with `sbatch`, using the
-repository-standard `long` partition unless a documented resource requirement
-dictates otherwise. Before submitting a GPU job, verify that the called code
-uses CUDA and that the workload can keep the requested GPU busy.
-
-The canonical training launchers are paper-scoped:
+Build the review PDF from the login node or a compute node:
 
 ```bash
-sbatch scripts/queue_controlled_paper_training.sh
-sbatch scripts/queue_dysts_dt30_basinblock_p256_seeds0to14.sh
+latexmk -cd -pdf docs/neurips_sparse_koopman_multibasin.tex
 ```
 
-See [`scripts/README.md`](scripts/README.md) before launching either campaign.
-
-LaTeX manuscript builds are permitted on the login node. From `docs/`:
+The main campaign launchers are:
 
 ```bash
-latexmk -pdf neurips_sparse_koopman_multibasin.tex
+sbatch scripts/neurips_2026/controlled/queue_training.sh
+sbatch scripts/neurips_2026/dysts/queue_training.sh
 ```
 
-## Working on the paper evidence
+Launchers default to the `long` partition. Output storage resolves from
+`$SKAE_SCRATCH_ROOT`, then `$SCRATCH/skae`, then the current Mila user's scratch
+directory, with a repository-local fallback. No contributor-specific path is
+encoded in the maintained workflow.
 
-Before changing an experiment or claim:
+## Scientific invariants
 
-1. Read `AGENTS.md`, `docs/README.md`, and the relevant paper section.
-2. Trace the cited table or figure to its source data and generation path.
-3. Keep training-time method design free of benchmark basin labels and fixed
-   basin counts.
-4. Run focused tests on a compute node.
-5. Report new results as concrete values, context, interpretation, project
-   implications, and next steps.
-6. Update the paper or relevant appendix when the result changes the active
-   evidence; otherwise add a dated archive note.
+- Training and deployment do not know the number of basins or trajectory basin
+  assignments. Known labels and counts are evaluation-only benchmark metadata.
+- The primary representation goal is basin-support alignment, not basin-block
+  alignment.
+- The dense no-sparsity baseline uses `tanh`; dense ReLU is an ablation.
+- Spatialized multibasin PDE lifts satisfy `d_z >= 4 * d_x`.
+- The controlled and Dysts paper rosters, shared 15-seed contract, training
+  budgets, and model-row mapping are frozen in
+  `experiments/neurips_2026/protocol.py`.
 
-Training artifacts under `runs/` and collected local outputs under `results/`
-are not versioned. Preserve only compact, paper-relevant evidence and provenance
-under the active paper figure directory.
+See [`AGENTS.md`](AGENTS.md) for the complete development, compute, and
+documentation rules.
+
+## Documentation ownership
+
+Do not create another paper-status tracker. A result that changes a claim,
+protocol, display, or priority goes into the paper or its single-purpose
+appendix. Useful non-current provenance goes into a dated note under
+`docs/archive/`. Active generated evidence stays under
+`docs/figures/neurips_paper_2026/` with compact row data and provenance.
 
 ## License
 

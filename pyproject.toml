@@ -31,11 +31,13 @@ cuda = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["skae*", "tools*"]
+include = ["skae*", "experiments*", "tools*"]
 
 [project.scripts]
-skae-train = "tools.train:main"
-skae-evaluate = "tools.evaluate_checkpoints:main"
+skae-train = "skae.training.runner:main"
+skae-evaluate = "skae.cli.evaluate:main"
+skae-plot-training = "skae.training.plotting:main"
+skae-paper = "experiments.neurips_2026.cli:main"
 
 # CUDA PyTorch index - only used on Linux when explicitly requested
 # On macOS/Windows, PyTorch will install from PyPI (CPU version)

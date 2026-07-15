@@ -1,101 +1,156 @@
 {
-  "schema_version": 1,
-  "description": "PDF vector-field displays for the 15 controlled multibasin systems retained by the paper.",
-  "generated_by": "tools/plot_multibasin_ground_truth_vector_fields.py",
+  "schema_version": 2,
+  "description": "PDF vector-field displays for 15 controlled multibasin systems.",
+  "generated_by": "experiments.neurips_2026.evidence.ground_truth",
   "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
-  "reproduction_command_inside_allocation": "uv run python tools/plot_multibasin_ground_truth_vector_fields.py --formats pdf",
-  "grid_points": 80,
-  "composite": "ground_truth_vector_fields_retained15.pdf",
+  "reproduction_command_inside_allocation": "uv run skae-paper build ground-truth --formats pdf",
+  "render_parameters": {
+    "grid_points": 80,
+    "formats": [
+      "pdf"
+    ],
+    "dpi": 300,
+    "stream_density": 1.05
+  },
+  "composite": {
+    "path": "ground_truth_vector_fields_retained15.pdf",
+    "sha256": "b4b4a70c6e216470dc5d1fd86595cd941c3721271b39a3634528e96b77190377"
+  },
   "systems": [
     {
       "system_key": "gated_local_linear",
       "display_name": "Local-linear gates",
       "basins": 3,
-      "pdf": "ground_truth_vector_field_gated_local_linear.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_gated_local_linear.pdf",
+        "sha256": "abbe02207a74e7d8d10b2a73e827cd21177955669e237cd573e62da024f115a5"
+      }
     },
     {
       "system_key": "gated_transfer_linear",
       "display_name": "Transfer-gated local-linear",
       "basins": 3,
-      "pdf": "ground_truth_vector_field_gated_transfer_linear.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_gated_transfer_linear.pdf",
+        "sha256": "eead67e42f2ee90bb02d26db3d9dcb17c5966de4617ec2265b49e0af7f81d5ed"
+      }
     },
     {
       "system_key": "claude:arrested_spiral",
       "display_name": "Arrested spiral",
       "basins": 5,
-      "pdf": "ground_truth_vector_field_arrested_spiral.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_arrested_spiral.pdf",
+        "sha256": "faa0531bb9fa70a50ce9a9214d525e6fe133b5146bd3b4f75a22dc279f65d1f0"
+      }
     },
     {
       "system_key": "claude:cal_asymmetric_3",
       "display_name": "Asymmetric three-well",
       "basins": 3,
-      "pdf": "ground_truth_vector_field_cal_asymmetric_3.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_cal_asymmetric_3.pdf",
+        "sha256": "e015825abaab22980931a1748444de78c6505abcfae90f117190fb3aff0922b2"
+      }
     },
     {
       "system_key": "claude:cal_high_cross_3",
       "display_name": "High-cross three-well",
       "basins": 3,
-      "pdf": "ground_truth_vector_field_cal_high_cross_3.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_cal_high_cross_3.pdf",
+        "sha256": "ee201259273442654fdd5fc71dfbbea3732fceec2fffe05dd2237c656dc1aff2"
+      }
     },
     {
       "system_key": "claude:cal_hexagon_6",
       "display_name": "Hexagonal six-well",
       "basins": 6,
-      "pdf": "ground_truth_vector_field_cal_hexagon_6.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_cal_hexagon_6.pdf",
+        "sha256": "3e8f54ea2e8059bb5e9a2c247d8abd7a4726abdf75867b5672ab53e3dbcf6b09"
+      }
     },
     {
       "system_key": "claude:cal_octagon_8",
       "display_name": "Octagonal eight-well",
       "basins": 8,
-      "pdf": "ground_truth_vector_field_cal_octagon_8.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_cal_octagon_8.pdf",
+        "sha256": "216c5095adeb0e03386ce2385c418a94220d507cbd1af8702f732b7188ae16f6"
+      }
     },
     {
       "system_key": "claude:cal_pentagon_5",
       "display_name": "Pentagonal five-well",
       "basins": 5,
-      "pdf": "ground_truth_vector_field_cal_pentagon_5.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_cal_pentagon_5.pdf",
+        "sha256": "65fa984c441fca3c0468d99febf2797a5ffb617affeb3ed669a1abe7d828afcb"
+      }
     },
     {
       "system_key": "claude:cal_square_4",
       "display_name": "Square four-well",
       "basins": 4,
-      "pdf": "ground_truth_vector_field_cal_square_4.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_cal_square_4.pdf",
+        "sha256": "e89b98763e4cdc3c8428706dd328f7ef976076f943f8c3911b3511a7c8b206d4"
+      }
     },
     {
       "system_key": "claude:duffing_triple_well",
       "display_name": "Triple-well Duffing",
       "basins": 3,
-      "pdf": "ground_truth_vector_field_duffing_triple_well.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_duffing_triple_well.pdf",
+        "sha256": "96514513efddace80e8ddffe2d7314dc5602a3c1617b2ad332397f95c17861fe"
+      }
     },
     {
       "system_key": "claude:snic_multi",
       "display_name": "SNIC multi-attractor",
       "basins": 3,
-      "pdf": "ground_truth_vector_field_snic_multi.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_snic_multi.pdf",
+        "sha256": "51c7e1e355ae3f3aea0924f5c36c09f42dee4097cd403bc576290809a9b9f856"
+      }
     },
     {
       "system_key": "claude:transition_routes_4",
       "display_name": "Transition-routes four-well",
       "basins": 4,
-      "pdf": "ground_truth_vector_field_transition_routes_4.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_transition_routes_4.pdf",
+        "sha256": "f85e7b1e32f6828dcba7f36a97c4814cd52a4f21bffbf8012f3ec1d2d41efeeb"
+      }
     },
     {
       "system_key": "claude:var_depth_gradient_4",
       "display_name": "Depth-gradient four-well",
       "basins": 4,
-      "pdf": "ground_truth_vector_field_var_depth_gradient_4.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_var_depth_gradient_4.pdf",
+        "sha256": "5032863e4f8554aef4849c906c32b8058b898d985e699d96b3c49dc5863d8e40"
+      }
     },
     {
       "system_key": "claude:var_diamond_4",
       "display_name": "Diamond four-well",
       "basins": 4,
-      "pdf": "ground_truth_vector_field_var_diamond_4.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_var_diamond_4.pdf",
+        "sha256": "7ae50c58369d0e7746bf85313b7ac4c51e165ab1e205043c0e1c7b8a0c0e14d7"
+      }
     },
     {
       "system_key": "claude:var_l_shape_5",
       "display_name": "L-shaped five-well",
       "basins": 5,
-      "pdf": "ground_truth_vector_field_var_l_shape_5.pdf"
+      "pdf": {
+        "path": "ground_truth_vector_field_var_l_shape_5.pdf",
+        "sha256": "f0d810ee2851b6fad8e3239e122e76ef3d61d9199940e2f4445a46d3a04f0e9b"
+      }
     }
   ]
 }

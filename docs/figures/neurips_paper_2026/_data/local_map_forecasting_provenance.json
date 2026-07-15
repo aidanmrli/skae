@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_by": "tools/build_local_map_forecasting_tables.py",
+  "generated_by": "experiments.neurips_2026.evidence.local_operator_tables",
   "machine_specific_columns_removed": [
     "staged_run_dir",
     "global_run_dir"

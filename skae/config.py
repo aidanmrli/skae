@@ -74,7 +74,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=cfg.TRAIN.LR)
 dataloader = create_dataloader(cfg.ENV, cfg.TRAIN)
 
 # Use loss coefficients
-loss = (cfg.MODEL.RES_COEFF * alignment_loss + 
+loss = (cfg.MODEL.RES_COEFF * alignment_loss +
         cfg.MODEL.RECONST_COEFF * recon_loss +
         cfg.MODEL.SPARSITY_COEFF * sparsity_loss)
 ```
@@ -287,10 +287,10 @@ class GatedTransferLinearConfig:
 @dataclass
 class DystsConfig:
     """Configuration for dysts-based environments.
-    
+
     The dysts library provides 135+ chaotic systems. Use ENV_NAME="dysts:SystemName"
     (e.g., "dysts:Lorenz", "dysts:Chua") to select a dysts system.
-    
+
     The retained paper roster lives in benchmarks/paper_protocol.py.
     """
     SYSTEM_NAME: str = "Lorenz"  # Name matching dysts.flows class
@@ -318,30 +318,36 @@ class DystsConfig:
 
 
 @dataclass
-class ClaudeCatalogConfig:
-    """Configuration for Claude transition-rich catalog environments.
+class AnalyticSystemConfig:
+    """Configuration for the retained analytic multibasin environments.
 
-    Use ENV_NAME="claude:SystemName" to select a registered catalog system.
+    Use ``ENV_NAME="analytic:SystemName"`` for new configurations. The
+    historical ``claude:`` prefix remains accepted when loading frozen runs.
     DT <= 0 keeps the system's intrinsic default timestep.
     """
 
     DT: float = 0.0
 
 
+# Serialized historical checkpoints use this class and field name.
+ClaudeCatalogConfig = AnalyticSystemConfig
+
+
 @dataclass
 class EnvConfig:
     """Environment configuration.
-    
+
     For built-in environments, set ENV_NAME to one of:
         [
             "duffing", "parabolic", "pendulum", "lotka_volterra", "lorenz63",
             "lyapunov", "blended", "multiwell", "multiwell:<mode>",
             "gated_local_linear", "gated_transfer_linear",
-            "kuramoto", "hopfield", "competitive_lv", "claude:SystemName"
+            "kuramoto", "hopfield", "competitive_lv", "analytic:SystemName"
         ]
-    
-    For Claude catalog systems, set ENV_NAME to
-    "claude:SystemName" (e.g., "claude:cal_square_4").
+
+    For analytic paper systems, set ENV_NAME to
+    "analytic:SystemName" (e.g., "analytic:cal_square_4"). Historical
+    ``claude:`` identifiers remain valid for frozen artifact compatibility.
 
     For dysts systems, set ENV_NAME to
     "dysts:SystemName" (e.g., "dysts:Lorenz", "dysts:Chua").
@@ -363,6 +369,12 @@ class EnvConfig:
     COMPETITIVE_LV: CompetitiveLVConfig = field(default_factory=CompetitiveLVConfig)
     CLAUDE_CATALOG: ClaudeCatalogConfig = field(default_factory=ClaudeCatalogConfig)
     DYSTS: DystsConfig = field(default_factory=DystsConfig)
+
+    @property
+    def ANALYTIC(self) -> AnalyticSystemConfig:
+        """Descriptive alias for the historical serialized config field."""
+
+        return self.CLAUDE_CATALOG
 
 
 @dataclass
@@ -389,10 +401,10 @@ class ListaConfig:
 @dataclass
 class HyperListaConfig:
     """HyperLISTA encoder-specific configuration.
-    
+
     HyperLISTA uses analytically-derived weights from the decoder dictionary D,
     reducing learnable parameters from O(n² × L) to just 3 scalar hyperparameters.
-    
+
     See: "Hyperparameter Tuning is All You Need for LISTA" (Chen et al., NeurIPS 2021)
     """
     NUM_LOOPS: int = 5              # Number of unrolled iterations
@@ -468,7 +480,7 @@ class ModelConfig:
     NORM_FN: str = "id"  # from ["id", "ball"]
     TARGET_SIZE: int = 16  # latent_dim i.e. zdim
     OBS_LOSS_DIM_NORMALIZATION: str = "sqrt_dim"  # ["none", "sqrt_dim", "dim"]
-    
+
     # Loss coefficients
     RES_COEFF: float = 1.0  # alignment loss weight
     RECONST_COEFF: float = 0.02  # reconstruction loss weight
@@ -477,7 +489,7 @@ class ModelConfig:
     SPARSITY_TARGET: str = "rollout"  # latent L1 target: "rollout", "encoded", or "encoded_rollout"
     HOMOGENEOUS_COEFF: float = 1.0  # homogeneous coordinate consistency loss weight
     DECODER_COHERENCE_WEIGHT: float = 0.0  # weight on normalized dictionary off-diagonal Gram penalty
-    
+
     # Homogeneous coordinates: append 1 to input, enables implicit bias learning
     USE_HOMOGENEOUS: bool = False
 
@@ -524,11 +536,11 @@ class TrainConfig:
     LR: float = 1e-4  # main learning rate (encoder/decoder)
     WEIGHT_DECAY: float = 1e-4  # weight decay for AdamW optimizer
     K_MATRIX_LR: float = 1e-5  # learning rate for Koopman matrix parameters
-    
+
     # Lightweight evaluation during training
     EVAL_EVERY: int = 500  # evaluation interval in training steps
     EVAL_NUM_STEPS: int = 200  # rollout horizon for the quick eval() helper
-    
+
     # Unified horizon-based training parameter.
     # H=1 matches former pairwise behavior.
     SEQUENCE_LENGTH: int = 1
@@ -543,16 +555,16 @@ class Config:
     ENV: EnvConfig = field(default_factory=EnvConfig)
     MODEL: ModelConfig = field(default_factory=ModelConfig)
     TRAIN: TrainConfig = field(default_factory=TrainConfig)
-    
+
     def to_dict(self) -> dict:
         """Convert config to dictionary."""
         return asdict(self)
-    
+
     def to_json(self, filepath: str) -> None:
         """Save config to JSON file."""
         with open(filepath, 'w') as f:
             json.dump(self.to_dict(), f, indent=2)
-    
+
     @classmethod
     def from_dict(cls, config_dict: dict) -> Config:
         """Create config from dictionary."""
@@ -576,7 +588,7 @@ class Config:
             CLAUDE_CATALOG=_build_dataclass(ClaudeCatalogConfig, env_dict.get("CLAUDE_CATALOG", {})),
             DYSTS=_build_dataclass(DystsConfig, env_dict.get("DYSTS", {})),
         )
-        
+
         model_dict = config_dict.get("MODEL", {})
         encoder_dict = model_dict.get("ENCODER", {})
         lista = _build_dataclass(ListaConfig, encoder_dict.get("LISTA", {}))
@@ -590,7 +602,7 @@ class Config:
         encoder.LISTA = lista
         encoder.HYPERLISTA = hyperlista
         decoder = _build_dataclass(DecoderConfig, model_dict.get("DECODER", {}))
-        
+
         block_loss = _build_dataclass(BlockLossConfig, model_dict.get("BLOCK_LOSS", {}))
         soft_block = _build_dataclass(SoftBlockConfig, model_dict.get("SOFT_BLOCK", {}))
         model = ModelConfig(
@@ -607,7 +619,7 @@ class Config:
         model.DECODER = decoder
         model.BLOCK_LOSS = block_loss
         model.SOFT_BLOCK = soft_block
-        
+
         train_dict = config_dict.get("TRAIN", {})
         train = TrainConfig(
             **_filter_dataclass_kwargs(
@@ -619,14 +631,14 @@ class Config:
             TrainConfig.HardInitOversampleConfig,
             train_dict.get("HARD_INIT_OVERSAMPLE", {}),
         )
-        
+
         return cls(
             SEED=config_dict.get("SEED", 0),
             ENV=env,
             MODEL=model,
             TRAIN=train
         )
-    
+
     @classmethod
     def from_json(cls, filepath: str) -> Config:
         """Load config from JSON file."""
@@ -656,6 +668,8 @@ _BUILTIN_ENV_DT_NAMES = {
 def canonical_env_name(env_name: str) -> str:
     """Normalize an environment name for config-level routing."""
     lowered = env_name.lower()
+    if lowered.startswith("analytic:"):
+        return "analytic"
     if lowered.startswith("claude:"):
         return "claude_catalog"
     if lowered.startswith("dysts:"):
@@ -670,12 +684,13 @@ def canonical_env_name(env_name: str) -> str:
     return "dysts"
 
 
-def _get_claude_catalog_default_dt(env_name: str) -> float:
-    """Read the intrinsic dt for a Claude catalog environment name."""
-    if not env_name.lower().startswith("claude:"):
-        raise ValueError(f"Expected 'claude:SystemName', got '{env_name}'.")
+def _get_analytic_system_default_dt(env_name: str) -> float:
+    """Read the intrinsic timestep for an analytic multibasin system."""
+
+    if not env_name.lower().startswith(("analytic:", "claude:")):
+        raise ValueError(f"Expected 'analytic:SystemName', got '{env_name}'.")
     system_name = env_name.split(":", 1)[1]
-    from skae.claude_catalog import ensure_catalog_registered, get_system
+    from skae.dynamics.analytic import ensure_catalog_registered, get_system
 
     ensure_catalog_registered()
     return float(get_system(system_name).dt)
@@ -717,7 +732,7 @@ def apply_env_dt_override(cfg: Config, dt: float, env_name: Optional[str] = None
         cfg.ENV.HOPFIELD.DT = dt
     elif target_env == "competitive_lv":
         cfg.ENV.COMPETITIVE_LV.DT = dt
-    elif target_env == "claude_catalog":
+    elif target_env in {"analytic", "claude_catalog"}:
         cfg.ENV.CLAUDE_CATALOG.DT = dt
     else:
         raise ValueError(f"Unsupported environment for dt override: '{env_name or cfg.ENV.ENV_NAME}'")
@@ -757,16 +772,16 @@ def get_env_dt(cfg: Config, env_name: Optional[str] = None) -> float:
         return float(cfg.ENV.HOPFIELD.DT)
     if target_env == "competitive_lv":
         return float(cfg.ENV.COMPETITIVE_LV.DT)
-    if target_env == "claude_catalog":
+    if target_env in {"analytic", "claude_catalog"}:
         if cfg.ENV.CLAUDE_CATALOG.DT > 0.0:
             return float(cfg.ENV.CLAUDE_CATALOG.DT)
-        return _get_claude_catalog_default_dt(env_name or cfg.ENV.ENV_NAME)
+        return _get_analytic_system_default_dt(env_name or cfg.ENV.ENV_NAME)
     raise ValueError(f"Unsupported environment for dt lookup: '{env_name or cfg.ENV.ENV_NAME}'")
 
 
 def get_default_config() -> Config:
     """Create default configuration.
-    
+
     Returns:
         Config with default settings.
     """
@@ -902,7 +917,7 @@ def get_train_lista_parity_generic_sparse_config() -> Config:
 
 def get_train_hyperlista_config() -> Config:
     """Configuration for HyperLISTA-based Sparse KM.
-    
+
     HyperLISTA uses analytically-derived encoder weights from the decoder dictionary,
     with only 3 learnable scalar hyperparameters (c_theta, c_beta, c_ss).
     This enables gradient flow from the Koopman loss back through the encoder to the dictionary.
@@ -972,7 +987,7 @@ _TRAIN_CONFIG_REGISTRY = {
 
 def get_config(name: str = "default") -> Config:
     """Get a named configuration.
-    
+
     Args:
         name: Configuration name. Options:
             - "default": Base configuration
@@ -985,7 +1000,7 @@ def get_config(name: str = "default") -> Config:
             - "hyperlista": LISTAKM with HyperLISTA encoder mode
             - "lista_parity_generic_sparse": LISTA parity preset for generic_sparse alignment
             - "hyperlista_parity_generic_sparse": HyperLISTA parity preset for generic_sparse alignment
-    
+
     Returns:
         Config for the specified configuration.
     """
