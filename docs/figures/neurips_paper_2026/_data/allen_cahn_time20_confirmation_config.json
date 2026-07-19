@@ -1,0 +1,63 @@
+{
+  "status": "selected",
+  "freeze_status": "frozen_before_time20_validation_results_on_seeds_11_to_20",
+  "experiment": "high_dimensional_multibasin_physical_time_extension",
+  "selected_family_jaccard": 0.4,
+  "training_dataset": {
+    "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1.pt",
+    "observed_time": 12.0
+  },
+  "evaluation_dataset": {
+    "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1_t20.pt",
+    "sha256": "ffbf5f79f894f7b581b17deebe8a2e9c5b7e8698c71b7617ebc2474d9729bbd3",
+    "summary_sha256": "2de49869f1a2a0592c0989ab8b9ea96b7052e1563159f1ad75bddfe0b5cc227b",
+    "state_dimension": 512,
+    "latent_dimension": 2048,
+    "stored_dt": 0.1,
+    "observed_time": 20.0,
+    "label_time": 20.0,
+    "same_initial_conditions_and_splits_as_training_dataset": true,
+    "time20_labels_and_maps_equal_original_labels_and_maps": true,
+    "mean_absolute_field_difference_through_time12": 4.36573301954013e-08,
+    "maximum_absolute_field_difference_through_time12": 0.0017925500869750977
+  },
+  "support_protocol": {
+    "scope": "instantaneous_final_state_at_physical_time20",
+    "activation_threshold": 0.001,
+    "family_jaccard": 0.4,
+    "representative_fit": "even_indexed_validation_trajectories",
+    "scoring": "odd_indexed_validation_trajectories"
+  },
+  "calibration_model_seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "calibration_result": {
+    "mean_trajectory_transfer_coverage": 0.95625,
+    "mean_normalized_h_basin_given_family": 0.1585874403204464,
+    "mean_normalized_h_family_given_basin": 0.3190203190723079,
+    "mean_ari": 0.7128206468674543,
+    "mean_nmi": 0.7521527863803825,
+    "mean_purity": 0.90625,
+    "sparse_ari_wins_over_exact_dense": 10,
+    "exact_two_sided_sign_flip_p": 0.001953125,
+    "artifact_sha256": "a40f2ad7847d0ad5cac0d2c056d318cc5591f9f8dd10273550d3dcc9319db153"
+  },
+  "promotion_model_seeds": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  "promotion_gate": {
+    "minimum_mean_trajectory_transfer_coverage": 0.8,
+    "maximum_mean_normalized_h_basin_given_family": 0.25,
+    "maximum_mean_normalized_h_family_given_basin": 0.35,
+    "minimum_mean_ari": 0.5,
+    "sparse_mean_ari_must_exceed_exact_dense": true
+  },
+  "test": {
+    "status": "sealed_until_the_seed_11_to_20_time20_gate_passes",
+    "directory": "confirmation_test_time20",
+    "forecast_horizons": [1, 5, 10, 20, 40, 80, 120, 160, 200],
+    "physical_times": [0.1, 0.5, 1.0, 2.0, 4.0, 8.0, 12.0, 16.0, 20.0],
+    "support_primary_scope": "final_time20",
+    "fixed_snapshot_model_seed": 11,
+    "fixed_snapshot_test_trajectory_index": 0,
+    "fixed_snapshot_physical_times": [0.0, 4.0, 8.0, 12.0, 20.0]
+  },
+  "label_policy": "no basin label, basin count, or trajectory assignment enters training, encoding, representative fitting, or family transfer; labels score the frozen validation/test map only",
+  "terminal_rule": "if_the_seed_11_to_20_time20_gate_fails_do_not_open_test_or_change_the_time20_support_rule"
+}

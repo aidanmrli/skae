@@ -390,6 +390,20 @@ gates above.  The canonical selection JSON and row CSV have SHA-256 hashes
 `958e3b531b7dd5a24c8aa3bc16ee66918f82a9e19c28d22f595d8a7e010779ea`
 and `296d97876bf15c825f1f94283d15eb02ffd3871ccc101f45c16f4ae87bbd6ad2`.
 
+**Fresh primary result.** All 10 seed-11--20 sparse checkpoints pass the
+label-free preflight at 0.45, with mean transfer coverage 0.9238, 7.96
+effective families, top-family mass 0.241, and active density near 0.4993;
+all 10 exact-dense audits pass.  The evaluation-only alignment gate then gives
+sparse coverage 0.920, ARI 0.602 (95% seed-bootstrap interval
+[0.543, 0.655]), NMI 0.690, purity 0.902, normalized
+\(H(B\mid F)=0.151\), and normalized \(H(F\mid B)=0.417\).  Sparse beats
+exact dense in all 10 paired ARI comparisons (exact sign-flip
+\(p=0.001953\)) but fails the uniqueness threshold alone.  The original
+time-12 test dependency was therefore cancelled without opening test.  The
+alignment JSON and row CSV hashes are
+`9c2aae6e2b57930a30ad2b57a9d093e59c9a4b0a78a4959b086032b48203dc54`
+and `3fc919191bf88ca02c3e4c7190d8e98a214097dd3990bb33d0cc87e40dcc25e4`.
+
 **Frozen parsimony fallback.** A calibration-cohort validation-label probe at
 the primary 0.45 threshold is strong on coverage (0.925), basin determinism
 (normalized \(H(B\mid F)=0.152\)), ARI (0.608), NMI (0.693), purity (0.908),
@@ -557,6 +571,121 @@ and summary hashes are
 and `2de49869f1a2a0592c0989ab8b9ea96b7052e1563159f1ad75bddfe0b5cc227b`;
 the calibration alignment JSON hash is
 `a40f2ad7847d0ad5cac0d2c056d318cc5591f9f8dd10273550d3dcc9319db153`.
+
+**Fresh time-20 promotion result.** The independent seed-11--20 gate passes
+all checks before test access.  Sparse mean coverage is 0.959, ARI 0.694
+(95% seed-bootstrap interval [0.616, 0.769]), NMI 0.743, purity 0.900,
+normalized \(H(B\mid F)=0.178\), and normalized
+\(H(F\mid B)=0.322\).  Exact dense again has ARI zero, and sparse wins all
+10 paired seeds with mean ARI advantage 0.694 ([0.615, 0.769], exact
+two-sided sign-flip \(p=0.001953\)).  The first gate attempt stopped before
+alignment scoring because the frozen JSON exposed the Jaccard value only in a
+nested field; a mechanical alias and a new non-overwriting result directory
+fixed this without changing any numerical rule.  The preflight, alignment,
+and row hashes are
+`4a4ff623879ce6ac2c74144f3486ca9d43403d0144ea8b547815662e1dbc8c21`,
+`226cc9ecdc388f342c256fe00dba380e77c8453c555c64a8a31ef5009fab435b`,
+and `b5e89f3346041d856fbedcbb871db4e09ffdceb70269310f18ad2982168c42f7`.
+This authorizes the single frozen time-20 test evaluation.
+
+## Sealed time-20 test result
+
+**Concrete results.** The transferred sparse support map separates the four
+test-set basin fates strongly but misses one of the six frozen absolute claim
+checks.  Across model seeds 11--20, final-time transfer coverage is 0.988,
+ARI is 0.704 (95% seed-bootstrap interval [0.629, 0.767]), NMI is 0.683,
+purity is 0.886, normalized \(H(B\mid F)=0.213\), and normalized
+\(H(F\mid B)=0.396\).  The exact-dense tanh KAE transfers as one family,
+giving ARI and NMI zero; sparse exceeds it in ARI for all 10 paired seeds
+(mean advantage 0.704, [0.629, 0.767], exact two-sided sign-flip
+\(p=0.001953\)).  However, the sparse uniqueness entropy exceeds the frozen
+0.35 ceiling, so the prespecified test gate fails.  Sparse has 10.4 observed
+test families on average for four basin fates, making the failure substantive
+rather than numerical.
+
+For forecasting, the result is explicitly not a sparse-PDE advantage.  At
+physical time 20 the direct convolutional control, exact-dense KAE, and sparse
+KAE have mean final field MSE 0.0366, 0.0997, and 0.1602, respectively; all
+beat persistence, with final RMSE ratios 0.243, 0.404, and 0.501.  The direct
+control is 63.4% better than dense and 72.2% better than sparse in paired
+relative final MSE at time 20, while sparse is 62.5% worse than dense.  The
+same ordering is already clear at physical times 8, 12, and 16.
+
+**Experimental context.** The test contains 256 trajectories from the frozen
+512-dimensional, four-well vector Allen--Cahn dataset.  Its 0.1 stored step
+and 200-step rollout give physical time 20, rather than a short-step proxy.
+The KAE lift is overcomplete at 2,048 coordinates.  Validation representatives
+are fitted without labels on even-indexed validation trajectories and
+transferred at fixed Jaccard 0.40 to held-out test trajectories; basin labels
+only score the frozen assignments.  All 10 dense fail-closed audits pass and
+late-validation active density is 0.9981 for dense versus 0.4993 for sparse.
+
+**Interpretation.** This is strong evidence for a reproducible sparse--dense
+difference and useful basin information in supports, but it does not meet the
+project's stricter one-support-per-basin objective.  High ARI and low
+\(H(B\mid F)\) mean a support family usually identifies one basin; elevated
+\(H(F\mid B)\) means one basin still uses multiple families.  The direct
+control also establishes that the benchmark is forecastable through time 20
+and prevents using KAE difficulty as evidence that the PDE itself is
+unrealistic or numerically broken.
+
+**Project implications.** Keep this sealed result as bounded high-dimensional
+multibasin representation evidence, not as a passed confirmation gate and not
+as a sparse forecasting win.  Pair it with the independent Lorenz--96 result,
+which supplies the clean high-dimensional sparse forecasting advantage.
+
+**Next step.** The label-free temporal group-sparsity objective was implemented
+before test access as the frozen architectural fallback if physical maturation
+did not remove within-basin support fragmentation.  Screen its four declared
+weights on validation only.  Promotion requires fresh model seeds and an
+entirely new dataset-level holdout; neither the original test metrics nor its
+trajectories may select a weight or checkpoint.
+
+The summary, forecast-row, and support-row hashes are
+`875e55639021fc4f7ee2ef91d06e62ba7d1b1a855dc779a77fbaa883a499fa7b`,
+`fb0c2dcd3b7cd5fae54fe29fa7834eedb3e02b85022c7b448aa742bc7d755641`,
+and `552f5dd80b3a84a2cd0f59bed39e204c01145012b3932d10d163ac76a89421e4`.
+
+## Temporal group-sparsity validation screen
+
+**Concrete results.** The frozen smallest-passing selector chooses temporal
+group-sparsity weight (10^{-3}) from
+\(\{10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}\}\) on model seed 0.
+At the unchanged activation threshold (10^{-3}) and family Jaccard 0.40,
+the selected row has validation transfer coverage 0.969, ARI 0.801, NMI
+0.834, purity 0.969, normalized (H(B\mid F)=0.055), and normalized
+\(H(F\mid B)=0.253\).  Its physical-time-8 validation field MSE is 0.0295.
+All six frozen checks pass.  The three larger weights fail at least one
+alignment check; their uniqueness entropies are 0.452, 0.607, and 0.539.
+
+**Experimental context.** The only architectural change from the selected
+signed sparse KAE is a group-lasso penalty over each coordinate's RMS
+activation across a sampled 20-state training window.  This penalizes a
+coordinate used for only one transient state more than a coordinate used
+persistently at the same mean absolute activation.  The screen uses only the
+original training split and time-20 validation split; it never reads either
+test split.  The selection rule takes the smallest weight passing the
+label-free transfer guard, coverage, both conditional-entropy limits, ARI,
+and a time-8 forecast-error guard.
+
+**Interpretation.** A weak temporal consistency incentive can remove much of
+the seed-0 within-basin fragmentation without sacrificing validation forecast
+accuracy.  The nonmonotone degradation at larger weights also shows why the
+regularizer cannot be promoted from this single tuning seed alone.
+
+**Project implications.** Freeze (10^{-3}) and require a new ten-seed
+validation replication.  Train the exact-dense tanh KAE and direct
+convolutional control at the corresponding fresh seeds so that dense audits,
+forecast comparisons, and model-seed uncertainty remain available.
+
+**Next step.** Only if every label-free guard and the aggregate alignment gate
+pass on model seeds 21--30 may dataset seed 20260720 be generated.  Family
+representatives must remain fitted on the original time-20 validation split;
+the new initial conditions are solely a dataset-level holdout.  The selection,
+screen-row, and generic screen-summary hashes are
+`d3ce26007e6a247e6c4b8cb5fc23653523f2dd846dc51e1eb7eeb94638778db8`,
+`32dc770edff8446cb99ff05e6edcd027f777c6e5fd8a984702d3382220cee288`,
+and `6dfa95be99146bfb7bc0a7754e1750853a9852b9783e5c9dad4c7b2c0c7529ac`.
 
 **Checkpoint-selection diagnostic.** The current sparse artifact is chosen by
 minimum time-8 validation forecast MSE, typically before the final update.

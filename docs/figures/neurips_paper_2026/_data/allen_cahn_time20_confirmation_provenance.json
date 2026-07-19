@@ -1,0 +1,83 @@
+{
+  "status": "complete_with_prespecified_support_gate_failure",
+  "experiment": "fixed-data four-well vector Allen-Cahn time-20 confirmation",
+  "generated_at": "2026-07-19",
+  "code": {
+    "isolated_worktree": "/network/scratch/l/lia/skae-rebuttal",
+    "test_commit": "ef303e6",
+    "support_gate_fix_commit": "9366519",
+    "display_commit": "7d0f8f4",
+    "branch": "rebuttal/allen-cahn-highdim"
+  },
+  "dataset": {
+    "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1_t20.pt",
+    "sha256": "ffbf5f79f894f7b581b17deebe8a2e9c5b7e8698c71b7617ebc2474d9729bbd3",
+    "summary_sha256": "2de49869f1a2a0592c0989ab8b9ea96b7052e1563159f1ad75bddfe0b5cc227b",
+    "dataset_seed": 20260719,
+    "state_dimension": 512,
+    "train_trajectories": 512,
+    "validation_trajectories": 128,
+    "test_trajectories": 256,
+    "stored_dt": 0.1,
+    "maximum_physical_horizon": 20.0
+  },
+  "protocol": {
+    "model_seeds": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "latent_dimension": 2048,
+    "support_threshold": 0.001,
+    "family_jaccard": 0.4,
+    "representative_fit": "even-indexed validation trajectories",
+    "test_scoring": "all held-out test trajectories",
+    "primary_support_scope": "final state at physical time 20",
+    "forecast_horizons": [1, 5, 10, 20, 40, 80, 120, 160, 200],
+    "test_job": 10152933,
+    "summary_job": 10152939,
+    "dense_audits_passed": 10,
+    "inferential_unit": "model initialization seed",
+    "test_trajectories_are_averaged_within_seed": true
+  },
+  "dense_no_sparsity_contract": {
+    "hidden_activation": "tanh",
+    "latent_output": "linear",
+    "forbidden_zero_inducing_modules": ["ReLU", "GELU", "Softshrink", "Dropout"],
+    "sparsity_coefficient": 0.0,
+    "temporal_group_sparsity_coefficient": 0.0,
+    "weight_decay": 0.0,
+    "optimizer": "Adam",
+    "operator": "full trainable 2048-by-2048 dense matrix",
+    "transition_regularization": 0.0
+  },
+  "support_result": {
+    "mean_trajectory_transfer_coverage": 0.987890625,
+    "mean_ari": 0.7038566942897742,
+    "ari_ci95_seed_bootstrap": [0.6289190532375482, 0.7668868565397748],
+    "mean_nmi": 0.6833557778477912,
+    "mean_purity": 0.8859375,
+    "mean_normalized_h_basin_given_family": 0.2130027098991189,
+    "mean_normalized_h_family_given_basin": 0.3958301935772622,
+    "mean_num_families": 10.4,
+    "dense_mean_ari": 0.0,
+    "sparse_ari_wins": 10,
+    "exact_two_sided_sign_flip_p": 0.001953125,
+    "prespecified_gate_passed": false,
+    "failed_check": "mean_normalized_h_family_given_basin_at_most_0p35"
+  },
+  "evidence": {
+    "summary": "allen_cahn_time20_confirmation_summary.json",
+    "summary_sha256": "875e55639021fc4f7ee2ef91d06e62ba7d1b1a855dc779a77fbaa883a499fa7b",
+    "forecast_seed_rows": "allen_cahn_time20_confirmation_forecast_seed_rows.csv",
+    "forecast_seed_rows_sha256": "fb0c2dcd3b7cd5fae54fe29fa7834eedb3e02b85022c7b448aa742bc7d755641",
+    "support_seed_rows": "allen_cahn_time20_confirmation_support_seed_rows.csv",
+    "support_seed_rows_sha256": "552f5dd80b3a84a2cd0f59bed39e204c01145012b3932d10d163ac76a89421e4",
+    "display": "../fig_highdimensional_confirmation.pdf",
+    "display_sha256": "4e8863f981d5346fc4d96f603b4554315306f5fdf53ed6d418e35d989eb3482c"
+  },
+  "statistics": {
+    "bootstrap_resamples": 100000,
+    "bootstrap_unit": "model seed",
+    "paired_test": "exact two-sided sign-flip",
+    "long_horizon_multiplicity": "Holm over physical times 8, 12, 16, and 20",
+    "normality_assumption": "none"
+  },
+  "interpretation": "Strong but bounded transferred basin-support alignment; the prespecified one-support-per-basin uniqueness criterion failed, and sparse PDE forecasting is worse than exact dense at long horizons."
+}

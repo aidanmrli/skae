@@ -44,5 +44,17 @@ The compact-table superscript uses an exact one-sided sign test on the number of
 \paragraph{Descriptive comparisons.}
 The standalone DMD, EDMD, and local-linear controls configure three seeds and use independently generated evaluation trajectories; their per-system summaries omit nonfinite seed values, so they are not included in paired KAE tests. The staged support-family result reports \(225\) system--seed pairs nested within \(15\) systems, plus MSE ratios, without a confirmatory \(p\)-value. Its checkpoint score applies the same finite-prefix state-summed error reducer as the reported table, minimizes separately over the eight cadences at H100, H500, and H1000, and averages those three minima. The \(32\) selector starts are the first \(32\) of the \(100\) reported starts, whereas the global baseline selects its checkpoint on \(16\) distinct starts with an H200 final-error proxy. This \(32\%\) staged overlap and selector asymmetry make the comparison optimistic and preclude interpreting the paired win counts as held-out causal evidence. The Local-linear gates coordinate intervention uses one LISTA checkpoint at seed \(0\); bootstrap intervals summarize its \(100\) starts, while random-support medians and interquartile ranges pool \(2{,}000\) dependent point--shuffle outcomes per horizon. These describe within-checkpoint variability only.
 
+\paragraph{High-dimensional confirmations.}
+Lorenz--96 and Allen--Cahn each fix one generated dataset and use ten model
+initialization seeds as paired inferential units; trajectories are averaged
+within seed and are not treated as independent replicates. Mean effects use
+100,000 percentile bootstrap resamples of the paired seed-level outcomes.
+Two-sided sign-flip tests enumerate all \(2^{10}\) assignments and therefore
+make no Gaussian assumption. Lorenz--96 corrects over its two declared long
+physical horizons, \(2.5\) and \(5\). Allen--Cahn forecasting corrects over
+physical times \(8,12,16,20\); its final-time support gate combines frozen
+absolute thresholds with a paired sparse-minus-dense ARI interval. These
+intervals condition on the fixed dataset and do not cover new dataset draws.
+
 \paragraph{Holm correction and assumptions.}
 For each formal family, eligible raw \(p\)-values are sorted, multiplied by the number of remaining hypotheses, made monotone by a running maximum, and clipped at one. Paired Wilcoxon tests assume the common seed differences are the relevant exchangeable units within a controlled system. Dysts sign tests treat benchmark systems as the independent units. All conclusions condition on the fixed benchmark roster. Evaluation-set period selection, finite-prefix omission, staged checkpoint-selection overlap, selector asymmetry, and transductive family fitting are protocol limitations independent of the multiple-comparison correction.

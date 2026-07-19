@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "description": "Component-level provenance for the fixed-data Lorenz-96 and time-20 Allen-Cahn high-dimensional display.",
+  "components": [
+    {
+      "id": "lorenz96_D128",
+      "provenance": "lorenz96_highdim_confirmation_provenance.json",
+      "provenance_sha256": "028b2dc69e743aa27646d057c1e758f234e1b90216094c46fa3ca197dc1efdd4"
+    },
+    {
+      "id": "allen_cahn_D512_time20",
+      "provenance": "allen_cahn_time20_confirmation_provenance.json",
+      "provenance_sha256": "847b5be3265d8087cc985a10cd5904614b9df470fd38e4b79dbbdf80210c0708"
+    }
+  ],
+  "display": {
+    "pdf": "../fig_highdimensional_confirmation.pdf",
+    "pdf_sha256": "4e8863f981d5346fc4d96f603b4554315306f5fdf53ed6d418e35d989eb3482c",
+    "png": "../fig_highdimensional_confirmation.png",
+    "png_sha256": "435b05a1de6db2520626bc796c16c8c469d416ab19be9529a01acb33dd767b0e"
+  },
+  "claim_split": "Lorenz-96 supplies the sparse forecasting advantage; Allen-Cahn supplies bounded transferred basin-support evidence and an explicit negative sparse forecasting result."
+}

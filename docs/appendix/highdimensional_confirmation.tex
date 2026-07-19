@@ -1,0 +1,90 @@
+\section{High-dimensional confirmation protocols}
+\label{app:highdimensional_confirmation}
+
+\paragraph{Lorenz--96.}
+The chaotic forecasting confirmation uses the standard Lorenz--96 system with
+forcing $8$, $d_x=128$, and all coordinates observed. One generated
+dataset (seed $20{,}260{,}719$) is fixed across ten model-initialization
+seeds and contains $128/32/64$ train/validation/test trajectories with 201
+stored states each. The stored interval is $0.05$, training observations
+receive noise at $5\%$ of the training scale, and the declared forecast
+horizons $1,5,10,25,50,100$ therefore extend through physical time $5$.
+Both KAEs use a four-times overcomplete lift, $d_z=512$, 20-step training
+windows, 3,000 updates, batch size 1,024, and a full trainable latent matrix.
+The deterministic references are persistence, ordinary DMD, and rank-32
+truncated DMD fitted to the same fixed dataset.
+
+The exact-dense control uses tanh in every hidden encoder and decoder layer and
+a linear latent output. It contains no ReLU, GELU, soft-shrinkage, or dropout
+module; its sparsity coefficient, weight decay, transition penalty, and
+soft-block penalty are zero; and it uses Adam rather than AdamW. All ten
+fail-closed audits pass. At an absolute activation threshold of $10^{-4}$,
+its empirical latent density is $0.9996$, compared with $0.4884$ for the
+signed LISTA KAE. Thus this comparison does not obtain a nominally dense row
+through an activation that itself creates zeros.
+
+At physical times $2.5$ and $5$, sparse mean NRMSE is $0.8987$ and
+$0.9669$, versus $0.9595$ and $1.2889$ for exact dense. Paired mean
+relative reductions are $6.30\%$ (95\% model-seed bootstrap interval
+$[5.09\%,7.32\%]$) and $24.87\%$
+($[22.98\%,26.51\%]$); sparse wins all ten paired seeds. Exact two-sided
+sign-flip tests give $p=0.001953$ at each horizon and Holm adjustment over
+the two declared long horizons gives $p=0.003906$. Sparse also has lower
+mean NRMSE than persistence, DMD, and truncated DMD at both horizons. Since
+the dataset is fixed, this inference quantifies model-initialization
+variability conditional on one generated dataset, not variability over new
+Lorenz--96 datasets.
+
+\paragraph{Four-well vector Allen--Cahn system.}
+The physics-based multibasin confirmation evolves two fields on a periodic
+$16\times16$ grid under diffusion coefficient $0.005$ and a four-well
+reaction potential. This gives $d_x=2(16)^2=512$; both KAEs use the required
+four-times overcomplete $d_z=2{,}048$ lift. RK4 integration uses step
+$0.005$, every twentieth state is stored, and the $512/128/256$
+train/validation/test trajectories extend to 200 stored transitions, or
+physical time $20$. Models train without basin labels or counts on fields
+through physical time $12$; the longer fields measure whether forecasts and
+supports remain meaningful well beyond a short observation interval. The
+evaluation-only fate label is the modal final well at time $20$.
+
+The comparison includes a direct tanh circular-convolutional forecaster, an
+exact-dense convolutional KAE, and a signed sparse convolutional KAE. The
+dense KAE has tanh hidden activations, a linear latent output, a full
+$2{,}048\times2{,}048$ transition, Adam, and zero coefficients for ordinary
+sparsity, temporal group sparsity, weight decay, transition stability, and
+soft-block regularization. No zero-inducing activation or dropout is present;
+all ten dense audits pass. Validation representatives are formed without
+labels from absolute-threshold support masks on even-indexed validation
+trajectories and transferred at fixed Jaccard $0.40$ to held-out states;
+labels score the frozen assignments only.
+
+On the sealed test split, final-time sparse support transfer coverage is
+$0.988$, ARI is $0.704$ (95\% model-seed bootstrap interval
+$[0.629,0.767]$), NMI is $0.683$, and purity is $0.886$. Exact dense
+collapses to one family and has ARI and NMI zero; sparse wins all ten paired
+ARI comparisons ($p=0.001953$, exact two-sided sign flip). The sparse map
+has normalized $H(B\mid F)=0.213$, but normalized
+$H(F\mid B)=0.396$ exceeds the frozen $0.35$ uniqueness ceiling and its
+mean 10.4 families exceed the four fates. This is therefore bounded evidence
+that a transferred sparse family is basin-informative, not a passed
+one-support-per-basin result.
+
+Forecasts are evaluated at physical times $0.1,0.5,1,2,4,8,12,16,20$, so
+the display does not rely on a nominally multi-step but physically negligible
+horizon. At time $20$, direct, dense, and sparse final field MSE are
+$0.0366$, $0.0997$, and $0.1602$; their final RMSE ratios to persistence
+are $0.243$, $0.404$, and $0.501$. The benchmark is forecastable and all
+three learned rows beat persistence, but sparse does not beat exact dense on
+this PDE. This separates the high-dimensional sparse forecasting claim,
+which comes from Lorenz--96, from the physics-based multibasin representation
+diagnostic.
+
+\paragraph{Inference.}
+For both confirmations, trajectories are averaged within model seed and the
+model-initialization seed is the inferential unit. Intervals use 100,000
+percentile bootstrap resamples of the ten paired seed-level outcomes; paired
+tests enumerate all sign flips and make no normality assumption. Long-horizon
+forecast $p$-values are Holm-adjusted within each declared family. Neither
+benchmark uses fate labels, basin counts, or trajectory assignments for
+training, encoding, representative fitting, or family transfer; benchmark
+labels enter only the disclosed evaluation metrics.

@@ -8,6 +8,25 @@
   "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
   "evidence_groups": [
     {
+      "id": "highdimensional_confirmations",
+      "build_tool": "experiments.neurips_2026.evidence.headline_tables",
+      "inputs": [
+        "_data/lorenz96_highdim_confirmation_config.json",
+        "_data/lorenz96_highdim_confirmation_seed_rows.csv",
+        "_data/lorenz96_highdim_confirmation_summary.json",
+        "_data/allen_cahn_time20_confirmation_config.json",
+        "_data/allen_cahn_time20_confirmation_forecast_seed_rows.csv",
+        "_data/allen_cahn_time20_confirmation_support_seed_rows.csv",
+        "_data/allen_cahn_time20_confirmation_summary.json"
+      ],
+      "provenance": "_data/highdimensional_confirmation_provenance.json",
+      "outputs": [
+        "fig_highdimensional_confirmation.pdf"
+      ],
+      "aggregation_contract": "Average trajectories within each of ten model seeds; use 100,000 model-seed bootstrap resamples and exact paired sign-flip tests. Lorenz-96 uses Holm correction over physical times 2.5 and 5; Allen-Cahn forecasting uses physical times 8, 12, 16, and 20.",
+      "limitation": "Lorenz-96 fixes one generated dataset and is not multibasin. The four-well Allen-Cahn system is physics-based but synthetic; its original sealed support result misses the frozen within-basin uniqueness ceiling and sparse forecasting is worse than exact dense."
+    },
+    {
       "id": "headline_kae_forecasting_and_alignment",
       "freeze_tool": "experiments.neurips_2026.evidence.freeze",
       "build_tool": "experiments.neurips_2026.evidence.headline_tables",
