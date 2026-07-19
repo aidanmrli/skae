@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "complete",
-  "description": "Component-level provenance for the fixed-data Lorenz-96 and time-20 Allen-Cahn high-dimensional display.",
+  "description": "Component-level provenance for the fixed-data Lorenz-96 and independent-holdout Allen-Cahn high-dimensional display.",
   "components": [
     {
       "id": "lorenz96_D128",
@@ -12,13 +12,24 @@
       "id": "allen_cahn_D512_time20",
       "provenance": "allen_cahn_time20_confirmation_provenance.json",
       "provenance_sha256": "847b5be3265d8087cc985a10cd5904614b9df470fd38e4b79dbbdf80210c0708"
+    },
+    {
+      "id": "allen_cahn_D512_temporal_group_independent_holdout",
+      "provenance": "allen_cahn_temporal_group_holdout_provenance.json",
+      "provenance_sha256": "0e3b4606eb7df73d682fe339f88b3a8f8dcd409061f0ebb114a9425a4a15983e"
     }
   ],
   "display": {
     "pdf": "../fig_highdimensional_confirmation.pdf",
-    "pdf_sha256": "4e8863f981d5346fc4d96f603b4554315306f5fdf53ed6d418e35d989eb3482c",
+    "pdf_sha256": "b332d118612290872a43ed673e8e8665e728abf9e94e88d9c43b1580e506a021",
     "png": "../fig_highdimensional_confirmation.png",
-    "png_sha256": "435b05a1de6db2520626bc796c16c8c469d416ab19be9529a01acb33dd767b0e"
+    "png_sha256": "ef768d1730edc3ef8f41677966da674b970191ab176db4dfaf400ec055bcccb7"
   },
-  "claim_split": "Lorenz-96 supplies the sparse forecasting advantage; Allen-Cahn supplies bounded transferred basin-support evidence and an explicit negative sparse forecasting result."
+  "supplementary_displays": {
+    "support_contingency_pdf": "../fig_allen_cahn_support_contingency.pdf",
+    "support_contingency_pdf_sha256": "3be84fb3029605aa06f114580e3569fe745a99f4a2821abd6d2c4a37918ad601",
+    "time20_snapshots_pdf": "../fig_allen_cahn_time20_snapshots.pdf",
+    "time20_snapshots_pdf_sha256": "e41ddb3e5f4dabae0b97c66e9a65298b0fc3d4137c46cb237c25a3e42c398d58"
+  },
+  "claim_split": "Lorenz-96 supplies the sparse forecasting advantage. The independent Allen-Cahn dataset supplies strong all-trajectory basin information and exact predeclared deep-interior alignment, while retaining the 0.009 primary uniqueness-gate miss and the negative sparse-forecasting result."
 }

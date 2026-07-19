@@ -1,0 +1,416 @@
+{
+  "checkpoint_name": "checkpoint.pt",
+  "consensus_fraction": null,
+  "evaluation_split": "validation_odd_trajectories",
+  "family_jaccard": 0.4,
+  "label_policy": "Benchmark fate labels score the frozen transferred families only; labels do not fit the encoder, threshold, representatives, or assignments.",
+  "model_seeds": [
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30
+  ],
+  "model_summaries": [
+    {
+      "ari_ci95_seed_bootstrap": [
+        0.0,
+        0.0
+      ],
+      "mean_ari": 0.0,
+      "mean_nmi": 0.0,
+      "mean_normalized_h_basin_given_family": 1.0,
+      "mean_normalized_h_family_given_basin": 0.0,
+      "mean_purity": 0.265625,
+      "mean_trajectory_transfer_coverage": 1.0,
+      "model": "dense",
+      "model_seeds": 10,
+      "nmi_ci95_seed_bootstrap": [
+        0.0,
+        0.0
+      ],
+      "normalized_h_basin_given_family_ci95_seed_bootstrap": [
+        1.0,
+        1.0
+      ],
+      "normalized_h_family_given_basin_ci95_seed_bootstrap": [
+        0.0,
+        0.0
+      ],
+      "purity_ci95_seed_bootstrap": [
+        0.265625,
+        0.265625
+      ],
+      "trajectory_transfer_coverage_ci95_seed_bootstrap": [
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "ari_ci95_seed_bootstrap": [
+        0.7022408147403436,
+        0.7979397465438841
+      ],
+      "mean_ari": 0.7556377282965371,
+      "mean_nmi": 0.7837560858125292,
+      "mean_normalized_h_basin_given_family": 0.11007558533056463,
+      "mean_normalized_h_family_given_basin": 0.2990547429912122,
+      "mean_purity": 0.9359375,
+      "mean_trajectory_transfer_coverage": 0.9609375,
+      "model": "sparse",
+      "model_seeds": 10,
+      "nmi_ci95_seed_bootstrap": [
+        0.7369376987726768,
+        0.8224317440479144
+      ],
+      "normalized_h_basin_given_family_ci95_seed_bootstrap": [
+        0.07512615551632297,
+        0.1504539420995647
+      ],
+      "normalized_h_family_given_basin_ci95_seed_bootstrap": [
+        0.25836374822762515,
+        0.3490055903840409
+      ],
+      "purity_ci95_seed_bootstrap": [
+        0.9125,
+        0.95625
+      ],
+      "trajectory_transfer_coverage_ci95_seed_bootstrap": [
+        0.9546875,
+        0.9671875
+      ]
+    }
+  ],
+  "paired_ari_sparse_minus_dense": {
+    "ci95_seed_bootstrap": [
+      0.7016642662825894,
+      0.7979858263680216
+    ],
+    "exact_two_sided_sign_flip_p": 0.001953125,
+    "mean": 0.7556377282965371,
+    "paired_seeds": 10,
+    "sparse_wins": 10
+  },
+  "representative_fit_split": "validation_even_trajectories",
+  "rows": [
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9968032613178153,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 21,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9957959613219733,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 22,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9934385415392613,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 23,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.994041204295966,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 24,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9952849931814756,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 25,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9954450611415308,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 26,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9932706501342516,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 27,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9957121682412123,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 28,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9961776136769345,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 29,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.0,
+      "h_basin_given_family": 1.383297522916524,
+      "h_family_given_basin": 0.0,
+      "mean_state_to_rep_jaccard": 0.9967649391673374,
+      "model": "dense",
+      "nmi": 0.0,
+      "normalized_h_basin_given_family": 1.0,
+      "normalized_h_family_given_basin": 0.0,
+      "num_families": 1,
+      "purity": 0.265625,
+      "seed": 30,
+      "state_transfer_coverage": 1.0,
+      "trajectory_transfer_coverage": 1.0
+    },
+    {
+      "ari": 0.759142962689324,
+      "h_basin_given_family": 0.13284807124552106,
+      "h_family_given_basin": 0.5010021624171059,
+      "mean_state_to_rep_jaccard": 0.6834356887277859,
+      "model": "sparse",
+      "nmi": 0.7977987373278954,
+      "normalized_h_basin_given_family": 0.09603723641854439,
+      "normalized_h_family_given_basin": 0.2860496735320616,
+      "num_families": 8,
+      "purity": 0.953125,
+      "seed": 21,
+      "state_transfer_coverage": 0.96875,
+      "trajectory_transfer_coverage": 0.96875
+    },
+    {
+      "ari": 0.7735709440710365,
+      "h_basin_given_family": 0.1440488725999858,
+      "h_family_given_basin": 0.4959560166190136,
+      "mean_state_to_rep_jaccard": 0.6660906623433099,
+      "model": "sparse",
+      "nmi": 0.794771704409367,
+      "normalized_h_basin_given_family": 0.10413441086504319,
+      "normalized_h_family_given_basin": 0.28581989552557735,
+      "num_families": 7,
+      "purity": 0.9375,
+      "seed": 22,
+      "state_transfer_coverage": 0.9375,
+      "trajectory_transfer_coverage": 0.9375
+    },
+    {
+      "ari": 0.7831913035622873,
+      "h_basin_given_family": 0.14143072574084933,
+      "h_family_given_basin": 0.43534863988474715,
+      "mean_state_to_rep_jaccard": 0.6826663723780646,
+      "model": "sparse",
+      "nmi": 0.8115416032644601,
+      "normalized_h_basin_given_family": 0.10224172558529482,
+      "normalized_h_family_given_basin": 0.2595663206199453,
+      "num_families": 7,
+      "purity": 0.953125,
+      "seed": 23,
+      "state_transfer_coverage": 0.96875,
+      "trajectory_transfer_coverage": 0.96875
+    },
+    {
+      "ari": 0.7275221545933331,
+      "h_basin_given_family": 0.15222462484630686,
+      "h_family_given_basin": 0.6313107936604677,
+      "mean_state_to_rep_jaccard": 0.6791140463033898,
+      "model": "sparse",
+      "nmi": 0.7585913813806446,
+      "normalized_h_basin_given_family": 0.11004474621291789,
+      "normalized_h_family_given_basin": 0.3389799838044115,
+      "num_families": 9,
+      "purity": 0.921875,
+      "seed": 24,
+      "state_transfer_coverage": 0.953125,
+      "trajectory_transfer_coverage": 0.953125
+    },
+    {
+      "ari": 0.813200956058099,
+      "h_basin_given_family": 0.0740201786243986,
+      "h_family_given_basin": 0.40767150030357946,
+      "mean_state_to_rep_jaccard": 0.6750688521145095,
+      "model": "sparse",
+      "nmi": 0.8446279353874356,
+      "normalized_h_basin_given_family": 0.05350994807562117,
+      "normalized_h_family_given_basin": 0.23743951462897261,
+      "num_families": 7,
+      "purity": 0.96875,
+      "seed": 25,
+      "state_transfer_coverage": 0.96875,
+      "trajectory_transfer_coverage": 0.96875
+    },
+    {
+      "ari": 0.8364841640068745,
+      "h_basin_given_family": 0.04332169878499658,
+      "h_family_given_basin": 0.40680962210299676,
+      "mean_state_to_rep_jaccard": 0.6783800313938878,
+      "model": "sparse",
+      "nmi": 0.8561918884181912,
+      "normalized_h_basin_given_family": 0.031317701410798274,
+      "normalized_h_family_given_basin": 0.23289043481552935,
+      "num_families": 8,
+      "purity": 0.96875,
+      "seed": 26,
+      "state_transfer_coverage": 0.96875,
+      "trajectory_transfer_coverage": 0.96875
+    },
+    {
+      "ari": 0.8247055601205149,
+      "h_basin_given_family": 0.07544259621552843,
+      "h_family_given_basin": 0.38514877271049847,
+      "mean_state_to_rep_jaccard": 0.6872892788169392,
+      "model": "sparse",
+      "nmi": 0.8502775457802958,
+      "normalized_h_basin_given_family": 0.054538228375097766,
+      "normalized_h_family_given_basin": 0.22749434797123022,
+      "num_families": 7,
+      "purity": 0.96875,
+      "seed": 27,
+      "state_transfer_coverage": 0.96875,
+      "trajectory_transfer_coverage": 0.96875
+    },
+    {
+      "ari": 0.7928411903181023,
+      "h_basin_given_family": 0.156854954860736,
+      "h_family_given_basin": 0.46081377893024744,
+      "mean_state_to_rep_jaccard": 0.6798734739811351,
+      "model": "sparse",
+      "nmi": 0.7988412644880302,
+      "normalized_h_basin_given_family": 0.11339205938143035,
+      "normalized_h_family_given_basin": 0.27311426610034933,
+      "num_families": 8,
+      "purity": 0.9375,
+      "seed": 28,
+      "state_transfer_coverage": 0.96875,
+      "trajectory_transfer_coverage": 0.96875
+    },
+    {
+      "ari": 0.5597049030488999,
+      "h_basin_given_family": 0.33350049122836317,
+      "h_family_given_basin": 0.9567455867100622,
+      "mean_state_to_rep_jaccard": 0.5937228687809954,
+      "model": "sparse",
+      "nmi": 0.6193784886156891,
+      "normalized_h_basin_given_family": 0.24109093358687989,
+      "normalized_h_family_given_basin": 0.4768129906325191,
+      "num_families": 10,
+      "purity": 0.859375,
+      "seed": 29,
+      "state_transfer_coverage": 0.953125,
+      "trajectory_transfer_coverage": 0.953125
+    },
+    {
+      "ari": 0.686013144496899,
+      "h_basin_given_family": 0.2689806310668793,
+      "h_family_given_basin": 0.6611473952992871,
+      "mean_state_to_rep_jaccard": 0.6718793301201522,
+      "model": "sparse",
+      "nmi": 0.7055403090532829,
+      "normalized_h_basin_given_family": 0.19444886339401846,
+      "normalized_h_family_given_basin": 0.372380002281526,
+      "num_families": 8,
+      "purity": 0.890625,
+      "seed": 30,
+      "state_transfer_coverage": 0.953125,
+      "trajectory_transfer_coverage": 0.953125
+    }
+  ],
+  "status": "passed",
+  "support_protocol": "final",
+  "support_threshold": 0.001,
+  "test_promotion_gate": {
+    "checks": {
+      "mean_ari_at_least_0p5": true,
+      "mean_normalized_h_basin_given_family_at_most_0p25": true,
+      "mean_normalized_h_family_given_basin_at_most_0p35": true,
+      "mean_trajectory_transfer_coverage_at_least_0p8": true,
+      "paired_ari_advantage_ci_excludes_zero": true,
+      "sparse_mean_ari_higher_than_dense": true
+    },
+    "passed": true
+  }
+}

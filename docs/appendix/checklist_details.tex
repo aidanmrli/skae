@@ -11,15 +11,15 @@ be reconciled with that form.  Nothing here asserts that a public artifact,
 anonymous URL, DOI, or release has been completed.
 \paragraph{Claims and evidence.}
 The manuscript makes three bounded empirical claims: sparse KAE rows improve
-forecasting over the reported Dense MLP KAE rows; LISTA support families align
-transductively with evaluation-only native or nearest-center-proxy labels on a
-controlled high center-margin slice;
-and a staged training-distribution support-family route has descriptively lower
+forecasting over the reported Dense MLP KAE rows; sparse support families align
+with evaluation-only basin labels in the transductive controlled diagnostic and
+under frozen transfer on the independent high-dimensional PDE holdout; and a
+staged training-distribution support-family route has descriptively lower
 controlled-forecasting error than a same-budget global-\(K\) LISTA baseline
 under an optimistic asymmetric selector.  The paper states no new theorem
 or proof, no exact global linearization, and no out-of-sample basin-discovery
 guarantee.  Benchmark definitions and training/evaluation protocols are in
-\cref{app:controlled_inventory,app:dysts_inventory_full,app:experimental_details};
+\cref{app:controlled_inventory,app:dysts_inventory_full,app:experimental_details,app:highdimensional_confirmation};
 support construction and inference are in
 \cref{app:support_definitions,app:statistical_testing}.
 \paragraph{Limits on interpretation.}
@@ -52,6 +52,12 @@ support construction and inference are in
   one-loop/ReLU LISTA and LISTA--BD rows. Structured-transition rows use a known
   controlled-benchmark basin count or a hand-set Dysts lobe/scroll/equilibrium
   count only to set the number of blocks.
+  \item Lorenz--96 uses one fixed generated dataset and is chaotic rather than
+  multibasin.  Allen--Cahn is one synthetic PDE: its primary all-state
+  uniqueness score misses the frozen gate by \(0.009\), its exact interior
+  slice is evaluation-only, and temporal sparse is worse than dense at long
+  forecast horizons.  Neither experiment establishes empirical real-world
+  generalization.
 \end{itemize}
 \paragraph{Reproducibility and access status.}
 The working repository contains explicit controlled-system vector fields,
@@ -84,6 +90,11 @@ consumption or energy estimates:
   CPU-core-hours; controlled support diagnostics add approximately \(290\)
   CPU-core-hours; the one-checkpoint intervention allocation adds at most
   \(3\) GPU-hours.
+  \item The final Lorenz--96 confirmation uses one two-hour GPU allocation.
+  The Allen--Cahn temporal screen, promotion, holdout evaluation, and new-data
+  generation request at most \(64.2\) GPU-hours in total.  Measured mean GPU
+  utilization is \(81\%\) for Lorenz--96 and \(84.7\%\)--\(92.6\%\) for the
+  promoted dense and sparse Allen--Cahn training runs.
 \end{itemize}
 The GPU model was scheduler-assigned and is therefore unspecified.  These
 ceilings exclude superseded historical packets and can substantially exceed

@@ -22,7 +22,8 @@ copy; the TeX source takes precedence if they differ.
 - `appendix/controlled_benchmark_results.tex` and `appendix/dysts_full.tex`:
   per-system and robustness displays for the two reported benchmarks.
 - `appendix/highdimensional_confirmation.tex`: fixed-data Lorenz--96 and
-  physics-based Allen--Cahn confirmation protocols, dense audits, and limits.
+  independent physics-based Allen--Cahn confirmation protocols, dense audits,
+  basin-interior analysis, and limits.
 - `appendix/support_coordinate_interventions.tex`: the scoped one-checkpoint
   intervention result; it is not a general paper claim.
 - `appendix/checklist_details.tex`: submission checklist, limitations, compute,

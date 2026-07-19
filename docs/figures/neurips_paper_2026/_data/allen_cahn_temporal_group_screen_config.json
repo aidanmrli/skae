@@ -1,0 +1,46 @@
+{
+  "status": "frozen_before_screen_training_or_results",
+  "experiment": "label_free_within_trajectory_support_consistency",
+  "motivation": "This fallback objective and its implementation predate the first time-20 test summary. The time-20 test is not used to select a weight or checkpoint.",
+  "training_dataset": {
+    "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1.pt",
+    "observed_time": 12.0,
+    "state_dimension": 512,
+    "latent_dimension": 2048
+  },
+  "validation_dataset": {
+    "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1_t20.pt",
+    "split": "validation_only",
+    "observed_time": 20.0
+  },
+  "screen": {
+    "model_seed": 0,
+    "temporal_group_sparsity_weights": [0.001, 0.003, 0.01, 0.03],
+    "otherwise_matches": "selected signed sparse confirmation recipe",
+    "family_jaccard": 0.4,
+    "support_threshold": 0.001,
+    "selection_rule": "smallest weight passing every frozen validation check"
+  },
+  "validation_checks": {
+    "label_free_guard_must_pass": true,
+    "minimum_trajectory_transfer_coverage": 0.8,
+    "maximum_normalized_h_basin_given_family": 0.25,
+    "maximum_normalized_h_family_given_basin": 0.35,
+    "minimum_ari": 0.5,
+    "maximum_time8_validation_field_mse": 0.08
+  },
+  "promotion": {
+    "fresh_model_seeds": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+    "train_matching_exact_dense_controls": true,
+    "require_same_absolute_validation_checks": true,
+    "require_sparse_ari_advantage_ci_to_exclude_zero": true
+  },
+  "new_holdout": {
+    "dataset_seed": 20260720,
+    "status": "must_remain_ungenerated_and_unread_until_fresh_validation_promotion",
+    "purpose": "restore an untouched dataset-level holdout after the original time-20 diagnostic",
+    "representatives": "fit only on the original time-20 validation split",
+    "scoring": "new initial conditions never used for training, tuning, representative fitting, or promotion"
+  },
+  "terminal_rule": "If no screen weight or fresh-seed promotion passes, retain the original time-20 test as bounded alignment evidence and do not tune on either test set."
+}

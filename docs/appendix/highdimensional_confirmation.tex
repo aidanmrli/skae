@@ -53,38 +53,96 @@ dense KAE has tanh hidden activations, a linear latent output, a full
 $2{,}048\times2{,}048$ transition, Adam, and zero coefficients for ordinary
 sparsity, temporal group sparsity, weight decay, transition stability, and
 soft-block regularization. No zero-inducing activation or dropout is present;
-all ten dense audits pass. Validation representatives are formed without
-labels from absolute-threshold support masks on even-indexed validation
-trajectories and transferred at fixed Jaccard $0.40$ to held-out states;
-labels score the frozen assignments only.
+all ten dense audits pass. Its holdout active density at threshold $10^{-4}$
+is $0.998$, versus $0.499$ for the selected temporal-sparse model.
 
-On the sealed test split, final-time sparse support transfer coverage is
-$0.988$, ARI is $0.704$ (95\% model-seed bootstrap interval
-$[0.629,0.767]$), NMI is $0.683$, and purity is $0.886$. Exact dense
-collapses to one family and has ARI and NMI zero; sparse wins all ten paired
-ARI comparisons ($p=0.001953$, exact two-sided sign flip). The sparse map
-has normalized $H(B\mid F)=0.213$, but normalized
-$H(F\mid B)=0.396$ exceeds the frozen $0.35$ uniqueness ceiling and its
-mean 10.4 families exceed the four fates. This is therefore bounded evidence
-that a transferred sparse family is basin-informative, not a passed
-one-support-per-basin result.
+The first sealed test showed basin information but fragmented within-basin
+families: sparse transfer coverage was $0.988$, ARI was $0.704$, and
+normalized $H(F\mid B)/H(F)=0.396$ exceeded the frozen $0.35$ ceiling. We
+therefore added a label-free temporal group penalty to the sparse row. For a
+sampled 20-state training window, it penalizes the sum over latent coordinates
+of each coordinate's root-mean-square activation across time. The screened
+weights were $10^{-3},3\times10^{-3},10^{-2},3\times10^{-2}$; the weakest
+weight was the only row selected because it passed all six frozen checks on
+the original validation data. No fate label, basin count, or trajectory
+assignment enters this objective.
+
+The selected weight was then promoted on ten fresh initialization seeds. Mean
+validation transfer coverage was $0.961$, normalized
+$H(B\mid F)/H(B)=0.110$, normalized $H(F\mid B)/H(F)=0.299$, ARI was
+$0.756$ (95\% model-seed bootstrap interval $[0.702,0.798]$), NMI was
+$0.784$, and purity was $0.936$. Sparse beat exact dense in all ten paired
+ARI comparisons ($p=0.001953$, exact two-sided sign flip), satisfying every
+frozen promotion check. Only then was a new dataset generated with a different
+simulation seed. Support representatives were formed without labels from
+absolute-threshold masks on even-indexed trajectories of the original
+validation set and transferred at fixed Jaccard $0.40$; they were never refit
+on the new data. The new 256 test initial conditions are used only for scoring.
+
+On this independent holdout, temporal-sparse transfer coverage is $0.982$.
+Its ARI is $0.767$ (95\% interval $[0.742,0.787]$), NMI is $0.730$, purity
+is $0.923$, and normalized $H(B\mid F)/H(B)=0.151$. Exact dense transfers one
+family and has ARI and NMI zero; sparse again wins all ten paired ARI
+comparisons ($p=0.001953$). The primary all-trajectory normalized
+$H(F\mid B)/H(F)=0.359$ ($[0.339,0.382]$) misses its $0.350$ ceiling by
+$0.009$ and the map has a mean 10.8 families. This prespecified primary gate
+therefore fails and was not moved after test access.
+
+Before opening the new test set, we separately declared a basin-interior slice:
+an evaluation trajectory is interior when at least $90\%$ of its final grid
+occupies its modal Allen--Cahn well. The criterion uses labels only to stratify
+evaluation. It retains 130/256 trajectories and all four fates. On this slice,
+every one of the ten sparse model seeds transfers exactly four families with
+ARI, NMI, and purity $1.000$ and both normalized conditional entropies zero.
+The result localizes residual family fragmentation to spatially mixed,
+interface-rich fields rather than basin interiors.
+
+\begin{figure*}[tbp]
+\centering
+\includegraphics[width=\textwidth]{figures/neurips_paper_2026/fig_allen_cahn_support_contingency.pdf}
+\caption{Row-normalized final-state fate--support contingency for the fixed
+display seed on the independent Allen--Cahn holdout. Exact dense assigns every
+fate to one family (left). Temporal sparse has one dominant family per fate on
+all trajectories but additional families in mixed-domain fields (center). On
+the predeclared $90\%$-modal-well interior slice it transfers exactly four
+families in a one-to-one correspondence (right). Aggregate claims use all ten
+model seeds, not this display seed alone.}
+\label{fig:allen_cahn_support_contingency}
+\end{figure*}
 
 Forecasts are evaluated at physical times $0.1,0.5,1,2,4,8,12,16,20$, so
 the display does not rely on a nominally multi-step but physically negligible
-horizon. At time $20$, direct, dense, and sparse final field MSE are
-$0.0366$, $0.0997$, and $0.1602$; their final RMSE ratios to persistence
-are $0.243$, $0.404$, and $0.501$. The benchmark is forecastable and all
-three learned rows beat persistence, but sparse does not beat exact dense on
-this PDE. This separates the high-dimensional sparse forecasting claim,
-which comes from Lorenz--96, from the physics-based multibasin representation
-diagnostic.
+horizon. Temporal sparse has lower error than dense through time $4$, but the
+ordering reverses at time $8$ and remains reversed. At time $20$, direct,
+dense, and temporal-sparse final field MSE are $0.0293$, $0.1184$, and
+$0.2991$; their final RMSE ratios to persistence are $0.218$, $0.442$, and
+$0.649$. All three learned rows beat persistence, but the direct control is
+best. This separates the high-dimensional sparse forecasting claim, which
+comes from Lorenz--96, from the physics-based multibasin representation claim.
+
+\begin{figure*}[tbp]
+\centering
+\includegraphics[width=\textwidth]{figures/neurips_paper_2026/fig_allen_cahn_time20_snapshots.pdf}
+\caption{Predeclared qualitative long-horizon Allen--Cahn trajectory on the
+independent holdout, shown as nearest-well maps at physical times through
+$20$. The direct control preserves the evolving interface most faithfully;
+the temporal-sparse KAE has the weakest long-horizon forecast. The trajectory
+and model seed were fixed before the new holdout was opened and are not used
+for quantitative selection.}
+\label{fig:allen_cahn_time20_snapshots}
+\end{figure*}
 
 \paragraph{Inference.}
 For both confirmations, trajectories are averaged within model seed and the
 model-initialization seed is the inferential unit. Intervals use 100,000
 percentile bootstrap resamples of the ten paired seed-level outcomes; paired
 tests enumerate all sign flips and make no normality assumption. Long-horizon
-forecast $p$-values are Holm-adjusted within each declared family. Neither
-benchmark uses fate labels, basin counts, or trajectory assignments for
-training, encoding, representative fitting, or family transfer; benchmark
-labels enter only the disclosed evaluation metrics.
+forecast $p$-values are Holm-adjusted within each declared family. The Lorenz
+data and the independent Allen--Cahn holdout each use one fixed simulation
+seed, so intervals quantify initialization variability conditional on their
+respective generated datasets. Neither benchmark uses fate labels, basin
+counts, or trajectory assignments for training, encoding, representative
+fitting, or family transfer; labels enter only the disclosed Allen--Cahn
+evaluation metrics and interior stratification.
+
+\clearpage

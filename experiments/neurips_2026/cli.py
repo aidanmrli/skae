@@ -68,6 +68,10 @@ COMMANDS = {
     ("freeze", "baselines"): "experiments.neurips_2026.baselines.freeze",
     ("freeze", "interventions"): "experiments.neurips_2026.interventions.freeze",
     ("build", "headline"): "experiments.neurips_2026.evidence.headline_tables",
+    (
+        "build",
+        "high-dimensional",
+    ): "experiments.neurips_2026.evidence.highdimensional",
     ("build", "controlled"): "experiments.neurips_2026.evidence.controlled_tables",
     ("build", "dysts"): "experiments.neurips_2026.evidence.dysts",
     ("build", "baselines"): "experiments.neurips_2026.baselines.summarize",
@@ -87,6 +91,7 @@ CHECKS = (
         ("--compact-existing-support", "--check"),
     ),
     ("experiments.neurips_2026.evidence.headline_tables", ("--check",)),
+    ("experiments.neurips_2026.evidence.highdimensional", ("--check",)),
     ("experiments.neurips_2026.evidence.controlled_tables", ("--check",)),
     ("experiments.neurips_2026.evidence.dysts", ("--check",)),
     ("experiments.neurips_2026.baselines.summarize", ("--check",)),

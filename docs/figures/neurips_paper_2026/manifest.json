@@ -9,7 +9,8 @@
   "evidence_groups": [
     {
       "id": "highdimensional_confirmations",
-      "build_tool": "experiments.neurips_2026.evidence.headline_tables",
+      "build_tool": "experiments.neurips_2026.evidence.highdimensional",
+      "check_command_inside_allocation": "uv run skae-paper build high-dimensional --check",
       "inputs": [
         "_data/lorenz96_highdim_confirmation_config.json",
         "_data/lorenz96_highdim_confirmation_seed_rows.csv",
@@ -17,14 +18,25 @@
         "_data/allen_cahn_time20_confirmation_config.json",
         "_data/allen_cahn_time20_confirmation_forecast_seed_rows.csv",
         "_data/allen_cahn_time20_confirmation_support_seed_rows.csv",
-        "_data/allen_cahn_time20_confirmation_summary.json"
+        "_data/allen_cahn_time20_confirmation_summary.json",
+        "_data/allen_cahn_temporal_group_screen_config.json",
+        "_data/allen_cahn_temporal_group_screen_selection.json",
+        "_data/allen_cahn_temporal_group_holdout_config.json",
+        "_data/allen_cahn_temporal_group_validation_alignment.json",
+        "_data/allen_cahn_temporal_group_validation_rows.csv",
+        "_data/allen_cahn_temporal_group_holdout_forecast_seed_rows.csv",
+        "_data/allen_cahn_temporal_group_holdout_support_seed_rows.csv",
+        "_data/allen_cahn_temporal_group_holdout_fixed_seed_records.csv",
+        "_data/allen_cahn_temporal_group_holdout_summary.json"
       ],
       "provenance": "_data/highdimensional_confirmation_provenance.json",
       "outputs": [
-        "fig_highdimensional_confirmation.pdf"
+        "fig_highdimensional_confirmation.pdf",
+        "fig_allen_cahn_support_contingency.pdf",
+        "fig_allen_cahn_time20_snapshots.pdf"
       ],
-      "aggregation_contract": "Average trajectories within each of ten model seeds; use 100,000 model-seed bootstrap resamples and exact paired sign-flip tests. Lorenz-96 uses Holm correction over physical times 2.5 and 5; Allen-Cahn forecasting uses physical times 8, 12, 16, and 20.",
-      "limitation": "Lorenz-96 fixes one generated dataset and is not multibasin. The four-well Allen-Cahn system is physics-based but synthetic; its original sealed support result misses the frozen within-basin uniqueness ceiling and sparse forecasting is worse than exact dense."
+      "aggregation_contract": "Average trajectories within each of ten model seeds; use 100,000 model-seed bootstrap resamples and exact paired sign-flip tests. Lorenz-96 uses Holm correction over physical times 2.5 and 5; Allen-Cahn forecasting uses physical times 8, 12, 16, and 20. The predeclared deep-interior slice requires at least 90% final modal-well area and contains 130 of 256 independent-holdout trajectories.",
+      "limitation": "Lorenz-96 fixes one generated dataset and is not multibasin. Allen-Cahn is physics-based but synthetic: the independent all-trajectory result has strong basin information but normalized H(F|B)/H(F)=0.359 misses the frozen 0.350 uniqueness ceiling by 0.009; its predeclared deep-interior slice is exactly aligned, and temporal-sparse forecasting is worse than exact dense."
     },
     {
       "id": "headline_kae_forecasting_and_alignment",

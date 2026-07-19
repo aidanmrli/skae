@@ -761,3 +761,73 @@ Repair code and exploratory runs use the isolated worktree
 `rebuttal/allen-cahn-highdim`, based on repository checkpoint `c27490d`.
 Only compact, adjudicated evidence should be migrated back into the active
 paper tree.
+
+## Independent temporal-support holdout result
+
+**Concrete results.** The selected temporal group-sparsity weight
+\(10^{-3}\) first passed the fresh seed-21--30 validation promotion: mean
+transfer coverage was 0.961, normalized \(H(B\mid F)/H(B)\) was 0.110,
+normalized \(H(F\mid B)/H(F)\) was 0.299, ARI was 0.756 (95% model-seed
+bootstrap interval [0.702, 0.798]), NMI was 0.784, and purity was 0.936.
+Sparse beat exact dense in ARI for all ten paired seeds
+(\(p=0.001953\), exact two-sided sign flip), so every frozen promotion check
+passed. Dataset seed 20260720 was then generated and opened once. On its 256
+unseen test initial conditions, sparse coverage was 0.982, ARI was 0.767
+([0.742, 0.787]), NMI was 0.730, purity was 0.923, and normalized
+\(H(B\mid F)/H(B)\) was 0.151. Exact dense transferred one family and had ARI
+and NMI zero; sparse again won all ten paired ARI comparisons
+(\(p=0.001953\)). The all-trajectory normalized
+\(H(F\mid B)/H(F)=0.359\) ([0.339, 0.382]) missed the frozen 0.350 ceiling by
+0.009, so the primary gate failed exactly one check. On the separately
+predeclared 90%-modal-well interior slice (130/256 trajectories), every model
+seed instead produced exactly four families with ARI, NMI, and purity 1.000
+and both normalized conditional entropies zero. All ten dense audits passed;
+dense active density was 0.998 versus 0.499 for temporal sparse. At physical
+time 20, final RMSE relative to persistence was 0.218 for the direct control,
+0.442 for dense, and 0.649 for temporal sparse.
+
+**Experimental context.** The weak temporal group penalty was the smallest
+row passing every frozen validation-only screen check. It operates on each
+coordinate's RMS activation across a sampled trajectory window and uses no
+basin label, count, or trajectory assignment. The ten promotion models used
+new initialization seeds 21--30. Only after their aggregate validation gate
+passed did the dependency chain generate the new dataset. Support
+representatives were fit on even trajectories from the original seed-20260719
+validation set and were never refit on seed-20260720 fields; the new test
+initial conditions were used only for scoring. Forecasts were declared at
+physical times 0.1, 0.5, 1, 2, 4, 8, 12, 16, and 20. An unavailable `jq`
+binary caused the first dense/sparse array attempts to exit before training;
+the launcher was repaired to use the locked `uv` environment and only
+untouched tasks were resumed. Dense and sparse training runs then averaged
+84.7--92.6% GPU utilization. The summary SLURM job intentionally returned
+nonzero only at its final fail-closed assertion after writing the complete
+payload because the scientific uniqueness gate missed.
+
+**Interpretation.** The independent dataset result strongly replicates that
+transferred sparse supports determine basin fate: they preserve high coverage,
+high purity, and high ARI across all ten model seeds while a genuinely dense
+control collapses to a single family. The exact four-family result on more
+than half of the test trajectories shows that basin interiors have the desired
+one-support-per-basin structure. The remaining all-trajectory fragmentation is
+concentrated in spatially mixed, interface-rich fields, so it is a scoped
+boundary/morphology limitation rather than evidence that the interior basin
+code is absent. The primary all-state uniqueness claim nevertheless remains a
+near miss and must not be reported as passed. Temporal sparse forecasting is
+also worse than dense, while all learned rows beat persistence and the direct
+physics-shaped control is strongest.
+
+**Project implications.** Promote the combined high-dimensional packet, not a
+single undifferentiated win: Lorenz--96 supplies the clean sparse-forecasting
+advantage through physical time 5; Allen--Cahn supplies independent
+physics-based multibasin representation evidence through time 20, exact
+predeclared deep-interior alignment, and an explicit negative sparse forecast
+result. This is sufficiently strong for the rebuttal without moving a gate or
+trying a post-holdout family threshold. The exact-dense tanh baseline remains
+fully steelmanned by construction and by its 0.998 measured active density.
+
+**Next steps.** Stop tuning this holdout. Preserve compact seed-level rows,
+the fixed seed-21 trajectory records, both prediction cards, dataset hashes,
+and the fail-closed result in the active paper evidence. Future work should
+test whether interface-aware uncertainty or another empirical multistable
+field system extends exact alignment beyond basin interiors; it should use a
+new protocol and a new dataset rather than revisit either opened test set.

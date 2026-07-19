@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "status": "complete_with_primary_uniqueness_near_miss_and_exact_deep_interior_alignment",
+  "experiment": "label-free temporal-support Allen-Cahn replication and independent dataset holdout",
+  "generated_at": "2026-07-19",
+  "code": {
+    "isolated_worktree": "/network/scratch/l/lia/skae-rebuttal",
+    "branch": "rebuttal/allen-cahn-highdim",
+    "temporal_objective_commit": "2133ad1",
+    "screen_protocol_commit": "050d999",
+    "representative_dataset_commit": "bafcee3",
+    "independent_holdout_protocol_commit": "051fa2d",
+    "snapshot_predeclaration_commit": "a97a9b1",
+    "launcher_repair_commit": "d161fb8",
+    "holdout_evaluation_commit": "6af96b9",
+    "final_display_commit": "35b8e5b"
+  },
+  "datasets": {
+    "training": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1.pt",
+      "sha256": "e6228b88a57556ea7c50b84930a0b2dd9dea26b59c70fbeceb4e1c81ac70e32d",
+      "seed": 20260719,
+      "maximum_training_time": 12.0
+    },
+    "representative_fit_and_promotion": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1_t20.pt",
+      "sha256": "ffbf5f79f894f7b581b17deebe8a2e9c5b7e8698c71b7617ebc2474d9729bbd3",
+      "seed": 20260719,
+      "split_policy": "even validation trajectories fit representatives; odd validation trajectories score promotion"
+    },
+    "independent_holdout": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_temporal_group_20260719/data/allen_cahn_4_grid16_dt0p1_t20_seed20260720.pt",
+      "sha256": "6da10bb25ea64ef1c032047c9824abef4c2b65f72804d5ae0fcdd9a97fe5f918",
+      "summary_sha256": "fd4a3e58f0be2440aced300f218264f465085f7bb908576ac8c5768f52cbf05b",
+      "seed": 20260720,
+      "train_validation_test_trajectories": [512, 128, 256],
+      "state_dimension": 512,
+      "stored_dt": 0.1,
+      "maximum_physical_horizon": 20.0,
+      "test_final_fate_counts": [74, 55, 65, 62],
+      "test_trajectories_at_least_90_percent_one_well": 130
+    }
+  },
+  "protocol": {
+    "model_seeds": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+    "latent_dimension": 2048,
+    "state_to_latent_ratio": 4.0,
+    "selected_temporal_group_sparsity_weight": 0.001,
+    "support_threshold": 0.001,
+    "family_jaccard": 0.4,
+    "support_scope": "final state at physical time 20",
+    "deep_interior_definition": "evaluation-only final modal-well area fraction at least 0.90",
+    "selection_policy": "smallest temporal weight passing every frozen validation-only screen check",
+    "test_release_policy": "dataset seed 20260720 was generated only after every fresh-seed promotion check passed",
+    "representative_policy": "support representatives fit only on seed-20260719 validation trajectories; never refit on the new holdout",
+    "label_policy": "no fate labels, basin count, or trajectory assignments enter training, encoding, representative fitting, or transfer; labels score frozen assignments only"
+  },
+  "dense_no_sparsity_contract": {
+    "audits_passed": 10,
+    "hidden_activation": "tanh",
+    "latent_output": "linear",
+    "forbidden_modules_present": 0,
+    "sparsity_coefficient": 0,
+    "temporal_group_sparsity_coefficient": 0,
+    "weight_decay": 0,
+    "optimizer": "Adam",
+    "operator": "full trainable 2048-by-2048 matrix",
+    "transition_regularization": 0,
+    "holdout_active_density_at_1e-4": 0.9979808807373047
+  },
+  "validation_promotion": {
+    "status": "passed",
+    "mean_trajectory_transfer_coverage": 0.9609375,
+    "mean_normalized_h_basin_given_family": 0.11007558533056463,
+    "mean_normalized_h_family_given_basin": 0.2990547429912122,
+    "mean_nmi": 0.7837560858125292,
+    "mean_ari": 0.7556377282965371,
+    "ari_ci95_seed_bootstrap": [0.7022408147403436, 0.7979397465438841],
+    "mean_purity": 0.9359375,
+    "sparse_ari_wins_over_dense": 10,
+    "exact_two_sided_sign_flip_p": 0.001953125
+  },
+  "independent_holdout_support": {
+    "primary_all_trajectories": {
+      "mean_trajectory_transfer_coverage": 0.98203125,
+      "mean_normalized_h_basin_given_family": 0.15134648791167316,
+      "mean_normalized_h_family_given_basin": 0.3592790039603441,
+      "uniqueness_ci95_seed_bootstrap": [0.3385595730108109, 0.38247830213767425],
+      "mean_nmi": 0.7299785008755283,
+      "mean_ari": 0.7665381073120019,
+      "ari_ci95_seed_bootstrap": [0.7416220834536195, 0.7869191672685562],
+      "mean_purity": 0.92265625,
+      "mean_num_families": 10.8,
+      "sparse_ari_wins_over_dense": 10,
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "prespecified_gate_passed": false,
+      "failed_check": "mean normalized H(F|B)/H(F) <= 0.35",
+      "distance_above_ceiling": 0.0092790039603441
+    },
+    "predeclared_deep_interior_slice": {
+      "trajectories": 130,
+      "fraction_of_test": 0.5078125,
+      "mean_num_families": 4.0,
+      "mean_normalized_h_basin_given_family": 0.0,
+      "mean_normalized_h_family_given_basin": 0.0,
+      "mean_nmi": 1.0,
+      "mean_ari": 1.0,
+      "mean_purity": 1.0,
+      "model_seeds_with_exact_alignment": 10
+    },
+    "interpretation": "The sparse family map is strongly basin-informative on all unseen initial conditions and exactly one-to-one on predeclared basin-interior fields; residual fragmentation is concentrated in mixed-domain/interface states."
+  },
+  "independent_holdout_forecast": {
+    "physical_time_20_final_field_mse": {
+      "direct": 0.029320412315428257,
+      "dense": 0.11844406202435494,
+      "temporal_sparse": 0.29913985133171084
+    },
+    "physical_time_20_final_rmse_over_persistence": {
+      "direct": 0.21829485584240227,
+      "dense": 0.44201088413003636,
+      "temporal_sparse": 0.6491185397502385
+    },
+    "interpretation": "All learned rows beat persistence, but temporal sparse does not beat exact dense and the direct convolutional control is best; the PDE supplies representation rather than sparse-forecasting evidence."
+  },
+  "statistics": {
+    "inferential_unit": "model initialization seed",
+    "test_trajectories_averaged_within_seed": true,
+    "bootstrap_resamples": 100000,
+    "paired_test": "exact two-sided sign-flip",
+    "forecast_multiplicity": "Holm over physical times 8, 12, 16, and 20",
+    "normality_assumption": "none"
+  },
+  "slurm": {
+    "direct_array": 10154697,
+    "dense_and_sparse_resume_array": 10154815,
+    "validation_gate": 10154824,
+    "holdout_dataset": 10154826,
+    "holdout_test_array": 10154827,
+    "holdout_summary": 10154828,
+    "summary_exit_note": "The summary payload completed; its final fail-closed assertion intentionally returned nonzero because the primary uniqueness gate missed.",
+    "dense_training_mean_gpu_utilization_range_percent": [84.7, 91.0],
+    "sparse_training_mean_gpu_utilization_range_percent": [86.0, 92.6],
+    "direct_training_quadro_mean_gpu_utilization_range_percent": [89.9, 91.2],
+    "direct_training_l40s_mean_gpu_utilization_range_percent": [60.9, 62.1],
+    "holdout_dataset_core_gpu_utilization_percent": [98, 99]
+  },
+  "evidence": {
+    "screen_config": {"path": "allen_cahn_temporal_group_screen_config.json", "sha256": "afa19bd5af256908c4b119c773143c0e2bd5ab37db891af9793f8b0c5a653c4f"},
+    "screen_selection": {"path": "allen_cahn_temporal_group_screen_selection.json", "sha256": "d3ce26007e6a247e6c4b8cb5fc23653523f2dd846dc51e1eb7eeb94638778db8"},
+    "holdout_config": {"path": "allen_cahn_temporal_group_holdout_config.json", "sha256": "5470b33656f68fae7d9ebccd1b032eceb48c1e5dcbe0edf6c1f1e50b6518b6b4"},
+    "validation_alignment": {"path": "allen_cahn_temporal_group_validation_alignment.json", "sha256": "da010f7be800387c7f748033681bab073a40eb492b7bbc9c5eedc9407f389723"},
+    "validation_rows": {"path": "allen_cahn_temporal_group_validation_rows.csv", "sha256": "3c1fad7d3f1eeae33b79ef09f6870ef8402bd4b2c6afa271931c66e11de8ddf3"},
+    "holdout_summary": {"path": "allen_cahn_temporal_group_holdout_summary.json", "sha256": "24b6235f7e78ca1b4471edd593b8022d543a6898d372f49f1341a23f92ddb106"},
+    "forecast_seed_rows": {"path": "allen_cahn_temporal_group_holdout_forecast_seed_rows.csv", "sha256": "70d4831828d995f08e2530ff8df8fc5a20ddefb217de2a0d4b43354b972d72b2"},
+    "support_seed_rows": {"path": "allen_cahn_temporal_group_holdout_support_seed_rows.csv", "sha256": "5a2ed4abf96ec0b29b4e1a76a00cb7c685f7f82937c8a07e12c5064fbb02a085"},
+    "fixed_seed_records": {"path": "allen_cahn_temporal_group_holdout_fixed_seed_records.csv", "sha256": "c720c97cd2b1ea0b869501e6e0a05c376ef0527fbce167a800ea48c5a0b0832e"},
+    "main_display_pdf": {"path": "../fig_highdimensional_confirmation.pdf", "sha256": "b332d118612290872a43ed673e8e8665e728abf9e94e88d9c43b1580e506a021"},
+    "support_contingency_pdf": {"path": "../fig_allen_cahn_support_contingency.pdf", "sha256": "3be84fb3029605aa06f114580e3569fe745a99f4a2821abd6d2c4a37918ad601"},
+    "snapshot_pdf": {"path": "../fig_allen_cahn_time20_snapshots.pdf", "sha256": "e41ddb3e5f4dabae0b97c66e9a65298b0fc3d4137c46cb237c25a3e42c398d58"}
+  },
+  "terminal_decision": "Stop tuning. The high-dimensional forecasting claim is supplied by Lorenz-96; the independent PDE holdout supplies strong all-state basin information and exact predeclared deep-interior alignment. Trying another threshold after the 0.009 primary miss would weaken test discipline."
+}
