@@ -1,0 +1,2140 @@
+{
+  "baseline_comparisons": [
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 0.26495337180612905,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.28991417403862363,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 0,
+      "mean_seed_relative_reduction": -0.09420828299840951,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.04092864575392038,
+        -0.012822146996722055
+      ],
+      "paired_mean_baseline_minus_learned": -0.02496080223249462,
+      "paired_model_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.153992476826661,
+        -0.04809132960100026
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 0.7424163611566034,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.5637633209110001,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.2406372617748905,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.17410089053766728,
+        0.1822706234677575
+      ],
+      "paired_mean_baseline_minus_learned": 0.17865304024560325,
+      "paired_model_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.23447205715248573,
+        0.24553044989045025
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.0765231574229737,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.6974867819490397,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.35209309977250014,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.3766345070344884,
+        0.3810327461496917
+      ],
+      "paired_mean_baseline_minus_learned": 0.37903637547393393,
+      "paired_model_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.34985885573475434,
+        0.3539388663784916
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.34334640086823,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.8142507115412216,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.3938639274166692,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.5275136346946979,
+        0.5304792549751635
+      ],
+      "paired_mean_baseline_minus_learned": 0.5290956893270085,
+      "paired_model_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.3927021243248717,
+        0.3948998391374625
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.36741474040921,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 50,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.9595124593054869,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.29830180196949974,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.3981203081621439,
+        0.4208969492204058
+      ],
+      "paired_mean_baseline_minus_learned": 0.4079022811037231,
+      "paired_model_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.2911504251990765,
+        0.3078382522140412
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.3951068709476362,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 1.2889019362189735,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.07612673762872531,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.0769168255048847,
+        0.1404599154227494
+      ],
+      "paired_mean_baseline_minus_learned": 0.10620493472866263,
+      "paired_model_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.0551833120620425,
+        0.1005428504198318
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 0.26495337180612905,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.28320515511920963,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 0,
+      "mean_seed_relative_reduction": -0.06888677501502305,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.026798898293606398,
+        -0.011222888519282465
+      ],
+      "paired_mean_baseline_minus_learned": -0.018251783313080562,
+      "paired_model_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.10136911670353554,
+        -0.04236166945335402
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 0.7424163611566034,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.539963633396468,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.27269432403770877,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.1981154319160397,
+        0.20650183808078024
+      ],
+      "paired_mean_baseline_minus_learned": 0.20245272776013534,
+      "paired_model_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.26685729961677196,
+        0.27815845498697617
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.0765231574229737,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.6687351260603429,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.37880098402974516,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.40404346790668183,
+        0.41135465088290973
+      ],
+      "paired_mean_baseline_minus_learned": 0.40778803136263075,
+      "paired_model_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.3753359045938144,
+        0.38210022693425494
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.34334640086823,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.7881788721184829,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.4132720558084884,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.5516442642398303,
+        0.558480417229233
+      ],
+      "paired_mean_baseline_minus_learned": 0.5551675287497472,
+      "paired_model_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.4106341044779504,
+        0.41575012459500477
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.36741474040921,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 50,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.8987379462540565,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.34274663004941586,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.4648541046845243,
+        0.4722024914458207
+      ],
+      "paired_mean_baseline_minus_learned": 0.4686767941551535,
+      "paired_model_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.33994775237814884,
+        0.345347275963278
+      ]
+    },
+    {
+      "baseline": "persistence",
+      "baseline_mean_nrmse": 1.3951068709476362,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.9668897101489616,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.30694219182492083,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.42308224830872326,
+        0.4326785707521134
+      ],
+      "paired_mean_baseline_minus_learned": 0.42821716079867445,
+      "paired_model_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.3032375410196763,
+        0.31014683448419944
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.2229145251479367,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.28991417403862363,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 0,
+      "mean_seed_relative_reduction": -0.30056206003723995,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.08284141958977712,
+        -0.054874113249175925
+      ],
+      "paired_mean_baseline_minus_learned": -0.06699964889068696,
+      "paired_model_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.372024591333134,
+        -0.24630837638316783
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.5758587244658816,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.00390625,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.5637633209110001,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 9,
+      "mean_seed_relative_reduction": 0.02100411618509408,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.0075277330316983904,
+        0.01569094770015647
+      ],
+      "paired_mean_baseline_minus_learned": 0.012095403554881456,
+      "paired_model_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.013072187173478156,
+        0.02727995630495903
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.7722898160497131,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.6974867819490397,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.09685876020390027,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.07240892608400362,
+        0.07679285024861934
+      ],
+      "paired_mean_baseline_minus_learned": 0.07480303410067343,
+      "paired_model_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.09375848255085044,
+        0.0994440253154174
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.9132004630806477,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.8142507115412216,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.10835490731752669,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.09738478976533368,
+        0.10034344003833894
+      ],
+      "paired_mean_baseline_minus_learned": 0.09894975153942603,
+      "paired_model_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.10664029148673859,
+        0.10987651178785263
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.9653976986583637,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.45703125,
+      "holm_p_long_horizons": 0.45703125,
+      "horizon": 50,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.9595124593054869,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 6,
+      "mean_seed_relative_reduction": 0.006096181253648702,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.0039016726269058893,
+        0.018846203444958073
+      ],
+      "paired_mean_baseline_minus_learned": 0.005885239352876714,
+      "paired_model_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.004063319982788092,
+        0.01966799235350586
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.9896748038346571,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 1.2889019362189735,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 0,
+      "mean_seed_relative_reduction": -0.3023489445471502,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.32846641750912303,
+        -0.26507014344706387
+      ],
+      "paired_mean_baseline_minus_learned": -0.2992271323843164,
+      "paired_model_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.33200860700651086,
+        -0.2680652803036633
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.2229145251479367,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.28320515511920963,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 0,
+      "mean_seed_relative_reduction": -0.27046523743242473,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.06881604894370885,
+        -0.05326276186225167
+      ],
+      "paired_mean_baseline_minus_learned": -0.06029062997127292,
+      "paired_model_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.30876043208882425,
+        -0.2388785249569237
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.5758587244658816,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.539963633396468,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.06233315489438298,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.03154030348046461,
+        0.039915008229397135
+      ],
+      "paired_mean_baseline_minus_learned": 0.03589509106941361,
+      "paired_model_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.05478913587651052,
+        0.06933154915647838
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.7722898160497131,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.6687351260603429,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.13408786162564684,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.09983376521997095,
+        0.10714579019199558
+      ],
+      "paired_mean_baseline_minus_learned": 0.10355468998937019,
+      "paired_model_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.12919967443163663,
+        0.13871422501353098
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.9132004630806477,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.7881788721184829,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.13690487030679893,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.12151617323909988,
+        0.12835249722906425
+      ],
+      "paired_mean_baseline_minus_learned": 0.1250215909621648,
+      "paired_model_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.1330572460289729,
+        0.14054475043381068
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.9653976986583637,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 50,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.8987379462540565,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.06904900695013645,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.06283956980430119,
+        0.07019355786552171
+      ],
+      "paired_mean_baseline_minus_learned": 0.06665975240430708,
+      "paired_model_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.06510523228432631,
+        0.07273324901448251
+      ]
+    },
+    {
+      "baseline": "dmd",
+      "baseline_mean_nrmse": 0.9896748038346571,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.9668897101489616,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.02302280870181883,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.01770829577393861,
+        0.027242242723586017
+      ],
+      "paired_mean_baseline_minus_learned": 0.02278509368569539,
+      "paired_model_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.017839098301009798,
+        0.027519524088613696
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.7287886491913093,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.28991417403862363,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.6021971879497258,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.423034493473165,
+        0.4510483213176514
+      ],
+      "paired_mean_baseline_minus_learned": 0.4388744751526856,
+      "paired_model_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.5804452960590126,
+        0.6187818148997044
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.7898832252409422,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.5637633209110001,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.2862700423356472,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.2215984744981928,
+        0.22973927039697886
+      ],
+      "paired_mean_baseline_minus_learned": 0.22611990432994208,
+      "paired_model_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.2804874418206755,
+        0.29083917827867334
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.8446226875140143,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.6974867819490397,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.17420311784193368,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.1447307075679221,
+        0.1491208742327091
+      ],
+      "paired_mean_baseline_minus_learned": 0.14713590556497455,
+      "paired_model_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.1713511678728727,
+        0.17655697968090747
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.9119272882360494,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.8142507115412216,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.10711004918359723,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.09612252055978944,
+        0.09906003689801475
+      ],
+      "paired_mean_baseline_minus_learned": 0.09767657669482771,
+      "paired_model_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.10540097654049409,
+        0.10864426948659234
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.9567860331070074,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.720703125,
+      "holm_p_long_horizons": 0.720703125,
+      "horizon": 50,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.9595124593054869,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 3,
+      "mean_seed_relative_reduction": -0.002849567305686876,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.012525020644261897,
+        0.010268175794167715
+      ],
+      "paired_mean_baseline_minus_learned": -0.00272642619847957,
+      "paired_model_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.013046284331107803,
+        0.010822504316003791
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.9856924380105166,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 1.2889019362189735,
+      "learned_model": "dense_mlp_tanh_exact",
+      "learned_wins": 0,
+      "mean_seed_relative_reduction": -0.30761065674851196,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.33266023946350903,
+        -0.2689253064608016
+      ],
+      "paired_mean_baseline_minus_learned": -0.3032094982084569,
+      "paired_model_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.3374899031859833,
+        -0.2725756855764882
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.7287886491913093,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.28320515511920963,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.6114029006441518,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.43707312100392703,
+        0.45259904551597174
+      ],
+      "paired_mean_baseline_minus_learned": 0.4455834940720996,
+      "paired_model_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.5995476255289245,
+        0.6210809034431272
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.7898832252409422,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.539963633396468,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.31640068285820344,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.24556507401778357,
+        0.25396386123528075
+      ],
+      "paired_mean_baseline_minus_learned": 0.24991959184447426,
+      "paired_model_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.3108830262643779,
+        0.3215141607162069
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.8446226875140143,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.6687351260603429,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.20824394614755465,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.17213420826106374,
+        0.17944388457667038
+      ],
+      "paired_mean_baseline_minus_learned": 0.1758875614536713,
+      "paired_model_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.20379913999334134,
+        0.2124297608180871
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.9119272882360494,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.7881788721184829,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.13569987181426968,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.12021670880572133,
+        0.12706910204118602
+      ],
+      "paired_mean_baseline_minus_learned": 0.12374841611756648,
+      "paired_model_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.13183946954023257,
+        0.1393470521362608
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.9567860331070074,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 50,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.8987379462540565,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.060669872724259,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.054222744295857696,
+        0.061608174734093295
+      ],
+      "paired_mean_baseline_minus_learned": 0.0580480868529508,
+      "paired_model_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.056702561616616756,
+        0.0643757947334945
+      ]
+    },
+    {
+      "baseline": "truncated_svd_dmd",
+      "baseline_mean_nrmse": 0.9856924380105166,
+      "effect_direction": "positive means the learned model is better",
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "inference_scope": "Model-initialization variability conditional on the one fixed dataset and deterministic baseline fit.",
+      "learned_mean_nrmse": 0.9668897101489616,
+      "learned_model": "lista_sign_split",
+      "learned_wins": 10,
+      "mean_seed_relative_reduction": 0.01907565396312223,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.013675608901924523,
+        0.02324063658762753
+      ],
+      "paired_mean_baseline_minus_learned": 0.018802727861554923,
+      "paired_model_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.013847051513990157,
+        0.023612713154596857
+      ]
+    }
+  ],
+  "baselines": [
+    {
+      "horizon": 1,
+      "mean_nrmse": 0.2229145251479367,
+      "model": "dmd",
+      "physical_time": 0.05,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 5,
+      "mean_nrmse": 0.5758587244658816,
+      "model": "dmd",
+      "physical_time": 0.25,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 10,
+      "mean_nrmse": 0.7722898160497131,
+      "model": "dmd",
+      "physical_time": 0.5,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 25,
+      "mean_nrmse": 0.9132004630806477,
+      "model": "dmd",
+      "physical_time": 1.25,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 50,
+      "mean_nrmse": 0.9653976986583637,
+      "model": "dmd",
+      "physical_time": 2.5,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 100,
+      "mean_nrmse": 0.9896748038346571,
+      "model": "dmd",
+      "physical_time": 5.0,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 1,
+      "mean_nrmse": 0.26495337180612905,
+      "model": "persistence",
+      "physical_time": 0.05,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 5,
+      "mean_nrmse": 0.7424163611566034,
+      "model": "persistence",
+      "physical_time": 0.25,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 10,
+      "mean_nrmse": 1.0765231574229737,
+      "model": "persistence",
+      "physical_time": 0.5,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 25,
+      "mean_nrmse": 1.34334640086823,
+      "model": "persistence",
+      "physical_time": 1.25,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 50,
+      "mean_nrmse": 1.36741474040921,
+      "model": "persistence",
+      "physical_time": 2.5,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 100,
+      "mean_nrmse": 1.3951068709476362,
+      "model": "persistence",
+      "physical_time": 5.0,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 1,
+      "mean_nrmse": 0.7287886491913093,
+      "model": "truncated_svd_dmd",
+      "physical_time": 0.05,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 5,
+      "mean_nrmse": 0.7898832252409422,
+      "model": "truncated_svd_dmd",
+      "physical_time": 0.25,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 10,
+      "mean_nrmse": 0.8446226875140143,
+      "model": "truncated_svd_dmd",
+      "physical_time": 0.5,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 25,
+      "mean_nrmse": 0.9119272882360494,
+      "model": "truncated_svd_dmd",
+      "physical_time": 1.25,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 50,
+      "mean_nrmse": 0.9567860331070074,
+      "model": "truncated_svd_dmd",
+      "physical_time": 2.5,
+      "unique_seed_values": 1
+    },
+    {
+      "horizon": 100,
+      "mean_nrmse": 0.9856924380105166,
+      "model": "truncated_svd_dmd",
+      "physical_time": 5.0,
+      "unique_seed_values": 1
+    }
+  ],
+  "benchmark": "Lorenz-96",
+  "bootstrap_resamples": 100000,
+  "comparisons": [
+    {
+      "dense_mean_nrmse": 0.28991417403862363,
+      "dense_sd_across_seeds": 0.024260684028273617,
+      "exact_two_sided_sign_flip_p": 0.576171875,
+      "holm_p_long_horizons": null,
+      "horizon": 1,
+      "mean_seed_relative_reduction": 0.01682292237310895,
+      "paired_effect_ci95_seed_bootstrap": [
+        -0.010033403583895744,
+        0.02590300023547084
+      ],
+      "paired_mean_dense_minus_sparse": 0.006709018919414061,
+      "paired_seeds": 10,
+      "physical_time": 0.05,
+      "relative_reduction_ci95_seed_bootstrap": [
+        -0.038546102492743,
+        0.07517466033503306
+      ],
+      "sparse_mean_nrmse": 0.28320515511920963,
+      "sparse_sd_across_seeds": 0.01335318115606697,
+      "sparse_wins": 5
+    },
+    {
+      "dense_mean_nrmse": 0.5637633209110001,
+      "dense_sd_across_seeds": 0.007043568783978065,
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 5,
+      "mean_seed_relative_reduction": 0.04203950910732036,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.01745585686016783,
+        0.030974188611285612
+      ],
+      "paired_mean_dense_minus_sparse": 0.023799687514532153,
+      "paired_seeds": 10,
+      "physical_time": 0.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.031011189157813063,
+        0.054262284550635115
+      ],
+      "sparse_mean_nrmse": 0.539963633396468,
+      "sparse_sd_across_seeds": 0.0071676049420983995,
+      "sparse_wins": 10
+    },
+    {
+      "dense_mean_nrmse": 0.6974867819490397,
+      "dense_sd_across_seeds": 0.0037678220574506372,
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 10,
+      "mean_seed_relative_reduction": 0.04118495749038183,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.024151958711677177,
+        0.03367946960829464
+      ],
+      "paired_mean_dense_minus_sparse": 0.02875165588869676,
+      "paired_seeds": 10,
+      "physical_time": 0.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.034712368097512186,
+        0.048136702344944486
+      ],
+      "sparse_mean_nrmse": 0.6687351260603429,
+      "sparse_sd_across_seeds": 0.006241963266327918,
+      "sparse_wins": 10
+    },
+    {
+      "dense_mean_nrmse": 0.8142507115412216,
+      "dense_sd_across_seeds": 0.002532901357137076,
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": null,
+      "horizon": 25,
+      "mean_seed_relative_reduction": 0.032009292332959224,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.022229677447531012,
+        0.02994594352790353
+      ],
+      "paired_mean_dense_minus_sparse": 0.026071839422738764,
+      "paired_seeds": 10,
+      "physical_time": 1.25,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.027317308159924177,
+        0.036723395258809015
+      ],
+      "sparse_mean_nrmse": 0.7881788721184829,
+      "sparse_sd_across_seeds": 0.0058514780958243105,
+      "sparse_wins": 10
+    },
+    {
+      "dense_mean_nrmse": 0.9595124593054869,
+      "dense_sd_across_seeds": 0.01980035589432134,
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 50,
+      "mean_seed_relative_reduction": 0.0630031352620587,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.04885534407840163,
+        0.07095982798453494
+      ],
+      "paired_mean_dense_minus_sparse": 0.06077451305143037,
+      "paired_seeds": 10,
+      "physical_time": 2.5,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.050933879948779355,
+        0.07321343308012068
+      ],
+      "sparse_mean_nrmse": 0.8987379462540565,
+      "sparse_sd_across_seeds": 0.006306981008888438,
+      "sparse_wins": 10
+    },
+    {
+      "dense_mean_nrmse": 1.2889019362189735,
+      "dense_sd_across_seeds": 0.0544595908553633,
+      "exact_two_sided_sign_flip_p": 0.001953125,
+      "holm_p_long_horizons": 0.00390625,
+      "horizon": 100,
+      "mean_seed_relative_reduction": 0.24870121742589707,
+      "paired_effect_ci95_seed_bootstrap": [
+        0.29031575590151154,
+        0.34972025549026087
+      ],
+      "paired_mean_dense_minus_sparse": 0.32201222607001184,
+      "paired_seeds": 10,
+      "physical_time": 5.0,
+      "relative_reduction_ci95_seed_bootstrap": [
+        0.22980424963672602,
+        0.2650829542005464
+      ],
+      "sparse_mean_nrmse": 0.9668897101489616,
+      "sparse_sd_across_seeds": 0.008200219239394544,
+      "sparse_wins": 10
+    }
+  ],
+  "dense_audit_paths": [
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed0_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed1_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed2_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed3_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed4_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed5_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed6_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed7_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed8_dz512_sp0/resolved_config.json",
+    "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/runs/lorenz96/D128_F8.0_obs1.0_noise0.05_train128_Htrain20/dense_mlp_tanh_exact_seed9_dz512_sp0/resolved_config.json"
+  ],
+  "dense_audits_passed": 10,
+  "fixed_dataset_seed": 20260719,
+  "inferential_unit": "model initialization seed",
+  "latent_density": [
+    {
+      "mean_active_density_1e4": 0.999580466747284,
+      "model": "dense_mlp_tanh_exact",
+      "sd_across_seeds": 3.726515780315632e-05
+    },
+    {
+      "mean_active_density_1e4": 0.48838657438755034,
+      "model": "lista_sign_split",
+      "sd_across_seeds": 0.00024711605524759195
+    }
+  ],
+  "latent_dimension": 512,
+  "model_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "normality_assumption": "None for percentile seed bootstrap or exact paired sign-flip randomization.",
+  "seed_summary_rows": [
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.999573826789856,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.2807038817096467,
+      "physical_time": 0.05,
+      "seed": 0
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.999573826789856,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5621048453240447,
+      "physical_time": 0.25,
+      "seed": 0
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.999573826789856,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6970879083329026,
+      "physical_time": 0.5,
+      "seed": 0
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.999573826789856,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.8137617519768046,
+      "physical_time": 1.25,
+      "seed": 0
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.999573826789856,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9487327293436103,
+      "physical_time": 2.5,
+      "seed": 0
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.999573826789856,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.2892235114971125,
+      "physical_time": 5.0,
+      "seed": 0
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.999537706375122,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.2719329973603902,
+      "physical_time": 0.05,
+      "seed": 1
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.999537706375122,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5605035987579898,
+      "physical_time": 0.25,
+      "seed": 1
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.999537706375122,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6960101886784089,
+      "physical_time": 0.5,
+      "seed": 1
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.999537706375122,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.812979579223214,
+      "physical_time": 1.25,
+      "seed": 1
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.999537706375122,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9635732844254572,
+      "physical_time": 2.5,
+      "seed": 1
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.999537706375122,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.3333091619045934,
+      "physical_time": 5.0,
+      "seed": 1
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9996063113212584,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.2963167819225846,
+      "physical_time": 0.05,
+      "seed": 2
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9996063113212584,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5652864401260241,
+      "physical_time": 0.25,
+      "seed": 2
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9996063113212584,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6974169049689329,
+      "physical_time": 0.5,
+      "seed": 2
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9996063113212584,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.8140471216675661,
+      "physical_time": 1.25,
+      "seed": 2
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9996063113212584,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9620491254997796,
+      "physical_time": 2.5,
+      "seed": 2
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9996063113212584,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.274298744666122,
+      "physical_time": 5.0,
+      "seed": 2
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9995510578155518,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.2681923103193447,
+      "physical_time": 0.05,
+      "seed": 3
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9995510578155518,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5559589484945576,
+      "physical_time": 0.25,
+      "seed": 3
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9995510578155518,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6932238840820016,
+      "physical_time": 0.5,
+      "seed": 3
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9995510578155518,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.811225472396842,
+      "physical_time": 1.25,
+      "seed": 3
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9995510578155518,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9550373758387256,
+      "physical_time": 2.5,
+      "seed": 3
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9995510578155518,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.336114422333312,
+      "physical_time": 5.0,
+      "seed": 3
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9995703101158142,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.2768376923799254,
+      "physical_time": 0.05,
+      "seed": 4
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9995703101158142,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5584420236415774,
+      "physical_time": 0.25,
+      "seed": 4
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9995703101158142,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6941034506484196,
+      "physical_time": 0.5,
+      "seed": 4
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9995703101158142,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.8114809101479074,
+      "physical_time": 1.25,
+      "seed": 4
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9995703101158142,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9611477411242829,
+      "physical_time": 2.5,
+      "seed": 4
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9995703101158142,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.3323258954986106,
+      "physical_time": 5.0,
+      "seed": 4
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9995805025100708,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.28823292992312527,
+      "physical_time": 0.05,
+      "seed": 5
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9995805025100708,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.561500339207075,
+      "physical_time": 0.25,
+      "seed": 5
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9995805025100708,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6955756603823411,
+      "physical_time": 0.5,
+      "seed": 5
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9995805025100708,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.812702683343619,
+      "physical_time": 1.25,
+      "seed": 5
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9995805025100708,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9095781930823432,
+      "physical_time": 2.5,
+      "seed": 5
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9995805025100708,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.1810664773319413,
+      "physical_time": 5.0,
+      "seed": 5
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9995391964912416,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.27003245879951704,
+      "physical_time": 0.05,
+      "seed": 6
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9995391964912416,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5588164662966031,
+      "physical_time": 0.25,
+      "seed": 6
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9995391964912416,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6952805927423464,
+      "physical_time": 0.5,
+      "seed": 6
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9995391964912416,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.8139066865483043,
+      "physical_time": 1.25,
+      "seed": 6
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9995391964912416,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9709271990521217,
+      "physical_time": 2.5,
+      "seed": 6
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9995391964912416,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.3398926310981043,
+      "physical_time": 5.0,
+      "seed": 6
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9995803236961364,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.2949359169972697,
+      "physical_time": 0.05,
+      "seed": 7
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9995803236961364,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5660340942923384,
+      "physical_time": 0.25,
+      "seed": 7
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9995803236961364,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.6993612430999475,
+      "physical_time": 0.5,
+      "seed": 7
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9995803236961364,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.8168189913128653,
+      "physical_time": 1.25,
+      "seed": 7
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9995803236961364,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9777797096935222,
+      "physical_time": 2.5,
+      "seed": 7
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9995803236961364,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.2989459689387712,
+      "physical_time": 5.0,
+      "seed": 7
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9996024966239928,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.3016816161273984,
+      "physical_time": 0.05,
+      "seed": 8
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9996024966239928,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5683055177090262,
+      "physical_time": 0.25,
+      "seed": 8
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9996024966239928,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.7007824701442412,
+      "physical_time": 0.5,
+      "seed": 8
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9996024966239928,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.81623818238298,
+      "physical_time": 1.25,
+      "seed": 8
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9996024966239928,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9774678890587054,
+      "physical_time": 2.5,
+      "seed": 8
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9996024966239928,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.2927137216427342,
+      "physical_time": 5.0,
+      "seed": 8
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.9996629357337952,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.35027515484703464,
+      "physical_time": 0.05,
+      "seed": 9
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.9996629357337952,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.5806809352607651,
+      "physical_time": 0.25,
+      "seed": 9
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.9996629357337952,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.7060255164108552,
+      "physical_time": 0.5,
+      "seed": 9
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.9996629357337952,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.8193457364121145,
+      "physical_time": 1.25,
+      "seed": 9
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.9996629357337952,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 0.9688313459363214,
+      "physical_time": 2.5,
+      "seed": 9
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.9996629357337952,
+      "model": "dense_mlp_tanh_exact",
+      "nrmse": 1.2111288272784342,
+      "physical_time": 5.0,
+      "seed": 9
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4883214831352234,
+      "model": "lista_sign_split",
+      "nrmse": 0.2877755525400677,
+      "physical_time": 0.05,
+      "seed": 0
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4883214831352234,
+      "model": "lista_sign_split",
+      "nrmse": 0.5458863517681125,
+      "physical_time": 0.25,
+      "seed": 0
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4883214831352234,
+      "model": "lista_sign_split",
+      "nrmse": 0.6770944804627681,
+      "physical_time": 0.5,
+      "seed": 0
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4883214831352234,
+      "model": "lista_sign_split",
+      "nrmse": 0.7972555558449804,
+      "physical_time": 1.25,
+      "seed": 0
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4883214831352234,
+      "model": "lista_sign_split",
+      "nrmse": 0.9065001205198954,
+      "physical_time": 2.5,
+      "seed": 0
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4883214831352234,
+      "model": "lista_sign_split",
+      "nrmse": 0.9732314682705444,
+      "physical_time": 5.0,
+      "seed": 0
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4884637594223022,
+      "model": "lista_sign_split",
+      "nrmse": 0.2748783416205134,
+      "physical_time": 0.05,
+      "seed": 1
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4884637594223022,
+      "model": "lista_sign_split",
+      "nrmse": 0.5417722668656288,
+      "physical_time": 0.25,
+      "seed": 1
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4884637594223022,
+      "model": "lista_sign_split",
+      "nrmse": 0.6712719676801736,
+      "physical_time": 0.5,
+      "seed": 1
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4884637594223022,
+      "model": "lista_sign_split",
+      "nrmse": 0.7902909445339091,
+      "physical_time": 1.25,
+      "seed": 1
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4884637594223022,
+      "model": "lista_sign_split",
+      "nrmse": 0.8970307992517863,
+      "physical_time": 2.5,
+      "seed": 1
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4884637594223022,
+      "model": "lista_sign_split",
+      "nrmse": 0.9589625746975986,
+      "physical_time": 5.0,
+      "seed": 1
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.488421082496643,
+      "model": "lista_sign_split",
+      "nrmse": 0.29082439902885165,
+      "physical_time": 0.05,
+      "seed": 2
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.488421082496643,
+      "model": "lista_sign_split",
+      "nrmse": 0.5446898894259099,
+      "physical_time": 0.25,
+      "seed": 2
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.488421082496643,
+      "model": "lista_sign_split",
+      "nrmse": 0.6728583597810076,
+      "physical_time": 0.5,
+      "seed": 2
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.488421082496643,
+      "model": "lista_sign_split",
+      "nrmse": 0.7933472783095329,
+      "physical_time": 1.25,
+      "seed": 2
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.488421082496643,
+      "model": "lista_sign_split",
+      "nrmse": 0.9038737678156455,
+      "physical_time": 2.5,
+      "seed": 2
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.488421082496643,
+      "model": "lista_sign_split",
+      "nrmse": 0.9701189671212551,
+      "physical_time": 5.0,
+      "seed": 2
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.488604187965393,
+      "model": "lista_sign_split",
+      "nrmse": 0.2689508958693353,
+      "physical_time": 0.05,
+      "seed": 3
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.488604187965393,
+      "model": "lista_sign_split",
+      "nrmse": 0.5313065179519781,
+      "physical_time": 0.25,
+      "seed": 3
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.488604187965393,
+      "model": "lista_sign_split",
+      "nrmse": 0.6616156480492037,
+      "physical_time": 0.5,
+      "seed": 3
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.488604187965393,
+      "model": "lista_sign_split",
+      "nrmse": 0.7821954956321173,
+      "physical_time": 1.25,
+      "seed": 3
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.488604187965393,
+      "model": "lista_sign_split",
+      "nrmse": 0.8950547364629823,
+      "physical_time": 2.5,
+      "seed": 3
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.488604187965393,
+      "model": "lista_sign_split",
+      "nrmse": 0.9651248659588987,
+      "physical_time": 5.0,
+      "seed": 3
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4888677597045898,
+      "model": "lista_sign_split",
+      "nrmse": 0.28106139443091965,
+      "physical_time": 0.05,
+      "seed": 4
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4888677597045898,
+      "model": "lista_sign_split",
+      "nrmse": 0.5371362786622308,
+      "physical_time": 0.25,
+      "seed": 4
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4888677597045898,
+      "model": "lista_sign_split",
+      "nrmse": 0.6656909423946813,
+      "physical_time": 0.5,
+      "seed": 4
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4888677597045898,
+      "model": "lista_sign_split",
+      "nrmse": 0.7841396937607688,
+      "physical_time": 1.25,
+      "seed": 4
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4888677597045898,
+      "model": "lista_sign_split",
+      "nrmse": 0.8973951638784976,
+      "physical_time": 2.5,
+      "seed": 4
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4888677597045898,
+      "model": "lista_sign_split",
+      "nrmse": 0.9679386101907199,
+      "physical_time": 5.0,
+      "seed": 4
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4881190955638885,
+      "model": "lista_sign_split",
+      "nrmse": 0.2779509902637215,
+      "physical_time": 0.05,
+      "seed": 5
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4881190955638885,
+      "model": "lista_sign_split",
+      "nrmse": 0.5363557429019532,
+      "physical_time": 0.25,
+      "seed": 5
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4881190955638885,
+      "model": "lista_sign_split",
+      "nrmse": 0.664830162447987,
+      "physical_time": 0.5,
+      "seed": 5
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4881190955638885,
+      "model": "lista_sign_split",
+      "nrmse": 0.7829599999404481,
+      "physical_time": 1.25,
+      "seed": 5
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4881190955638885,
+      "model": "lista_sign_split",
+      "nrmse": 0.8913432888969397,
+      "physical_time": 2.5,
+      "seed": 5
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4881190955638885,
+      "model": "lista_sign_split",
+      "nrmse": 0.9584600865681187,
+      "physical_time": 5.0,
+      "seed": 5
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4884494841098785,
+      "model": "lista_sign_split",
+      "nrmse": 0.3141602585053312,
+      "physical_time": 0.05,
+      "seed": 6
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4884494841098785,
+      "model": "lista_sign_split",
+      "nrmse": 0.5537638959311795,
+      "physical_time": 0.25,
+      "seed": 6
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4884494841098785,
+      "model": "lista_sign_split",
+      "nrmse": 0.6785424898493343,
+      "physical_time": 0.5,
+      "seed": 6
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4884494841098785,
+      "model": "lista_sign_split",
+      "nrmse": 0.7959731351824629,
+      "physical_time": 1.25,
+      "seed": 6
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4884494841098785,
+      "model": "lista_sign_split",
+      "nrmse": 0.9096319173993791,
+      "physical_time": 2.5,
+      "seed": 6
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4884494841098785,
+      "model": "lista_sign_split",
+      "nrmse": 0.9846392858074671,
+      "physical_time": 5.0,
+      "seed": 6
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4882382750511169,
+      "model": "lista_sign_split",
+      "nrmse": 0.29040040472994405,
+      "physical_time": 0.05,
+      "seed": 7
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4882382750511169,
+      "model": "lista_sign_split",
+      "nrmse": 0.5431788146279036,
+      "physical_time": 0.25,
+      "seed": 7
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4882382750511169,
+      "model": "lista_sign_split",
+      "nrmse": 0.670590155784062,
+      "physical_time": 0.5,
+      "seed": 7
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4882382750511169,
+      "model": "lista_sign_split",
+      "nrmse": 0.7889164123803678,
+      "physical_time": 1.25,
+      "seed": 7
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4882382750511169,
+      "model": "lista_sign_split",
+      "nrmse": 0.9012082127996889,
+      "physical_time": 2.5,
+      "seed": 7
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4882382750511169,
+      "model": "lista_sign_split",
+      "nrmse": 0.9700875586277393,
+      "physical_time": 5.0,
+      "seed": 7
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4879844188690185,
+      "model": "lista_sign_split",
+      "nrmse": 0.2716410382697245,
+      "physical_time": 0.05,
+      "seed": 8
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4879844188690185,
+      "model": "lista_sign_split",
+      "nrmse": 0.5336509474054931,
+      "physical_time": 0.25,
+      "seed": 8
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4879844188690185,
+      "model": "lista_sign_split",
+      "nrmse": 0.6636468984547196,
+      "physical_time": 0.5,
+      "seed": 8
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4879844188690185,
+      "model": "lista_sign_split",
+      "nrmse": 0.7852805010995649,
+      "physical_time": 1.25,
+      "seed": 8
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4879844188690185,
+      "model": "lista_sign_split",
+      "nrmse": 0.8926134534159339,
+      "physical_time": 2.5,
+      "seed": 8
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4879844188690185,
+      "model": "lista_sign_split",
+      "nrmse": 0.9607856664475077,
+      "physical_time": 5.0,
+      "seed": 8
+    },
+    {
+      "horizon": 1,
+      "latent_active_density_1e4": 0.4883961975574493,
+      "model": "lista_sign_split",
+      "nrmse": 0.2744082759336871,
+      "physical_time": 0.05,
+      "seed": 9
+    },
+    {
+      "horizon": 5,
+      "latent_active_density_1e4": 0.4883961975574493,
+      "model": "lista_sign_split",
+      "nrmse": 0.5318956284242903,
+      "physical_time": 0.25,
+      "seed": 9
+    },
+    {
+      "horizon": 10,
+      "latent_active_density_1e4": 0.4883961975574493,
+      "model": "lista_sign_split",
+      "nrmse": 0.6612101556994924,
+      "physical_time": 0.5,
+      "seed": 9
+    },
+    {
+      "horizon": 25,
+      "latent_active_density_1e4": 0.4883961975574493,
+      "model": "lista_sign_split",
+      "nrmse": 0.7814297045006771,
+      "physical_time": 1.25,
+      "seed": 9
+    },
+    {
+      "horizon": 50,
+      "latent_active_density_1e4": 0.4883961975574493,
+      "model": "lista_sign_split",
+      "nrmse": 0.8927280020998172,
+      "physical_time": 2.5,
+      "seed": 9
+    },
+    {
+      "horizon": 100,
+      "latent_active_density_1e4": 0.4883961975574493,
+      "model": "lista_sign_split",
+      "nrmse": 0.9595480177997677,
+      "physical_time": 5.0,
+      "seed": 9
+    }
+  ],
+  "state_dimension": 128,
+  "status": "completed",
+  "stored_dt": 0.05,
+  "test_trajectories": 64,
+  "trajectory_role": "64 matched trajectories are averaged within each seed"
+}

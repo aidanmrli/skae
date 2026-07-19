@@ -211,7 +211,7 @@ marimo/_lsp/
 __marimo__/
 
 # Project outputs and cluster artifacts
-/runs/
+/runs
 /results
 /plots/
 /logs/

@@ -1,0 +1,69 @@
+{
+  "output_root": "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719",
+  "device": "cuda",
+  "bootstrap_resamples": 2000,
+  "profile": "lorenz96_D128_fixeddata_zero_sparse_dense_confirmation",
+  "notes": [
+    "Fixed generated Lorenz-96 dataset across ten model-initialization seeds.",
+    "Dense control is fail-closed tanh/linear with Adam, zero weight decay, and zero sparsity or K regularization.",
+    "D=128 observations and dz=512 give an overcomplete four-times Koopman lift.",
+    "Stored dt is 0.05, so H50 and H100 are physical times 2.5 and 5.0."
+  ],
+  "lorenz96": {
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "data_seed": 20260719,
+    "dimension": 128,
+    "forcing": 8.0,
+    "n_train": 128,
+    "n_val": 32,
+    "n_test": 64,
+    "train_sizes": [128],
+    "time_points": 201,
+    "observed_fraction": 1.0,
+    "noise_fraction": 0.05,
+    "horizons": [1, 5, 10, 25, 50, 100],
+    "train_horizons": [20],
+    "latent_dims": [512],
+    "truncated_dmd_rank": 32,
+    "training": {
+      "epochs": 3000,
+      "patience": 500,
+      "eval_every": 25,
+      "batch_size": 1024,
+      "hidden_dim": 128,
+      "num_layers": 2,
+      "decoder_layers": 1,
+      "lr": 0.0003,
+      "weight_decay": 0.0,
+      "grad_clip": 1.0,
+      "sparsity_target": "latent_rollout"
+    },
+    "model_variants": [
+      {
+        "label": "dense_mlp_tanh_exact",
+        "preset": "generic_no_shrink",
+        "latent_dim": 512,
+        "sparsity_coefficient": 0.0,
+        "sparsity_target": "latent_rollout",
+        "encoder_activation": "tanh",
+        "decoder_activation": "tanh",
+        "encoder_last_relu": false,
+        "encoder_use_bias": true,
+        "k_structure": "dense",
+        "dense_no_sparsity_audit": true
+      },
+      {
+        "label": "lista_sign_split",
+        "preset": "lista_parity_generic_sparse",
+        "latent_dim": 512,
+        "sparsity_coefficient": 0.01,
+        "sparsity_target": "latent_rollout",
+        "lista_final_op": "sign_split",
+        "lista_alpha": 0.1,
+        "lista_num_loops": 5,
+        "use_homogeneous": false,
+        "k_structure": "dense"
+      }
+    ]
+  }
+}

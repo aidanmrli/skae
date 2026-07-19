@@ -1,0 +1,66 @@
+{
+  "status": "complete",
+  "experiment": "fixed-data Lorenz-96 exact-dense confirmation",
+  "generated_at": "2026-07-19",
+  "code": {
+    "isolated_worktree": "/network/scratch/l/lia/skae-rebuttal",
+    "training_commit": "93ab3f5",
+    "summary_commit": "806ee56",
+    "branch": "rebuttal/allen-cahn-highdim"
+  },
+  "dataset": {
+    "path": "/network/scratch/l/lia/skae/lorenz96_zero_sparse_confirmation_20260719/data/lorenz96/lorenz96_D128_F8_seed20260719.npz",
+    "sha256": "d7191b1e09e7a862a83e523655de928b07c87833d9bb6cea216aedc8a9680236",
+    "manifest_sha256": "9bf5766669ce596c3e4e9c841a30f3295fc51669c1078bad59ef5c1125133158",
+    "dataset_seed": 20260719,
+    "state_dimension": 128,
+    "train_trajectories": 128,
+    "validation_trajectories": 32,
+    "test_trajectories": 64,
+    "stored_dt": 0.05
+  },
+  "protocol": {
+    "resolved_config_sha256": "b9e7c835cee6985c236fe1b85f4cd135b6f38544f15dbabf03078c82ec8ee1f9",
+    "run_manifest_sha256": "49b1ff23658bdda5de7b516e2a03c377b4a8a8b87f57291d465a4b39e1e0264d",
+    "model_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "latent_dimension": 512,
+    "training_updates": 3000,
+    "batch_size": 1024,
+    "training_horizon": 20,
+    "test_horizons": [1, 5, 10, 25, 50, 100],
+    "dense_audits_passed": 10,
+    "inferential_unit": "model initialization seed",
+    "test_trajectories_are_averaged_within_seed": true
+  },
+  "dense_no_sparsity_contract": {
+    "hidden_activation": "tanh",
+    "latent_output": "linear",
+    "forbidden_zero_inducing_modules": ["ReLU", "GELU", "Softshrink", "Dropout"],
+    "sparsity_coefficient": 0.0,
+    "weight_decay": 0.0,
+    "optimizer": "Adam",
+    "operator": "full trainable dense matrix",
+    "soft_block_regularization": false
+  },
+  "evidence": {
+    "summary": "lorenz96_highdim_confirmation_summary.json",
+    "summary_sha256": "5cd10180b8d0c2e4c98613faa1ed126fd01d6e9322e102d91c628ad1682c8409",
+    "seed_rows": "lorenz96_highdim_confirmation_seed_rows.csv",
+    "seed_rows_sha256": "5d871512ea39bce159e525f9da195dabbbb7f845f386e8e015564b8ed67d4b16",
+    "raw_metrics_sha256": "0ef06780449e9c465cbeb560773d9eb9e378a063858339d786a9cc0cd2270bfc"
+  },
+  "statistics": {
+    "bootstrap_resamples": 100000,
+    "bootstrap_unit": "model seed",
+    "paired_test": "exact two-sided sign-flip",
+    "multiplicity": "Holm over physical times 2.5 and 5.0",
+    "normality_assumption": "none",
+    "classical_baseline_scope": "conditional on one fixed dataset and deterministic baseline fit"
+  },
+  "compute": {
+    "slurm_job": 10152506,
+    "gpu": "Quadro RTX 8000",
+    "accounted_gpu_utilization_percent": 81,
+    "sparse_training_phase_gpu_utilization_percent": "approximately 94-96"
+  }
+}
