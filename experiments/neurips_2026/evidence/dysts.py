@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import json
 import math
 from collections import OrderedDict
@@ -22,15 +21,12 @@ from experiments.neurips_2026.evidence.statistics import (
     interquartile_mean as iqm,
     rowwise_interquartile_mean as _row_iqm,
 )
-from experiments.neurips_2026.evidence.dysts_rendering import render_dysts_figure
 from experiments.neurips_2026.paths import (
     PAPER_DATA_DIR,
-    PAPER_EVIDENCE_DIR,
     PAPER_TABLE_DIR,
 )
 
 
-FIG_DIR = PAPER_EVIDENCE_DIR
 TABLE_DIR = PAPER_TABLE_DIR
 DEFAULT_INPUT = PAPER_DATA_DIR / "dysts_forecasting_rows.csv"
 DEFAULT_PROVENANCE = PAPER_DATA_DIR / "main_paper_evidence_provenance.json"
@@ -38,6 +34,11 @@ HORIZONS = (100, 500, 1000, 1500, 2000, 3000, 4000, 5000)
 BOOTSTRAP_REPS = 10_000
 BOOTSTRAP_SEED = 20_260_501
 BASELINE_ROOT = "dense_mlp_tanh"
+# Dysts aggregation combines NumPy/SciPy reductions whose final few bits can vary
+# with the node's BLAS implementation.  Thirteen significant decimal digits
+# retain substantially more precision than any paper display while preventing
+# those scientifically immaterial bits from changing frozen artifact bytes.
+CANONICAL_CSV_FLOAT_FORMAT = "%.13g"
 METHODS = OrderedDict(
     [
         ("lista", (DYSTS_MODEL_DISPLAY_NAMES["lista"], "#7B3294", "-")),
@@ -57,10 +58,7 @@ METHODS = OrderedDict(
 OUTPUT_PATHS = (
     TABLE_DIR / "dysts_dt30_iqm_summary.csv",
     TABLE_DIR / "dysts_dt30_aggregate_tests_vs_dense.csv",
-    TABLE_DIR / "dysts_dt30_iqm_over_iqm_summary.csv",
-    TABLE_DIR / "table_dysts_dt30_iqm_over_iqm.tex",
     TABLE_DIR / "table_dysts_dt30_ratio_to_dense.tex",
-    FIG_DIR / "fig_dysts_dt30_iqm_over_iqm_horizon.pdf",
 )
 
 
@@ -231,8 +229,6 @@ def summarize_rows(
                     "horizon": horizon,
                     "n_systems": len(system_iqms),
                     "cross_system_mean": system_mean,
-                    "cross_system_iqm": system_mean,
-                    "cross_system_iqm_legacy": iqm(system_iqms),
                     "cross_system_log10_iqm_mean": log_mean,
                     "cross_system_log_iqm_geomean": 10.0**log_mean,
                     "system_q25": float(np.percentile(system_iqms, 25)),
@@ -281,13 +277,11 @@ def aggregate_tests(per_system: pd.DataFrame) -> pd.DataFrame:
                     "horizon": int(horizon),
                     "n_systems": len(values),
                     "systems_with_ratio_lt_1": n_better,
-                    "ratio_iqm": float(np.mean(values)),
                     "ratio_median": float(np.median(values)),
                     "ratio_mean": float(np.mean(values)),
                     "ratio_sd_systems": float(np.std(values, ddof=1)),
                     "ratio_q25": float(np.percentile(values, 25)),
                     "ratio_q75": float(np.percentile(values, 75)),
-                    "log10_ratio_iqm": float(np.mean(log_values)),
                     "log10_ratio_median": float(np.median(log_values)),
                     "log10_ratio_mean": float(np.mean(log_values)),
                     "log10_ratio_sd_systems": float(np.std(log_values, ddof=1)),
@@ -324,63 +318,13 @@ def aggregate_tests(per_system: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def _tex_number(value: float) -> str:
-    absolute = abs(value)
-    if absolute == 0.0:
-        return "0"
-    if absolute >= 1000.0 or absolute < 1e-3:
-        exponent = math.floor(math.log10(absolute))
-        return rf"{value / 10.0**exponent:.2f}{{\times}}10^{{{exponent}}}"
-    decimals = max(2 - math.floor(math.log10(absolute)), 0)
-    return f"{value:.{decimals}f}"
-
-
-def robust_summary(summary: pd.DataFrame) -> pd.DataFrame:
-    result = summary[
-        [
-            "root_label",
-            "display",
-            "horizon",
-            "n_systems",
-            "cross_system_iqm_legacy",
-            "cross_system_mean",
-            "system_median",
-            "system_q25",
-            "system_q75",
-        ]
-    ].rename(
-        columns={"cross_system_iqm_legacy": "iqm_over_system_seed_iqms"}
-    )
-    return result
-
-
-def render_table(robust: pd.DataFrame) -> bytes:
-    best = {
-        horizon: robust[robust["horizon"] == horizon]
-        .sort_values("iqm_over_system_seed_iqms")
-        .iloc[0]["root_label"]
-        for horizon in HORIZONS
-    }
-    lines = [
-        r"\begin{tabular}{@{}l " + " ".join(["r"] * len(HORIZONS)) + r"@{}}",
-        r"\toprule",
-        "Model & " + " & ".join(f"H{h}" for h in HORIZONS) + r" \\",
-        r"\midrule",
-    ]
-    for root_label, (display, _, _) in METHODS.items():
-        cells = []
-        for horizon in HORIZONS:
-            row = robust[
-                (robust["root_label"] == root_label)
-                & (robust["horizon"] == horizon)
-            ].iloc[0]
-            value = _tex_number(float(row["iqm_over_system_seed_iqms"]))
-            if root_label == best[horizon]:
-                value = rf"\mathbf{{{value}}}"
-            cells.append(rf"${value}$")
-        lines.append(f"{display} & " + " & ".join(cells) + r" \\")
-    lines.extend([r"\bottomrule", r"\end{tabular}"])
-    return ("\n".join(lines) + "\n").encode()
+def _canonical_csv_bytes(frame: pd.DataFrame) -> bytes:
+    """Serialize numeric evidence without platform-dependent last-bit noise."""
+    return frame.to_csv(
+        index=False,
+        lineterminator="\n",
+        float_format=CANONICAL_CSV_FLOAT_FORMAT,
+    ).encode()
 
 
 def render_ratio_table(tests: pd.DataFrame) -> bytes:
@@ -415,19 +359,12 @@ def build_outputs(
     rows = load_rows(input_path)
     per_system, summary = summarize_rows(rows, bootstrap_reps=bootstrap_reps)
     tests = aggregate_tests(per_system)
-    summary_bytes = summary.to_csv(index=False, lineterminator="\n").encode()
-    tests_bytes = tests.to_csv(index=False, lineterminator="\n").encode()
-    # Preserve the appendix builder's historical two-stage CSV rounding.
-    round_tripped = pd.read_csv(io.BytesIO(summary_bytes))
-    robust = robust_summary(round_tripped)
-    robust_bytes = robust.to_csv(index=False, lineterminator="\n").encode()
+    summary_bytes = _canonical_csv_bytes(summary)
+    tests_bytes = _canonical_csv_bytes(tests)
     contents = (
         summary_bytes,
         tests_bytes,
-        robust_bytes,
-        render_table(robust),
         render_ratio_table(tests),
-        render_dysts_figure(robust, METHODS, HORIZONS),
     )
     return dict(zip(OUTPUT_PATHS, contents))
 

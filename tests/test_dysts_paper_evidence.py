@@ -8,22 +8,21 @@ import pytest
 
 from experiments.neurips_2026.evidence.statistics import rowwise_interquartile_mean
 from experiments.neurips_2026.evidence.dysts import (
+    CANONICAL_CSV_FLOAT_FORMAT,
     DEFAULT_INPUT,
     DEFAULT_PROVENANCE,
     HORIZONS,
     METHODS,
     TABLE_DIR,
+    _canonical_csv_bytes,
     aggregate_tests,
     iqm,
     load_rows,
     render_ratio_table,
-    render_table,
-    robust_summary,
     summarize_rows,
     verify_provenance,
     write_or_check,
 )
-from experiments.neurips_2026.evidence.dysts_rendering import render_dysts_figure
 
 
 def _synthetic_rows() -> pd.DataFrame:
@@ -70,7 +69,6 @@ def test_summary_and_tests_keep_two_stage_aggregation_semantics() -> None:
         & (summary["horizon"] == 100)
     ].iloc[0]
     assert dense_h100["cross_system_mean"] == 3.75
-    assert dense_h100["cross_system_iqm_legacy"] == 3.75
     assert dense_h100["full_finite_mean"] == 1.0
 
     tests = aggregate_tests(per_system)
@@ -80,19 +78,41 @@ def test_summary_and_tests_keep_two_stage_aggregation_semantics() -> None:
     assert np.all(tests["p_system_sign_holm_all"] >= tests["p_system_sign_raw"])
 
 
-def test_active_appendix_display_is_deterministic(tmp_path) -> None:
-    _, summary = summarize_rows(_synthetic_rows(), bootstrap_reps=16)
-    robust = robust_summary(summary)
-    table = render_table(robust)
-    first_pdf = render_dysts_figure(robust, METHODS, HORIZONS)
-    second_pdf = render_dysts_figure(robust, METHODS, HORIZONS)
+def test_active_appendix_ratio_display_is_deterministic(tmp_path) -> None:
+    per_system, _ = summarize_rows(_synthetic_rows(), bootstrap_reps=16)
+    table = render_ratio_table(aggregate_tests(per_system))
     assert table.startswith(b"\\begin{tabular}")
-    assert first_pdf.startswith(b"%PDF")
-    assert first_pdf == second_pdf
 
-    outputs = {tmp_path / "table.tex": table, tmp_path / "figure.pdf": first_pdf}
+    outputs = {tmp_path / "table.tex": table}
     write_or_check(outputs, check=False)
     write_or_check(outputs, check=True)
+
+
+def test_csv_serialization_removes_cross_node_last_bit_noise() -> None:
+    assert CANONICAL_CSV_FLOAT_FORMAT == "%.13g"
+    node_a = pd.DataFrame(
+        {
+            "statistic": [
+                0.040440290615858326,
+                -1.68571025229813,
+                5.862704789515706,
+                0.0003866910635644545,
+                -0.0029807043526531643,
+            ]
+        }
+    )
+    node_b = pd.DataFrame(
+        {
+            "statistic": [
+                0.040440290615858425,
+                -1.6857102522981298,
+                5.8627047895157025,
+                0.0003866910635644555,
+                -0.00298070435265314,
+            ]
+        }
+    )
+    assert _canonical_csv_bytes(node_a) == _canonical_csv_bytes(node_b)
 
 
 def test_iqm_matches_scipy_trim_mean_convention() -> None:

@@ -109,6 +109,7 @@ The stable command surface is `uv run skae-paper <group> <operation>`. Use
 | Collect Dysts forecasting | `uv run skae-paper collect dysts ...` |
 | Reduce/merge support alignment | `uv run skae-paper alignment reduce ...`, then `alignment merge ...` |
 | Render headline evidence | `uv run skae-paper build headline` |
+| Render forecasting horizon trends | `uv run skae-paper build forecasting-horizons` |
 | Render high-dimensional evidence | `uv run skae-paper build high-dimensional` |
 | Render controlled appendix | `uv run skae-paper build controlled` |
 | Render Dysts appendix | `uv run skae-paper build dysts` |

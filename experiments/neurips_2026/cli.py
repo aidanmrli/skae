@@ -70,6 +70,10 @@ COMMANDS = {
     ("build", "headline"): "experiments.neurips_2026.evidence.headline_tables",
     (
         "build",
+        "forecasting-horizons",
+    ): "experiments.neurips_2026.evidence.forecasting_horizons",
+    (
+        "build",
         "high-dimensional",
     ): "experiments.neurips_2026.evidence.highdimensional",
     ("build", "controlled"): "experiments.neurips_2026.evidence.controlled_tables",
@@ -91,6 +95,7 @@ CHECKS = (
         ("--compact-existing-support", "--check"),
     ),
     ("experiments.neurips_2026.evidence.headline_tables", ("--check",)),
+    ("experiments.neurips_2026.evidence.forecasting_horizons", ("--check",)),
     ("experiments.neurips_2026.evidence.highdimensional", ("--check",)),
     ("experiments.neurips_2026.evidence.controlled_tables", ("--check",)),
     ("experiments.neurips_2026.evidence.dysts", ("--check",)),

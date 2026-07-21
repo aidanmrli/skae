@@ -3,21 +3,7 @@
 
 The collected experiment artifacts contain per-(system, seed) Dysts MSE rows. \Cref{tab:dysts_long} reports arithmetic means across systems after first applying \texttt{scipy.stats.trim\_mean} with proportion \(0.25\) to the \(15\) seeds within each system, i.e., averaging the central nine after discarding three values from each tail. We call this seed summary IQM. The soft-block LISTA row is an architecture-specific ablation: it uses two LISTA loops and a sign-split output rather than the one-loop/ReLU recipe of LISTA and LISTA--BD, though all rows use the same \(100{,}000\)-step budget. Its source packet contained \(12\) systems and the paper uses the fixed retained \(10\)-system subset. LISTA--SB improves on Dense MLP in aggregate but has no corrected Dysts significance marker.
 
-As a robustness check on the cross-system aggregation, \cref{tab:dysts_iqm_over_iqm,fig:dysts_iqm_over_iqm} replace the final arithmetic mean across systems with the same \(0.25\)-per-tail trimmed mean across the \(10\) retained systems, averaging the central six after dropping two systems from each tail. This IQM-over-IQM view asks for the typical retained-system performance and trims both unusually easy and unusually hard chaotic-flow systems. With the repaired block-diagonal Sparse MLP run, Sparse MLP-BD has the lowest MSE at every displayed horizon from \(H100\) through \(H5000\). This should be read as an aggregation-sensitivity result for the external forecasting benchmark, not as a replacement for the average-case Dysts table in the main text.
-
-\begin{table}[tbp]
-\centering
-\caption{Robust Dysts \(dt{\times}30\) forecasting aggregation. Each system first contributes the central-nine mean of \(15\) seeds; entries then average the central six of \(10\) retained systems. Lower is better; \textbf{bold} marks the best row in each horizon column.}
-\label{tab:dysts_iqm_over_iqm}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_dysts_dt30_iqm_over_iqm.tex}}
-\end{table}
-
-\begin{figure}[tbp]
-\centering
-\includegraphics[width=\linewidth]{neurips_paper_2026/fig_dysts_dt30_iqm_over_iqm_horizon.pdf}
-\caption{Dysts \(dt{\times}30\) IQM-over-IQM horizon sensitivity. Lines show IQM across retained systems after first summarizing seeds within each system by IQM. Shaded bands show the inter-system IQR of the per-system seed-IQM MSE values, not a confidence interval. With the repaired block-diagonal Sparse MLP run, Sparse MLP-BD is the best robust aggregate at every displayed horizon.}
-\label{fig:dysts_iqm_over_iqm}
-\end{figure}
+The horizon display in \cref{fig:forecasting_horizon_curves} uses the same paper-facing aggregation and retains every one of the ten systems with equal weight after the within-system seed summary. We do not trim systems: doing so would remove two unusually easy and two unusually hard systems separately for each method and horizon, potentially compare different subsets, and hide systematic failure cases. The shaded intervals instead keep the system roster fixed and resample seeds within every system.
 
 \begin{table}[tbp]
 \centering

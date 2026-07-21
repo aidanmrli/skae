@@ -62,6 +62,26 @@
       ]
     },
     {
+      "id": "forecasting_horizon_figure",
+      "build_tool": "experiments.neurips_2026.evidence.forecasting_horizons",
+      "check_command_inside_allocation": "uv run skae-paper build forecasting-horizons --check",
+      "inputs": [
+        "_data/controlled_forecasting_rows.csv",
+        "_data/dysts_forecasting_rows.csv"
+      ],
+      "provenance": "_data/main_paper_evidence_provenance.json",
+      "outputs": [
+        "_tables/figure2_forecasting_horizon_summary.csv",
+        "fig_fixed17_horizon_curves.pdf",
+        "fig_dysts_dt30_forecasting_performance.pdf",
+        "fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf",
+        "fig_forecasting_horizon_trends.pdf"
+      ],
+      "aggregation_contract": "For every method and horizon, summarize finite seeds within each retained system by scipy.stats.trim_mean(proportiontocut=0.25), then take the arithmetic mean across all 15 controlled systems or all 10 Dysts systems. No system is trimmed or excluded. Bands keep systems fixed, resample seeds within every system, recompute system seed-IQMs, average system-wise log-relative deviations, and anchor the 95% interval to the displayed all-system arithmetic mean.",
+      "display_variants": "fig_dysts_dt30_forecasting_performance.pdf contains all six paper rows. fig_dysts_dt30_forecasting_performance_no_lista_sb.pdf omits LISTA-SB and retains the other five rows. The two files use identical Dysts summary values, horizons, aggregation, uncertainty bands, and rendering style.",
+      "limitation": "The bands quantify finite-seed uncertainty for an equally weighted average system; they are not intervals over systems and do not show cross-system heterogeneity. Best-periodic cadence is selected separately on the reported evaluation trajectories, so the curves are optimistic rather than validation-frozen deployment estimates."
+    },
+    {
       "id": "controlled_per_system_tests",
       "build_tool": "experiments.neurips_2026.evidence.controlled_tables",
       "check_command_inside_allocation": "uv run skae-paper build controlled --check",
@@ -85,14 +105,11 @@
         "_data/dysts_forecasting_rows.csv"
       ],
       "provenance": "_data/main_paper_evidence_provenance.json",
-      "aggregation_contract": "Dysts per-system seed summaries and bootstrap row summaries use scipy.stats.trim_mean(proportiontocut=0.25); robust IQM-over-systems summaries use the same convention. Ordinary inter-system q25/q75 ranges remain NumPy percentiles.",
+      "aggregation_contract": "Dysts per-system seed summaries use scipy.stats.trim_mean(proportiontocut=0.25), followed by an arithmetic mean across all 10 systems. Scale-normalized diagnostics average all 10 per-system ratios to Dense MLP. No cross-system trimming is used.",
       "outputs": [
         "_tables/dysts_dt30_iqm_summary.csv",
         "_tables/dysts_dt30_aggregate_tests_vs_dense.csv",
-        "_tables/dysts_dt30_iqm_over_iqm_summary.csv",
-        "_tables/table_dysts_dt30_iqm_over_iqm.tex",
-        "_tables/table_dysts_dt30_ratio_to_dense.tex",
-        "fig_dysts_dt30_iqm_over_iqm_horizon.pdf"
+        "_tables/table_dysts_dt30_ratio_to_dense.tex"
       ]
     },
     {
