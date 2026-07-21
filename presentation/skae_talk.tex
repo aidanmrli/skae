@@ -109,8 +109,8 @@
 \newcommand{\statement}[1]{\vfill\begin{center}\Large\color{skaeink}#1\end{center}\vfill}
 % spaced, larger single-column bullets
 \newenvironment{points}{\large\begin{itemize}\setlength{\itemsep}{0.85em}}{\end{itemize}}
-% one-line figure caption
-\newcommand{\figcap}[1]{\vspace{0.3em}{\small\color{skaegray}#1}}
+% figure caption: centered, small gray, pulled slightly closer to the figure above
+\newcommand{\figcap}[1]{\vspace{-0.35em}\par{\small\color{skaegray}\centering #1\par}}
 
 % ---- EDIT HERE: author list (presenter underlined) ----
 \newcommand{\presenter}{Aidan Li, Uday Kiran Reddy Tadipatri, Mahan Fathi, Sarath Chandar, Ross Goroshin}
@@ -167,15 +167,14 @@
 \begin{frame}{Motivation for linear coordinates}
   \vfill
   \begin{points}
-    \item Linear models make prediction, estimation, and control easier
-    \item A suitable change of coordinates can substantially simplify analysis
+    \item Linear models make prediction, estimation, and control easier.
+    \item A suitable change of coordinates can substantially simplify analysis.
   \end{points}
   \vfill
 \end{frame}
 
 %--- theory + catch ---
 \begin{frame}{Existence results for linearizing coordinates}
-  \vfill
   \begin{points}
     \item Local linearization near hyperbolic fixed points (Hartman--Grobman)
     \item Koopman eigenfunctions linearize on a basin of attraction...
@@ -199,7 +198,7 @@
 %--- koopman operator ---
 \begin{frame}{Koopman operator theory}
   \begin{center}
-  Lift the nonlinear map to a \emphp{linear} operator on \emph{observables} $g:\mathcal{X}\to\R$:
+  The \emphp{Koopman operator} $\mathcal{K}$ acts \emph{linearly} on scalar observables $g:\mathcal{X}\to\R$:
   \[
     \Large (\mathcal{K}g)(x)=g\big(F_{\Delta t}(x)\big)
   \]
@@ -218,7 +217,7 @@
   \end{center}
   \vspace{0.2em}
   \begin{center}\small\color{skaegray}
-  Finite approximation: find $\Phi$ (lift) and $K$ with $\Phi(F_{\Delta t}(x))\approx K\,\Phi(x)$, keeping enough to reconstruct $x$.
+  Stack $d_z$ such observables into a vector lift $\Phi=(g_1,\dots,g_{d_z})$; a finite approximation seeks a matrix $K$ with $\Phi(F_{\Delta t}(x))\approx K\,\Phi(x)$, keeping enough to reconstruct $x$.
   \end{center}
 \end{frame}
 
@@ -237,7 +236,7 @@
 %--- crucial constraint ---
 \begin{frame}{A key modeling constraint}
   \statement{The same transition matrix $K$ is applied at \emph{every} rollout step.\\[0.8em]
-  State-dependent structure required for prediction must therefore reside in the learned representation \emphp{$z_k$}, not in a supplied regime label.}
+  Any state-dependent structure required for prediction must reside in the learned representation $z_k$.}
 \end{frame}
 
 %============================================================
@@ -253,37 +252,37 @@
   \begin{center}
     \includegraphics[height=0.62\textheight,keepaspectratio]{figs/duffing_basins.png}
   \end{center}
-  \figcap{Two wells, two shaded basins: where a trajectory \emph{starts} decides which attractor it spirals into.}
 \end{frame}
 
-%--- phase portraits (figure, unibody) ---
-\begin{frame}{Coexisting attractors partition state space}
-  \begin{center}
-    \includegraphics[width=0.96\linewidth]{figs/fig1_top_supportbasin.png}
-  \end{center}
-  \figcap{Procedurally generated 2-D multibasin flows. Gray streamlines = true field; colors = distinct basins.}
-\end{frame}
+%--- (removed) "Coexisting attractors partition state space": redundant with the
+%    Duffing basins slide above, and the same fig1_top panels reappear in
+%    "Result 3: unsupervised basin recovery". Restore this frame if you want the
+%    procedural benchmark shown up front in the Problem section.
 
 %--- the wall ---
-\begin{frame}{An impossibility result}
+\begin{frame}{No single global linearization}
   \vfill
-  \begin{center}
+  \makebox[\linewidth][c]{%
   \begin{beamercolorbox}[wd=0.92\textwidth,sep=14pt,rounded=true]{block title alerted}
     \centering\large\bfseries
     Multibasin systems \emph{cannot generally} admit a single\\
     finite-dimensional \emph{global} linearization with a\\
     continuous encoder--decoder pair.
-  \end{beamercolorbox}
+  \end{beamercolorbox}%
+  }
+  \vspace{0.7em}
+  
+  \begin{center}\small\color{skaegray}
+  Lan \& Mezi\'c 2013 \textperiodcentered\ Brunton et al.\ 2016 \textperiodcentered\ Fathi et al.\ 2024.
+  \textperiodcentered\ Pan \& Duraisamy 2024 \textperiodcentered\ Liu et al.\ 2025.\\
   \end{center}
-  \vspace{0.5em}
-  \begin{center}\small\color{skaegray} (Established in theory; confirmed empirically.)\end{center}
   \vfill
 \end{frame}
 
 %--- reframe ---
 \begin{frame}{Reframing the objective}
-  \statement{Rather than forcing all basins through a \emph{single} global linearization,\\[0.6em]
-  \emphp{we seek distinct \emph{local} linearizations.}}
+  \statement{Don't force all basins through a \emph{single} global linearization.\\[0.6em]
+  \emphp{Find distinct \emph{local} linearizations.}}
 \end{frame}
 
 %============================================================
@@ -304,26 +303,39 @@
 
 %--- sparse gives both ---
 \begin{frame}{A sparse code encodes both quantities}
-  \vspace{0.4em}
-  \begin{center}\large
-  the \emphp{support} (active coordinates) $\;\Rightarrow\;$ \emph{which} regime\\[0.5em]
+  \vspace{0.2em}
+  \begin{center}\normalsize
+  the \emphp{support} (which coordinates are active) $\;\Rightarrow\;$ \emph{which} regime\\[0.2em]
   the \empht{nonzero values} $\;\Rightarrow\;$ local Koopman coordinates
   \end{center}
-  \vspace{0.6em}
+  \vspace{0.2em}
   \begin{center}
-  \begin{tikzpicture}[font=\scriptsize]
-    \fill[skaelav] (-2.1,-2.0) rectangle (2.1,2.0);
-    \fill[skaepurple!35] (-2.1,0) -- (2.1,1.2) -- (2.1,2.0) -- (-2.1,2.0) -- cycle;
-    \fill[skaeteal!30]  (-2.1,-2.0) -- (2.1,-2.0) -- (2.1,-0.6) -- (-2.1,-0.9) -- cycle;
-    \fill[skaeorange!30] (-2.1,-0.9) -- (2.1,-0.6) -- (2.1,1.2) -- (-2.1,0) -- cycle;
-    \draw[skaepurple,very thick] (-2.1,0)--(2.1,1.2);
-    \draw[skaeorange,very thick] (-2.1,-0.9)--(2.1,-0.6);
-    \node[skaepurple] at (-1.1,1.6) {support $S_1$};
-    \node[skaeorange] at (1.1,0.35) {support $S_2$};
-    \node[skaeteal] at (-0.8,-1.6) {support $S_3$};
+  \begin{tikzpicture}[font=\scriptsize,>=Stealth,scale=0.95,
+      cell/.style={draw=skaeink!60,minimum width=0.34cm,minimum height=0.34cm,inner sep=0}]
+    % ---- state space (left): three-region partition ----
+    \coordinate (C) at (-4.0,-0.15);
+    \fill[skaepurple!28] (C) -- (-5.5,1.6) -- (-2.5,1.6) -- cycle;
+    \fill[skaeteal!28]   (C) -- (-5.5,1.6) -- (-5.5,-1.6) -- (-4.0,-1.6) -- cycle;
+    \fill[skaeorange!28] (C) -- (-4.0,-1.6) -- (-2.5,-1.6) -- (-2.5,1.6) -- cycle;
+    \draw[skaeink!55] (-5.5,-1.6) rectangle (-2.5,1.6);
+    \draw[skaeink!35] (C)--(-5.5,1.6); \draw[skaeink!35] (C)--(-2.5,1.6); \draw[skaeink!35] (C)--(-4.0,-1.6);
+    \fill[skaepurple] (-4.0,0.85) circle (2.4pt);
+    \fill[skaeteal]   (-4.8,-0.65) circle (2.4pt);
+    \fill[skaeorange] (-3.2,-0.65) circle (2.4pt);
+    \node[skaeink] at (-4.0,-2.05) {state space};
+    % ---- encode arrow ----
+    \draw[->,skaeblue,very thick] (-2.3,0) -- (0.35,0) node[midway,above,black]{encode $E_\theta$};
+    % ---- three sparse code vectors (right), color-matched to each region ----
+    \foreach \y/\c in {0.9/skaepurple,0.54/skaepurple,0.18/white,-0.18/white,-0.54/white,-0.9/white}{\node[cell,fill=\c] at (1.2,\y){};}
+    \node[skaepurple] at (1.2,-1.35) {$S_1$};
+    \foreach \y/\c in {0.9/white,0.54/white,0.18/skaeteal,-0.18/skaeteal,-0.54/white,-0.9/white}{\node[cell,fill=\c] at (2.3,\y){};}
+    \node[skaeteal] at (2.3,-1.35) {$S_2$};
+    \foreach \y/\c in {0.9/white,0.54/white,0.18/white,-0.18/white,-0.54/skaeorange,-0.9/skaeorange}{\node[cell,fill=\c] at (3.4,\y){};}
+    \node[skaeorange] at (3.4,-1.35) {$S_3$};
+    \node[skaeink] at (2.3,1.4) {sparse codes $z_k$};
   \end{tikzpicture}
   \end{center}
-  \figcap{Different regions activate different latent supports: a union-of-subspaces structure.}
+  \figcap{Each region of state space activates its own \emph{support}: the colored (nonzero) cells; the code is zero elsewhere. Nearby states share a support, giving a union-of-subspaces structure.}
 \end{frame}
 
 %--- sparse coding ---
@@ -343,13 +355,16 @@
 
 %--- LISTA ---
 \begin{frame}{Learned ISTA (LISTA): sparse coding as an encoder}
-  \begin{center}
-  Unroll the iterative solver into a fixed-depth network:\quad $z=E_\theta(x)$
+  \begin{center}\normalsize
+  Unroll the solver into a fixed-depth network: from a dense pre-code $c=f_\theta(x)$, apply $Q$ learned shrinkage steps.
   \end{center}
-  \vspace{0.3em}
+  \vspace{0.2em}
   \[
-    u^{(0)}=\mathrm{shrink}(c,\tau),\qquad u^{(q+1)}=\mathrm{shrink}\!\big(S\,u^{(q)}+c,\tau\big)
+    u^{(0)}=\mathrm{shrink}(c,\tau),\ \ u^{(q+1)}=\mathrm{shrink}\!\big(S\,u^{(q)}+c,\tau\big),\ \ z=u^{(Q)}=E_\theta(x)
   \]
+  \begin{center}\footnotesize\color{skaegray}
+  the $u^{(q)}$ are the shrinkage iterates; the sparse code is the final iterate $z=u^{(Q)}$.
+  \end{center}
   \begin{center}
   \begin{tikzpicture}[font=\scriptsize]
     \draw[->,skaegray] (-2.4,0)--(2.4,0) node[right,black]{$a$};
@@ -419,55 +434,15 @@
   \vfill
 \end{frame}
 
-%--- transition families (visual triptych) ---
-\begin{frame}{Three structures for the transition $K$}
-  \vspace{0.6em}
-  \begin{columns}[T]
-    \begin{column}{0.33\textwidth}\centering
-      \textbf{Dense}\\[0.5em]
-      \begin{tikzpicture}[scale=0.5]
-        \fill[skaeblue!25] (0,0) rectangle (4,4);
-        \draw[skaeink] (0,0) rectangle (4,4);
-      \end{tikzpicture}\\[0.4em]
-      {\footnotesize all coordinates mix}
-    \end{column}
-    \begin{column}{0.33\textwidth}\centering
-      \textbf{Block-diagonal}\\[0.5em]
-      \begin{tikzpicture}[scale=0.5]
-        \draw[skaeink] (0,0) rectangle (4,4);
-        \fill[skaeteal!35] (0,3) rectangle (1,4);
-        \fill[skaeteal!35] (1,2) rectangle (2,3);
-        \fill[skaeteal!35] (2,1) rectangle (3,2);
-        \fill[skaeteal!35] (3,0) rectangle (4,1);
-      \end{tikzpicture}\\[0.4em]
-      {\footnotesize $M$ groups, no cross-talk}
-    \end{column}
-    \begin{column}{0.33\textwidth}\centering
-      \textbf{Soft-block}\\[0.5em]
-      \begin{tikzpicture}[scale=0.5]
-        \fill[skaeorange!12] (0,0) rectangle (4,4);
-        \fill[skaeorange!45] (0,3) rectangle (1,4);
-        \fill[skaeorange!45] (1,2) rectangle (2,3);
-        \fill[skaeorange!45] (2,1) rectangle (3,2);
-        \fill[skaeorange!45] (3,0) rectangle (4,1);
-        \draw[skaeink] (0,0) rectangle (4,4);
-      \end{tikzpicture}\\[0.4em]
-      {\footnotesize off-block entries penalized}
-    \end{column}
-  \end{columns}
-  \vfill
-  \begin{center}\small\color{skaegray}
-  Varied \emph{independently} of the encoder, to probe how block structure interacts with learned supports.
-  \end{center}
-\end{frame}
+%--- ("Three structures for the transition K" moved to backup) ---
 
 %--- encoders compared ---
 \begin{frame}{Encoders compared}
   \vfill
   \begin{points}
-    \item \emphp{LISTA:} sparse \emph{by construction} (thresholding gives exact zeros)
+    \item \emphp{LISTA:} sparse by construction (thresholding gives exact zeros)
     \item \empht{Sparse MLP:} induced sparsity (ReLU with an $\ell_1$ penalty)
-    \item \emphc{Dense MLP:} no sparsity mechanism \hfill {\normalsize\color{skaegray}(control baseline)}
+    \item \emphc{Dense MLP:} no sparsity mechanism (control baseline)
   \end{points}
   \vfill
 \end{frame}
@@ -493,60 +468,28 @@
   \begin{center}\small\color{skaegray} No basin labels enter training.\end{center}
 \end{frame}
 
-%--- support object 1 ---
-\begin{frame}{Support objects (1): the exact support}
-  \begin{center}
-  Computed \emph{after} training. A Boolean active-coordinate mask:
+%--- support objects (compressed: exact support + families) ---
+\begin{frame}{Support objects}
+  \vfill
+  \begin{center}\normalsize
+  \emphp{Exact support:}\ \ $S_{\mathrm{abs}}(x)=\{\,i:|z_i|>10^{-3}\,\}$,\ \ the set of active coordinates.
   \end{center}
-  \vspace{0.5em}
-  \[
-    \Large m_{\mathrm{abs},i}(x)=\mathbf{1}\{|z_i|>10^{-3}\},\qquad
-    S_{\mathrm{abs}}=\{i:m_i=1\}
-  \]
-  \vspace{0.6em}
-  \begin{center}\large\color{skaegray}
-  Used to test whether the active coordinates are functionally \emph{used}.
-  \end{center}
-\end{frame}
-
-%--- support object 2 ---
-\begin{frame}{Support objects (2): support families}
-  \begin{center}
-  Group nearby exact supports by \emph{Jaccard overlap} $J(m,r)\ge 0.5$.
+  \vspace{0.7em}
+  \begin{center}\normalsize
+  \empht{Support families} group nearby exact supports by \emph{Jaccard overlap}\\ (intersection over union), merging when $J\ge 0.5$:
   \end{center}
   \vspace{0.2em}
-  \begin{center}\small\color{skaegray}
-  Jaccard overlap is the \emph{intersection over union} of the two active-coordinate sets:\\[0.3em]
-  $\displaystyle J(m,r)=\frac{|\,\mathrm{active}(m)\cap\mathrm{active}(r)\,|}{|\,\mathrm{active}(m)\cup\mathrm{active}(r)\,|}$
-  \end{center}
+  \[
+    J(m,r)=\frac{|\,\mathrm{active}(m)\cap\mathrm{active}(r)\,|}{|\,\mathrm{active}(m)\cup\mathrm{active}(r)\,|}
+  \]
   \vspace{0.3em}
-  \begin{center}
-  \begin{tikzpicture}[font=\small]
-    \node[skaeink] at (-0.5,2.1) {exact supports};
-    \foreach \y/\f in {1.6/skaepurple, 1.2/skaepurple, 0.8/skaeorange, 0.4/skaeorange}{
-      \node[draw=skaeink!60,minimum size=0.32cm,fill=\f] at (-0.5,\y){};
-    }
-    \draw[->,skaeteal,very thick] (0.6,1.0)--(2.4,1.0) node[midway,above]{$J\ge 0.5$};
-    \node[draw=skaepurple,thick,rounded corners,fill=skaelav,minimum width=1.7cm,minimum height=1.3cm] at (3.6,1.25){$F_1$};
-    \node[draw=skaeorange,thick,rounded corners,fill=skaeorange!12,minimum width=1.7cm,minimum height=0.7cm] at (3.6,-0.45){$F_2$};
-  \end{tikzpicture}
+  \begin{center}\small\color{skaegray}
+  We use these for interventional studies on whether the coordinates are used and how support families track basins.
   \end{center}
-  \figcap{Robust, basin-scale objects, with less fragmentation than raw exact supports.}
+  \vfill
 \end{frame}
 
-%--- two diagnostics ---
-\begin{frame}{Two evaluation diagnostics}
-  \vfill
-  \begin{points}
-    \item $H(B\mid F_{\mathrm{abs}})$: uncertainty about the basin given the family
-    \item[] \hspace{1.4em}{\normalsize\color{skaegray} \emphp{lower is better}}
-    \item $|F_{\mathrm{abs}}|$: number of families
-    \item[] \hspace{1.4em}{\normalsize\color{skaegray} compare to the number of basins}
-  \end{points}
-  \vfill
-  \begin{center}\small\color{skaegray} Basin labels are used \emph{only} here, after training, never to train or select the model.\end{center}
-  \vfill
-\end{frame}
+%--- ("Two evaluation diagnostics" moved to backup) ---
 
 %--- re-encoding ---
 \begin{frame}{Periodic re-encoding refreshes the support}
@@ -570,8 +513,8 @@
   \begin{points}
     \item \textbf{15 procedural 2-D multibasin systems}
     \item[] \hspace{1em}{\normalsize\color{skaegray} Gaussian wells + rotational drift; \emph{known} basin geometry (eval only)}
-    \item \textbf{10 chaotic Dysts flows} ($dt\times 30$)
-    \item[] \hspace{1em}{\normalsize\color{skaegray} Chua, Shimizu--Morioka, and more: a long-horizon stress test}
+    \item \textbf{10 chaotic Dysts flows}
+    \item[] \hspace{1em}{\normalsize\color{skaegray} Chua, Shimizu--Morioka, and more: more challenging flows}
   \end{points}
   \vfill
 \end{frame}
@@ -593,7 +536,7 @@
 \begin{frame}{Experimental questions}
   \vfill
   \begin{points}
-    \item[\textbf{1.}] Do sparse encoders \emph{forecast} better?
+    \item[\textbf{1.}] Do sparse encoders lead to better \emph{forecasting}?
     \item[\textbf{2.}] Are the supports \emph{functionally necessary}?
     \item[\textbf{3.}] Do support families \emph{align with basins}?
   \end{points}
@@ -603,9 +546,13 @@
 %--- R1 (a): trends ---
 \begin{frame}{Result 1: sparse encoders forecast better}
   \begin{center}
-    \includegraphics[width=0.9\linewidth]{figs/fig2_forecasting_full.png}
+    \makebox[\linewidth][c]{%
+      \includegraphics[width=0.475\linewidth,trim=0 0 336 0,clip]{figs/fig_forecasting_horizon_trends.pdf}%
+      \hspace{0.025\linewidth}%
+      \includegraphics[width=0.475\linewidth]{figs/fig2b_dysts_no_lista_sb.pdf}%
+    }
   \end{center}
-  \figcap{Held-out MSE, all horizons, both benchmarks. Sparse models improve on the dense baseline at \emph{every} horizon; at $H\!=\!1000$ the dense baseline incurs \emphc{17--27$\times$} higher error.}
+  \figcap{Sparse models improve on the dense baseline at \emph{every} horizon; at $H\!=\!1000$ the dense baseline incurs \emphc{17--27$\times$} higher error.}
 \end{frame}
 
 %--- R1 (b): dysts ---
@@ -613,7 +560,7 @@
   \begin{center}
     \includegraphics[width=0.94\linewidth]{figs/fig1_bottom_dysts.png}
   \end{center}
-  \figcap{The \emphc{dense MLP (red)} loses the Chua attractor; the \emphp{LISTA (blue)} forecast stays on the true manifold. \textbf{Sparsity in the encoding is necessary for accurate long-horizon forecasts.}}
+  \figcap{The \emphc{dense MLP (red)} forecasting is much qualitatively worse than the \emphp{LISTA (blue)} forecast. \textbf{Sparsity improves long-horizon forecasts.}}
 \end{frame}
 
 %--- R2 (a): drop ---
@@ -621,11 +568,11 @@
   \begin{center}\normalsize
   Corrupt only the \emph{initial active set}, keep the values fixed, then forecast.
   \end{center}
-  \vspace{0.2em}
+  \vspace{0.4em}
   \begin{center}
-    \includegraphics[width=0.58\linewidth,height=0.52\textheight,keepaspectratio]{figs/fig3a_drop.png}
+    \includegraphics[width=0.96\linewidth]{figs/fig3_interventions_full.png}
   \end{center}
-  \figcap{Zeroing the top-$k$ active coefficients sharply increases error even at short horizons; random reassignment to inactive coordinates is substantially more damaging.}
+  \figcap{Zeroing the top-$k$ active coefficients sharply increases error even at short horizons (left); random reassignment to inactive coordinates is substantially more damaging (right).}
 \end{frame}
 
 %--- R2 (b): trajectory ---
@@ -633,13 +580,13 @@
   \begin{center}
     \includegraphics[width=0.46\linewidth,height=0.62\textheight,keepaspectratio]{figs/fig4a_trajectory.png}
   \end{center}
-  \figcap{Randomly reassigning the active coordinates (red) drives trajectories away from the true dynamics; standard rollouts (black) remain accurate. \textbf{The active coordinates are functionally necessary, not merely correlated with the basin.}}
+  \figcap{Randomly reassigning the active coordinates (red) drives trajectories away from the true dynamics; standard rollouts (black) remain accurate.}
 \end{frame}
 
 %--- R3 (a): entropy ---
 \begin{frame}{Result 3: support families identify the basin}
   \begin{center}\normalsize
-  On states \emph{deep inside basins}, how much does a family reveal about the withheld label? \quad $H(B\mid F_{\mathrm{abs}})$, lower is better.
+  How much does a support family reveal about the withheld label?
   \end{center}
   \vspace{0.1em}
   \begin{center}
@@ -653,7 +600,7 @@
   \begin{center}
     \includegraphics[width=0.94\linewidth]{figs/fig1_top_supportbasin.png}
   \end{center}
-  \figcap{LISTA families (mapped post hoc to their dominant basin) partition the flows; colored = support/basin \emph{matches}. LISTA exposes $\approx$\,4.0 families vs.\ the benchmark mean/median 4.20/4; \emphc{dense MLP} collapses to 1. \textbf{No basin labels are used during training.}}
+  \figcap{LISTA support families partition the flows; coloured = support/basin \emph{matches}. LISTA exposes $\approx$\,4.0 families vs.\ the benchmark mean/median 4.20/4; \emphc{dense MLP} collapses to 1. No basin labels are used during training.}
 \end{frame}
 
 %============================================================
@@ -676,19 +623,19 @@
   \emphp{a simple object you can inspect after training.}}
 \end{frame}
 
-%--- limitations ---
-\begin{frame}{Limitations}
-  \vfill
-  \begin{points}
-    \item Interpretability shown where basin geometry is \emph{known}
-    \item Near separatrices, supports fragment; read them as basin-\emph{interior} regime variables
-    \item Deterministic benchmarks: no noise, partial observability, or control inputs yet
-  \end{points}
-  \vfill
-\end{frame}
+% %--- limitations ---
+% \begin{frame}{Limitations}
+%   \vfill
+%   \begin{points}
+%     \item Interpretability shown where basin geometry is \emph{known}
+%     \item Near separatrices, supports fragment; read them as basin-\emph{interior} regime variables
+%     \item Deterministic benchmarks: no noise, partial observability, or control inputs yet
+%   \end{points}
+%   \vfill
+% \end{frame}
 
 %--- future work (single slide) ---
-\begin{frame}{Future work: toward structured world models}
+\begin{frame}{(WIP) Future work: toward structured world models}
   \begin{center}\normalsize
   World models (Dreamer, V-JEPA~2, Genie) predict in \emph{latent space}, but their latent dynamics are largely \emph{unstructured}.
   \end{center}
@@ -704,23 +651,20 @@
   \end{center}
 \end{frame}
 
-%--- conclusion: contributions ---
-\begin{frame}{Summary of contributions}
-  \vfill
-  \begin{points}
-    \item[\emphc{(i)}] \textbf{Forecasting:} SKAEs outperform dense-latent KAEs at all horizons (up to 17--27$\times$)
-    \item[\emphp{(ii)}] \textbf{Necessity:} corrupting the active set sharply degrades forecasts
-    \item[\empht{(iii)}] \textbf{Interpretability:} support families recover withheld basin labels
-  \end{points}
-  \vfill
-\end{frame}
+% %--- conclusion: contributions ---
+% \begin{frame}{Summary of contributions}
+%   \vfill
+%   \begin{points}
+%     \item[\emphc{(i)}] \textbf{Forecasting:} SKAEs outperform dense-latent KAEs at all horizons (up to 17--27$\times$)
+%     \item[\emphp{(ii)}] \textbf{Necessity:} corrupting the active set sharply degrades forecasts
+%     \item[\empht{(iii)}] \textbf{Interpretability:} support families recover withheld basin labels
+%   \end{points}
+%   \vfill
+% \end{frame}
 
 %--- conclusion: closing ---
 \begin{frame}{Conclusion}
   \statement{Interpretability in dynamical representation learning\\ can come from the \emphp{structure of the latent code}.}
-  \vspace{0.5em}
-  \begin{center}\large\color{skaegray} Thank you. Questions welcome.\end{center}
-  \vfill
 \end{frame}
 
 %------------------ BACKUP DIVIDER ------------------
@@ -771,6 +715,62 @@
       \end{itemize}
     \end{column}
   \end{columns}
+\end{frame}
+
+%------------------ BACKUP: transition structures for K ------------------
+\begin{frame}{Backup: three structures for the transition $K$}
+  \vspace{0.6em}
+  \begin{columns}[T]
+    \begin{column}{0.33\textwidth}\centering
+      \textbf{Dense}\\[0.5em]
+      \begin{tikzpicture}[scale=0.5]
+        \fill[skaeblue!25] (0,0) rectangle (4,4);
+        \draw[skaeink] (0,0) rectangle (4,4);
+      \end{tikzpicture}\\[0.4em]
+      {\footnotesize all coordinates mix}
+    \end{column}
+    \begin{column}{0.33\textwidth}\centering
+      \textbf{Block-diagonal}\\[0.5em]
+      \begin{tikzpicture}[scale=0.5]
+        \draw[skaeink] (0,0) rectangle (4,4);
+        \fill[skaeteal!35] (0,3) rectangle (1,4);
+        \fill[skaeteal!35] (1,2) rectangle (2,3);
+        \fill[skaeteal!35] (2,1) rectangle (3,2);
+        \fill[skaeteal!35] (3,0) rectangle (4,1);
+      \end{tikzpicture}\\[0.4em]
+      {\footnotesize $M$ groups, no cross-talk}
+    \end{column}
+    \begin{column}{0.33\textwidth}\centering
+      \textbf{Soft-block}\\[0.5em]
+      \begin{tikzpicture}[scale=0.5]
+        \fill[skaeorange!12] (0,0) rectangle (4,4);
+        \fill[skaeorange!45] (0,3) rectangle (1,4);
+        \fill[skaeorange!45] (1,2) rectangle (2,3);
+        \fill[skaeorange!45] (2,1) rectangle (3,2);
+        \fill[skaeorange!45] (3,0) rectangle (4,1);
+        \draw[skaeink] (0,0) rectangle (4,4);
+      \end{tikzpicture}\\[0.4em]
+      {\footnotesize off-block entries penalized}
+    \end{column}
+  \end{columns}
+  \vfill
+  \begin{center}\small\color{skaegray}
+  Varied \emph{independently} of the encoder, to probe how block structure interacts with learned supports.
+  \end{center}
+\end{frame}
+
+%------------------ BACKUP: evaluation diagnostics ------------------
+\begin{frame}{Backup: two evaluation diagnostics}
+  \vfill
+  \begin{points}
+    \item $H(B\mid F_{\mathrm{abs}})$: uncertainty about the basin given the family
+    \item[] \hspace{1.4em}{\normalsize\color{skaegray} \emphp{lower is better}}
+    \item $|F_{\mathrm{abs}}|$: number of families
+    \item[] \hspace{1.4em}{\normalsize\color{skaegray} compare to the number of basins}
+  \end{points}
+  \vfill
+  \begin{center}\small\color{skaegray} Basin labels are used \emph{only} here, after training, never to train or select the model.\end{center}
+  \vfill
 \end{frame}
 
 \end{document}
