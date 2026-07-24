@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_execution",
+  "protocol_amendment": {
+    "date": "2026-07-20",
+    "timing": "before_any_checkpoint_evaluation",
+    "reason": "Guard against the tautology that an identity-like K preserves every coordinate support."
+  },
+  "prediction": {
+    "expected_decision": "partial_closure",
+    "activity_leakage_expected_range": [0.25, 0.45],
+    "pair_null_ratio_expected_range": [0.70, 0.90],
+    "operator_differentiation_expected": "uncertain_near_one"
+  },
+  "primary_sparse": {
+    "rows_csv": "/network/scratch/l/lia/skae/results/transition_rich_lista_dense_p256_hardinit_table123_20260430/collect_pass0/forecasting_rows.csv",
+    "rows_csv_sha256": "f8ecf3bdaf60dd948eb7a8310982e160aaf666cccb4e90b0d2225f92dd4d26f2",
+    "root_label": "lista_dense_signsplit_p256_hardinit_basin_partition",
+    "systems": [
+      "claude:arrested_spiral",
+      "claude:cal_asymmetric_3",
+      "claude:cal_hexagon_6",
+      "claude:cal_high_cross_3",
+      "claude:cal_octagon_8",
+      "claude:cal_pentagon_5",
+      "claude:cal_square_4",
+      "claude:duffing_triple_well",
+      "claude:snic_multi",
+      "claude:transition_routes_4",
+      "claude:var_depth_gradient_4",
+      "claude:var_diamond_4",
+      "claude:var_l_shape_5",
+      "gated_local_linear",
+      "gated_transfer_linear"
+    ],
+    "seeds": [0, 1, 2],
+    "expected_run_count": 45,
+    "latest_run_per_system_seed": true
+  },
+  "corpus": {
+    "num_trajectories": 128,
+    "trajectory_length": 128,
+    "eval_seed": 20260720,
+    "split_seed": 20260721,
+    "fit_trajectories": 64,
+    "score_trajectories": 64
+  },
+  "support": {
+    "definition": "absolute",
+    "threshold": 0.001,
+    "family_jaccard_threshold": 0.5,
+    "min_fit_source_transitions": 128,
+    "min_family_score_transitions": 64,
+    "fit_scope": "fit_trajectory_source_states_only",
+    "assignment": "nearest_fixed_representative_with_threshold"
+  },
+  "eligibility": {
+    "min_retained_families": 2,
+    "min_current_coverage": 0.8,
+    "min_persistent_coverage": 0.7
+  },
+  "null": {
+    "kind": "sign_pair_preserving_coordinate_permutation",
+    "replicates": 16,
+    "seed": 20260722,
+    "same_permutations_for_every_checkpoint": true,
+    "permuted_together": ["z", "z_next", "support_projector"],
+    "fixed": ["learned_global_K", "family_labels", "transition_indices"]
+  },
+  "estimands": {
+    "unmodified_K_closure": "P K (I-P) leakage without changing K",
+    "posthoc_restricted_prediction": "P K P; an evaluation restriction, not a learned operator",
+    "fitted_local_maps": "not fit and not evaluated in this experiment",
+    "transition_leakage": "activity-weighted and per-transition-median norm ratios",
+    "matrix_leakage": "per-representative Frobenius ratio ||P K (I-P)||F / ||P K||F",
+    "activity_change_leakage": "||z P K (I-P)|| / ||z P (K-I)||, aggregated by activity",
+    "matrix_change_leakage": "per-representative ||P K (I-P)||F / ||P (K-I)||F",
+    "family_residuals": "global, projected-global, source-gated, and posthoc-restricted latent residuals",
+    "operator_differentiation": "pairwise cosine and symmetric normalized Frobenius distances; guard only"
+  },
+  "strong_gate": {
+    "min_eligible_runs": 36,
+    "min_eligible_systems": 12,
+    "max_activity_leakage": 0.35,
+    "max_activity_leakage_pair_null_ratio": 0.8,
+    "min_systems_activity_leakage_better_than_null": 10,
+    "max_activity_change_leakage": 0.5,
+    "max_activity_change_leakage_pair_null_ratio": 0.8,
+    "min_systems_activity_change_leakage_better_than_null": 10,
+    "max_restricted_inside_residual_pair_null_ratio": 0.85,
+    "min_systems_residual_better_than_null": 10,
+    "max_encoded_next_outside_ratio": 0.35,
+    "max_global_K_over_identity_residual": 1.0,
+    "min_operator_distance_pair_null_ratio": 1.1
+  },
+  "decision_branches": {
+    "strong_direct_sum": "All strong gates pass; claim approximate invariant support-specific laws, subject to dense specificity control.",
+    "partial_closure": "Coverage and closure core pass but residual or differentiation guard fails; claim invariant charts only, not distinct local laws.",
+    "failed": "Matched-null closure core fails; do not claim that raw global K decomposes into support-specific laws.",
+    "invalid": "Coverage fails; only allowed diagnostic expansion is 256 trajectories, with all support thresholds unchanged."
+  },
+  "dossier_contract": {
+    "required_distinction": "Report raw K closure, change-normalized raw K closure, post-hoc PKP prediction, and fitted local maps as separate estimands.",
+    "required_fields": [
+      "activity_k_leakage_rms",
+      "activity_k_change_leakage_rms",
+      "matrix_k_leakage_fro_activity_weighted_mean",
+      "matrix_k_change_leakage_fro_activity_weighted_mean",
+      "posthoc_pkp_inside_residual_rms"
+    ],
+    "claim_guard": "No invariant-law claim may pass when P(K-I) has zero activity or when any change-normalized strong gate fails."
+  },
+  "conditional_dense_tanh": {
+    "trigger": "primary_sparse_decision_is_strong_direct_sum_or_partial_closure",
+    "rows_csv": "/network/scratch/l/lia/skae/results/staged_dense_tail_fate_local_k_mlp_zero_seed5_20260521/collect_pass0/forecasting_rows.csv",
+    "root_label": "mlp_zero_sparse_hardinit_basin_partition_control",
+    "checkpoint_assertions": [
+      "tanh_hidden_activation",
+      "linear_non_zero-inducing_latent_output",
+      "zero_sparsity_coefficient",
+      "zero_shrinkage",
+      "zero_dropout",
+      "zero_weight_decay"
+    ],
+    "mask_definition": "For each paired state, dense top-k uses k equal to that state's sparse F_abs cardinality.",
+    "family_and_null_protocol": "Identical split, Jaccard threshold, persistent regime, and coordinate-permutation null; no threshold tuning.",
+    "specificity_gate": {
+      "max_sparse_over_dense_activity_leakage_null_ratio": 0.9,
+      "max_sparse_over_dense_restricted_residual_null_ratio": 0.9
+    }
+  }
+}

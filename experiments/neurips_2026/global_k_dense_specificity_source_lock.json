@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "protocol_id": "global_k_dense_zero_wd_specificity_v1",
+  "status": "frozen_before_dense_specificity_evaluation",
+  "frozen_at": "2026-07-20",
+  "scope": "Fail-closed source and external-input authentication for dense specificity evaluation, reduction, and paper evidence; no scientific outcome is encoded here.",
+  "sources": {
+    "dense_evaluator": {
+      "path": "experiments/neurips_2026/global_k_dense_specificity.py",
+      "sha256": "bcd2d005f615ffcd8bd1dc32c7310ec511e1a4c05c95573ae239afe0c5948e0a"
+    },
+    "dense_checkpoint_audit": {
+      "path": "experiments/neurips_2026/global_k_dense_checkpoint_audit.py",
+      "sha256": "333fdf6356b3205557a0560a48ddb177c7af0ad6e9a123467696e78fedd53b3e"
+    },
+    "imported_sparse_evaluator": {
+      "path": "experiments/neurips_2026/global_k_support_invariance.py",
+      "sha256": "f2aaf0dddef233df3f340de425da8cd207057b93fd589e14bb3f023304172bf6"
+    },
+    "dense_summarizer": {
+      "path": "experiments/neurips_2026/summarize_global_k_dense_specificity.py",
+      "sha256": "ee2445bbca6d80f4a6c4810109f6b493dfccb8becccbee8296dfbb73436019c2"
+    },
+    "frozen_sparse_summarizer": {
+      "path": "experiments/neurips_2026/summarize_global_k_support_invariance.py",
+      "sha256": "928791bcf6c313fd8ed32e2139c154303384d2c04caccca13e3b0a0b4307d833"
+    },
+    "evidence_builder": {
+      "path": "experiments/neurips_2026/evidence/global_k_dense_specificity.py",
+      "sha256": "0aed406952df8dbb8a333bdfa1b4db55eef3dd93a936308a77701d8a5ab2e187"
+    },
+    "dense_task_module": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_tasks.py",
+      "sha256": "3cde66a3f5b4b42fcfda8123f73c32447f8a6641de153b0389fdebd095d152df"
+    },
+    "frozen_card": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_card.json",
+      "sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083"
+    },
+    "evaluator_launcher": {
+      "path": "scripts/neurips_2026/global_k_dense_zero_wd/run_specificity_array.sh",
+      "sha256": "e68171b861d3b1de27c55da9fccc6a2e4f895da5e15136abe164bdcb1532aa4d"
+    },
+    "summary_launcher": {
+      "path": "scripts/neurips_2026/global_k_dense_zero_wd/run_specificity_summary.sh",
+      "sha256": "04f4011e0c9f2bf260340a5d553065a5dab23a013bd94153505a3c543438160a"
+    },
+    "evidence_launcher": {
+      "path": "scripts/neurips_2026/global_k_dense_zero_wd/build_paper_evidence.sh",
+      "sha256": "e9a987e8c14666bdb78a2b0ffc25cda33305ca024317a08e7d4e9cabc69da4e6"
+    },
+    "queue_launcher": {
+      "path": "scripts/neurips_2026/global_k_dense_zero_wd/queue_full_chain.sh",
+      "sha256": "7fa5c280af969ddb0bdaa7534ba155e9a4fe0f5c278c688f5ee626806d208d65"
+    },
+    "packed_training_launcher": {
+      "path": "scripts/neurips_2026/global_k_dense_zero_wd/run_packed_train.sh",
+      "sha256": "4e14976b785578b25e5854eef65f5b379162b978010974ab713e67edf3df93b8"
+    },
+    "benchmark_training_payload": {
+      "path": "scripts/common/run_benchmark_task.sh",
+      "sha256": "01e702e799dcea58ed2a61d1f243682dba79ec4a70aa4dac1208251886b8d0d9"
+    },
+    "model_module": {
+      "path": "skae/model.py",
+      "sha256": "a5ea643538b8e66522488bc52cf63f442df4d436e29c910ae63d9dfe17a7d0df"
+    },
+    "config_module": {
+      "path": "skae/config.py",
+      "sha256": "7b8d172418832868e63564c99c6ce63e4793c5fef1fa5e9a657bfa9a61695ae4"
+    },
+    "data_module": {
+      "path": "skae/data.py",
+      "sha256": "46c31f5d9c150e1a49f4a4fee00333492c55e3bc3f94756ac0effb04e9753ce5"
+    },
+    "training_runner": {
+      "path": "skae/training/runner.py",
+      "sha256": "2f8fff830b2f25ae73a39b7b1e7cb27811655357780bb051c36722173bba1633"
+    },
+    "checkpoint_compatibility": {
+      "path": "skae/checkpoint_compat.py",
+      "sha256": "de203385893e8abc35f38bf525ef265c432eb5164c0e39a34222b968e976426b"
+    }
+  },
+  "external_inputs": {
+    "full_task_tsv": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/tasks/full_tasks.tsv",
+      "sha256": "ceedcbf3fb9367be106a69a86d5ddf84c3951b8ccb8233af8d29a0208b77443b"
+    },
+    "full_task_manifest": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/tasks/full_manifest.json",
+      "sha256": "5aeb091c8df34a12de5b735acb14af35ca53b607ebb4de3cc41671bf70405a12"
+    },
+    "smoke_decision": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_smoke_20260720/assessment/utilization_decision.json",
+      "sha256": "0f96e7d086ac39e8fc5504302d9e4ad2d03099ca3fbde7caf6191ea7c396b7e0"
+    },
+    "frozen_sparse_decision": {
+      "path": "/network/scratch/l/lia/skae/global_k_support_invariance_20260720/summary/decision.json",
+      "sha256": "10a4b766390855b7c2536c9f5c8d34a444549aac67def9f1a196379af0f7749e"
+    }
+  },
+  "claim_boundary": "This authenticates a complete-recipe sparse LISTA sign-split versus exact-dense tanh MLP comparison. It does not identify a sparsity-only causal effect; dense masks are sparse-cardinality-matched top-k coordinate masks and use a restricted sign-pair-preserving permutation set without natural dense sign-pair semantics."
+}

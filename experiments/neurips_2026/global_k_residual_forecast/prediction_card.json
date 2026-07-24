@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "protocol_id": "global_k_residual_support_forecast_v1",
+  "status": "prospective_frozen_design_pending_independent_redteam_no_launch_authorized",
+  "experiment_type": "discriminating mechanism and forecasting diagnostic",
+  "blocking_uncertainty": "V2 found that the family-projected K-induced update G descriptively identified the correct local law in every differentiable row, while the actual restricted decoded predictor H did not. Does subtracting the support reconstruction and adding the learned K-induced update to the current physical state convert that signal into useful long-horizon forecasts, without fitting a local operator?",
+  "hypothesis": "Label-free sparse support families select useful restrictions of one unchanged learned global K. The autonomous residualized support-routed map x_next=x+D(((E(x)P)K)P)-D(E(x)P) will lower through-trajectory H200 physical-state MSE relative to the unchanged global KAE, the residualized global map, the corresponding nonresidual routed map, scale-matched sign-pair-permutation projectors, and persistence.",
+  "competing_explanations": [
+    "V2's G-law match was descriptive noise and will not improve forecasting.",
+    "Residualization alone, rather than support routing, explains any gain.",
+    "Any cardinality- and overlap-matched support coordinates work equally well.",
+    "The support projector only wins because arbitrary permutation nulls have mismatched one-step scale or leave the encoder image.",
+    "The frozen sparse recipe does not beat its paired exact no-sparsity tanh KAE checkpoints.",
+    "Every-step reencoding repairs errors through a nonlinear state-space map; the result says nothing about pure repeated K powers."
+  ],
+  "authenticated_v2_inputs": {
+    "v2_decision": "invalid/negative for the joint local-law claim; G was descriptive only and H failed",
+    "card_path": "experiments/neurips_2026/global_k_distinct_laws_v2_card.json",
+    "card_sha256": "663fd03ddf9bfacabeef616f2a74f24998460d78b28413fdfeb42b012712f45b",
+    "task_path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_20260720_freeze_663fd03/tasks/full_tasks.tsv",
+    "task_sha256": "5b1d16ec52e3cf1ea695abbfee95ccc3c5e7b7e1f8a734209791f05d940a0e83",
+    "source_lock_path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_20260720_freeze_663fd03/source_lock.json",
+    "source_lock_sha256": "a21c8e554d929dff42aeb66f91f7d5d7f1d5ac8ce7d6d3fd76668f47775779be",
+    "audit_summary_path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/audit/summary.json",
+    "audit_summary_sha256": "f6fb9378d55b4e349798a644627063378911a3507d241ef3012e64a6e6c2fec4",
+    "packet_path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/packet/distinct_laws_v2_packet.json",
+    "packet_sha256": "e0317c2cf02965649afa9ac627e2daf0f7f49c1448aadbee000669f0a5c7b505",
+    "frozen_checkpoint_use": "Load the exact selected sparse and paired dense checkpoints for seeds 100--109. Re-run the V2 exact config/checkpoint audit. Never retrain, fine-tune, fit K, fit a local operator, or reselect a checkpoint.",
+    "selection_disclosure": "These checkpoints were historically selected by fixed-validation final physical-state error under every-step reencoding through H200. The new physical trajectories are disjoint and cannot reselect a checkpoint, but H200 is not an outcome-blind selector horizon with respect to the training recipe. H500 is a prespecified extrapolative stability stress."
+  },
+  "benchmark": {
+    "system": "gated_local_linear",
+    "state_dimension": 2,
+    "known_evaluation_basin_count": 3,
+    "dt": 0.04,
+    "primary_horizon_steps": 200,
+    "primary_physical_time": 8.0,
+    "stress_horizon_steps": 500,
+    "stress_physical_time": 20.0,
+    "horizon_justification": "The slowest real decay magnitude among the three local matrices is about 0.812. T=8 spans more than 6.4 of its asymptotic time constants and is therefore a long physical forecast, not a short one-step proxy. T=20 is an out-of-selector stability stress.",
+    "training_or_deployment_uses_basin_labels_or_count": false,
+    "evaluation_only_use": "Ground-truth initial-state basin_label is computed only after every forecast to report stratified MSE and routing purity. It is never an input to codebook fitting, retention, assignment, null selection, or prediction."
+  },
+  "outcome_free_trajectory_corpora": {
+    "generator": "VectorWrapper(gated_local_linear).generate_sequence_batch with one frozen torch.Generator seed per whole corpus",
+    "preparation_stage": "A CPU-only dependency writes physical trajectories and SHA-256 hashes before GPU evaluation. It computes no model representation, support, family, basin label, forecast, comparison metric, or decision.",
+    "route_fit": {"seed": 310947201, "trajectory_count": 1024, "horizon_steps": 128},
+    "route_audit": {"seed": 517204603, "trajectory_count": 1024, "horizon_steps": 128},
+    "evaluation": {"seeds": [801336907, 901337023, 1101337049], "trajectory_count_each": 131072, "horizon_steps": 500},
+    "smoke_evaluation": {"seed": 314713093, "dataset_index": 0, "trajectory_count": 131072, "horizon_steps": 500},
+    "freshness": "All six corpus seeds were frozen before the first residual-forecast attempt and are preserved exactly; they remain absent from the upstream distinct-laws V2 inputs and checkpoint-selection data. V2 ran no scientific task and persisted no smoke forecast metric. V3 regenerates every corpus from its frozen whole-corpus RNG seed under an absent root without reading or copying V2 artifact bytes. Science and smoke use disjoint RNG streams.",
+    "shared_physical_panel": "Every paired sparse/dense checkpoint and every comparator for a dataset seed sees byte-identical physical trajectories. Dataset seeds are crossed repeated measurements; model initialization seed is the primary inference unit."
+  },
+  "label_free_support_routing": {
+    "support_threshold": 0.001,
+    "codebook_jaccard_threshold": 0.5,
+    "algorithm": "Encode route-fit source states, threshold abs(z)>0.001, and greedily form exact-support representatives in decreasing support-frequency order, merging when Jaccard is at least 0.5. Retain by fit frequency only. At every deployment step, assign to the retained representative of maximum Jaccard, with lowest retained index breaking exact ties and no abstention.",
+    "minimum_fit_transitions": 256,
+    "minimum_retained_families": 2,
+    "maximum_retained_families": 64,
+    "minimum_retained_fit_coverage": 0.9,
+    "minimum_audit_family_fraction": 0.01,
+    "minimum_mean_audit_jaccard": 0.75,
+    "minimum_confident_jaccard": 0.5,
+    "minimum_confident_audit_fraction": 0.95,
+    "encode_batch_size": 65536,
+    "failure_fallback": "For packet completion only, zero retained families falls back to the most frequent representative and more than 64 truncates in frozen frequency order; either event marks routing invalid and forbids every positive claim.",
+    "information_contract": "No basin label, basin count, center, true matrix, endpoint, forecast error, or evaluation trajectory enters fitting, retention, assignment, or tie-breaking."
+  },
+  "matched_sign_pair_permutation_null": {
+    "candidate_count": 256,
+    "selected_count": 32,
+    "candidate_seed": 710293447,
+    "scale_match_points": 8192,
+    "minimum_scale_ratio": 0.5,
+    "maximum_scale_ratio": 2.0,
+    "construction": "Each candidate jointly permutes the 128 positive/negative coordinate pairs in every retained projector. This exactly preserves every projector cardinality and all pairwise Jaccards. The family-routing decision remains the same label-free nearest-family decision; only the selected latent coordinates change.",
+    "outcome_blind_steelman": "On 8192 deterministic evenly spaced route-fit source rows only, rank candidates by absolute log mismatch in projected-source latent RMS plus residual decoded one-step-update RMS relative to the observed supports. Select the 32 lowest-score candidates among those within [0.5,2] on both scales, breaking ties by candidate index. No truth next state, forecast error, basin label, or basin count enters selection.",
+    "validity_gate": "At least 32 candidates must meet both scale bounds. Otherwise complete the packet with the 32 nearest candidates but mark coordinate specificity invalid.",
+    "manifold_boundary": "A permuted projected latent is not guaranteed to lie on the encoder image; neither is a family-projected observed code. Scale matching limits the simplest magnitude confound, every predicted state is physical and reencoded, and all-step finiteness is mandatory. This null supports coordinate specificity only, not a deployable-baseline claim."
+  },
+  "forecast_protocol": {
+    "primary_horizon_steps": 200,
+    "stress_horizon_steps": 500,
+    "primary_metric": "Mean physical-state coordinate MSE over every step 1..200, then equal-weight average over the three datasets within each model seed.",
+    "secondary_metrics": ["terminal H200 MSE", "late H101--H200 MSE", "full mean-MSE curve", "through-H500 MSE", "terminal-H500 MSE", "initial-basin-stratified through-H200 MSE", "route assignment confidence and switch rate"],
+    "composition": "Every learned one-step physical map is recursively composed from its own previous prediction. There is no teacher forcing, truth reset, cadence search, periodic k selection, finite-prefix reducer, trajectory omission, clipping, or nonfinite replacement.",
+    "support_routed_residual": "x_next=x+D(((E(x)P_f)K)P_f)-D(E(x)P_f), where f is assigned anew from E(x) at every predicted step.",
+    "support_routed_nonresidual": "x_next=D(((E(x)P_f)K)P_f); this directly tests whether residualization repairs V2's support-reconstruction derivative failure.",
+    "global_residual": "x_next=x+D(E(x)K)-D(E(x)); this isolates residualization without routing.",
+    "global_standard_reencode": "x_next=D(E(x)K); this is the unchanged standard global KAE map under the same every-step composition.",
+    "pure_k_context": "D(E(x0)K^h) is reported for sparse and dense checkpoints as a conceptual pure-K context arm but is not used to rescue or invalidate the fixed per-step mechanism tier.",
+    "persistence_identity": "x_h=x0 for every h; identity and persistence are the same discrete predictor here.",
+    "dense_context": "The paired exact dense tanh no-sparsity V2 checkpoints are evaluated with global standard, global residual, and pure-K maps. No dense support is invented.",
+    "unchanged_global_k": true,
+    "local_operator_fit": false,
+    "semantic_boundary": "Because x is encoded and the support family is reassigned after every predicted step, the proposed map is an autonomous nonlinear support-routed predictor using one unchanged K. It is not the linear latent flow K^h and cannot establish globally invariant Koopman coordinates."
+  },
+  "finiteness_and_missingness": {
+    "primary": "Every trajectory of every confirmatory sparse, null, persistence, and dense arm must be finite at all 200 primary steps. Any failure suppresses that entire arm-seed-dataset H200 endpoint; no finite prefix is scored.",
+    "stress": "Each H500 arm must be finite on every trajectory at all 500 steps to receive an H500 metric. A predeclared complete H200 endpoint is not invalidated by a later H201--H500 failure, but the H500 tier fails and no shorter post-hoc endpoint is allowed.",
+    "pure_k": "Nonfinite pure-K is reported as a complete-endpoint failure with all metrics suppressed; it does not invalidate an otherwise complete per-step-reencoded comparison and can never be counted as a numerical win."
+  },
+  "statistics": {
+    "primary_unit": "ten paired model initialization seeds",
+    "within_seed_reducer": "equal-weight mean across the three fixed dataset-level through-H200 MSE values",
+    "trajectory_role": "131072 prospectively frozen RNG-drawn trajectories estimate each seed-by-dataset cell and are shared across paired arms; different corpus seeds define independent RNG streams, while trajectories are not treated as inferential replicates",
+    "paired_test": "one-sided exact 2^10 sign-flip test of baseline-minus-routed-residual seed differences",
+    "bootstrap_replicates": 100000,
+    "bootstrap_seed": 210739501,
+    "bootstrap": "paired model-seed bootstrap interval for relative MSE reduction",
+    "multiplicity": "Holm adjustment jointly over the five fixed mechanism contrasts. A separate Holm family covers the two dense recipe contrasts.",
+    "null_reducer": "Within each seed-by-dataset cell, take the median through-H200 MSE over all 32 preselected coordinate-null rollouts before averaging datasets."
+  },
+  "mechanism_gate": {
+    "minimum_relative_reduction": {"global_standard": 0.1, "global_residual": 0.05, "routed_nonresidual": 0.05, "permutation_null": 0.1, "persistence": 0.2},
+    "minimum_paired_seed_wins": 8,
+    "maximum_holm_adjusted_pvalue": 0.05,
+    "require_positive_bootstrap_lower_bound": true,
+    "require_positive_reduction_on_each_dataset": true,
+    "require_positive_reduction_in_each_evaluation_basin_for": ["global_standard", "global_residual"],
+    "minimum_route_audit_basin_purity": 0.8,
+    "joint_rule": "All route/null validity checks and every condition for all five contrasts must pass. Partial success is reported but does not support the one-K support-routing mechanism claim."
+  },
+  "dense_recipe_superiority_gate": {
+    "minimum_relative_reduction": {"dense_standard": 0.05, "dense_residual": 0.05},
+    "minimum_paired_seed_wins": 8,
+    "maximum_holm_adjusted_pvalue": 0.05,
+    "require_positive_bootstrap_lower_bound": true,
+    "require_positive_reduction_on_each_dataset": true,
+    "joint_rule": "Both comparisons must pass after the mechanism gate. This supports only frozen recipe-level superiority, not sparsity-component causality or equal function classes."
+  },
+  "stress_h500_gate": {
+    "comparators": ["sparse global standard reencode", "sparse global residual"],
+    "rule": "Every treatment/comparator trajectory must be finite through H500; routed residual must have positive mean reduction, at least 8/10 seed wins, and positive reduction on every dataset against both. The raw H500 diagnostic and gate are always retained, but H500 extension_supported is true only when this raw gate and the complete H200 mechanism gate both pass. This secondary tier is never published as a substitute for a failed H200 gate."
+  },
+  "gpu_utilization_gate": {
+    "hardware": "one A100 80GB per task, ten-task scientific array",
+    "meaningful_workload": "131072 freshly regenerated RNG-drawn physical trajectories per corpus, 32 selected nulls, four sparse per-step maps through H200, four sparse maps through H500, paired dense maps, and full error curves; no padding, artifact reuse, repeated trajectory, or dummy kernel",
+    "workload_scaling_rationale": "Outcome-blind V2 telemetry at 98304 trajectories measured 48.18710112571716 synchronized seconds, 46 compute samples at 96.84782608695652 percent mean utilization, 18 outside-window samples with utilization sum 18, and a 40699 MiB peak. Scaling the meaningful forecast panel by 4/3 to 131072 projects about 64.2495 synchronized seconds, 192.7484 seconds for three scientific datasets, 54266 MiB peak memory, and 2.10 GB across the four forecast corpora. The raw trace separates approximately ten fixed outside-window samples from eight corpus-dependent samples; scaling only the latter projects 72.69 percent allocation-wide utilization. A prespecified stress of three percent fewer compute samples plus two extra outside-window idle samples still projects 70.38 percent, while the two smaller audited counts do not clear 70 percent under that stress. The A100 retains about 27654 MiB projected headroom, and the original 8192-trajectory within-cell Monte Carlo standard error is reduced by a factor of four. These are resource projections from timing, utilization, memory, and completion metadata only; no forecast outcome was inspected.",
+    "telemetry": "one-second nvidia-smi trace with immutable GPU UUID/name plus an exact-schema evaluator marker bound to protocol, mode, and task; synchronized finite ordered start/end epochs must be bracketed by trace samples within the maximum gap. Schema, A100 class and at least 75 GiB capacity, finite ranges, one-GPU identity, strictly increasing timestamps, cadence, maximum gap, and unexpected monitor exit are fail-closed.",
+    "minimum_compute_window_samples": 31,
+    "minimum_compute_window_duration_seconds": 30.0,
+    "minimum_median_sampling_interval_seconds": 0.5,
+    "maximum_median_sampling_interval_seconds": 1.5,
+    "maximum_sampling_gap_seconds": 2.5,
+    "minimum_compute_window_mean_utilization_percent": 85.0,
+    "minimum_compute_window_p10_utilization_percent": 80.0,
+    "rolling_window_seconds": 30,
+    "minimum_rolling_utilization_percent": 80.0,
+    "minimum_allocation_wide_mean_utilization_percent": 70.0,
+    "failure": "A failed outcome-blind smoke blocks science. A failed scientific telemetry gate blocks summary and every claim; no threshold change is permitted after forecast execution."
+  },
+  "outcome_quarantine": {
+    "prelaunch": "Card, task manifest, source manifest, scripts, and tests must be frozen and independently red-teamed before any smoke or scientific forecast is launched.",
+    "smoke": "One seed-100 checkpoint pair uses only the smoke corpus. It persists exact method-count, finiteness, completion, timing, and telemetry booleans, but no forecast MSE, curve, label, routing-alignment value, null score, comparison, or decision.",
+    "science": "Ten array tasks write permission-0600 shards and print only completion metadata. Human/agent inspection of shards is forbidden until all tasks and the independent telemetry gate complete.",
+    "summary": "The dependent CPU summary authenticates all roots/shards, computes all frozen contrasts and gates once, and writes the first readable scientific decision.",
+    "no_v2_reclassification": "This experiment never changes V2's invalid/negative adjudication. It tests a new explicitly nonlinear residualized predictor motivated by that failure."
+  },
+  "computational_repair_history": {
+    "status": "v1 and v2 smokes operationally invalid; neither attempt ran a scientific task and no scientific result may be inferred",
+    "failed_v1_freeze": {
+      "card_sha256": "d60d833d84961da0c5931e6ee6cf3dbf763c12ccf3607764c5700f7cba2808dc",
+      "task_manifest_sha256": "86a3dce2ce8fd6ca569aebcccb6812ac6c3ee206ec21ba8e2ccf2642305fb024",
+      "source_manifest_sha256": "03e19d4efa6e98cc1b429403223de6159a8a787841e3218bed690af27cc750b8",
+      "output_root": "/network/scratch/l/lia/skae/global_k_residual_forecast_v1_20260721"
+    },
+    "failed_v1_jobs": {
+      "queue": {"job_id": 10165645, "state": "COMPLETED"},
+      "prepare": {"job_id": 10165655, "state": "COMPLETED"},
+      "smoke": {"job_id": 10165656, "state": "COMPLETED"},
+      "smoke_gate": {"job_id": 10165657, "state": "FAILED"},
+      "science_array": {"job_id": 10165658, "state": "CANCELLED"},
+      "science_gate": {"job_id": 10165659, "state": "CANCELLED"},
+      "summary": {"job_id": 10165660, "state": "CANCELLED"}
+    },
+    "failed_v1_artifact_sha256": {
+      "queue_stdout": "c10d631862e41cbd74455bd532035ab4823b1ee81ebd8c8e0d4199698980c572",
+      "outcome_free_data_manifest": "28f5001bade4105d22e87eb6d2c685f0d02719b820862cd7e280c18a48935a12",
+      "smoke_stdout": "21479734f63af2036cc062851a8b7e6dbb06dcc3c4919bbe41aa187a38aa27d1",
+      "smoke_shard": "b8688a9a83527b8fe981757a121a06cc166df4c80f8b87aef6511a3fd51574d6",
+      "compute_window": "c88f7ef042ab5fdb0d29478893f4985bab37285bb3cf175faf42583effdf25c8",
+      "telemetry_trace": "6cf85b75c8945abfc9a432d09015376be12f3404bb4b160c5c82ab63b231e4bb",
+      "smoke_gate_stdout": "330931d74119da936dd0960998f1fb2b9d2a0f49f80f04b3051489072f95be7b",
+      "smoke_gate_stderr": "d8564a6ae758f1e0c80ff9c1c4b8c81b8385bda118dc3346bc3dcb8f89ed1e12"
+    },
+    "failed_v1_outcome_blind_gate_observations": {
+      "compute_window_seconds": 4.618942975997925,
+      "compute_window_sample_count": 5,
+      "retained_utilization_percent": [33.0, 98.0, 96.0, 99.0, 85.0],
+      "compute_window_mean_utilization_percent": 82.2,
+      "compute_window_p10_utilization_percent": 53.8,
+      "minimum_rolling_utilization_percent": null,
+      "allocation_wide_mean_utilization_percent": 27.933333333333334,
+      "peak_memory_mib": 4433.0,
+      "failed_checks": ["minimum_compute_window_samples", "minimum_compute_window_duration", "minimum_compute_window_mean_utilization", "minimum_compute_window_p10_utilization", "minimum_rolling_utilization", "minimum_allocation_wide_mean_utilization"]
+    },
+    "failure_causes": [
+      "the telemetry payload contained a numpy.bool_ rolling-window check, which caused the observed atomic_json exception, and a float NaN rolling statistic that was a second strict-JSON hazard",
+      "the original 8192-trajectory workload was too short and too small to pass the unchanged telemetry gate"
+    ],
+    "v1_repair_scope": "At the telemetry boundary, convert every gate check to a built-in bool and persist an undefined rolling statistic as null while its raw NaN still fails the check; leave the generic allow_nan=false JSON writer strict; increase only smoke and evaluation trajectory counts from 8192 to 98304; retain all six corpus seeds, model checkpoints, maps, comparators, routing, nulls, horizons, metrics, gates, inferential units, and decision rules; regenerate every trajectory corpus from scratch under a fresh v2 root and never combine v1 artifacts; do not inspect forecast outcomes before the dependent summary.",
+    "failed_v2_freeze": {
+      "card_sha256": "a89f06ea60804e9c04359ca42b057adec476ecf5e8b66f75bec3f2cb23ee2bd6",
+      "task_manifest_sha256": "86a3dce2ce8fd6ca569aebcccb6812ac6c3ee206ec21ba8e2ccf2642305fb024",
+      "source_manifest_sha256": "a4bfe0715a5f08226b616805789354e276fa6319e2f702e33c7b75ea43492d15",
+      "queue_script_sha256": "fdf9105bb41522dfd0f8c2632923d136c55ed5e4eeda088079267c254a515e87",
+      "output_root": "/network/scratch/l/lia/skae/global_k_residual_forecast_v2_20260721"
+    },
+    "failed_v2_jobs": {
+      "queue": {"job_id": 10165734, "state": "COMPLETED", "exit_code": "0:0"},
+      "prepare": {"job_id": 10165740, "state": "COMPLETED", "exit_code": "0:0"},
+      "smoke": {"job_id": 10165741, "state": "COMPLETED", "exit_code": "0:0"},
+      "smoke_gate": {"job_id": 10165742, "state": "FAILED", "exit_code": "2:0"},
+      "science_array": {"job_id": 10165743, "state": "CANCELLED", "exit_code": "0:0"},
+      "science_gate": {"job_id": 10165744, "state": "CANCELLED", "exit_code": "0:0"},
+      "summary": {"job_id": 10165745, "state": "CANCELLED", "exit_code": "0:0"}
+    },
+    "failed_v2_artifact_sha256": {
+      "queue_stdout": "96d01852a0a8230412f36fc84dfea74bef36678fc42214a654593fbdfe50c175",
+      "outcome_free_data_manifest": "9e87f25b3e84415ffae5d87931329fda989e55d27a4b9091a226105f8278e6e2",
+      "prepare_stdout": "b0031b5495525640b21e5d9561991a0f8867ac1c98bfa3a2f8409fc62aab9804",
+      "prepare_stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "smoke_stdout": "2a0a23a8d0e9cb7319cd549648948546652cbc1597b6e98813d8f47341640e7c",
+      "smoke_stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "smoke_shard": "d33b7edb2886b163dd6fd9e8b88fd6c1bf5ce227c8019491f068b846103afa4a",
+      "compute_window": "2d1c8dd4c9bee43f249f18c4303a25f8c7481478016bf6bf825ab61fd0bf2afc",
+      "telemetry_trace": "1044f8e4190c3a276bf1c67ae6e093deb3d00b76b04a3244ffe333ea7e966f98",
+      "gpu_assessment": "7ea2bcccb8a6fdafff486a588071fc6d8117636f1ede36d5eb1b28f68432d320",
+      "smoke_gate_stdout": "474e9988a005f17b7bff2a00d8a76e8c10ff5a69b88c00aa360287ac1438f701",
+      "smoke_gate_stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "failed_v2_outcome_blind_gate_observations": {
+      "compute_window_seconds": 48.18710112571716,
+      "compute_window_sample_count": 46,
+      "compute_window_mean_utilization_percent": 96.84782608695652,
+      "compute_window_p10_utilization_percent": 100.0,
+      "minimum_rolling_utilization_percent": 97.44827586206897,
+      "allocation_duration_seconds": 65.83762955665588,
+      "allocation_sample_count": 64,
+      "outside_window_sample_count": 18,
+      "outside_window_utilization_sum": 18.0,
+      "allocation_wide_mean_utilization_percent": 69.890625,
+      "peak_memory_mib": 40699.0,
+      "memory_total_mib": 81920.0,
+      "failed_checks": ["minimum_allocation_wide_mean_utilization"],
+      "forecast_outcomes_read": false
+    },
+    "v2_failure_cause": "All compute-window, cadence, bracketing, memory, completion, finiteness, and strict-serialization checks passed, but the outcome-blind allocation-wide utilization mean was 69.890625 percent, 0.109375 percentage points below the unchanged 70-percent gate. The fail-closed dependency chain cancelled science and summary.",
+    "v3_repair_scope": "Increase only smoke and evaluation trajectory counts from 98304 to 131072 and update matching statistics/workload/resource prose from outcome-blind V2 telemetry. Preserve every corpus seed, route-fit/audit count, checkpoint, map, comparator, routing rule, null, horizon, metric, gate, inferential unit, and decision rule exactly. Generate every V3 corpus from scratch under a fresh absent v3 root without reading, copying, concatenating, or reusing V2 artifact bytes; keep launch_authorized=false until an independent audit."
+  },
+  "decision_branches": {
+    "success": "If the joint mechanism gate passes, report that on this controlled system label-free support families make one unchanged K useful inside a residualized autonomous nonlinear predictor. If the separate dense gate also passes, report frozen sparse-recipe superiority over the exact dense-tanh recipe. Promote H500 only if its independent stress gate passes.",
+    "failure": "If valid but any joint gate fails, preserve the result as negative: V2's descriptive G geometry does not yield sufficiently strong support-routed forecast evidence under the frozen diagnostic. Do not tune on these outcomes.",
+    "invalid": "If authentication, route audit, null scale matching, primary finiteness, roster, data, smoke, or GPU gates fail, label the corresponding claim tier invalid. Do not treat missing/divergent arms as wins.",
+    "ambiguity": "The only permitted follow-up is an independently frozen diagnostic targeted at the named validity failure; no threshold, seed, horizon, null, family rule, or comparator may be repaired after outcomes."
+  },
+  "claim_boundary": "Even a full pass is conditional evidence from ten frozen checkpoint pairs on a controlled 2D three-basin system. It supports useful basin-support routing of one unchanged K inside a per-step-reencoded nonlinear predictor. It does not prove pure K^h invariant subspaces, identify continuous local laws by itself, isolate sparsity causally from architecture/training, or establish high-dimensional/PDE generalization.",
+  "freeze": {
+    "task_manifest_sha256": "86a3dce2ce8fd6ca569aebcccb6812ac6c3ee206ec21ba8e2ccf2642305fb024",
+    "source_manifest_sha256": "2c7439ca57c61e74c9f05b1dbb4d9f9c19c0e32efe60587063e27ae4ab8bd8e8",
+    "output_root": "/network/scratch/l/lia/skae/global_k_residual_forecast_v3_20260721",
+    "authorization_format": "root-redteam-approved:<card_sha256>:<source_manifest_sha256>:<task_manifest_sha256>",
+    "launch_authorized": true
+  }
+}
