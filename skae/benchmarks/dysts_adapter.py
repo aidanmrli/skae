@@ -203,8 +203,14 @@ class DystsEnv:
                 "DDE support is experimental and may not work correctly."
             )
         
-        # Use dysts's calibrated dt or override
-        self.dt = dt_override if dt_override is not None else self.system.dt
+        # Keep the wrapper and the native dysts integrator on the same sampling
+        # interval.  ``DynSys.make_trajectory`` prefers ``self.dt`` over its
+        # call-time ``dt`` argument, so updating only the wrapper would silently
+        # generate native-dt trajectories while labeling them with the override.
+        self.native_dt = self.system.dt
+        self.dt = dt_override if dt_override is not None else self.native_dt
+        if dt_override is not None:
+            self.system.dt = float(dt_override)
         
         # Cache dimension
         self._dim = self.system.dimension
@@ -390,6 +396,9 @@ class DystsEnv:
         resample: bool = True,
         pts_per_period: int = 100,
         standardize: bool = False,
+        method: str = "Radau",
+        rtol: float = 1e-12,
+        atol: float = 1e-12,
     ) -> torch.Tensor:
         """Generate trajectory using dysts's native integrator.
         
@@ -401,15 +410,22 @@ class DystsEnv:
             resample: Whether to resample to match dominant Fourier components.
             pts_per_period: Points per period if resampling.
             standardize: Whether to z-score standardize the trajectory.
+            method: scipy ``solve_ivp`` integration method.
+            rtol: Relative integration tolerance.
+            atol: Absolute integration tolerance.
             
         Returns:
             Trajectory tensor of shape [n, observation_size].
         """
         traj_np = self.system.make_trajectory(
             n=n,
+            dt=float(self.dt),
             resample=resample,
             pts_per_period=pts_per_period,
             standardize=standardize,
+            method=str(method),
+            rtol=float(rtol),
+            atol=float(atol),
         )
         
         if traj_np is None:

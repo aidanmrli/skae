@@ -1,0 +1,19 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Outcome-aware, same-checkpoint secondary Allen--Cahn analysis showing all seven frozen metrics at the H200 cumulative endpoint. Effects are relative reductions for the six lower-is-better errors and percentage-point differences for modal accuracy. Confidence intervals are paired-seed 95\% intervals for the oriented absolute effect; $q$ is Holm-adjusted across all seven metrics. Bold $q$ values are at most 0.05.}
+\label{tab:allen_cahn_physics_metrics}
+\begin{tabular}{lrrrrr}
+\toprule
+Metric & Dense & Sparse & Oriented effect & Wins & Holm $q$ / abs. 95\% CI \\
+\midrule
+Pixel phase error & 0.09424 & 0.08990 & 4.61\% & 9/10 & \textbf{0.0146} / [0.00229, 0.00610] \\
+Modal-well accuracy & 0.90742 & 0.90977 & +0.236 pp & 5/10 & 0.3027 / [-0.00551, 0.01061] \\
+Well-area TV error & 0.05402 & 0.05074 & 6.07\% & 8/10 & \textbf{0.0352} / [0.00112, 0.00535] \\
+Interface-edge error & 0.09966 & 0.09742 & 2.25\% & 9/10 & \textbf{0.0146} / [0.00118, 0.00311] \\
+Free-energy error & 0.02843 & 0.02667 & 6.20\% & 10/10 & \textbf{0.0068} / [0.00112, 0.00243] \\
+Potential-energy error & 0.03597 & 0.03462 & 3.77\% & 8/10 & 0.1191 / [-0.00006, 0.00311] \\
+Gradient-energy error & 0.02897 & 0.02649 & 8.58\% & 10/10 & \textbf{0.0068} / [0.00164, 0.00332] \\
+\bottomrule
+\end{tabular}
+\end{table*}

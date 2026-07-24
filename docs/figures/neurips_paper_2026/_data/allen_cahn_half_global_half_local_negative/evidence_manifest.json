@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "packet_id": "allen_cahn_half_global_half_local_negative",
+  "files": {
+    "protocol.json": "ebcd3120ea035dd7bda9c320453f9debc05df17010e957ff9e86ff3bb30c11eb",
+    "provenance.json": "92eeb72a81ee596dd7dae28cde5b06750ab736e3bd7fbfb443fc8558f5bbd6d0",
+    "result.json": "e8ed176a00a2bbbbb6d7593d6f3f46145a1541557caa98cf62264290b74b865a"
+  }
+}

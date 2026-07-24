@@ -1,13 +1,4 @@
-\section{Dysts forecasting diagnostics}
+\section{Dysts forecasting campaign status}
 \label{app:dysts_full}
 
-The collected experiment artifacts contain per-(system, seed) Dysts MSE rows. \Cref{tab:dysts_long} reports arithmetic means across systems after first applying \texttt{scipy.stats.trim\_mean} with proportion \(0.25\) to the \(15\) seeds within each system, i.e., averaging the central nine after discarding three values from each tail. We call this seed summary IQM. The soft-block LISTA row is an architecture-specific ablation: it uses two LISTA loops and a sign-split output rather than the one-loop/ReLU recipe of LISTA and LISTA--BD, though all rows use the same \(100{,}000\)-step budget. Its source packet contained \(12\) systems and the paper uses the fixed retained \(10\)-system subset. LISTA--SB improves on Dense MLP in aggregate but has no corrected Dysts significance marker.
-
-The horizon display in \cref{fig:forecasting_horizon_curves} uses the same paper-facing aggregation and retains every one of the ten systems with equal weight after the within-system seed summary. We do not trim systems: doing so would remove two unusually easy and two unusually hard systems separately for each method and horizon, potentially compare different subsets, and hide systematic failure cases. The shaded intervals instead keep the system roster fixed and resample seeds within every system.
-
-\begin{table}[tbp]
-\centering
-\caption{Scale-normalized Dysts forecasting summary. Entries are arithmetic means across systems of the candidate per-system seed-IQM MSE divided by the Dense MLP per-system seed-IQM MSE; lower than \(1\) favors the candidate. This table gives the average-case ratio view corresponding to \cref{tab:dysts_long}. LISTA-SB is retained as an architecture-specific two-loop/sign-split diagnostic row.}
-\label{tab:dysts_ratio_to_dense}
-\resizebox{\textwidth}{!}{\input{figures/neurips_paper_2026/_tables/table_dysts_dt30_ratio_to_dense.tex}}
-\end{table}
+A cadence audit found that the historical KAE caches retained the native Dysts integration interval rather than the requested \(30dt\) interval, while the standalone controls used the intended cadence. Consequently, every historical Dysts result, ratio table, horizon curve, and significance annotation is quarantined and is not evidence in this manuscript. A corrected matched campaign retraining all six KAE rows at a numerically verified \(30dt\) cadence is in progress; no result from that campaign is reported here.

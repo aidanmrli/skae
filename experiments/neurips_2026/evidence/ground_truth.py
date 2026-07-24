@@ -18,7 +18,10 @@ from experiments.neurips_2026.evidence.ground_truth_rendering import (
     DEFAULT_GRID_POINTS,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_STREAM_DENSITY,
+    DIRECTION_DECIMALS,
+    FIELD_DECIMALS,
     GENERATOR_ID,
+    LOG_SPEED_DECIMALS,
     FieldData,
     RETAINED_15_SYSTEMS,
     SystemSpec,
@@ -51,7 +54,7 @@ def write_manifest(
         }
 
     payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "description": (
             f"PDF vector-field displays for {len(fields)} controlled multibasin "
             "systems."
@@ -66,6 +69,9 @@ def write_manifest(
             "formats": list(formats),
             "dpi": int(dpi),
             "stream_density": float(stream_density),
+            "field_decimals": FIELD_DECIMALS,
+            "log_speed_decimals": LOG_SPEED_DECIMALS,
+            "direction_decimals": DIRECTION_DECIMALS,
         },
         "composite": pdf_record(composite_paths),
         "systems": [
@@ -88,13 +94,16 @@ def validate_manifest(manifest_path: Path) -> tuple[Path, ...]:
     """Validate the active roster and hashes, returning every declared PDF."""
 
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if payload.get("schema_version") != 2 or payload.get("generated_by") != GENERATOR_ID:
+    if payload.get("schema_version") != 3 or payload.get("generated_by") != GENERATOR_ID:
         raise ValueError("Ground-truth manifest is not the canonical schema")
     expected_render_parameters = {
         "grid_points": DEFAULT_GRID_POINTS,
         "formats": list(DEFAULT_FORMATS),
         "dpi": DEFAULT_DPI,
         "stream_density": DEFAULT_STREAM_DENSITY,
+        "field_decimals": FIELD_DECIMALS,
+        "log_speed_decimals": LOG_SPEED_DECIMALS,
+        "direction_decimals": DIRECTION_DECIMALS,
     }
     if payload.get("render_parameters") != expected_render_parameters:
         raise ValueError("Ground-truth render parameters drifted from the paper contract")

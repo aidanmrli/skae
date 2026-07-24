@@ -58,6 +58,6 @@
     "fixed_snapshot_test_trajectory_index": 0,
     "fixed_snapshot_physical_times": [0.0, 4.0, 8.0, 12.0, 20.0]
   },
-  "label_policy": "no basin label, basin count, or trajectory assignment enters training, encoding, representative fitting, or family transfer; labels score the frozen validation/test map only",
+  "label_policy": "No basin label, basin count, or trajectory assignment enters training, encoding, representative fitting, or family transfer. Validation fate metrics govern the disclosed promotion gate; test labels only score the already-frozen map.",
   "terminal_rule": "if_the_seed_11_to_20_time20_gate_fails_do_not_open_test_or_change_the_time20_support_rule"
 }

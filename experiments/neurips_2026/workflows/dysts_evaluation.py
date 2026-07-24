@@ -86,10 +86,15 @@ def _rollout_paths(
 def _has_required_horizons(system_data: Dict[str, Any], horizons: Sequence[int]) -> bool:
     for horizon in horizons:
         horizon_key = str(horizon)
-        best = system_data.get("best_periodic", {}).get(horizon_key)
-        if not isinstance(best, dict):
+        direct = (
+            system_data.get("modes", {})
+            .get("no_reencode", {})
+            .get("horizons", {})
+            .get(horizon_key)
+        )
+        if not isinstance(direct, dict):
             return False
-        if best.get("mean") is None:
+        if direct.get("full_horizon_finite_fraction") is None:
             return False
     return True
 

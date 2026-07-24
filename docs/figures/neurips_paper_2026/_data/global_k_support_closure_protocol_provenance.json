@@ -1,0 +1,198 @@
+{
+  "schema_version": 2,
+  "evidence_id": "global_k_support_closure_20260720",
+  "status": "post_submission_partial_closure",
+  "execution": {
+    "array_job_id": 10160546,
+    "summary_job_id": 10160547,
+    "partition": "long",
+    "array_task_count": 45,
+    "git_commit_recorded_by_jobs": "b230ef667cf2ed7b904003272bd482ff1f8d703d",
+    "device": "cpu",
+    "gpu_requested": false,
+    "compute_note": "The evaluator uses small 256-dimensional host-routed linear algebra, so requesting a GPU would waste accelerator capacity."
+  },
+  "authenticated_sources": {
+    "checkpoint_roster_csv": {
+      "path": "/network/scratch/l/lia/skae/results/transition_rich_lista_dense_p256_hardinit_table123_20260430/collect_pass0/forecasting_rows.csv",
+      "sha256": "f8ecf3bdaf60dd948eb7a8310982e160aaf666cccb4e90b0d2225f92dd4d26f2"
+    },
+    "prediction_card": {
+      "source_path": "experiments/neurips_2026/global_k_support_invariance_card.json",
+      "frozen_path": "global_k_support_closure_prediction_card.json",
+      "sha256": "b569868dbdcef00dc361f2bba93ca708a5cdd7399cd929ecf4ec3a98f8efd7f5",
+      "status": "internally frozen before any checkpoint evaluation; not a public or external preregistration"
+    },
+    "checkpoint_evaluator": {
+      "path": "experiments/neurips_2026/global_k_support_invariance.py",
+      "sha256": "f2aaf0dddef233df3f340de425da8cd207057b93fd589e14bb3f023304172bf6"
+    },
+    "summary_reducer": {
+      "path": "experiments/neurips_2026/summarize_global_k_support_invariance.py",
+      "sha256": "928791bcf6c313fd8ed32e2139c154303384d2c04caccca13e3b0a0b4307d833"
+    },
+    "all_current_guard_extractor": {
+      "path": "experiments/neurips_2026/extract_global_k_all_current_guard.py",
+      "sha256": "626b06bd921127da39a363b1b694560f7a0aa4574c21d49e4dbb525c4c4e0368",
+      "status": "post-hoc reducer for a no-next-state guard emitted by the authenticated evaluator before execution; not the internally frozen primary reducer"
+    },
+    "array_launcher": {
+      "path": "scripts/neurips_2026/global_k_support_invariance/run_array.sh",
+      "sha256": "6c5a857102c0813adfa46217301fad781ca6ba7307e83f6e480393717e217081"
+    },
+    "summary_launcher": {
+      "path": "scripts/neurips_2026/global_k_support_invariance/run_summary.sh",
+      "sha256": "edb920ff2822b77450914156491c8a1c85fb69720ef26a2a56727fdb9e14541b"
+    }
+  },
+  "frozen_inputs": {
+    "global_k_support_closure_run_rows.csv": {
+      "scratch_sha256": "c12ec9d8a68a660dcfc15bd6d31dbf43901420718cec7ac5055a2894d5f4b16f",
+      "frozen_sha256": "e0386e51f2dc172c558eb30a6e459728c35bcc7bc4f23d02648a5f85051edfea",
+      "normalization": "CSV values and row order are exact; CRLF line endings were normalized to LF."
+    },
+    "global_k_support_closure_system_rows.csv": {
+      "scratch_sha256": "4ff10ef76f548d88db1f537c2ab5c35be7a3ec22fca9eb8ff44e5ea158f5c259",
+      "frozen_sha256": "1289482e06ab47510dc8a02793eb9f4c1ab7b2b87e6193da351d833c7b77601e",
+      "normalization": "CSV values and row order are exact; CRLF line endings were normalized to LF."
+    },
+    "global_k_support_closure_decision.json": {
+      "scratch_sha256": "10a4b766390855b7c2536c9f5c8d34a444549aac67def9f1a196379af0f7749e",
+      "frozen_sha256": "10a4b766390855b7c2536c9f5c8d34a444549aac67def9f1a196379af0f7749e",
+      "normalization": "none"
+    },
+    "global_k_support_closure_prediction_card.json": {
+      "scratch_sha256": "b569868dbdcef00dc361f2bba93ca708a5cdd7399cd929ecf4ec3a98f8efd7f5",
+      "frozen_sha256": "b569868dbdcef00dc361f2bba93ca708a5cdd7399cd929ecf4ec3a98f8efd7f5",
+      "normalization": "none"
+    }
+  },
+  "guard_inputs": {
+    "global_k_support_closure_all_current_run_rows.csv": {
+      "sha256": "9058334a2921a3ffe6a9a11d6f36812416b52d8523c1cb2487441883062e4ffe",
+      "normalization": "Deterministically extracted as LF-terminated CSV from the 45 authenticated raw shards."
+    },
+    "global_k_support_closure_all_current_system_rows.csv": {
+      "sha256": "3bea77561723075e0dac18eadb080a8bfcf8828ffc2f72d631a3d8decbe774e9",
+      "normalization": "Seed medians were recomputed per system from the compact all-current run rows."
+    },
+    "global_k_support_closure_all_current_source_roster.json": {
+      "sha256": "63407e894a545e9e3931fb635f5cb2ca0a3305e535951faa345862e5f85ca0d5",
+      "normalization": "Contains every raw shard and checkpoint digest plus a path-independent shard-roster digest."
+    }
+  },
+  "protocol": {
+    "model": "signed sparse LISTA Koopman autoencoder",
+    "observed_system_dimension": 2,
+    "latent_dimension": 256,
+    "system_count": 15,
+    "seeds_per_system": 3,
+    "expected_run_count": 45,
+    "eligible_run_count": 45,
+    "eligible_system_count": 15,
+    "support_threshold": 0.001,
+    "support_family_jaccard_threshold": 0.5,
+    "fit_trajectories": 64,
+    "score_trajectories": 64,
+    "trajectory_length": 128,
+    "null_replicates_per_checkpoint": 16,
+    "null": "sign-pair-preserving coordinate permutation applied jointly to z, z_next, and P while the learned global K remains fixed",
+    "aggregation": "median across seeds within each system, then median across 15 systems",
+    "scope": "one-step latent diagnostics after projecting the source state onto a fit-derived support, evaluated only on score transitions whose current and next supports route to the same retained family",
+    "future_conditioning": "The persistent-family score population conditions on next-state family membership; it is not an autonomous deployment router and must be disclosed as future-conditioned.",
+    "all_current_guard_scope": "The evaluator-emitted all-current guard retains every score transition whose current support routes to a retained family and never consults the next-state family. Its compact reduction was performed post hoc and is not a second internally frozen primary decision.",
+    "row_vector_convention": "z_next is predicted as z @ K; P is diagonal, so cross-support leakage is z @ P @ K @ (I-P).",
+    "posthoc_restriction": "P @ K @ P is evaluated diagnostically and is not fitted as a local map.",
+    "excluded_estimands": [
+      "decoded forecasting error",
+      "multistep autonomous forecasting",
+      "fitted local Koopman maps"
+    ]
+  },
+  "result": {
+    "decision": "partial_closure",
+    "eligible_runs": "45/45",
+    "eligible_systems": "15/15",
+    "activity_leakage_true_over_null_system_median": 0.02205127979411891,
+    "activity_change_leakage_true_over_null_system_median": 0.4348157110536848,
+    "restricted_inside_residual_true_over_null_system_median": 0.05267116253530947,
+    "operator_distance_true_over_null_system_median": 0.9926523570566345,
+    "operator_distance_required_minimum": 1.1,
+    "failed_gate": "operator_differentiation_guard",
+    "dense_specificity_control": "pending",
+    "executed_decision_string_correction": "The authenticated decision JSON repeats the frozen branch text 'claim invariant charts only.' That wording is overstrong and is superseded for every reviewer-facing use by this packet's stricter claim boundary: support-projected approximate one-step closure only, not an invariant chart or invariant subspace."
+  },
+  "all_current_guard": {
+    "status": "post-hoc reduction of a pre-execution evaluator-emitted guard; not the internally frozen primary",
+    "eligible_run_count": 45,
+    "eligible_system_count": 15,
+    "system_medians": {
+      "current_coverage": 0.966552734375,
+      "transition_count": 7918.0,
+      "activity_leakage_true": 0.004675625744925109,
+      "activity_leakage_null": 0.20654095649439785,
+      "activity_leakage_true_over_null": 0.022294791176291174,
+      "matrix_leakage_true": 0.0537630350480937,
+      "matrix_leakage_null": 0.2079999275070209,
+      "matrix_leakage_true_over_null": 0.2399255482792354,
+      "activity_change_leakage_true": 0.33819367830086117,
+      "activity_change_leakage_null": 0.7829617267149522,
+      "activity_change_leakage_true_over_null": 0.4333614756929085,
+      "matrix_change_leakage_true": 0.5540967915167561,
+      "matrix_change_leakage_null": 0.7834293220886429,
+      "matrix_change_leakage_true_over_null": 0.699185907524442,
+      "restricted_inside_residual_true": 0.00999143481728126,
+      "restricted_inside_residual_null": 0.16459492860944275,
+      "restricted_inside_residual_true_over_null": 0.05325424019276353,
+      "encoded_next_outside_true": 0.05246239499659567,
+      "encoded_next_outside_null": 0.05246239499659567,
+      "encoded_next_outside_true_over_null": 1.0,
+      "global_over_identity_true": 0.583309893236483,
+      "global_over_identity_null": 18.709468879345437,
+      "global_over_identity_true_over_null": 0.031293763424482146,
+      "operator_distance_true": 0.9740931386593823,
+      "operator_distance_null": 0.9829592051270675,
+      "operator_distance_true_over_null": 0.9926523570566345
+    },
+    "system_wins": {
+      "activity_leakage": 15,
+      "matrix_leakage": 15,
+      "activity_change_leakage": 15,
+      "matrix_change_leakage": 15,
+      "restricted_inside_residual": 15,
+      "global_over_identity": 15,
+      "operator_distance_above_null": 0
+    },
+    "added_transition_count": 3527,
+    "added_transition_percentage_points": 0.9567599826388888,
+    "reference_checks_not_a_second_frozen_decision": {
+      "activity_leakage_absolute": true,
+      "activity_leakage_null_ratio": true,
+      "activity_change_leakage_absolute": true,
+      "activity_change_leakage_null_ratio": true,
+      "restricted_residual_null_ratio": true,
+      "operator_differentiation_guard": false
+    }
+  },
+  "claim_boundary": {
+    "supported": "Observed sparse supports are unusually closed under one support-projected application of the learned global K relative to the internally frozen matched coordinate-permutation null.",
+    "not_supported": [
+      "the supports define invariant subspaces of the full autonomous global-K rollout",
+      "the restricted operators encode distinct local laws",
+      "the diagnostic improves decoded or multistep forecasting",
+      "the effect is specific to sparsity before the dense tanh cardinality-matched control completes"
+    ],
+    "sign_split_caveat": "All systems are two-dimensional and the latent uses a sign-split ReLU construction with structurally exclusive positive/negative coordinate pairs; the null preserves those pairs, but architecture-specific closure remains a possible explanation."
+  },
+  "generated_outputs": {
+    "global_k_support_closure_summary.tex": {
+      "sha256": "744a67a3a8962fb1b874eb2e5ac4491ee4f94329e1e13555ecff893cf928dd5d"
+    },
+    "global_k_support_closure_paired_systems.pdf": {
+      "sha256": "ec1c8dd0ee72955279d3aef0323171af87bff5120825d4c2511798ac2117e7ec"
+    },
+    "global_k_support_closure_paired_systems.png": {
+      "sha256": "3c12219125dcff25b7591d23573c2a45c454f46c240260a1827542e64ef790a7"
+    }
+  }
+}

@@ -76,6 +76,42 @@ COMMANDS = {
         "build",
         "high-dimensional",
     ): "experiments.neurips_2026.evidence.highdimensional",
+    (
+        "build",
+        "allen-cahn-forecast-optimized",
+    ): "experiments.neurips_2026.evidence.allen_cahn_global_forecast",
+    (
+        "build",
+        "allen-cahn-new-ic-replication",
+    ): "experiments.neurips_2026.evidence.allen_cahn_forecast_replication",
+    (
+        "build",
+        "allen-cahn-physics-metrics",
+    ): "experiments.neurips_2026.evidence.allen_cahn_physics_metrics",
+    (
+        "build",
+        "allen-cahn-periodic-reencoding",
+    ): "experiments.neurips_2026.evidence.allen_cahn_periodic_reencoding",
+    (
+        "build",
+        "allen-cahn-support-subspaces",
+    ): "experiments.neurips_2026.evidence.allen_cahn_support_subspace_packet",
+    (
+        "build",
+        "allen-cahn-half-local",
+    ): "experiments.neurips_2026.evidence.allen_cahn_half_local_packet",
+    (
+        "build",
+        "global-k-support-closure",
+    ): "experiments.neurips_2026.evidence.global_k_support_closure",
+    (
+        "build",
+        "global-k-distinct-laws-v2-negative",
+    ): "experiments.neurips_2026.evidence.global_k_distinct_laws_v2_negative",
+    (
+        "build",
+        "global-k-dense-specificity",
+    ): "experiments.neurips_2026.evidence.global_k_dense_specificity_portable",
     ("build", "controlled"): "experiments.neurips_2026.evidence.controlled_tables",
     ("build", "dysts"): "experiments.neurips_2026.evidence.dysts",
     ("build", "baselines"): "experiments.neurips_2026.baselines.summarize",
@@ -97,6 +133,45 @@ CHECKS = (
     ("experiments.neurips_2026.evidence.headline_tables", ("--check",)),
     ("experiments.neurips_2026.evidence.forecasting_horizons", ("--check",)),
     ("experiments.neurips_2026.evidence.highdimensional", ("--check",)),
+    (
+        "experiments.neurips_2026.evidence.allen_cahn_global_forecast",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.allen_cahn_forecast_replication",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.allen_cahn_physics_metrics",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.allen_cahn_support_subspace_packet",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.allen_cahn_half_local_packet",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.global_k_support_closure",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.global_k_distinct_laws_v2_negative",
+        ("--check",),
+    ),
+    (
+        "experiments.neurips_2026.evidence.global_k_dense_specificity_portable",
+        (
+            "check",
+            "--provenance",
+            str(
+                PAPER_EVIDENCE_DIR
+                / "_data/global_k_dense_zero_wd_specificity_provenance.json"
+            ),
+        ),
+    ),
     ("experiments.neurips_2026.evidence.controlled_tables", ("--check",)),
     ("experiments.neurips_2026.evidence.dysts", ("--check",)),
     ("experiments.neurips_2026.baselines.summarize", ("--check",)),

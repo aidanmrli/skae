@@ -1,0 +1,307 @@
+{
+  "description": "Exact checkpoint and evaluator roster admitted to the final confirmation gate.",
+  "packet_id": "allen_cahn_global_k_forecast_optimized",
+  "runs": [
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_64/model/checkpoint.pt",
+        "sha256": "3edced0d839db854207d78d2022bd3b4a41dfda6d0a5864e1679eb8d8e13c787"
+      },
+      "checkpoint_step": 3250,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_64/fresh_validation_evaluation.json",
+        "sha256": "d666d9e306480be57a7ff7934b579c24762640be6d960336429c9f5a2e3d901d"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 64,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_65/model/checkpoint.pt",
+        "sha256": "ddfec80bf2fbd778f5efe2e23cbcf399b6192522d9581753e76da82f41009adb"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_65/fresh_validation_evaluation.json",
+        "sha256": "869c463f1d36601ad57c9dd96ee86eacc1b936660795289dcdb2a540ad9599c9"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 65,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_66/model/checkpoint.pt",
+        "sha256": "66bda0aac07da28ffe20d3ca1b7a32ef40ed406b547a9dc607d3a92822686b0e"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_66/fresh_validation_evaluation.json",
+        "sha256": "94ccead542f3dda70fcd6ba62d56b9dcc8a0fb7c53e1940118c7435e41db2ceb"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 66,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_67/model/checkpoint.pt",
+        "sha256": "0b2ac5520f0fd834af1457898944f168fb101467c23b65d7077b8d0371eaf3f9"
+      },
+      "checkpoint_step": 3250,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_67/fresh_validation_evaluation.json",
+        "sha256": "c450e31fdec44eb3772649ad7d987de005d11ea3c7407302a51715b00e06bd52"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 67,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_68/model/checkpoint.pt",
+        "sha256": "4bdf8224c1f3670b3ceb84f970fa07644575dd099df11efabc65a871885f22e6"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_68/fresh_validation_evaluation.json",
+        "sha256": "88a4700f3e07be9267d321496cade1e446a7949164f7a138f66cb7d2b0a1f5a5"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 68,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_69/model/checkpoint.pt",
+        "sha256": "c9cdf5398b0a5905d9682b9fcb7b200a0e8dd28c633c06c994ea3164c7d1c052"
+      },
+      "checkpoint_step": 3000,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_69/fresh_validation_evaluation.json",
+        "sha256": "4b095d850a1c920a5f3e5fb2c9410944a192378b39aa9346fdca08093296cd80"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 69,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_70/model/checkpoint.pt",
+        "sha256": "053b824017e8b128565dd65694569d8ba7d55a3a3fc4a7c2cc43a4b9f0d223f1"
+      },
+      "checkpoint_step": 3000,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_70/fresh_validation_evaluation.json",
+        "sha256": "14e52f187c782e2b34344fcc3ed9fa2b1004ecad752483a22d7f7596aa854f9f"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 70,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_71/model/checkpoint.pt",
+        "sha256": "2c93a69ee4eeaf76bde09ff7e86fa7fcb6b89849e3046c1316138ef50b4cf95a"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_71/fresh_validation_evaluation.json",
+        "sha256": "5df427894365b638befcb356751f66c1b8346fbbf93b6604e98d2aee008b3b0a"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 71,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_72/model/checkpoint.pt",
+        "sha256": "a2105494c0f09d88ede30976dec84a6231c517738598bcefec32f08677f78c88"
+      },
+      "checkpoint_step": 3000,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_72/fresh_validation_evaluation.json",
+        "sha256": "a0e7ecad8884e9257ae6ab8e92111d955c9eceaf79afbb955acd4c95731a2f30"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 72,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "dense",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_73/model/checkpoint.pt",
+        "sha256": "ad237268f1a69d4f0ce1eb15db5b9def1c28a50d6a5ee0aed1f5b5d377e2e867"
+      },
+      "checkpoint_step": 3250,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_73/fresh_validation_evaluation.json",
+        "sha256": "5d45a9af0ce7a32b39045a3deb72f889152859015f135ccd9c82277e06f574f3"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 73,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_64/model/checkpoint.pt",
+        "sha256": "1fcb7791f12e9e3dda8d0655f3492afc74cb33477c33e91f7214c77a6b877bd5"
+      },
+      "checkpoint_step": 3250,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_64/fresh_validation_evaluation.json",
+        "sha256": "2b76eb9d481d561d64d105ae3517dfe7a624e187245833ac96c2c58712297456"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 64,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_65/model/checkpoint.pt",
+        "sha256": "6ee16c55cb2d24a6d3058a9d9015b42f0e2cc75a5eaf813b7d74a16e5b80e095"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_65/fresh_validation_evaluation.json",
+        "sha256": "78e33e45d8d46872a745258c4172195437fcf9115f2372728ebda6315b39525c"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 65,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_66/model/checkpoint.pt",
+        "sha256": "6157a46dbaff057f6e76aa6bda722457546b6acb7288f978a084919717ad4a23"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_66/fresh_validation_evaluation.json",
+        "sha256": "d3892cd8d3575ed5cf9dd016e057e0fc8d227c0e1f5bbcca8d0600ade767cb43"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 66,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_67/model/checkpoint.pt",
+        "sha256": "e983bc24bbf56e826c553179ef2c7ce43b1a05aed630938c9b201241155d250e"
+      },
+      "checkpoint_step": 2000,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_67/fresh_validation_evaluation.json",
+        "sha256": "ec659209cd7f75f102b22d6702fb5d828d0f5a01b81cff05ec8445628f0d2612"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 67,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_68/model/checkpoint.pt",
+        "sha256": "27d1ecfc19b895eca7272f9335282b5a4a6dfb7a0fd420b69e8b93605efaac81"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_68/fresh_validation_evaluation.json",
+        "sha256": "064dfc12aea237a5e74d7b5a99e605e5039bfb0ac4b44a5655fa29a3e9b59054"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 68,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_69/model/checkpoint.pt",
+        "sha256": "45675f15ece2cff6f91188a043814c0dd7bf403772944cce6497995915214dbf"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_69/fresh_validation_evaluation.json",
+        "sha256": "f99ec32cab3e870af86e604b9aecfbb5d8e98ae7bf207821ef34b6820e84ddae"
+      },
+      "git_commit": "6bf2f15b592f266bd154d5de79dcd31a028f3fa1",
+      "seed": 69,
+      "slurm_job_id": 10157586
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_70/model/checkpoint.pt",
+        "sha256": "35c9e7d157e39bf125d3a7cdcb341f97d2922f1e752bc763d2272c49ea33aaab"
+      },
+      "checkpoint_step": 3000,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_70/fresh_validation_evaluation.json",
+        "sha256": "8c4abf05f0e5b3500cdd16e5c4209e1e62973d6e881eb28148ae15d9136892a9"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 70,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_71/model/checkpoint.pt",
+        "sha256": "d17c86d541433467f3f5b73972995a27cdd3e66d2d9a7c32f9a828e31994caf9"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_71/fresh_validation_evaluation.json",
+        "sha256": "5d866296bd13759b5ee5dbaca47ec9666620c8a3d16dc7b151be491d53b168fe"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 71,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_72/model/checkpoint.pt",
+        "sha256": "b53ebeaf68f09a719381b0ff3b9edd434e3d4510966127bb9375cf9bbfd2673f"
+      },
+      "checkpoint_step": 3499,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_72/fresh_validation_evaluation.json",
+        "sha256": "cccb1c1e12242a174ba0f5043571e4b456a5a03f0e72dd98d52f9cdb07fffd19"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 72,
+      "slurm_job_id": 10157457
+    },
+    {
+      "arm": "sparse",
+      "checkpoint": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_73/model/checkpoint.pt",
+        "sha256": "791af4ca15f5cba9a725e12ac93574ddd9c85018deecda5b86ba8bb32f34fc6d"
+      },
+      "checkpoint_step": 3250,
+      "evaluation": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_73/fresh_validation_evaluation.json",
+        "sha256": "2da7cd065b64f7aa176127e0fd6f398a676468edb360404d07bfe98f8b3b1172"
+      },
+      "git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+      "seed": 73,
+      "slurm_job_id": 10157457
+    }
+  ],
+  "schema_version": 1
+}

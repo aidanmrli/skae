@@ -155,7 +155,7 @@ def plot_allen_cahn_forecast(ax: plt.Axes, rows: pd.DataFrame) -> None:
         label="Persistence",
     )
     ax.set_yscale("log")
-    ax.set_title("b  Multibasin PDE forecasting: Allen–Cahn ($d_x=512$)", loc="left")
+    ax.set_title("b  Representation model: Allen–Cahn ($d_x=512$)", loc="left")
     ax.set_xlabel("Forecast horizon (physical time)")
     ax.set_ylabel("Final-time RMSE / persistence RMSE")
     maximum_time = float(rows["physical_time"].max())
@@ -170,7 +170,7 @@ def plot_support_alignment(ax: plt.Axes, rows: pd.DataFrame) -> None:
     ].copy()
     metrics = (
         ("trajectory_transfer_coverage", "Transfer\ncoverage"),
-        ("normalized_h_basin_given_family", "Basin\ninformation"),
+        ("normalized_h_basin_given_family", "Finite-time fate\ninformation"),
         ("normalized_h_family_given_basin", "Support\nuniqueness"),
         ("nmi", "NMI"),
         ("ari", "ARI"),
@@ -254,7 +254,7 @@ def plot_support_alignment(ax: plt.Axes, rows: pd.DataFrame) -> None:
     ax.plot([1.72, 2.28], [0.65, 0.65], color="#444444", linestyle="--", linewidth=0.8)
     ax.text(1.68, 0.65, "0.65 gate", ha="right", va="center", fontsize=6.5)
     ax.set_ylabel("Alignment score (higher is better)")
-    ax.set_title("c  Transferred PDE basin–support alignment", loc="left")
+    ax.set_title("c  Same model: transferred fate–support alignment", loc="left")
     ax.grid(axis="y", alpha=0.2, linewidth=0.6)
     ax.legend(frameon=False, fontsize=8, loc="lower left")
 

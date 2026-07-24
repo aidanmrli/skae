@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "protocol_id": "global_k_distinct_laws_v2_supplemental_integrity_audit",
+  "status": "amended_and_refrozen_before_scientific_outcome_access_by_auditor",
+  "frozen_at_utc": "2026-07-21T04:34:32Z",
+  "supersedes_lock_sha256": "05a00241713215b8e28c2d4ab808243700926ff41a673bedb91a0ff5bdfa999f",
+  "supplemental_sources": {
+    "experiments/neurips_2026/global_k_distinct_laws_v2_supplemental_audit.py": {
+      "path": "experiments/neurips_2026/global_k_distinct_laws_v2_supplemental_audit.py",
+      "sha256": "cd809d967184af8f30302d54c376862102903edd9f1f6e54eb8ea07a5653be8e"
+    },
+    "experiments/neurips_2026/global_k_distinct_laws_v2_supplemental_audit_card.json": {
+      "path": "experiments/neurips_2026/global_k_distinct_laws_v2_supplemental_audit_card.json",
+      "sha256": "ff329fdd1a9a7d70247e09e8611da6126a8a7d43d8f508d4432b80fe029c4a49"
+    },
+    "experiments/neurips_2026/global_k_distinct_laws_v2_supplemental_claim_guards.py": {
+      "path": "experiments/neurips_2026/global_k_distinct_laws_v2_supplemental_claim_guards.py",
+      "sha256": "8631bb329b827dcf86bee21f39e8ede7540ffbe7e084d60275a74e7b038b63f1"
+    },
+    "scripts/neurips_2026/global_k_distinct_laws_v2/run_supplemental_audit.sh": {
+      "path": "scripts/neurips_2026/global_k_distinct_laws_v2/run_supplemental_audit.sh",
+      "sha256": "aa8cedfba7d6ea61f52663f46ab4c7153453be5fd83c14ff727a16f4819f0c8c"
+    },
+    "tests/test_global_k_distinct_laws_v2_supplemental_audit.py": {
+      "path": "tests/test_global_k_distinct_laws_v2_supplemental_audit.py",
+      "sha256": "428780db86a6b44a8727c1a1d315ccf3bab1217072bf40222b517cee02c27d78"
+    }
+  },
+  "frozen_parent_inputs": {
+    "protocol_id": "global_k_distinct_laws_gated_local_linear_v2_new_seeds",
+    "card_sha256": "663fd03ddf9bfacabeef616f2a74f24998460d78b28413fdfeb42b012712f45b",
+    "source_lock_sha256": "a21c8e554d929dff42aeb66f91f7d5d7f1d5ac8ce7d6d3fd76668f47775779be",
+    "full_task_tsv_sha256": "5b1d16ec52e3cf1ea695abbfee95ccc3c5e7b7e1f8a734209791f05d940a0e83",
+    "full_manifest_sha256": "0c34ab6230f0034bb93a7a7d4179d1696da6c5c96d5346c8d21685a784e8451a",
+    "evaluator_sha256": "df2d0d3509b2442470d84a7a79cc5e03574d53b48a8c16179cbf542b097abe88",
+    "summarizer_sha256": "90def302c7ef5fa2642b10146933f3419d6d300c982d200c714d12b8b5b01a42"
+  },
+  "attestation": "The twice-amended supplemental card, implementation, claim guards, wrapper, and tests were hashed without opening any V2 scientific shard, checkpoint-audit row, training log, decision, packet, checkpoint, or SLURM output. This outcome-blind amendment supersedes lock 05a00241... and makes the exact ordered [0.01,0.03,0.06,0.12,0.18] H/G radius sequence and index alignment a fail-closed integrity precondition. The frozen scientific adjudication is unchanged. The lock itself contains no scientific result. Any later modification to these five files invalidates this lock."
+}

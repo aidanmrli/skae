@@ -1,0 +1,59 @@
+{
+  "authentication": {
+    "card_sha256": "d4748ec37aaf6d10de0c02eb988c5278840eacbbcf649007e1675a0c788bcb88",
+    "checkpoint_roster_sha256": "ad29e12864655820f3e4027c3784e89f03fabda9f57dc768082713546fbd4a58",
+    "gpu_uuid": "GPU-252f5ae4-007a-fee5-cf15-ce5fd036ee59",
+    "raw_external_artifacts_modified": false,
+    "scientific_row_count": 63,
+    "slurm_job_id": "10165374",
+    "source_manifest_sha256": "2c0af1fac15f182b3dd6538d909b77b68e123566a46f488a93b89068c31c3221",
+    "summary_recomputed_exactly_from_authenticated_payload": true
+  },
+  "display_scope": "all seven frozen metrics at the H200 cumulative endpoint",
+  "external_source_root": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721",
+  "generated_by": "experiments.neurips_2026.evidence.allen_cahn_physics_metrics",
+  "packet_id": "allen_cahn_physics_metrics",
+  "reproduction": {
+    "portable_check": "uv run skae-paper build allen-cahn-physics-metrics --check",
+    "source_regeneration_check": "uv run skae-paper build allen-cahn-physics-metrics --check-sources"
+  },
+  "schema_version": 1,
+  "source_artifacts": {
+    "outcome_guard_receipt": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/outcome_guard_receipt.json",
+      "sha256": "b0cf579a38ed472e6ae40ec225141e3ee86e76b2393d85b6c14763307798bc8c"
+    },
+    "prediction_card": {
+      "path": "/home/mila/l/lia/skae/experiments/neurips_2026/allen_cahn_physics_metrics/prediction_card.json",
+      "sha256": "d4748ec37aaf6d10de0c02eb988c5278840eacbbcf649007e1675a0c788bcb88"
+    },
+    "raw_gpu_telemetry": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/raw_gpu_telemetry.csv",
+      "sha256": "1df11d171374b213d357ff626fc0526565275ddda222ba77832d3bf5e7ad2646"
+    },
+    "runtime_lineage": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/runtime_lineage.json",
+      "sha256": "11cfa65eee98ccb70d0cc5d0dfa209851c2454fac10a0f1f091278ff2cb1b018"
+    },
+    "scientific_payload": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/scientific_physics_curves.json",
+      "sha256": "3ab7d3ee5fc1b155bad66571d353a867eb48896306b48378f5076e2d7af45e43"
+    },
+    "scratch_summary": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/summary/physics_metrics_summary.json",
+      "sha256": "de0e8b84fab79d2198ffd2807924957d4a5d1986520b2eca67034c66f052c128"
+    },
+    "source_manifest": {
+      "path": "/home/mila/l/lia/skae/experiments/neurips_2026/allen_cahn_physics_metrics/source_manifest.sha256",
+      "sha256": "2c0af1fac15f182b3dd6538d909b77b68e123566a46f488a93b89068c31c3221"
+    },
+    "telemetry_audit": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/telemetry_audit.json",
+      "sha256": "0a48e9c153bbc47e981909f0bd057e6fc32b36be58249c8df43ec30e6d843a84"
+    },
+    "visualization_snapshots": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721/visualization_snapshots.pt",
+      "sha256": "955c4ae968df66908ede5e7c9bdd7c94be2016736b766a70adf17eac7909b079"
+    }
+  }
+}

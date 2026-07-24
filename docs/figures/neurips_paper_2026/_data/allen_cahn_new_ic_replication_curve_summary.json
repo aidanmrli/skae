@@ -1,0 +1,81 @@
+{
+  "aggregation": {
+    "datasets_per_model_seed": 3,
+    "inference_unit": "paired model seed",
+    "model_seeds": [
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73
+    ],
+    "rule": "average three datasets within each model seed, then average ten paired model seeds",
+    "trajectory_or_cell_pseudoreplication": false
+  },
+  "caption": "Complete-horizon Allen--Cahn same-checkpoint new-initial-condition replication. Lines average three datasets within each of ten paired model seeds before the arm mean; shading gives 95% paired-model-seed pointwise bootstrap intervals, which are descriptive and not simultaneous. The H200 diamond and error bar separately show the prospectively frozen, outcome-aware primary endpoint for this new-IC check: the joint sparse recipe lowers mean direct-rollout field MSE over steps 1--200 by 5.86% (95% CI 2.40--9.21%; exact one-sided p=0.0088; 8/10 wins). Descriptively, sparse instantaneous arm-mean MSE is lower at all 200 times and 68.2% of the signed dense-minus-sparse gap sum occurs after T=2. Checkpoints were neither retrained nor reselected; one encoding is followed by 200 global-K steps without re-encoding. The original four-cell gate failed. Curve points do not define additional tests or terminal claims.",
+  "curve": {
+    "h200_pointwise_ci95_lower": 0.023522097826444446,
+    "h200_pointwise_ci95_upper": 0.09195290754542729,
+    "horizons": 200,
+    "maximum_relative_reduction": 0.14171726550770625,
+    "maximum_relative_reduction_horizon": 16,
+    "minimum_relative_reduction": 0.058574119441734296,
+    "minimum_relative_reduction_horizon": 200,
+    "physical_time": 20.0,
+    "pointwise_bootstrap_replicates": 50000,
+    "pointwise_bootstrap_seed": 20260721,
+    "pointwise_interval_role": "descriptive_not_simultaneous_no_curve_wide_test_no_horizon_selection",
+    "sparse_arm_mean_lower_at_all_200_horizons": true,
+    "stored_dt": 0.1
+  },
+  "figure_disclosure": "H200 was selected after the original four-cell gate failed; same checkpoints; no retraining or reselection.",
+  "figure_title": "Allen--Cahn same-checkpoint new-IC robustness check: complete 200-step horizon",
+  "full_trace_descriptive": {
+    "after_physical_time_2_rule": "physical_time > 2.0; steps 21--200",
+    "evaluated_time_count": 200,
+    "instantaneous_arm_mean_definition": "average three datasets within model seed, then average ten model seeds at each time",
+    "role": "descriptive_no_simultaneous_or_curve_wide_inference",
+    "signed_gap_definition": "dense minus sparse instantaneous arm-mean field MSE",
+    "signed_gap_share_after_physical_time_2": 0.6820481363593904,
+    "signed_gap_sum_after_physical_time_2": 0.39174209764848156,
+    "signed_gap_sum_steps_1_through_200": 0.5743613636121154,
+    "sparse_arm_mean_lower_at_all_evaluated_times": true,
+    "sparse_arm_mean_lower_count": 200
+  },
+  "metric_schema": {
+    "instantaneous_field_mse": {
+      "definition": "field-element mean squared error at exactly the named forecast time"
+    },
+    "through_horizon_mean_field_mse": {
+      "authenticated_source_legacy_key": "cumulative_field_mse",
+      "definition": "at horizon h, cumsum(instantaneous_field_mse) over steps 1--h divided by h",
+      "not_an_unnormalized_cumulative_sum": true
+    }
+  },
+  "packet_id": "allen_cahn_new_ic_replication",
+  "primary_h200": {
+    "bootstrap_replicates": 100000,
+    "ci95_lower": 0.024028248853500533,
+    "ci95_upper": 0.09208249660573453,
+    "dense_mean": 0.04902859565677742,
+    "one_sided_exact_sign_flip_p": 0.0087890625,
+    "paired_model_seed_wins": 8,
+    "relative_reduction_of_arm_means": 0.058574119441734296,
+    "role": "prospectively_frozen_outcome_aware_primary_endpoint_for_this_new_ic_check_separate_from_curve_bands",
+    "sparse_mean": 0.04615678883871684
+  },
+  "schema_version": 2,
+  "source": {
+    "card_sha256": "5519644cbbc8992a356045e68ff496818dceed500300432fd985febf80a555de",
+    "checkpoint_roster_sha256": "ad29e12864655820f3e4027c3784e89f03fabda9f57dc768082713546fbd4a58",
+    "crossed_cells": 60,
+    "scientific_payload_sha256": "4c536871e71f47fd055db057da8c1c4a1213a0aceee9687ddb1c14dbc8963cf0",
+    "source_manifest_sha256": "8add4eb16eea0f1e4b6d1483bf96149e092549f20977d93cb94b566502587595"
+  },
+  "status": "descriptive_full_horizon_with_separate_primary_h200_inference"
+}

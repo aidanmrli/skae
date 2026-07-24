@@ -1,6 +1,7 @@
 {
   "status": "frozen_after_validation_screen_and_before_fresh_training",
   "experiment": "temporal_group_sparse_PDE_replication_and_new_holdout",
+  "post_audit_selection_disclosure": "Validation fate metrics selected T=20 scoring, family Jaccard 0.40, the temporal weight, and advancement of this entire fixed ten-seed packet. Conditional on those choices, training, representative fitting, assignment, and new-holdout transfer are label-free.",
   "screen_selection": {
     "path": "/network/scratch/l/lia/skae/allen_cahn_temporal_group_20260719/screen_summary/selection.json",
     "sha256": "d3ce26007e6a247e6c4b8cb5fc23653523f2dd846dc51e1eb7eeb94638778db8",
@@ -11,6 +12,7 @@
   "training_dataset": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1.pt",
   "validation_dataset": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1_t20.pt",
   "confirmation_model_seeds": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+  "seed_retention_policy": "all ten fixed model seeds remain in every packet-level summary; none may be omitted",
   "minimum_sparse_guard_passes": 10,
   "support_confirmation_gate": {
     "minimum_mean_transfer_coverage": 0.85,
@@ -28,7 +30,7 @@
   "controls": {
     "direct": "same tanh circular-convolutional control and budget as the first confirmation",
     "dense": "same exact-dense tanh KAE recipe with every sparsity source disabled",
-    "sparse": "same signed sparse KAE plus the selected label-free temporal group penalty"
+    "sparse": "same signed sparse KAE plus a label-free temporal group objective selected by label-assisted validation gates"
   },
   "new_holdout": {
     "dataset_seed": 20260720,

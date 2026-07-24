@@ -1,0 +1,4 @@
+dataset_seed,role,dense_h200_cumulative_field_mse,sparse_h200_cumulative_field_mse,relative_reduction,sparse_better
+1775404171,prospective_new_initial_conditions,0.049353528296574953,0.047044853127561508,0.046778320592200995,true
+74732421,prospective_new_initial_conditions,0.049001579983159897,0.046120714579708871,0.058791275800516574,true
+293789188,prospective_new_initial_conditions,0.048730678690597412,0.045304798808880151,0.070302322351572077,true

@@ -30,6 +30,15 @@ cd "${ROOT_DIR}"
 TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
 PACK_SIZE="${PACK_SIZE:-12}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+TASK_TSV_SHA256="${TASK_TSV_SHA256:-}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
+if [[ -n "${TASK_TSV_SHA256}" ]]; then
+  printf '%s  %s\n' "${TASK_TSV_SHA256}" "${TASK_TSV}" | sha256sum -c -
+fi
 
 if (( PACK_SIZE <= 0 )); then
   echo "PACK_SIZE must be positive, got ${PACK_SIZE}"
@@ -62,6 +71,8 @@ for ((PACK_INDEX = 0; PACK_INDEX < PACK_SIZE; PACK_INDEX++)); do
   SLURM_ARRAY_TASK_ID="${GLOBAL_TASK_ID}" \
   ARRAY_OFFSET=0 \
   TASK_TSV="${TASK_TSV}" \
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
   bash scripts/neurips_2026/dysts/run_evaluation_task.sh
 done
 

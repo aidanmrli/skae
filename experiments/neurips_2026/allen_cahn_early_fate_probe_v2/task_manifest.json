@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_early_fate_probe_v2",
+  "status": "prospective_new_seed_task_roster_frozen_before_generation",
+  "output_root": "/network/scratch/l/lia/skae/allen_cahn_early_fate_probe_20260721_v2",
+  "gpu_tasks": [
+    {
+      "task_index": 0,
+      "role": "packed_field_generation_and_all_checkpoint_field_only_encoding",
+      "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+      "arms": ["sparse", "dense"],
+      "dataset_seeds": [1039834201, 1541075401, 1816972447],
+      "observation_indices": [0, 5, 10, 20, 40],
+      "outputs": ["dataset_manifest.json", "field_only/features.pt", "field_only/raw_telemetry_unverified.csv"]
+    }
+  ],
+  "cpu_tasks": [
+    {
+      "task_index": 0,
+      "role": "authenticate_gpu_allocation_and_encoding_telemetry",
+      "dependency": "gpu_task_0",
+      "output": "field_only/telemetry_receipt.json"
+    },
+    {
+      "task_index": 1,
+      "role": "authenticated_tie_exclusion_and_label_aware_probe_reduction",
+      "dependency": "cpu_telemetry_task_0",
+      "output": "summary/decision.json"
+    }
+  ],
+  "no_array_padding": true,
+  "no_checkpoint_dataset_or_seed_substitution": true,
+  "no_v3_if_validity_fails": true
+}

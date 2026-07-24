@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_existing_new_ic_physics_metrics_v1",
+  "frozen_at": "2026-07-21",
+  "experiment_type": "discriminating_secondary_evaluation",
+  "blocking_uncertainty": "Whether the authenticated 5.8574% H200 through-trajectory field-MSE advantage of sparse over exact-dense direct rollout translates into physically interpretable multibasin forecast benefits.",
+  "hypothesis": "On the identical authenticated fields, checkpoints, direct repeated-global-K rollout, and physical times, sparse forecasts will show broadly concordant improvements in phase assignment, interface geometry, and phase-field energetics.",
+  "competing_explanations": [
+    "The field-MSE gain reflects only small amplitude corrections and does not improve basin occupancy or interfaces.",
+    "Sparse forecasts improve phase assignment but not interface geometry or energy.",
+    "Sparse forecasts improve energy-amplitude agreement while discrete well labels remain unchanged or worse.",
+    "Persistence explains the apparent physical benefit at these times."
+  ],
+  "expected_outcome": "A credible physical translation would have positive sparse direction in at least five of seven mandatory H200 cumulative metrics, with at least one positive metric in each of phase assignment, interface geometry, and thermodynamics. This is a descriptive pattern rule, not a new confirmatory gate.",
+  "what_would_surprise_us": "A reversal in interface or full-free-energy error despite lower field MSE, broad equality to persistence, or improvement confined to only one correlated metric family.",
+  "authenticated_inputs": {
+    "source_card": {
+      "path": "/home/mila/l/lia/skae/experiments/neurips_2026/allen_cahn_forecast_replication/prediction_card.json",
+      "sha256": "5519644cbbc8992a356045e68ff496818dceed500300432fd985febf80a555de"
+    },
+    "source_manifest": {
+      "path": "/home/mila/l/lia/skae/experiments/neurips_2026/allen_cahn_forecast_replication/source_manifest.sha256",
+      "sha256": "8add4eb16eea0f1e4b6d1483bf96149e092549f20977d93cb94b566502587595"
+    },
+    "dataset_manifest": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/dataset_manifest.json",
+      "sha256": "31fcd9f7e52ec790a8a88bce5c445289136c867da90af4a7a6b8907b82c0f1c8"
+    },
+    "outcome_guard_receipt": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/outcome_guard_receipt.json",
+      "sha256": "0ba035b5d48eafcfa67e22d2ab5cfd31bb642d9341c632e678a9d216b26ecac4"
+    },
+    "checkpoint_roster_sha256": "ad29e12864655820f3e4027c3784e89f03fabda9f57dc768082713546fbd4a58",
+    "datasets": [
+      {
+        "dataset_index": 0,
+        "dataset_seed": 1775404171,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed1775404171.pt",
+        "sha256": "4c3b8755459c27e00584d03c130496cd6edc909780156672a201c7bc502657e3",
+        "field_shape": [256, 201, 16, 16, 2]
+      },
+      {
+        "dataset_index": 1,
+        "dataset_seed": 74732421,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed74732421.pt",
+        "sha256": "b776c8cffdb03ffc9577c9c30b48dc79f48095c3f2bf51b0052c093ae89e2896",
+        "field_shape": [256, 201, 16, 16, 2]
+      },
+      {
+        "dataset_index": 2,
+        "dataset_seed": 293789188,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed293789188.pt",
+        "sha256": "7d7611d14ab0176695b364fe6ca4dded4d1427b1dc6e82d30318ef2c702b34d4",
+        "field_shape": [256, 201, 16, 16, 2]
+      }
+    ],
+    "permanently_sealed_artifact_policy": "Only the three explicit field paths above may be opened. No scratch globbing, seed discovery, replacement dataset, or access to any fate-probe artifact is permitted."
+  },
+  "matching_contract": {
+    "arms": ["dense", "sparse", "persistence"],
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "dataset_seeds": [1775404171, 74732421, 293789188],
+    "learned_cells": 60,
+    "persistence_cells": 3,
+    "rollout": "For every learned checkpoint and x0, float32/autocast-off direct rollout calls the authenticated encoder exactly once, applies z_next = F.linear(z,kmat) exactly 200 times, and decodes all 200 states without reencoding. Persistence repeats x0 at every predicted time.",
+    "trajectory_policy": "All 256 ordered trajectories in every dataset are scored; none may be excluded, relabeled, balanced, filtered, or replaced.",
+    "time_policy": "Every stored observation h=1,...,200 at dt=0.1 is scored, corresponding to T=0.1,...,20.0. No finite prefix or outcome-selected horizon is allowed.",
+    "labels_policy": "The four known physical wells are loaded from the exact pinned generator source and used only for evaluation-time scoring. They are not model inputs and do not alter forecasts.",
+    "finiteness": "One nonfinite field, prediction, per-trajectory metric, curve point, or energy value invalidates the complete packet."
+  },
+  "metric_contract": {
+    "grid_size": 16,
+    "channels": 2,
+    "num_wells": 4,
+    "energy_coefficients": {
+      "beta": 8.0,
+      "reaction_strength": 1.0,
+      "diffusion": 0.005,
+      "domain": "unit periodic square",
+      "grid_spacing": 0.0625
+    },
+    "mandatory_metrics": [
+      {
+        "name": "nearest_well_pixel_disagreement",
+        "direction": "lower",
+        "family": "phase_assignment",
+        "definition": "Fraction of all 16x16 pixels whose predicted and true nearest-well identities differ. Squared-distance ties use the fixed pinned center order; no ties are excluded."
+      },
+      {
+        "name": "modal_well_accuracy",
+        "direction": "higher",
+        "family": "phase_assignment",
+        "definition": "Fraction of trajectories whose predicted and true modal nearest-well identities agree. Modal-count ties use the fixed pinned center order; truth and prediction tie rates are always reported and no trajectory is excluded."
+      },
+      {
+        "name": "well_area_fraction_tv_error",
+        "direction": "lower",
+        "family": "phase_assignment",
+        "definition": "One half the L1 distance between predicted and true four-well pixel-area-fraction vectors, bounded in [0,1]."
+      },
+      {
+        "name": "interface_edge_disagreement",
+        "direction": "lower",
+        "family": "interface_geometry",
+        "definition": "Fraction of the 2*16*16 undirected periodic forward grid edges for which predicted and true nearest-well boundary indicators differ."
+      },
+      {
+        "name": "free_energy_absolute_error",
+        "direction": "lower",
+        "family": "thermodynamics",
+        "definition": "Absolute prediction-truth error in the exact discrete Lyapunov functional E=mean[-r/(2beta) logsumexp_i(-beta||u-c_i||^2)] + D/2 sum_{pixels,x/y-forward}||Delta u||^2."
+      },
+      {
+        "name": "potential_energy_absolute_error",
+        "direction": "lower",
+        "family": "thermodynamics",
+        "definition": "Absolute prediction-truth error in the multiwell-potential component of E; reported mandatorily so cancellation cannot make full-energy error look favorable."
+      },
+      {
+        "name": "gradient_energy_absolute_error",
+        "direction": "lower",
+        "family": "thermodynamics",
+        "definition": "Absolute prediction-truth error in the periodic forward-edge gradient component of E; reported mandatorily so cancellation cannot make full-energy error look favorable."
+      }
+    ],
+    "energy_derivation": "For phi(u)=-(2beta)^-1 logsumexp_i(-beta||u-c_i||^2), grad phi=sum_i softmax_i(u-c_i). The pinned reaction is -r grad phi. With unit-square spacing 1/16, the derivative of the frozen edge energy yields D*16^2 times the stored unscaled periodic Laplacian, exactly matching the pinned RHS.",
+    "numerics": "Forecasts and nearest-well assignment use authenticated float32 direct rollout with autocast disabled and matmul precision high. Energy arithmetic is float64 on the same float32 fields."
+  },
+  "inference_and_reporting": {
+    "evidence_grade": "outcome_aware_same_checkpoint_secondary",
+    "inference_unit": "Ten paired model seeds after equal averaging of the three fixed datasets within seed. Trajectories and datasets are repeated measurements, not independent n.",
+    "sole_statistical_family": "All seven H200 through-trajectory cumulative physics metrics; none may be omitted.",
+    "test": "For each metric, one-sided exact paired sign-flip test of oriented sparse improvement using the studentized mean over ten paired model seeds and literal enumeration of all 2^10 signs.",
+    "multiplicity": "Holm adjustment across all seven mandatory H200 cumulative metrics.",
+    "bootstrap": "Paired-model-seed percentile 95% interval for oriented absolute improvement; each resampled seed retains both arms and its three-dataset average. Each metric uses only its explicitly frozen seed below.",
+    "bootstrap_replicates": 100000,
+    "bootstrap_seeds_by_metric": {
+      "nearest_well_pixel_disagreement": 2026072101,
+      "modal_well_accuracy": 2026072102,
+      "well_area_fraction_tv_error": 2026072103,
+      "interface_edge_disagreement": 2026072104,
+      "free_energy_absolute_error": 2026072105,
+      "potential_energy_absolute_error": 2026072106,
+      "gradient_energy_absolute_error": 2026072107
+    },
+    "arm_mean_effect_reporting": "For a lower-is-better metric with positive dense H200 cumulative arm mean, report 1-sparse/dense. If that dense mean is exactly zero, report the oriented absolute arm-mean improvement dense-sparse instead and never label it as an accuracy effect. For modal accuracy, report 100*(sparse-dense) percentage points.",
+    "mandatory_descriptives": [
+      "all h=1..200 instantaneous and cumulative arm/control mean curves",
+      "all ten paired model-seed H200 cumulative values and improvements",
+      "H160 cumulative and terminal values",
+      "H200 cumulative and terminal values",
+      "late physical-time T=10.1..20.0 instantaneous mean",
+      "persistence values and model/control ratios where the control denominator is positive",
+      "truth and candidate modal-tie-rate curves",
+      "all seven raw and Holm-adjusted p-values and paired intervals"
+    ],
+    "interpretation": "No metric, horizon, time window, seed, trajectory, dataset, arm, energy component, or unfavorable result may be hidden. Results cannot rescue or reclassify the prior field-MSE endpoint and do not isolate sparsity as a causal mechanism.",
+    "pattern_rule": {
+      "broad_secondary_concordance": "Sparse is directionally better in at least five of seven H200 cumulative metrics and in at least one metric from every frozen family.",
+      "mixed_secondary_translation": "Sparse is directionally better in three or four metrics, or is better in at least five metrics but misses at least one frozen family.",
+      "little_or_reversed_secondary_translation": "Sparse is directionally better in at most two metrics."
+    }
+  },
+  "visualization_contract": {
+    "model_seed": 64,
+    "paper_display_dataset_index": 0,
+    "archived_snapshot_dataset_indices": [0, 1, 2],
+    "trajectory_indices": [0, 64, 128, 192, 255],
+    "observation_indices": [0, 50, 100, 150, 200],
+    "physical_times": [0.0, 5.0, 10.0, 15.0, 20.0],
+    "arms": ["truth", "persistence", "dense", "sparse"],
+    "policy": "Snapshots are fixed before metric access. Any paper display must use dataset 0 and show all five fixed trajectories and all four arms/times; datasets 1 and 2 are archived under the same roster but cannot replace dataset 0 after outcome access. No favorable dataset, seed, trajectory, frame, or crop selection is permitted. Quantitative conclusions use all trajectories and all model seeds."
+  },
+  "decision_branches": {
+    "broad": "Report broad but secondary physical concordance, list all seven effects and persistence comparisons, and retain outcome-aware/same-checkpoint caveats.",
+    "mixed": "Report exactly which physical families translate and which do not; do not summarize the field-MSE advantage as general physical superiority.",
+    "little_or_reversed": "State that lower field MSE did not broadly improve the requested physical observables and do not use this packet as positive rebuttal evidence.",
+    "invalid": "If lineage, exact roster, finiteness, completeness, telemetry, or source gates fail, preserve the unopened payload hash and permit only a computational repair with every scientific choice unchanged."
+  },
+  "hardware_plan": {
+    "partition": "long",
+    "gpu": "One A100-SXM4-80GB job preloads all twenty models and all three authenticated field panels before the measured window; the window contains only required direct rollouts and mandatory physics scoring.",
+    "cpu_summary": "One dependent CPU-only long-partition job verifies the metric-free receipt before opening the scientific payload and computes every frozen reduction.",
+    "batch_size": 256,
+    "boundary_samples_excluded_per_side": 1,
+    "minimum_all_window_samples_before_boundary_exclusion": 12,
+    "minimum_retained_all_window_samples": 10,
+    "minimum_mean_retained_all_window_gpu_utilization_percent": 90.0,
+    "strict_p10_retained_all_window_gpu_utilization_percent_above": 80.0,
+    "minimum_median_sample_cadence_seconds": 0.5,
+    "maximum_median_sample_cadence_seconds": 1.5,
+    "maximum_sample_gap_seconds": 1.5,
+    "maximum_marker_edge_gap_seconds": 1.5,
+    "maximum_peak_memory_fraction": 0.8,
+    "no_padding": "No dummy kernels, duplicated scoring, sleeps, warmup inside the measured window, utilization filtering, or other padding is permitted.",
+    "cpu_gpu_separation": "Paired bootstrap, exact tests, Holm adjustment, JSON reduction, and figure rendering are CPU-only and must not request a GPU."
+  },
+  "execution": {
+    "output_root": "/network/scratch/l/lia/skae/allen_cahn_physics_metrics_v1_20260721",
+    "scientific_jobs_submitted": 0,
+    "physics_outcomes_inspected": 0,
+    "launch_state": "dormant_pending_independent_audit_and_root_authorization",
+    "owner": "root agent",
+    "required_reviewers": [
+      "independent metric-definition and PDE-energy reviewer",
+      "independent artifact-lineage and sealed-data reviewer",
+      "independent paired-statistics reviewer",
+      "GPU-utilization auditor"
+    ]
+  }
+}

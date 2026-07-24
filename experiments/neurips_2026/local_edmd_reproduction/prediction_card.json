@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "protocol_id": "local_edmd_poly_historical_reproduction_v1",
+  "status": "frozen_before_reproduction_execution",
+  "frozen_at": "2026-07-20",
+  "experiment_type": "known_outcome_provenance_reproduction",
+  "run_and_method_ids": {
+    "run": "local_edmd_poly_reproduction_20260720",
+    "method": "local_edmd_poly_kmeans"
+  },
+  "blocking_uncertainty": "The June label-free local polynomial EDMD control has strong historical outputs, but its evaluator and raw evidence were removed from the maintained paper workflow during repository cleanup.",
+  "hypothesis": "A behavior-preserving port of commit c27490d reproduces the authenticated June row grid, validation-selected route counts, and aggregate metrics within the tolerances frozen below.",
+  "competing_explanations": [
+    "The historical result depended on code or dependency state that the current repository no longer reproduces.",
+    "The route-count result was accidentally label- or known-basin-count-dependent.",
+    "Numerical drift changes K-means assignments or the selected route count even when the written protocol is unchanged."
+  ],
+  "known_outcome_notice": "This is not a prospective confirmation. All June outcomes and both historical scratch roots were inspected before this card was frozen.",
+  "historical_source": {
+    "commit": "c27490de63a499edab328065fe933f73a63f5d1a",
+    "evaluator_sha256": "94964df63b6c65e004e50391e0a2960583e8ed62bed01f9901f95f8f87828e29",
+    "classical_helper_sha256": "658202dd4e78b220a52b54b1f3c8caea65f939a5c0fb2d5d074c556396d526de",
+    "task_builder_sha256": "8b4d72b81f942efc374e027345a6a4f891d83d6021e4601c992e2a6724394f9c",
+    "summarizer_sha256": "499d98ec5c04434b1c62a3e0922bfb47e83621490c8c1d9d2ef2f3a8121183d9"
+  },
+  "protocol": {
+    "method": "degree-3 polynomial EDMD behind state-space k-means routes",
+    "route_count_grid": [1, 2, 4, 8, 16],
+    "selection": "minimum mean log cumulative rollout MSE over all report horizons on a deterministic 25% held-out subset of training trajectories; ties prefer smaller k",
+    "refit": "refit selected k on the complete training split",
+    "rollout": "decode the predicted state and reroute that predicted state before every next local EDMD update",
+    "labels_and_counts": "No basin labels, attractor identities, known basin counts, or fixed basin count enter fitting, validation selection, refitting, routing, or forecasting. Optional labels in raw rows are evaluation diagnostics only.",
+    "seeds": [0, 1, 2],
+    "controlled": {
+      "systems": 15,
+      "trajectories": 256,
+      "trajectory_length": 1000,
+      "train_fraction": 0.6,
+      "horizons": [100, 500, 1000]
+    },
+    "dysts": {
+      "systems": 10,
+      "trajectories": 200,
+      "trajectory_length": 4000,
+      "train_fraction": 0.5,
+      "horizons": [100, 2000, 4000],
+      "observation_cadence": "intrinsic dt times 30",
+      "standardized_coordinates": true
+    },
+    "ridge_lambda": 1e-6,
+    "minimum_component_transitions": 64,
+    "maximum_absolute_fit_state": 1000000.0
+  },
+  "known_expected_cross_system_means": {
+    "controlled": {
+      "H100": 0.14953663670168432,
+      "H500": 0.25242123852375753,
+      "H1000": 0.2747299334457285
+    },
+    "dysts": {
+      "H100": 0.0005005032778234641,
+      "H2000": 2.1705718905105225,
+      "H4000": 2.966046746017425
+    }
+  },
+  "exact_reproduction_tolerances": {
+    "discrete_fields": "exact equality for the complete 225-row key grid, status, selected k, candidate k/status, component counts, fitted-component count, dimensions, transition counts, and train/validation/test counts",
+    "continuous_fields": {
+      "relative": 1e-6,
+      "absolute": 1e-10
+    },
+    "aggregate_fields": {
+      "relative": 1e-6,
+      "absolute": 1e-10
+    },
+    "finite_fraction": "exact equality"
+  },
+  "what_would_be_surprising": "Any missing/non-ok row, any discrete mismatch (especially selected k), or any continuous or aggregate difference outside the frozen tolerances.",
+  "measurement_and_compute_matching_contract": "Use the current 15-system controlled and 10-system Dysts rosters, the historical data/selection/evaluation budgets exactly, one CPU task per system/seed, four CPUs and 8 GiB per task, and no GPU.",
+  "success_branch": "Archive a portable compact packet and use it only as provenance-backed evidence that a serious label-free switching-style local polynomial EDMD control was already evaluated. Do not infer paired significance or a sparsity mechanism.",
+  "failure_branch": "Do not use the historical baseline claim until the first row-level protocol or numerical mismatch is diagnosed and adjudicated.",
+  "ambiguity_branch": "Inspect the authenticated row-level comparison, separating benign floating-point drift from route-count, data, or environment drift; do not relax tolerances after seeing the reproduction.",
+  "claim_limits": [
+    "The baseline uses independently generated trajectories and only three configured seeds, so it is an unmatched descriptive reference.",
+    "No formal paired test against KAE rows is licensed.",
+    "Strong forecasting does not provide a support-alignment readout.",
+    "The result does not show that local EDMD is universally weaker, nor that sparsity alone causes a KAE advantage."
+  ]
+}

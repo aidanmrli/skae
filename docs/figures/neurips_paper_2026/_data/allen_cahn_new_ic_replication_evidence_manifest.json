@@ -1,0 +1,57 @@
+{
+  "builder_sources": {
+    "curve_builder_sha256": "875fad1b9b3e04d2f10924a3e187f73e51a1240d1d9baf4f69a0a3888ef40b6d",
+    "curve_rendering_sha256": "970b1ba3a2130ef10b31283e33a10f8117e3227dd9b16bda0e40683ddac83399",
+    "curve_validation_sha256": "ce0c84e00d3171f33db1656a3fd586c8155c3e3518858d57df826677a5401227",
+    "evidence_builder_sha256": "b0276162611fe56afc9f72dff8f9c3f108fe3daf5ba0867529ef114da3cf6a72",
+    "rendering_sha256": "adc57a3418a373e40061e8c3639773d5cc8b3260b65f67e9411b7836fdb342cc"
+  },
+  "outputs": {
+    "curve_rows": {
+      "path": "allen_cahn_new_ic_replication_curve_rows.csv",
+      "sha256": "164b4e64605d53d1af8ce8d4b3bcd6a690ae63beea086bd86a2eaa5f464b851f"
+    },
+    "curve_summary": {
+      "path": "allen_cahn_new_ic_replication_curve_summary.json",
+      "sha256": "6e3fc4bb3fa897f94dc6a302dddb1151c78c61f9c1a17f0dbbe695e515443931"
+    },
+    "dataset_rows": {
+      "path": "allen_cahn_new_ic_replication_dataset_rows.csv",
+      "sha256": "5362b16986a5e0611519edef69355e0fb3902b98a2c5b326c6d934b634cf0de8"
+    },
+    "figure_pdf": {
+      "path": "fig_allen_cahn_new_ic_replication.pdf",
+      "sha256": "966374b67d73febe12198e098a2b9c0e086513107e2fdec345149c04f1b71022"
+    },
+    "figure_png": {
+      "path": "fig_allen_cahn_new_ic_replication.png",
+      "sha256": "fb66b4cd4dafb063fa140455860dd6c91423477bc78bc408e93aca07848feceb"
+    },
+    "full_horizon_figure_pdf": {
+      "path": "fig_allen_cahn_new_ic_replication_full_horizon.pdf",
+      "sha256": "a9dd6117e5be2d265ce1318cae77492a693128faf2483f05af2190aeb6ccc3f7"
+    },
+    "full_horizon_figure_png": {
+      "path": "fig_allen_cahn_new_ic_replication_full_horizon.png",
+      "sha256": "c0d55d45780f67c35bf293bac223f20e6f7fa8cdc0e96a5012cb2f6058e5860b"
+    },
+    "seed_rows": {
+      "path": "allen_cahn_new_ic_replication_seed_rows.csv",
+      "sha256": "4d05c4c3327c56f26929c061968fa5a08e5e0a92e926c3bff579445ccb1f0f7a"
+    },
+    "summary": {
+      "path": "allen_cahn_new_ic_replication_summary.json",
+      "sha256": "c7a715d1c98c61ff9c8723173bb43f85b4d7a19b70a20dd193dd70a02236732f"
+    }
+  },
+  "packet_id": "allen_cahn_new_ic_replication",
+  "reproduction": "uv run skae-paper build allen-cahn-new-ic-replication --check",
+  "schema_version": 1,
+  "source_artifacts": {
+    "card": "5519644cbbc8992a356045e68ff496818dceed500300432fd985febf80a555de",
+    "decision": "fde59ff99cc407270c5b9e6a8eaaa1730a0f0639d10abf968f8db2d2fce5583d",
+    "receipt": "0ba035b5d48eafcfa67e22d2ab5cfd31bb642d9341c632e678a9d216b26ecac4",
+    "source_manifest": "8add4eb16eea0f1e4b6d1483bf96149e092549f20977d93cb94b566502587595",
+    "telemetry": "fca5ab4bb8434a344be01bc71b510d3c8f4e2526a083fa425ad802dea48c373b"
+  }
+}

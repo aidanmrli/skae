@@ -64,18 +64,27 @@ def rollout_no_reencode(model: KoopmanMachine, x0: torch.Tensor, horizon: int) -
     x0 = x0.to(device)
 
     latent = model.encode(x0)
+    alive = torch.isfinite(latent).all(dim=-1)
     predictions: List[torch.Tensor] = []
 
     for _ in range(horizon):
-        latent = model.step_latent(latent)
-        x_pred = model.decode(latent)
-        predictions.append(x_pred)
-
-        if not torch.isfinite(x_pred).all():
-            # Mark remaining steps as NaN to signal explosion
-            nan_frame = torch.full_like(x_pred, torch.nan)
-            predictions.extend([nan_frame] * (horizon - len(predictions)))
-            break
+        candidate_latent = model.step_latent(latent)
+        candidate_state = model.decode(candidate_latent)
+        alive = (
+            alive
+            & torch.isfinite(candidate_latent).all(dim=-1)
+            & torch.isfinite(candidate_state).all(dim=-1)
+        )
+        predictions.append(
+            torch.where(
+                alive.unsqueeze(-1),
+                candidate_state,
+                torch.full_like(candidate_state, torch.nan),
+            )
+        )
+        latent = torch.where(
+            alive.unsqueeze(-1), candidate_latent, torch.zeros_like(candidate_latent)
+        )
 
     return torch.stack(predictions, dim=0)
 
@@ -283,35 +292,53 @@ def _rollout_periodic_reencode_with_diagnostics(
 
     latent = model.encode(x0)
     batch_size = int(x0.shape[0])
+    alive = torch.isfinite(latent).all(dim=-1)
     diagnostics = _empty_rollout_diagnostics(horizon=horizon, batch_size=batch_size, device=device)
     predictions: List[torch.Tensor] = []
 
     for step in range(horizon):
         predicted_latent = model.step_latent(latent)
         predicted_state = model.decode(predicted_latent)
-        predictions.append(predicted_state)
-
-        if not torch.isfinite(predicted_state).all():
-            nan_frame = torch.full_like(predicted_state, torch.nan)
-            predictions.extend([nan_frame] * (horizon - len(predictions)))
-            break
+        alive = (
+            alive
+            & torch.isfinite(predicted_latent).all(dim=-1)
+            & torch.isfinite(predicted_state).all(dim=-1)
+        )
+        predictions.append(
+            torch.where(
+                alive.unsqueeze(-1),
+                predicted_state,
+                torch.full_like(predicted_state, torch.nan),
+            )
+        )
+        safe_predicted_state = torch.where(
+            alive.unsqueeze(-1), predicted_state, torch.zeros_like(predicted_state)
+        )
+        safe_predicted_latent = torch.where(
+            alive.unsqueeze(-1), predicted_latent, torch.zeros_like(predicted_latent)
+        )
 
         reencoded_latent = _reencode_latent(
             model,
-            predicted_state,
-            predicted_latent,
+            safe_predicted_state,
+            safe_predicted_latent,
             use_dynamics_prior=use_dynamics_prior,
         )
-        diagnostics["projection_gap"][step] = _normalized_projection_gap(
-            reencoded_latent, predicted_latent
+        projection_gap = _normalized_projection_gap(
+            reencoded_latent, safe_predicted_latent
+        )
+        diagnostics["projection_gap"][step] = torch.where(
+            alive, projection_gap, torch.full_like(projection_gap, torch.nan)
         )
 
         should_reset = (step + 1) % period == 0
         if should_reset:
             diagnostics["reset_mask"][step] = True
-            latent = reencoded_latent
+            latent = torch.where(
+                alive.unsqueeze(-1), reencoded_latent, torch.zeros_like(reencoded_latent)
+            )
         else:
-            latent = predicted_latent
+            latent = safe_predicted_latent
 
     return torch.stack(predictions, dim=0), diagnostics
 
@@ -574,6 +601,23 @@ def _compute_horizon_metric_stats(
     return mean, std, valid_errors.tolist(), int(valid_mask.sum().item())
 
 
+def _compute_full_horizon_metric_stats(
+    per_step_values: torch.Tensor,
+    horizon: int,
+) -> Tuple[float, float, List[float], int]:
+    """Aggregate only initial conditions finite through the entire horizon."""
+
+    horizon = min(horizon, per_step_values.size(0))
+    horizon_values = per_step_values[:horizon]
+    full_finite = torch.isfinite(horizon_values).all(dim=0)
+    if full_finite.sum() == 0:
+        return float("nan"), float("nan"), [], 0
+    per_ic = horizon_values[:, full_finite].mean(dim=0)
+    mean = per_ic.mean().item()
+    std = per_ic.std(unbiased=False).item() if per_ic.numel() > 1 else 0.0
+    return mean, std, per_ic.tolist(), int(per_ic.numel())
+
+
 def _finite_coverage_stats(predictions: torch.Tensor, horizon: int) -> Dict[str, float | int]:
     """Summarize rollout finiteness through a requested horizon.
 
@@ -636,6 +680,37 @@ def _safe_float_for_best(value: object) -> Optional[float]:
         return None
     out = float(value)
     return out if math.isfinite(out) else None
+
+
+def _select_best_full_horizon_mode(
+    mode_metrics: Dict[str, Dict],
+    horizon_key: str,
+    *,
+    include_mode,
+) -> Optional[str]:
+    """Select by survival first, then strict full-horizon MSE."""
+
+    candidates = []
+    for mode_name, mode_data in mode_metrics.items():
+        if not include_mode(mode_name):
+            continue
+        metrics = mode_data.get("horizons", {}).get(horizon_key, {})
+        coverage = _safe_float_for_best(
+            metrics.get("full_horizon_finite_fraction")
+        )
+        strict_mean = _safe_float_for_best(
+            metrics.get("strict_full_horizon_mean")
+        )
+        if coverage is None:
+            continue
+        candidates.append(
+            (
+                -coverage,
+                strict_mean if strict_mean is not None else math.inf,
+                mode_name,
+            )
+        )
+    return min(candidates)[2] if candidates else None
 
 
 # ---------------------------------------------------------------------------
@@ -1679,8 +1754,6 @@ def evaluate_model(
             mode_diagnostics[mode_name] = event_diagnostics
 
         mode_metrics: Dict[str, Dict] = {}
-        periodic_summary: Dict[str, Dict[str, float]] = {str(h): {} for h in settings.horizons}
-        best_reset_summary: Dict[str, Dict[str, float]] = {str(h): {} for h in settings.horizons}
         per_step_errors: Dict[str, torch.Tensor] = {}
 
         # Convert ground truth to match predictions for metric computation
@@ -1717,6 +1790,9 @@ def evaluate_model(
                     continue
 
                 mean, std, per_ic, num_valid = _compute_horizon_metric_stats(squared_diff, horizon)
+                strict_mean, strict_std, strict_per_ic, strict_num_valid = (
+                    _compute_full_horizon_metric_stats(squared_diff, horizon)
+                )
                 per_dim_mean, per_dim_std, per_dim_ic, per_dim_num_valid = _compute_horizon_metric_stats(
                     squared_diff_per_dim, horizon
                 )
@@ -1728,6 +1804,9 @@ def evaluate_model(
                 horizon_metrics = {
                     "mean": mean,
                     "std": std,
+                    "strict_full_horizon_mean": strict_mean,
+                    "strict_full_horizon_std": strict_std,
+                    "strict_full_horizon_num_valid": strict_num_valid,
                     "num_valid": num_valid,
                     "num_valid_fraction": (
                         float(num_valid) / float(num_initial_conditions)
@@ -1756,14 +1835,12 @@ def evaluate_model(
                     horizon_metrics.update(
                         {
                             "values": per_ic,
+                            "strict_full_horizon_values": strict_per_ic,
                             "per_dim_values": per_dim_ic,
                             "rmse_per_dim_values": rmse_per_dim_ic,
                         }
                     )
                 horizons_metrics[str(horizon)] = horizon_metrics
-
-                if mode_name.startswith("periodic_") and num_valid > 0:
-                    periodic_summary[str(horizon)][mode_name] = mean
 
             mode_entry = {"horizons": horizons_metrics}
             if settings.include_error_curves or settings.save_plots:
@@ -1815,16 +1892,19 @@ def evaluate_model(
             if system == "parabolic" and horizon > 100:
                 continue
 
-            candidates = periodic_summary[horizon_key]
-            if not candidates:
+            best_mode_name = _select_best_full_horizon_mode(
+                mode_metrics,
+                horizon_key,
+                include_mode=lambda name: name.startswith("periodic_"),
+            )
+            if best_mode_name is None:
                 continue
-
-            best_mode = min(candidates.items(), key=lambda item: item[1])
-            best_mode_name = best_mode[0]
             best_horizon_metrics = mode_metrics.get(best_mode_name, {}).get("horizons", {}).get(horizon_key, {})
             best_periodic[horizon_key] = {
                 "mode": best_mode_name,
-                "mean": best_mode[1],
+                "mean": best_horizon_metrics.get("mean"),
+                "strict_full_horizon_mean": best_horizon_metrics.get("strict_full_horizon_mean"),
+                "selection_rule": "maximize_full_horizon_finite_fraction_then_minimize_strict_full_horizon_mean",
                 "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
                 "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
                 "num_valid_fraction": best_horizon_metrics.get("num_valid_fraction"),
@@ -1835,38 +1915,24 @@ def evaluate_model(
                 "min_finite_prefix_length": best_horizon_metrics.get("min_finite_prefix_length"),
             }
 
-            if best_mode_name in mode_metrics:
-                best_reset_summary[horizon_key][best_mode_name] = best_mode[1]
-
-        for horizon in settings.horizons:
-            horizon_key = str(horizon)
-            if system == "parabolic" and horizon > 100:
-                continue
-
-            for mode_name, mode_data in mode_metrics.items():
-                if mode_name == "no_reencode":
-                    continue
-                horizon_metrics = mode_data.get("horizons", {}).get(horizon_key)
-                if horizon_metrics is None:
-                    continue
-                mean_value = _safe_float_for_best(horizon_metrics.get("mean"))
-                if mean_value is None:
-                    continue
-                best_reset_summary[horizon_key][mode_name] = mean_value
-
         best_reset: Dict[str, Dict[str, float]] = {}
         for horizon in settings.horizons:
             horizon_key = str(horizon)
             if system == "parabolic" and horizon > 100:
                 continue
-            candidates = best_reset_summary[horizon_key]
-            if not candidates:
+            best_mode_name = _select_best_full_horizon_mode(
+                mode_metrics,
+                horizon_key,
+                include_mode=lambda name: name != "no_reencode",
+            )
+            if best_mode_name is None:
                 continue
-            best_mode_name, best_mean = min(candidates.items(), key=lambda item: item[1])
             best_horizon_metrics = mode_metrics.get(best_mode_name, {}).get("horizons", {}).get(horizon_key, {})
             best_reset[horizon_key] = {
                 "mode": best_mode_name,
-                "mean": best_mean,
+                "mean": best_horizon_metrics.get("mean"),
+                "strict_full_horizon_mean": best_horizon_metrics.get("strict_full_horizon_mean"),
+                "selection_rule": "maximize_full_horizon_finite_fraction_then_minimize_strict_full_horizon_mean",
                 "per_dim_mean": best_horizon_metrics.get("per_dim_mean"),
                 "rmse_per_dim_mean": best_horizon_metrics.get("rmse_per_dim_mean"),
                 "num_valid_fraction": best_horizon_metrics.get("num_valid_fraction"),

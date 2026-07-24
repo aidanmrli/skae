@@ -1,27 +1,29 @@
 \section{Dysts benchmark inventory and system definitions}
 \label{app:dysts_inventory_full}
 
-This appendix lists the ten Dysts systems used in the paper-facing
-\(dt{\times}30\) forecasting benchmark. The systems are drawn from Dysts
+This appendix lists the ten Dysts systems frozen for the corrected
+\(dt{\times}30\) forecasting campaign. The systems are drawn from Dysts
 \citep{gilpin_chaos_2021,gilpin_model_2023}. We used the continuous-time
 right-hand sides and metadata from the pinned package version resolved in the
 project environment, \texttt{dysts} \(0.96\). All ten systems are
 three-dimensional autonomous flows. The equations below are written in
 unstandardized native Dysts coordinates \((x,y,z)\); the training cache
-standardizes coordinates only after trajectories are generated.
+standardizes coordinates only after trajectories are generated. This roster
+does not validate or describe the quarantined historical KAE caches.
 
 \begin{table}[tbp]
 \centering
-\caption{The ten Dysts systems used in the \(dt{\times}30\) forecasting
-benchmark. The ``stored step'' column is \(30\) times the native Dysts
-integration interval. The final column gives the hand-specified diagnostic
+\caption{The ten-system roster and target observation grid for the corrected
+Dysts \(dt{\times}30\) campaign. The ``target stored step'' is \(30\) times
+the native Dysts integration interval and does not describe the quarantined
+historical KAE caches. The final column gives the hand-specified diagnostic
 structure count used only to size the BD and SB transition parameterizations;
 it is a heuristic lobe, scroll, or equilibrium count, not basin truth.}
 \label{tab:dysts_inventory_full}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}l c c c c@{}}
 \toprule
-Display name & Dimension & Native \(dt\) & Stored step \(30dt\) & Diagnostic count \\
+Display name & Dimension & Native \(dt\) & Target stored step \(30dt\) & Diagnostic count \\
 \midrule
 Chua & 3 & \(2.8474745791{\times}10^{-4}\) & \(8.5424237373{\times}10^{-3}\) & 2 \\
 Dadras & 3 & \(6.5782963827{\times}10^{-4}\) & \(1.9734889148{\times}10^{-2}\) & 2 \\
@@ -39,8 +41,8 @@ Wang--Sun & 3 & \(5.3924987498{\times}10^{-3}\) & \(1.6177496249{\times}10^{-1}\
 \end{table}
 
 \paragraph{Closed-form convention.}
-For each system, the stored observations are generated from \(\dot x=f_s(x)\)
-with observation interval \(\Delta t=30\,dt_{\rm native}\), where
+For the corrected campaign, stored observations are generated from \(\dot x=f_s(x)\)
+with a numerically verified observation interval \(\Delta t=30\,dt_{\rm native}\), where
 \(dt_{\rm native}\) is the system-specific Dysts integration interval in
 \cref{tab:dysts_inventory_full}. The learner observes only the resulting stored
 states, not the vector field, continuous-time solver, or substeps. All ten

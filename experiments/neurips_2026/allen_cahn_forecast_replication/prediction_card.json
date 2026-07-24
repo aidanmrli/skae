@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_global_k_new_ic_replication_v1",
+  "status": "phase_2_second_redteam_repairs_implemented_and_tested_pending_independent_refreeze_audit_no_generation_or_evaluation_authorized",
+  "experiment_type": "discriminating prospective replication",
+  "blocking_uncertainty": "Whether the lower H200 through-horizon field MSE observed for the sparse recipe on development dataset seed 20260724 transfers to independent initial-condition draws, rather than being specific to that opened dataset.",
+  "hypothesis": "Without retraining or reselection, the ten paired sparse checkpoints retain at least a 5% reduction in H200 through-horizon field MSE relative to the ten paired dense checkpoints on three new deterministic 256-trajectory datasets.",
+  "competing_explanations": [
+    "The original H200 through-horizon advantage was specific to dataset seed 20260724.",
+    "The apparent precision came from trajectories rather than paired model seeds.",
+    "The sparse recipe improves accumulated error but not terminal error; the terminal limitation must remain visible.",
+    "Checkpoint, cadence, or recipe reselection after seeing new outcomes could create an artificial replication."
+  ],
+  "expected_outcome": "A ratio-of-arm-means H200 through-horizon reduction near the previously observed 5.48%, at least 8 of 10 paired model-seed wins after averaging the three datasets, and the same direction on each dataset.",
+  "surprising_outcome": "A null or reversed H200 through-horizon effect, marked dataset-direction heterogeneity, or any nonfinite direct rollout despite the original fully finite packet.",
+  "claim_boundary": "A strong result supports same-checkpoint, new-initial-condition evaluation replication of lower average H200 direct-rollout MSE for the joint soft-thresholding-plus-L1 sparse recipe. This is not retraining and not physics or system generalization. It does not repair the failed original four-cell gate, establish terminal superiority, attribute the effect to one sparse component, connect support alignment causally to forecasting, or establish performance beyond this Allen--Cahn system.",
+  "original_outcome_aware_context": {
+    "source_dataset_seed": 20260724,
+    "source_dataset_role": "opened development evidence; permanently excluded from this replication",
+    "four_cell_gate_passed": false,
+    "h160_terminal_ci95_percent": [-1.628686162691905, 5.963187416548877],
+    "h200_terminal_ci95_percent": [-0.7962300076051676, 6.699936785103172],
+    "h200_terminal_reduction_percent": 3.224233607265487,
+    "h200_terminal_seed_wins": 7,
+    "h200_terminal_required_reduction_percent": 5.0,
+    "h200_terminal_required_seed_wins": 8,
+    "selection_disclosure": "The H200 through-horizon endpoint was chosen after observing the original failed composite result. This is therefore an outcome-aware endpoint-specific prospective replication, not a reclassification or delayed confirmation of the original packet."
+  },
+  "amendment_history": [
+    {
+      "amendment_id": "phase_2_fail_closed_redteam_revision",
+      "superseded_phase_1_card_sha256": "bdca8a8b89635415af22f714a629e179c9b9fc8fb825f13a0835641e90c2ba46",
+      "reason": "Independent adversarial review identified underspecified generation packing, evaluator orientation and reencoding, field-only serialization, RNG-stream separation, curve aggregation, uncertainty, source locking, GPU telemetry, and outcome-access gates. Phase 2 strengthens implementation and validity controls without changing the frozen checkpoints, prospective dataset seeds, sole H200 cumulative primary estimand, inference unit, strong-result thresholds, or mandatory failure disclosure.",
+      "chronology_attestation": "The phase-1 card hash was recorded first. This amendment was entered after independent red-team review and before phase-2 implementation, executable/transitive source freeze, static or synthetic smoke tests, prospective trajectory generation, and checkpoint evaluation.",
+      "zero_run_attestation_at_amendment": {"scientific_jobs_submitted":0,"datasets_generated":0,"checkpoints_evaluated":0,"scientific_outcomes_accessed":false},
+      "phase_1_preservation_policy": "The final phase-2 hash supplements and must always be reported with the phase-1 hash; it never silently replaces or rewrites phase 1."
+    },
+    {
+      "amendment_id": "phase_2_second_redteam_validity_repair",
+      "superseded_phase_2_card_sha256": "fb8540f9591dedde3a0f3688e207d2081d28cc297e7f6e074249b4ec70ae17dc",
+      "superseded_phase_2_source_manifest_sha256": "ebc7a453eeb2cc6eea6df218752d4fc44283253ec7a41b1a53a8d171935e5df5",
+      "reason": "Independent implementation red-team found five pre-run validity defects: filtering utilization==0 samples before the mean and p10 gates could let an evaluation window with long idle periods pass; float32 matmul precision was recorded but not frozen to the pinned CUDA training/evaluator setting; the exact sign-flip implementation used an undeclared 1e-12 comparison tolerance; runtime lineage retained only a digest rather than the explicit checkpoint hash roster; and raw telemetry did not bind one GPU UUID or the available SLURM job lineage. The repair gates every retained interior sample including zeros, freezes unconditional boundary handling and telemetry coverage, sets and asserts float32 matmul precision high with the resulting TF32 flags, uses the literal preregistered T_perm >= T_observed comparison, embeds the explicit 20-row roster, and binds telemetry to one GPU UUID and matching available SLURM job.",
+      "chronology_attestation": "The superseded phase-2 card and source-manifest hashes were recorded first. This repair was entered before any prospective trajectory generation, checkpoint evaluation, outcome access, or scientific job submission; it changes only validity instrumentation and tests, not scientific choices.",
+      "zero_run_attestation_at_amendment": {"scientific_jobs_submitted":0,"datasets_generated":0,"checkpoints_evaluated":0,"scientific_outcomes_accessed":false},
+      "preservation_policy": "The repaired card hash supplements the phase-1 and superseded phase-2 hashes; all three roots remain in the audit trail."
+    }
+  ],
+  "frozen_inputs": {
+    "source_protocol": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_protocol.json",
+      "sha256": "52a5bcf856758cdd9cbbea8c5a72cbce49c1e4e789f04e47ddf8018adf83bfb9"
+    },
+    "source_statistics": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_statistics.json",
+      "sha256": "554cfe69b0ef47261bd342ad869cd58a1dd5b8808f8bc397fee43ebd128581bb"
+    },
+    "artifact_roster": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_artifacts.csv",
+      "sha256": "4f44178ac78f4ffea91efb825bad272ec5840b52250bae2fab9713f8a62ac170",
+      "rows": 20
+    },
+    "architecture_audit": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_architecture_audit.json",
+      "sha256": "f414cffce5c37144891e93292dbf9a6d0c66165170b9a20c4cbd3a7674ff2421"
+    },
+    "development_dataset": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/confirmation_data/allen_cahn_4_grid16_dt0p1_t20_validation_seed20260724.pt",
+      "sha256": "68620c9d355ec62c8d9b5edd1cc635690f251733b2731e7627f0d4575c83b344",
+      "access_policy": "Do not load, score, pool, or otherwise use in this replication. It remains development evidence only."
+    },
+    "pinned_sources": [
+      {"role":"generator_reference","path":"/network/scratch/l/lia/skae-rebuttal/experiments/neurips_2026/allen_cahn_rebuttal_dataset.py","sha256":"ab3733dec9c00f46ed036f0a837c1e631972fa6c8cd650745d1fe9c38e59946f","historical_commit":"376de761431fe85f37f003ae878ba6efea8afb96"},
+      {"role":"physics_and_initial_conditions","path":"/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_reaction_diffusion.py","sha256":"3bca7b076b4d29f8db89b438e34612c5da04d46b48fa62879f9af6817d5084d1","historical_commit":"376de761431fe85f37f003ae878ba6efea8afb96"},
+      {"role":"checkpoint_model","path":"/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py","sha256":"4f71c674d1e82174f437365c728c8e3684617364b979d624ed35fbbba0371f3b","historical_commit":"376de761431fe85f37f003ae878ba6efea8afb96"},
+      {"role":"evaluator_reference","path":"/network/scratch/l/lia/skae-rebuttal/tools/evaluate_spatialized_reaction_diffusion.py","sha256":"e2e7448682330ce3b1cacf055d73f7268c3e21629720c2fbfdff1bb673a8f779","historical_commit":"376de761431fe85f37f003ae878ba6efea8afb96"}
+    ]
+  },
+  "checkpoint_roster": {
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "arms": ["dense", "sparse"],
+    "source_sparse_arm": "signed",
+    "existence_audit": {"timestamp":"2026-07-20T20:32:22-04:00","files_present":20,"files_missing":0,"total_bytes":2713284810,"sha256_source":"audited compact artifact roster; every checkpoint is rehashed before outcome access"},
+    "runs": [
+      {"arm":"dense","seed":64,"checkpoint_step":3250,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_64/model/checkpoint.pt","sha256":"3edced0d839db854207d78d2022bd3b4a41dfda6d0a5864e1679eb8d8e13c787"},
+      {"arm":"dense","seed":65,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_65/model/checkpoint.pt","sha256":"ddfec80bf2fbd778f5efe2e23cbcf399b6192522d9581753e76da82f41009adb"},
+      {"arm":"dense","seed":66,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_66/model/checkpoint.pt","sha256":"66bda0aac07da28ffe20d3ca1b7a32ef40ed406b547a9dc607d3a92822686b0e"},
+      {"arm":"dense","seed":67,"checkpoint_step":3250,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_67/model/checkpoint.pt","sha256":"0b2ac5520f0fd834af1457898944f168fb101467c23b65d7077b8d0371eaf3f9"},
+      {"arm":"dense","seed":68,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_68/model/checkpoint.pt","sha256":"4bdf8224c1f3670b3ceb84f970fa07644575dd099df11efabc65a871885f22e6"},
+      {"arm":"dense","seed":69,"checkpoint_step":3000,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_69/model/checkpoint.pt","sha256":"c9cdf5398b0a5905d9682b9fcb7b200a0e8dd28c633c06c994ea3164c7d1c052"},
+      {"arm":"dense","seed":70,"checkpoint_step":3000,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_70/model/checkpoint.pt","sha256":"053b824017e8b128565dd65694569d8ba7d55a3a3fc4a7c2cc43a4b9f0d223f1"},
+      {"arm":"dense","seed":71,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_71/model/checkpoint.pt","sha256":"2c93a69ee4eeaf76bde09ff7e86fa7fcb6b89849e3046c1316138ef50b4cf95a"},
+      {"arm":"dense","seed":72,"checkpoint_step":3000,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_72/model/checkpoint.pt","sha256":"a2105494c0f09d88ede30976dec84a6231c517738598bcefec32f08677f78c88"},
+      {"arm":"dense","seed":73,"checkpoint_step":3250,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/dense/seed_73/model/checkpoint.pt","sha256":"ad237268f1a69d4f0ce1eb15db5b9def1c28a50d6a5ee0aed1f5b5d377e2e867"},
+      {"arm":"sparse","seed":64,"checkpoint_step":3250,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_64/model/checkpoint.pt","sha256":"1fcb7791f12e9e3dda8d0655f3492afc74cb33477c33e91f7214c77a6b877bd5"},
+      {"arm":"sparse","seed":65,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_65/model/checkpoint.pt","sha256":"6ee16c55cb2d24a6d3058a9d9015b42f0e2cc75a5eaf813b7d74a16e5b80e095"},
+      {"arm":"sparse","seed":66,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_66/model/checkpoint.pt","sha256":"6157a46dbaff057f6e76aa6bda722457546b6acb7288f978a084919717ad4a23"},
+      {"arm":"sparse","seed":67,"checkpoint_step":2000,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_67/model/checkpoint.pt","sha256":"e983bc24bbf56e826c553179ef2c7ce43b1a05aed630938c9b201241155d250e"},
+      {"arm":"sparse","seed":68,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_68/model/checkpoint.pt","sha256":"27d1ecfc19b895eca7272f9335282b5a4a6dfb7a0fd420b69e8b93605efaac81"},
+      {"arm":"sparse","seed":69,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_69/model/checkpoint.pt","sha256":"45675f15ece2cff6f91188a043814c0dd7bf403772944cce6497995915214dbf"},
+      {"arm":"sparse","seed":70,"checkpoint_step":3000,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_70/model/checkpoint.pt","sha256":"35c9e7d157e39bf125d3a7cdcb341f97d2922f1e752bc763d2272c49ea33aaab"},
+      {"arm":"sparse","seed":71,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_71/model/checkpoint.pt","sha256":"d17c86d541433467f3f5b73972995a27cdd3e66d2d9a7c32f9a828e31994caf9"},
+      {"arm":"sparse","seed":72,"checkpoint_step":3499,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_72/model/checkpoint.pt","sha256":"b53ebeaf68f09a719381b0ff3b9edd434e3d4510966127bb9375cf9bbfd2673f"},
+      {"arm":"sparse","seed":73,"checkpoint_step":3250,"path":"/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/global_confirmation/signed/seed_73/model/checkpoint.pt","sha256":"791af4ca15f5cba9a725e12ac93574ddd9c85018deecda5b86ba8bb32f34fc6d"}
+    ]
+  },
+  "prospective_datasets": {
+    "output_root": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720",
+    "seed_derivation": {
+      "namespace": "allen_cahn_global_k_forecast_optimized_prospective_nic_replication_v1",
+      "source_protocol_sha256": "52a5bcf856758cdd9cbbea8c5a72cbce49c1e4e789f04e47ddf8018adf83bfb9",
+      "algorithm": "For index i=0,1,2, SHA256(namespace + '|' + source_protocol_sha256 + '|dataset_' + str(i)); seed = int(first 8 hex digits, 16) & 0x7fffffff; reject zero, duplicates, and all excluded seeds.",
+      "digests": ["69d2848b6d7de0d960002ec406e52bfb601f54f8d26479dcadf5ca32c70aada1", "84745385eda025406e383cb84891b36da5646461ee35316ab49473a837c2d999", "9182de04733b3f571050055dc9ea9ce922ed99b4ff9cd7bce3ddb4e7236db05b"]
+    },
+    "seeds": [1775404171, 74732421, 293789188],
+    "excluded_dataset_seeds": [20260719, 20260720, 20260724, 20260725, 20260729, 20260730, 20260731],
+    "reserved_forbidden_seed": 20260725,
+    "paths": [
+      "datasets/allen_cahn_grid16_dt0p1_h200_seed1775404171.pt",
+      "datasets/allen_cahn_grid16_dt0p1_h200_seed74732421.pt",
+      "datasets/allen_cahn_grid16_dt0p1_h200_seed293789188.pt"
+    ],
+    "collision_audit": {
+      "timestamp": "2026-07-20T20:32:22-04:00",
+      "performed_before_card_creation": true,
+      "repository_text_matches_per_seed": [0, 0, 0],
+      "scratch_filename_matches_per_seed": [0, 0, 0],
+      "output_root_existed": false,
+      "scope": "Repository text excluding binary/PDF/image/pyc files; scratch filenames through depth four plus explicit output-root existence; every exact target path must be rechecked and absent at launch.",
+      "launch_policy": "Fail closed if any dataset, sidecar, manifest, evaluator shard, telemetry file, summary, or output root already exists; never overwrite or choose replacement seeds after any outcome access."
+    },
+    "phase_2_pre_execution_collision_audit": {
+      "timestamp": "2026-07-20T21:26:20-04:00",
+      "output_root_existed": false,
+      "exact_dataset_targets_existed": [false, false, false],
+      "scratch_filename_matches_per_seed_through_depth_four": [0, 0, 0],
+      "expected_repository_text_matches": ["experiments/neurips_2026/allen_cahn_forecast_replication/prediction_card.json", "tests/test_allen_cahn_forecast_replication_redteam.py"],
+      "unexpected_repository_text_matches": 0,
+      "reserved_path_accessed": false,
+      "scientific_jobs_submitted": 0,
+      "datasets_generated": 0,
+      "checkpoints_evaluated": 0,
+      "result": "All exact prospective targets and the output root remained absent after implementation and synthetic testing; no scientific artifact collision exists. Recheck is mandatory immediately before any root-authorized submission."
+    },
+    "rng_stream_proof": {
+      "stream_formula": "dataset_seed + 10000 * zero_based_trajectory_index",
+      "realized_new_indices": [0, 255],
+      "new_seed_residues_mod_10000": [4171, 2421, 9188],
+      "excluded_streams": [
+        {"base_seed":20260719,"indices":[0,895],"role":"original training/development bundle"},
+        {"base_seed":20260720,"indices":[0,255],"role":"prior temporal-group holdout"},
+        {"base_seed":20260724,"indices":[0,255],"role":"opened forecast development evidence"},
+        {"base_seed":20260725,"indices":[0,255],"role":"permanently forbidden hypothetical holdout"},
+        {"base_seed":20260729,"indices":[0,255],"role":"unrealized conditional bridge roster"},
+        {"base_seed":20260730,"indices":[0,255],"role":"unrealized conditional bridge roster"},
+        {"base_seed":20260731,"indices":[0,255],"role":"unrealized conditional bridge roster"}
+      ],
+      "proof": "All three new base seeds have distinct residues modulo the stride 10000, both from each other and from every excluded base residue (719, 720, 724, 725, 729, 730, 731). Equality of two stream seeds would require equal residues modulo 10000, so all 768 realized new streams are mutually distinct and disjoint from every listed realized or hypothetical excluded stream. The maximum realized new stream seed is below 2^31.",
+      "runtime_gate": "Materialize all 768 integer stream seeds and all listed excluded stream seeds before generation; require exact cardinality, empty intersections, the modular proof, and the signed-31-bit bound."
+    }
+  },
+  "system_and_generator": {
+    "source_system": "four-well vector Allen--Cahn phase-field PDE",
+    "grid_size": 16,
+    "channels": 2,
+    "state_dim": 512,
+    "latent_dim": 2048,
+    "overcomplete_factor": 4,
+    "diffusion": 0.005,
+    "rk4_dt": 0.005,
+    "substeps_per_observation": 20,
+    "stored_dt": 0.1,
+    "trajectory_length": 200,
+    "stored_states": 201,
+    "physical_horizon": 20.0,
+    "trajectories_per_dataset": 256,
+    "train_trajectories": 0,
+    "validation_trajectories": 256,
+    "test_trajectories": 0,
+    "label_extra_observations": 0,
+    "min_regions": 2,
+    "max_regions": 3,
+    "mask_temperature": 0.65,
+    "low_frequency_cutoff": 3,
+    "noise_scale": 0.03,
+    "require_min_area_fraction": 0.08,
+    "allen_cahn_beta": 8.0,
+    "allen_cahn_reaction_strength": 1.0,
+    "allen_cahn_center_radius": 1.5,
+    "laplacian_boundary": "periodic",
+    "laplacian_scaling": "continuum_grid_size_squared",
+    "integration_dtype": "float32",
+    "trajectory_rng": "For zero-based trajectory_index, torch.Generator().manual_seed(dataset_seed + 10000 * trajectory_index) drives the pinned initial-condition sampler.",
+    "generator_device": "cuda",
+    "generator_batch_shape": [3, 256],
+    "compile_step": false,
+    "implementation_path": "experiments/neurips_2026/allen_cahn_forecast_replication/run.py",
+    "implementation_contract": "One fail-closed A100 process samples all [3,256] initial conditions and integrates all 768 trajectories together using the pinned initial-condition sampler and frozen RK4 physics. Internal well centers, selected-well identities, and region areas may exist transiently only to define and sample the physical system. Their identities or values, and all center-, label-, basin-, fate-, well-, or count-derived outputs, are never saved, printed, exposed, or evaluator-loaded."
+  },
+  "field_only_firewall": {
+    "exact_dataset_top_level_keys": ["fields", "split_indices", "metadata"],
+    "exact_split_index_keys": ["val"],
+    "exact_metadata_keys": ["schema_version", "protocol_id", "artifact_role", "dataset_index", "dataset_seed", "field_shape", "stored_dt", "physical_horizon", "integration_dtype", "rng_rule"],
+    "metadata_schema": {"schema_version":"integer 1","protocol_id":"exact protocol_id","artifact_role":"prospective_field_only","dataset_index":"integer 0..2","dataset_seed":"matching frozen seed","field_shape":"exact [256,201,16,16,2]","stored_dt":"float 0.1","physical_horizon":"float 20.0","integration_dtype":"float32","rng_rule":"dataset_seed_plus_10000_times_trajectory_index"},
+    "allowed_evaluator_inputs": ["fields", "split_indices.val"],
+    "forbidden_key_fragments": ["label", "basin", "fate", "well", "center", "count"],
+    "saved_field_shape": [256, 201, 16, 16, 2],
+    "label_or_count_inputs_used": false,
+    "policy": "Forecast generation and evaluation are label-free. Internal physical-system construction and initial-condition sampling may use the fixed wells, centers, and region count, but the exact serialized schema contains only fields, validation indices, and recursively whitelisted neutral metadata. No identity, coordinate, selected region, area, label, basin, fate, well, center, count-derived value, or unrecognized metadata key may be serialized, printed, exposed, or loaded by the evaluator."
+  },
+  "evaluation": {
+    "implementation_path": "experiments/neurips_2026/allen_cahn_forecast_replication/run.py",
+    "arms": ["dense", "sparse"],
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "dataset_seeds": [1775404171, 74732421, 293789188],
+    "primary_horizon": 200,
+    "secondary_horizons": [160],
+    "rollout": "Use direct repeated-global-K rollout. For each fixed checkpoint and each x0, cast model and fields to float32 with autocast disabled, call the pinned encoder exactly once, apply z_next = torch.nn.functional.linear(z, kmat) = z @ kmat.T exactly 200 times, and decode the resulting latent sequence. There is no periodic, every-step, event-triggered, terminal, or hidden reencoding and no second encode call. H160 is the nested prefix of the same H200 prediction.",
+    "operator_orientation": "Checkpoint kmat is passed as the F.linear weight without transpose, hence row-vector latent dynamics are z_next = z @ kmat.T; z @ kmat is forbidden.",
+    "numerics": {"field_dtype":"float32","model_dtype":"float32","autocast":false,"float32_matmul_precision":"high","precision_setup":"After field generation and immediately before any checkpoint load or evaluation, call torch.set_float32_matmul_precision('high'), exactly matching the pinned CUDA training/evaluator convention. Assert torch.get_float32_matmul_precision() == 'high', torch.backends.cuda.matmul.allow_tf32 is True, and torch.backends.cudnn.allow_tf32 is True both before checkpoint loading and after the crossed evaluation; record all three values.","expected_cuda_matmul_allow_tf32":true,"expected_cudnn_allow_tf32":true,"encode_calls_per_initial_condition":1,"K_applications":200,"decode_calls":"one batched decode of the 200 latent states per scoring batch"},
+    "primary_metric": "H200 through-horizon field MSE averaged over all 200 predicted times, 256 trajectories, 16x16 sites, and 2 channels within each model-seed-by-dataset cell",
+    "secondary_metrics": ["H160 through-horizon field MSE from the H200 prefix", "H160 terminal field MSE", "H200 terminal field MSE"],
+    "curve_contract": {
+      "horizons": "every integer h=1,...,200",
+      "cell_curves": ["instantaneous field MSE at h", "cumulative field MSE over 1..h", "instantaneous persistence MSE at h", "cumulative persistence MSE over 1..h", "model/persistence instantaneous ratio", "model/persistence cumulative ratio"],
+      "arm_curves": ["mean dense and sparse versions of every cell curve", "sparse/dense instantaneous MSE ratio", "sparse/dense cumulative MSE ratio"],
+      "identity": "With equal field-element counts, cumulative[h] must equal cumsum(instantaneous)[h] / (h+1), and every stored ratio must equal its named numerator divided by its named denominator with no clipping.",
+      "visualization_reduction": "For every arm, curve, and h, first average the three fixed datasets within each of the ten model seeds. Preserve and report all ten paired model-seed curves, then average those ten seed curves for the arm line. Never treat the 30 model-by-dataset cells as independent or use a 30-cell uncertainty calculation.",
+      "pointwise_bootstrap_bands": "For dense and sparse cumulative field-MSE arm curves and R_h = 1 - mean_seed(sparse_h) / mean_seed(dense_h), report paired-model-seed pointwise percentile 95% bands from 50000 paired seed resamples, seed 20260721, processed in chunks of 1000 resamples. The same paired indices apply to both arms at all h.",
+      "inference_policy": "All h=1..200 curve points, persistence comparisons, ratios, ten seed curves, and bootstrap bands are mandatory but pointwise/descriptive only. Bands are not simultaneous confidence bands, do not define tests, provide no curve-wide coverage claim, cannot select a horizon, and cannot rescue or redefine the sole H200 cumulative primary endpoint."
+    },
+    "secondary_policy": "H160 cumulative field MSE, H160 instantaneous/terminal field MSE, H200 instantaneous/terminal field MSE, all curves, absolute arm means, paired model-seed differences, persistence curves, and three dataset-specific effects are always reported descriptively. No secondary endpoint or curve point may rescue or redefine a failed H200 cumulative primary result.",
+    "selection_firewall": "No retraining, checkpoint reselection, checkpoint averaging, cadence selection, recipe selection, threshold selection, trajectory omission, finite-prefix scoring, or dataset replacement is permitted."
+  },
+  "finiteness_and_integrity": {
+    "dataset_requirement": "Every stored field value in every one of the 3x256x201 states must be finite and have absolute value at most 8.0.",
+    "rollout_requirement": "Every prediction and every per-trajectory primary and secondary squared error for all 20 checkpoints on all three datasets must be finite.",
+    "failure_policy": "One nonfinite or missing value invalidates the complete packet. Do not omit a trajectory, seed, dataset, time point, or endpoint; do not report finite-prefix means.",
+    "pre_outcome_checks": ["duplicate-safe card JSON and card SHA-256", "complete executable/transitive source manifest SHA-256", "isolated pinned import roots", "20 checkpoint SHA-256 values rehashed immediately before loading", "three dataset SHA-256 values, exact shapes, exact top-level keys, and recursive metadata whitelist", "RNG-stream disjointness proof", "complete 20x3 crossed roster", "all full-curve identities", "GPU evaluation telemetry gate", "metric-free outcome-guard receipt"]
+  },
+  "estimand_and_inference": {
+    "cell_reduction": "For arm a, paired model seed s, and dataset d, m[a,s,d] is the H200 through-horizon field MSE averaged over the 256 trajectories and every predicted field element.",
+    "within_seed_reduction": "m[a,s] = (m[a,s,d0] + m[a,s,d1] + m[a,s,d2]) / 3.",
+    "primary_estimand": "R = 1 - mean_s(m[sparse,s]) / mean_s(m[dense,s]).",
+    "inference_unit": "The ten paired model seeds. Trajectories and the three fixed dataset draws are averaged measurements within model seed and are never treated as independent inferential units.",
+    "paired_difference": "delta[s] = m[dense,s] - m[sparse,s].",
+    "exact_test": "One-sided exact paired sign-flip test of positive sparse improvement using T = mean(delta) / (sd(delta, ddof=1) / sqrt(10)); enumerate all 2^10 sign vectors; p = number with the literal floating comparison T_perm >= T_observed divided by 1024, with no added numerical tolerance; alpha = 0.05. Zero-variance conventions are +infinity, -infinity, or zero according to the sign of the mean.",
+    "bootstrap": "Two-sided 95% paired-model-seed percentile interval for R from 100000 resamples of the ten paired model-seed rows with replacement; each resampled row retains its two arms and already averaged three-dataset values; seed 20260720; interval quantiles 0.025 and 0.975.",
+    "no_dataset_bootstrap": true,
+    "strong_replication_gate": ["all provenance, field-only, roster, finiteness, and GPU-utilization guards pass", "R is at least 0.05", "the paired-seed bootstrap lower bound is above zero", "the one-sided exact sign-flip p-value is at most 0.05", "at least 8 of 10 paired model seeds have m[sparse,s] < m[dense,s]", "the sparse arm mean is lower on each of the three fixed datasets"]
+  },
+  "decision_branches": {
+    "strong_replication": "If every strong gate passes, report prospective new-initial-condition replication of lower H200 through-horizon direct-rollout MSE for the joint sparse recipe. Regardless of this branch, the original four-cell gate remains failed; both original terminal 95% paired-seed CIs crossed zero (H160 [-1.63%, 5.96%], H200 [-0.80%, 6.70%]); the original H200 terminal reduction was 3.22% with 7/10 seed wins, missing both 5% and 8/10 gates. This is an outcome-aware, endpoint-specific prospective replication of H200 through-horizon MSE, not a reclassification of the original experiment.",
+    "directional_but_below_strong_gate": "If R is positive but any effect-size, uncertainty, win-count, or three-dataset consistency gate fails, report a limited directional result and do not call it strong replication or tune further. Regardless of this branch, the original four-cell gate remains failed; both original terminal 95% paired-seed CIs crossed zero (H160 [-1.63%, 5.96%], H200 [-0.80%, 6.70%]); the original H200 terminal reduction was 3.22% with 7/10 seed wins, missing both 5% and 8/10 gates. This is an outcome-aware, endpoint-specific prospective replication of H200 through-horizon MSE, not a reclassification of the original experiment.",
+    "null_or_reversal": "If R is zero or negative, report nonreplication or reversal without changing endpoints, checkpoints, seeds, or datasets. Regardless of this branch, the original four-cell gate remains failed; both original terminal 95% paired-seed CIs crossed zero (H160 [-1.63%, 5.96%], H200 [-0.80%, 6.70%]); the original H200 terminal reduction was 3.22% with 7/10 seed wins, missing both 5% and 8/10 gates. This is an outcome-aware, endpoint-specific prospective replication of H200 through-horizon MSE, not a reclassification of the original experiment.",
+    "invalid": "If a provenance, source, collision, field-only, completeness, finiteness, or telemetry guard fails, mark the packet invalid and permit only a root-cause repair that leaves all scientific choices unchanged and keeps outcomes unopened. Regardless of this branch, the original four-cell gate remains failed; both original terminal 95% paired-seed CIs crossed zero (H160 [-1.63%, 5.96%], H200 [-0.80%, 6.70%]); the original H200 terminal reduction was 3.22% with 7/10 seed wins, missing both 5% and 8/10 gates. This is an outcome-aware, endpoint-specific prospective replication of H200 through-horizon MSE, not a reclassification of the original experiment."
+  },
+  "hardware_plan": {
+    "partition": "long",
+    "gpu_job": "Exactly one fail-closed A100 job generates the complete [3,256,201,16,16,2] field tensor with all 768 trajectories vectorized together, splits it into three immutable field-only files, validates and hashes those files, rehashes and preloads all 20 fixed checkpoints, and evaluates the complete 20x3 crossed roster. No separate generation job, scientific sharding, or padding kernel is permitted.",
+    "cpu_summary": "One dependent CPU-only long-partition job may deserialize scientific curves only after verifying the card, source manifest, crossed roster lineage, evaluation telemetry, and metric-free outcome-guard receipt by exact SHA-256. It computes the sole primary test/CI and all mandatory descriptive curves.",
+    "outcome_free_smoke": "Before scientific launch authorization, run synthetic packed-versus-sequential field scoring using the exact direct-rollout and curve kernels. Require equal shapes and torch.testing.assert_close with rtol=1e-6 and atol=1e-7; inspect only synthetic values, telemetry, shapes, and finiteness.",
+    "telemetry_scope": "Raw 1-second nvidia-smi samples, one invariant GPU UUID, the available SLURM job ID, and explicit generation, evaluation, and end-to-end markers are hash-frozen. The telemetry process and scientific runtime must have the same SLURM job ID when SLURM exposes one; both may use the explicit not_recorded sentinel only in a genuinely non-SLURM portable execution. The synchronized repeated-K/decode evaluation interval after inputs/models are resident is the only utilization validity gate. Select every raw sample whose timestamp is within the inclusive evaluation markers, unconditionally exclude exactly the first and last selected samples because a 1-second utilization sample can straddle a marker boundary, and gate every remaining retained sample including utilization==0. Generation and end-to-end utilization are always reported descriptively without thresholds.",
+    "boundary_samples_excluded_per_side": 1,
+    "minimum_all_window_samples_before_boundary_exclusion": 12,
+    "minimum_retained_all_window_samples": 10,
+    "minimum_mean_retained_all_window_gpu_utilization_percent": 90.0,
+    "strict_p10_retained_all_window_gpu_utilization_percent_above": 80.0,
+    "minimum_median_sample_cadence_seconds": 0.5,
+    "maximum_median_sample_cadence_seconds": 1.5,
+    "maximum_sample_gap_seconds": 1.5,
+    "maximum_marker_edge_gap_seconds": 1.5,
+    "maximum_peak_memory_fraction": 0.8,
+    "no_padding": "Never add dummy matrix multiplies, duplicate scientific computations, sleeps, warmup repetitions inside a measured window, or any other utilization padding. The only kernels in the measured evaluation window are the frozen one-encode/repeated-K/decode evaluations needed for the 20x3 roster.",
+    "telemetry_failure": "Any zero-utilization retained sample contributes zero to the gated mean and p10; no utilization-dependent filtering is permitted. If any retained-all-window utilization, sample-count, cadence, maximum-gap, marker-edge coverage, or memory check fails, do not create an outcome-guard receipt or open scientific summaries. Repair packing, monitoring, or a purely computational batch implementation without changing any scientific choice, rerun the identical roster, and preserve the failed telemetry and unopened scientific-payload hash."
+  },
+  "source_and_outcome_lock": {
+    "manifest_path": "experiments/neurips_2026/allen_cahn_forecast_replication/source_manifest.sha256",
+    "import_isolation": "Pinned physics and model modules are loaded by exact absolute path and SHA-256 under unique private module names without inserting the scratch snapshot or current repository skae package into sys.path. The loader asserts sys.path is unchanged and module.__file__ resolves to the pinned path.",
+    "required_manifest_paths": ["experiments/__init__.py", "experiments/neurips_2026/__init__.py", "experiments/neurips_2026/allen_cahn_forecast_replication/__init__.py", "experiments/neurips_2026/allen_cahn_forecast_replication/prediction_card.json", "experiments/neurips_2026/allen_cahn_forecast_replication/io.py", "experiments/neurips_2026/allen_cahn_forecast_replication/core.py", "experiments/neurips_2026/allen_cahn_forecast_replication/statistics.py", "experiments/neurips_2026/allen_cahn_forecast_replication/run.py", "experiments/neurips_2026/allen_cahn_forecast_replication/telemetry.py", "experiments/neurips_2026/allen_cahn_forecast_replication/summarize.py", "experiments/neurips_2026/allen_cahn_forecast_replication/source_lock.py", "scripts/neurips_2026/allen_cahn_forecast_replication/run_generate_evaluate.sh", "scripts/neurips_2026/allen_cahn_forecast_replication/run_summary.sh", "scripts/neurips_2026/allen_cahn_forecast_replication/queue.sh", "tests/test_allen_cahn_forecast_replication_card.py", "tests/test_allen_cahn_forecast_replication_redteam.py", "tests/test_allen_cahn_forecast_replication_telemetry.py", "pyproject.toml", "uv.lock", "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_reaction_diffusion.py", "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py"],
+    "environment_receipt": "Record Python, torch, CUDA, cuDNN, GPU name, the single telemetry GPU UUID, float32 matmul precision and TF32 flags, git commit, available matching SLURM job, card hash, source-manifest hash, the explicit 20-row checkpoint path/hash roster plus its digest, and all dataset/output hashes without printing a scientific metric.",
+    "outcome_guard": "The GPU job writes a scientific payload but never prints its contents. Only a passing evaluation telemetry audit may create a metric-free outcome_guard_receipt.json binding the payload SHA-256 to card, source, dataset, the explicit 20-row checkpoint hash roster and digest, one GPU UUID, available SLURM job lineage, telemetry, and crossed-roster hashes. The dependent CPU summarizer verifies the caller-supplied receipt SHA-256 and every bound artifact before deserializing the scientific payload."
+  },
+  "implementation_and_launch_gate": {
+    "required_paths": ["experiments/neurips_2026/allen_cahn_forecast_replication/io.py", "experiments/neurips_2026/allen_cahn_forecast_replication/core.py", "experiments/neurips_2026/allen_cahn_forecast_replication/statistics.py", "experiments/neurips_2026/allen_cahn_forecast_replication/run.py", "experiments/neurips_2026/allen_cahn_forecast_replication/telemetry.py", "experiments/neurips_2026/allen_cahn_forecast_replication/summarize.py", "experiments/neurips_2026/allen_cahn_forecast_replication/source_lock.py", "scripts/neurips_2026/allen_cahn_forecast_replication/run_generate_evaluate.sh", "scripts/neurips_2026/allen_cahn_forecast_replication/run_summary.sh", "scripts/neurips_2026/allen_cahn_forecast_replication/queue.sh"],
+    "phase_2_scope": "Implement and statically/synthetically test the fully source-locked pipeline; do not submit the scientific A100 or CPU-summary jobs.",
+    "redteam_tests": ["duplicate JSON keys fail", "field serialization exact-key and recursive metadata firewall", "pinned source import-root isolation and direct-rollout equivalence", "F.linear orientation and exactly-one-encode guard", "synthetic packed-versus-sequential equivalence", "full instantaneous/cumulative/persistence/ratio curve identities", "exact sign-flip enumeration uses the literal no-tolerance comparison and deterministic paired bootstrap", "pinned float32 matmul precision high and resulting TF32 flags are set and asserted", "100 zero-utilization plus 10 high-utilization retained telemetry samples fail", "unconditional one-sample-per-boundary exclusion, cadence, maximum-gap, marker-edge coverage, and all-retained-sample gates", "complete 20x3 crossed roster with no duplicates", "any nonfinite field/prediction/curve fails the packet", "RNG stream disjointness from every new and excluded stream", "outcome summarizer refuses to open payload before an exact valid guard receipt"],
+    "before_any_job": ["root reviews the final phase-2 card and records its SHA-256", "root reviews and records the immutable executable/transitive source-manifest SHA-256", "all static and synthetic tests pass on a compute node", "all exact target paths and new seed names are collision-audited again", "an independent reviewer verifies the source/import/firewall/outcome gates", "root supplies the exact two hashes and explicit authorization token to the dormant queue launcher"],
+    "scientific_jobs_submitted": 0,
+    "datasets_generated": 0,
+    "checkpoints_evaluated": 0,
+    "reserved_seed_policy": "Any runtime argument, environment value, manifest entry, or output path containing the decimal token 20260725 aborts before filesystem access. The reserved dataset is permanently forbidden and must never be generated, opened, stat'ed, hashed, globbed, or used.",
+    "owner": "root agent",
+    "required_reviewers": ["independent provenance/firewall reviewer", "independent statistics reviewer", "GPU-utilization auditor"]
+  }
+}

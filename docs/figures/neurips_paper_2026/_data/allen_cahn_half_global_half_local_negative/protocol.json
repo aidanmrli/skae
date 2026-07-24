@@ -1,0 +1,64 @@
+{
+  "status": "frozen_before_dataset_generation_or_training",
+  "run_id": "ac_exact_full_local_k_screen_20260719",
+  "hypothesis": "The exact half-global/half-full-local support-routed scheme materially improves Allen-Cahn forecasting and beats matched routed dense capacity.",
+  "dataset": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+  "model_seed": 61,
+  "stage_contract": {
+    "autoencoder_pretraining_updates": 2000,
+    "stage1_joint_updates": 1750,
+    "stage2_updates": 1750,
+    "sequence_length": 80,
+    "batch_size": 8,
+    "transitions_per_update": 640,
+    "stage2_transitions": 1120000,
+    "spatial_augmentation": true,
+    "matched_stage2_generator_state": true,
+    "freeze_encoder_decoder_global_k_for_local": true
+  },
+  "model": {
+    "state_dimension": 512,
+    "latent_dimension": 2048,
+    "hidden_channels": 32,
+    "num_blocks": 2,
+    "conv_activation": "tanh",
+    "padding_mode": "circular",
+    "global_recipe": "existing seq80_k1 protocol",
+    "sparse_variant": "conv_lista_signsplit",
+    "dense_variant": "conv_dense"
+  },
+  "routing": {
+    "support_threshold": 0.001,
+    "family_jaccard": 0.4,
+    "max_routes": 16,
+    "prototype_trajectories": 256,
+    "prototype_time_stride": 5,
+    "calibration_trajectories": 512,
+    "calibration_time_stride": 1,
+    "minimum_full_route_sources": 4096,
+    "refresh_period": 40,
+    "label_policy": "Training fields and model latents only; no labels or basin count."
+  },
+  "routed_arms": [
+    "sparse_support_full_delta",
+    "sparse_cosine_kmeans_full_delta",
+    "dense_cosine_kmeans_full_delta"
+  ],
+  "local_learning_rates": [0.00001, 0.00003],
+  "checkpoint_partition": "validation_even",
+  "report_partition": "validation_odd",
+  "eval_horizons": [80, 120, 160, 200],
+  "screen_gate": {
+    "minimum_predicted_route_coverage": 0.9,
+    "minimum_h200_reduction_vs_sparse_global": 0.1,
+    "minimum_h200_reduction_vs_dense_global": 0.05,
+    "minimum_h200_reduction_vs_dense_routed": 0.05,
+    "required_lower_horizons": [160, 200],
+    "required_metrics": ["field_mse", "final_field_mse"]
+  },
+  "decision": {
+    "support_specific": "Sparse support passes and beats sparse k-means.",
+    "generic_local_only": "Sparse support passes global controls but not sparse k-means.",
+    "failure": "Do not claim Allen-Cahn routed forecasting improvement."
+  }
+}

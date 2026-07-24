@@ -27,7 +27,8 @@
         "_data/allen_cahn_temporal_group_holdout_forecast_seed_rows.csv",
         "_data/allen_cahn_temporal_group_holdout_support_seed_rows.csv",
         "_data/allen_cahn_temporal_group_holdout_fixed_seed_records.csv",
-        "_data/allen_cahn_temporal_group_holdout_summary.json"
+        "_data/allen_cahn_temporal_group_holdout_summary.json",
+        "_data/allen_cahn_global_k_forecast_optimized_provenance.json"
       ],
       "provenance": "_data/highdimensional_confirmation_provenance.json",
       "outputs": [
@@ -35,8 +36,170 @@
         "fig_allen_cahn_support_contingency.pdf",
         "fig_allen_cahn_time20_snapshots.pdf"
       ],
-      "aggregation_contract": "Average trajectories within each of ten model seeds; use 100,000 model-seed bootstrap resamples and exact paired sign-flip tests. Lorenz-96 uses Holm correction over physical times 2.5 and 5; Allen-Cahn forecasting uses physical times 8, 12, 16, and 20. The predeclared deep-interior slice requires at least 90% final modal-well area and contains 130 of 256 independent-holdout trajectories.",
-      "limitation": "Lorenz-96 fixes one generated dataset and is not multibasin. Allen-Cahn is physics-based but synthetic: the independent all-trajectory result has strong basin information but normalized H(F|B)/H(F)=0.359 misses the frozen 0.350 uniqueness ceiling by 0.009; its predeclared deep-interior slice is exactly aligned, and temporal-sparse forecasting is worse than exact dense."
+      "aggregation_contract": "Average trajectories within each of ten model seeds. Lorenz-96 and temporal-support intervals use 100,000 model-seed resamples and exact paired sign flips; Lorenz applies Holm correction over physical times 2.5 and 5, and temporal-support forecasting over times 8, 12, 16, and 20. The separate forecast-optimized Allen-Cahn packet uses 50,000 paired-seed ratio-of-arm-means resamples plus a one-sided exact max-t sensitivity over four dependent H160/H200 cells (H160 is a prefix of H200). The >=90% final-modal-well slice, prospectively frozen for the new holdout after prior mixed-domain fragmentation, contains 130 of 256 trajectories. The fixed-seed contingency preserves raw training-codebook IDs in ascending numeric order (unknown last), uses no evaluation fate to order columns, annotates panel-specific fate counts, and shares the complete sparse-family axis between all trajectories and the frozen slice.",
+      "limitation": "Lorenz-96 fixes one generated dataset and is not multibasin. Allen-Cahn is physics-based but synthetic. Validation fate metrics selected T=20 scoring, Jaccard 0.40, the temporal weight, and advancement of the complete fixed ten-seed temporal-support packet; conditional on that recipe, the objective, representative fitting, and holdout assignment use no labels. Across all trajectory final states, T=20 families carry strong information about T=20 fate, but normalized H(F|B)/H(F)=0.359 misses the frozen 0.350 uniqueness ceiling by 0.009; this is not x0 fate prediction or trajectory-wide alignment. The frozen single-well-dominated slice is exactly aligned with finite-time fate but does not prove basin-interior membership, and temporal-sparse forecasting is worse than exact dense."
+    },
+    {
+      "id": "allen_cahn_global_k_forecast_optimized",
+      "build_tool": "experiments.neurips_2026.evidence.allen_cahn_global_forecast",
+      "check_command_inside_allocation": "uv run skae-paper build allen-cahn-forecast-optimized --check",
+      "inputs": [
+        "_data/allen_cahn_global_k_forecast_optimized_seed_rows.csv",
+        "_data/allen_cahn_global_k_forecast_optimized_protocol.json",
+        "_data/allen_cahn_global_k_forecast_optimized_artifacts.csv",
+        "_data/allen_cahn_global_k_forecast_optimized_architecture_audit.json"
+      ],
+      "provenance": "_data/allen_cahn_global_k_forecast_optimized_provenance.json",
+      "outputs": [
+        "_data/allen_cahn_global_k_forecast_optimized_statistics.json",
+        "_data/allen_cahn_global_k_forecast_optimized_artifact_manifest.json",
+        "_tables/table_allen_cahn_global_k_forecast_optimized.tex",
+        "fig_allen_cahn_global_k_forecast_optimized.pdf",
+        "fig_allen_cahn_global_k_forecast_optimized.png"
+      ],
+      "aggregation_contract": "Pair model seeds 64--73. Report 1 - mean(sparse)/mean(dense), 50,000 paired bootstrap resamples with seed 20260719, paired-seed wins, and an exact 1,024-swap one-sided max-t sensitivity over through-horizon mean and terminal H160/H200 cells.",
+      "limitation": "This is secondary evidence from a separately forecast-optimized no-reencoding experiment. The arms have matched trainable tensor shapes and effective forward-path parameter count and share the convolutional, decoder, and K backbone, so the comparison attributes the joint soft-thresholding-plus-L1 treatment rather than either component alone. Through-horizon mean H160/H200 improvements are positive, but both terminal intervals cross zero, H200 terminal also misses the frozen effect-size and win-count gates, the four-cell confirmation gate failed, and the conditional holdout was not generated or opened."
+    },
+    {
+      "id": "allen_cahn_new_ic_replication",
+      "build_tool": "experiments.neurips_2026.evidence.allen_cahn_forecast_replication",
+      "check_command_inside_allocation": "uv run skae-paper build allen-cahn-new-ic-replication --check",
+      "inputs": [
+        "_data/allen_cahn_new_ic_replication_summary.json",
+        "_data/allen_cahn_new_ic_replication_seed_rows.csv",
+        "_data/allen_cahn_new_ic_replication_dataset_rows.csv",
+        "_data/allen_cahn_new_ic_replication_curve_summary.json",
+        "_data/allen_cahn_new_ic_replication_curve_rows.csv"
+      ],
+      "manifest": "_data/allen_cahn_new_ic_replication_evidence_manifest.json",
+      "outputs": [
+        "fig_allen_cahn_new_ic_replication.pdf",
+        "fig_allen_cahn_new_ic_replication.png",
+        "fig_allen_cahn_new_ic_replication_full_horizon.pdf",
+        "fig_allen_cahn_new_ic_replication_full_horizon.png"
+      ],
+      "aggregation_contract": "Keep the three prospectively frozen new-initial-condition datasets as repeated measurements within each model seed. Average them within each of ten paired model seeds, then report the H200 through-horizon mean-MSE ratio-of-arm-means reduction, a 100,000-resample paired-model-seed bootstrap interval, the exact 1,024-vector one-sided paired sign-flip test, paired-seed wins, and all three dataset-specific arm-mean effects. The companion 200-step curves apply the same within-seed reduction and use 50,000 paired-model-seed bootstrap resamples at each horizon; those bands are descriptive pointwise intervals, not simultaneous inference, while the separately marked H200 interval remains the sole frozen endpoint analysis. The opened development dataset is displayed separately and never pooled.",
+      "limitation": "This is an outcome-aware, endpoint-specific same-checkpoint robustness check on three new Allen--Cahn initial-condition draws, with no retraining or reselection. It shows that lower mean direct-rollout MSE over steps 1--200 is robust to these three draws for the joint soft-thresholding-plus-L1 recipe, but does not repair the original failed four-cell gate. The complete curve adds visualization, not curve-wide tests or horizon-selected claims. H200 terminal error remains descriptive; the packet does not identify either sparse component, support-alignment mediation, physics generalization, or generalization to another system."
+    },
+    {
+      "id": "allen_cahn_physics_metrics",
+      "build_tool": "experiments.neurips_2026.evidence.allen_cahn_physics_metrics",
+      "check_command_inside_allocation": "uv run skae-paper build allen-cahn-physics-metrics --check",
+      "source_check_command_inside_allocation": "uv run skae-paper build allen-cahn-physics-metrics --check-sources",
+      "inputs": [
+        "_data/allen_cahn_physics_metrics/summary.json",
+        "_data/allen_cahn_physics_metrics/h200_paired_seed_rows.csv",
+        "_data/allen_cahn_physics_metrics/all_metric_curve_rows.csv",
+        "_data/allen_cahn_physics_metrics/modal_tie_curve_rows.csv"
+      ],
+      "provenance": "_data/allen_cahn_physics_metrics/provenance.json",
+      "manifest": "_data/allen_cahn_physics_metrics/evidence_manifest.json",
+      "outputs": [
+        "_tables/table_allen_cahn_physics_metrics.tex",
+        "fig_allen_cahn_physics_metrics.pdf",
+        "fig_allen_cahn_physics_metrics.png"
+      ],
+      "aggregation_contract": "Score all 256 trajectories at all 200 direct-rollout times for every one of the same ten sparse and ten dense checkpoints on each of the three fixed new-initial-condition datasets. Average datasets within paired model seed, retain all seven frozen H200 cumulative phase-assignment, interface, and energy metrics, compute 100,000 paired-seed intervals, enumerate all 1,024 one-sided paired sign flips, and Holm-adjust the complete seven-metric family.",
+      "limitation": "This is an outcome-aware, same-checkpoint secondary translation of the already selected H200 forecast. All seven correlated state-derived metrics favor sparse and five survive Holm correction, but modal accuracy and potential-energy error do not. They are not PDE-residual or dissipation-law tests. The packet cannot repair the original four-cell gate, establish terminal superiority, isolate sparsity as causal, provide independent retraining replication, or generalize across PDE parameters, grids, or systems."
+    },
+    {
+      "id": "allen_cahn_support_subspaces_v4",
+      "build_tool": "experiments.neurips_2026.evidence.allen_cahn_support_subspace_packet",
+      "check_command_inside_allocation": "uv run skae-paper build allen-cahn-support-subspaces --check",
+      "inputs": [
+        "_data/allen_cahn_support_subspaces_v4/decision.json",
+        "_data/allen_cahn_support_subspaces_v4/seed_rows.csv",
+        "_data/allen_cahn_support_subspaces_v4/provenance.json"
+      ],
+      "manifest": "_data/allen_cahn_support_subspaces_v4/evidence_manifest.json",
+      "outputs": [
+        "_data/allen_cahn_support_subspaces_v4/decision.json",
+        "_data/allen_cahn_support_subspaces_v4/seed_rows.csv",
+        "_data/allen_cahn_support_subspaces_v4/provenance.json",
+        "_data/allen_cahn_support_subspaces_v4/evidence_manifest.json"
+      ],
+      "aggregation_contract": "Pair model seeds 64--73 on the already-opened 256-trajectory score set. Support routes are fit on training x0 and score x0 only, then frozen before future encoding. Apply exact sign enumeration with max-T adjustment to six closure cells and 100,000 paired model-seed bootstrap resamples to dense-specificity, forecast, signature, and routing contrasts.",
+      "limitation": "This is a negative test of the predeclared x0-support threshold and family operationalization on these checkpoints despite valid provenance and a positive sparse-restricted-versus-dense-full forecast contrast. Every sparse seed produced one broad initial-support family, zero seeds met the two-family gate, exact fixed-support closure and dense-specificity gates failed, family-specific signature and routing estimands are undefined, and the conditional new-dataset bridge was therefore ineligible and not launched. This packet cannot support Allen--Cahn invariant-subspace, distinct-local-law, or support-routing-mechanism claims, but does not falsify every alternative support definition."
+    },
+    {
+      "id": "allen_cahn_half_global_half_local_negative",
+      "build_tool": "experiments.neurips_2026.evidence.allen_cahn_half_local_packet",
+      "check_command_inside_allocation": "uv run skae-paper build allen-cahn-half-local --check",
+      "inputs": [
+        "_data/allen_cahn_half_global_half_local_negative/protocol.json",
+        "_data/allen_cahn_half_global_half_local_negative/result.json",
+        "_data/allen_cahn_half_global_half_local_negative/provenance.json"
+      ],
+      "provenance": "_data/allen_cahn_half_global_half_local_negative/provenance.json",
+      "manifest": "_data/allen_cahn_half_global_half_local_negative/evidence_manifest.json",
+      "outputs": [
+        "_data/allen_cahn_half_global_half_local_negative/protocol.json",
+        "_data/allen_cahn_half_global_half_local_negative/result.json",
+        "_data/allen_cahn_half_global_half_local_negative/provenance.json",
+        "_data/allen_cahn_half_global_half_local_negative/evidence_manifest.json"
+      ],
+      "aggregation_contract": "No aggregation or uncertainty claim: one frozen model seed (61), even validation initial conditions for checkpoint and local-learning-rate selection, and report-only odd validation initial conditions for H160/H200 comparisons.",
+      "limitation": "This sequence-80 sign-split ancestor is nearly dense before sign expansion and differs from the positive sequence-200 forecast recipe. Every one of six full-matrix local branches selected its zero-update checkpoint; the requested result is a negative recipe diagnostic, not a causal global-versus-local comparison or evidence against all local-K methods."
+    },
+    {
+      "id": "global_k_support_closure",
+      "build_tool": "experiments.neurips_2026.evidence.global_k_support_closure",
+      "check_command_inside_allocation": "uv run skae-paper build global-k-support-closure --check",
+      "inputs": [
+        "_data/global_k_support_closure_run_rows.csv",
+        "_data/global_k_support_closure_system_rows.csv",
+        "_data/global_k_support_closure_decision.json",
+        "_data/global_k_support_closure_prediction_card.json",
+        "_data/global_k_support_closure_all_current_run_rows.csv",
+        "_data/global_k_support_closure_all_current_system_rows.csv",
+        "_data/global_k_support_closure_all_current_source_roster.json"
+      ],
+      "provenance": "_data/global_k_support_closure_protocol_provenance.json",
+      "outputs": [
+        "_tables/global_k_support_closure_summary.tex",
+        "global_k_support_closure_paired_systems.pdf",
+        "global_k_support_closure_paired_systems.png"
+      ],
+      "aggregation_contract": "Evaluate 45 held-out checkpoint tests; reduce transition-level diagnostics within run, take medians over eligible seeds within each of 15 systems, then medians across systems. Compare with the same 16 internally frozen sign-pair-preserving coordinate-permutation nulls. The persistent-family slice remains the internally frozen primary; all-current is a post-hoc reduction of a no-next-state guard emitted by the evaluator before execution, not a second frozen decision or public preregistration.",
+      "limitation": "The all-current guard removes next-state family conditioning and leaves leakage ratios essentially unchanged, but adds only 3,527 transitions (0.96 percentage points). The observed support-projected one-step leakage is lower than under matched permutations in a sign-split coordinate basis; the post-hoc PKP restriction, failed operator-differentiation gate, and two-dimensional roster preclude invariant-subspace, distinct-local-law, decoded-forecast, or multistep claims. Exact-dense complete-recipe specificity is a separate evidence group."
+    },
+    {
+      "id": "global_k_distinct_laws_v2_negative",
+      "build_tool": "experiments.neurips_2026.evidence.global_k_distinct_laws_v2_negative",
+      "check_command_inside_allocation": "uv run skae-paper build global-k-distinct-laws-v2-negative --check",
+      "inputs": [
+        "_data/global_k_distinct_laws_v2_negative/decision.json",
+        "_data/global_k_distinct_laws_v2_negative/seed_rows.csv",
+        "_data/global_k_distinct_laws_v2_negative/basin_rows.csv"
+      ],
+      "provenance": "_data/global_k_distinct_laws_v2_negative/provenance.json",
+      "manifest": "_data/global_k_distinct_laws_v2_negative/evidence_manifest.json",
+      "outputs": [
+        "_data/global_k_distinct_laws_v2_negative/decision.json",
+        "_data/global_k_distinct_laws_v2_negative/seed_rows.csv",
+        "_data/global_k_distinct_laws_v2_negative/basin_rows.csv",
+        "_data/global_k_distinct_laws_v2_negative/provenance.json",
+        "_data/global_k_distinct_laws_v2_negative/evidence_manifest.json"
+      ],
+      "aggregation_contract": "Ten sparse and ten dense model seeds are audited against the exact frozen checkpoint, trajectory, family, geometry, null, and finite-radius roots. The compact packet preserves the predeclared seed and basin denominators, including the distinction between raw evaluable closure counts and the joint-kink-complete aggregate denominator.",
+      "limitation": "The result is authenticated but invalid/negative: coverage, actual-predictor law recovery, finite-radius, aggregate-null, and dense-specificity gates fail. It permits no invariant-subspace, differentiated-local-law, or sparse-superiority claim."
+    },
+    {
+      "id": "global_k_dense_zero_wd_specificity",
+      "build_tool": "experiments.neurips_2026.evidence.global_k_dense_specificity_portable",
+      "check_command_inside_allocation": "uv run python -m experiments.neurips_2026.evidence.global_k_dense_specificity_portable check --provenance docs/figures/neurips_paper_2026/_data/global_k_dense_zero_wd_specificity_provenance.json",
+      "inputs": [
+        "_data/global_k_dense_zero_wd_specificity_card.json",
+        "_data/global_k_dense_zero_wd_specificity_run_rows.csv",
+        "_data/global_k_dense_zero_wd_specificity_system_rows.csv",
+        "_data/global_k_dense_zero_wd_specificity_decision.json"
+      ],
+      "provenance": "_data/global_k_dense_zero_wd_specificity_provenance.json",
+      "outputs": [
+        "_tables/table_global_k_dense_zero_wd_specificity.tex"
+      ],
+      "aggregation_contract": "For each eligible run, divide activity leakage and post-hoc restricted residual by the within-run median over 16 matched coordinate permutations; take the median across eligible seeds within system, then across systems. Each dense state uses top-magnitude coordinates with exactly its paired sparse support cardinality on the same physical state. The source-locked reducer requires at least two eligible dense seeds per system.",
+      "limitation": "Forty-one dense runs and 14 systems are reducer-eligible, while the frozen sparse headline uses 15 systems. The at-least-two-seed reducer rule existed before outcomes but was omitted from the card; common-population, literal-card, and all-three-seed sensitivities all pass strongly. Dense masks have no natural support semantics, and encoder/decoder parameterization and optimization differ, so this is complete-recipe specificity rather than a sparsity-only causal ablation or basis-invariant claim."
     },
     {
       "id": "headline_kae_forecasting_and_alignment",

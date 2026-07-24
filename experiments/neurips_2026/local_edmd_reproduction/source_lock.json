@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "protocol_id": "local_edmd_poly_historical_reproduction_v1",
+  "status": "frozen_before_reproduction_execution",
+  "frozen_at": "2026-07-20",
+  "scope": "Fail-closed authentication for the behavior-preserving local polynomial EDMD port, deterministic task roster, raw evaluation, compact freeze, historical comparison, and SLURM dependency chain.",
+  "sources": {
+    "package_init": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/__init__.py",
+      "sha256": "ea8242c82d46d339e52fa8e3d17f59f8431fb2845eb1babc6230176f143fd358"
+    },
+    "contract": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/contract.py",
+      "sha256": "f79e952bf7573c253678469b6cae501b516a43c2beee22ddf5942d1bf647a6dc"
+    },
+    "model_port": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/model.py",
+      "sha256": "4f5af43f9132841a0e2cb27d02dade67c4975b296ec20dd8215e4ae73bd9d205"
+    },
+    "evaluator": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/evaluation.py",
+      "sha256": "c0e2fcefd39ef963b0a6f5e291f2aea4f33a13825ecd335c29f7af87d9021b9c"
+    },
+    "task_builder": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/tasks.py",
+      "sha256": "9f17647d0dcd2972297c9f864ec7582d6a3740e6f0b0c34ac5bc76201eaf86ad"
+    },
+    "source_lock_verifier": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/source_lock.py",
+      "sha256": "decc086c1b08acd9a2eba9e71d6eb5b5179e9a6c289b7706b2e75182b355605c"
+    },
+    "compact_freezer": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/freeze.py",
+      "sha256": "dddc2c2e1a8e4017e9b774ce9da2fb2857f901c151ca3bd67b4c0eeaf60c3d06"
+    },
+    "historical_comparator": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/summarize.py",
+      "sha256": "8070aa5213603d88ab7751617c98817dd75ff6bb8dbed89dc69a724e6db70798"
+    },
+    "queue_recorder": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/record_queue.py",
+      "sha256": "8295c82ed1c7d7d957cdc0602444224cf63ecb261253b3d371f8c9ca4a62b020"
+    },
+    "prediction_card": {
+      "path": "experiments/neurips_2026/local_edmd_reproduction/prediction_card.json",
+      "sha256": "5a103beb9821405c4a5b762a781421a572b85a2108efbc4f78c010f3b57db3ed"
+    },
+    "array_launcher": {
+      "path": "scripts/neurips_2026/local_edmd_reproduction/run_array.sh",
+      "sha256": "1b1f51dc75a64f385fadb8533854cabbdaae71016a7a97ed4c36b2af254517d3"
+    },
+    "collect_launcher": {
+      "path": "scripts/neurips_2026/local_edmd_reproduction/run_collect.sh",
+      "sha256": "1260a1c07dd5f76c5eb29f8f0fe21c07d175f64f0cec5898eb1f329bed570483"
+    },
+    "check_launcher": {
+      "path": "scripts/neurips_2026/local_edmd_reproduction/run_check.sh",
+      "sha256": "bb0931ef5dd265cd7036867ea6b144b5c01ab18e88addfe57b4489a1b0c2c5e4"
+    },
+    "queue_launcher": {
+      "path": "scripts/neurips_2026/local_edmd_reproduction/queue_full_chain.sh",
+      "sha256": "fe9ca5c89845c19769ddc38fcfe482a56a804a97d55c531a1f323e30397e3ba4"
+    },
+    "focused_tests": {
+      "path": "tests/test_local_edmd_reproduction.py",
+      "sha256": "390fcdad2ad1206a40f8cbbe07a89c925342c4a05345090b0f447372ab8b7c17"
+    },
+    "classical_helper": {
+      "path": "experiments/neurips_2026/baselines/classical.py",
+      "sha256": "16869af686432c89255e06c32c8d08efb0830ddff5b8ab9a8bf78c7c7e66c49b"
+    },
+    "paper_protocol": {
+      "path": "experiments/neurips_2026/protocol.py",
+      "sha256": "bd09eebf9e01ed4f35e458b2a3ca1337b5c6151e7235f7a2c65a9ce922965292"
+    },
+    "config_module": {
+      "path": "skae/config.py",
+      "sha256": "7b8d172418832868e63564c99c6ce63e4793c5fef1fa5e9a657bfa9a61695ae4"
+    },
+    "data_module": {
+      "path": "skae/data.py",
+      "sha256": "46c31f5d9c150e1a49f4a4fee00333492c55e3bc3f94756ac0effb04e9753ce5"
+    },
+    "timestep_module": {
+      "path": "skae/benchmarks/timesteps.py",
+      "sha256": "91956d81d79f31cd5783124a04c783469cf0344868d4b84a7f33856bb032fa65"
+    },
+    "dysts_adapter": {
+      "path": "skae/benchmarks/dysts_adapter.py",
+      "sha256": "3dad04cefbca301c0285d94474bcb86e1fd1b648f8bb27b427900ee249de9263"
+    },
+    "analytic_init": {
+      "path": "skae/dynamics/analytic/__init__.py",
+      "sha256": "88b6bc357dd28193c82e284be8ef2cbbb034ddde8a658a0381d865d541b91e8d"
+    },
+    "analytic_base": {
+      "path": "skae/dynamics/analytic/base.py",
+      "sha256": "880ebacf3a6c2e7bcb0f30e7289cb098be5bbb7c7d8c28b0e4846b1c536afb33"
+    },
+    "analytic_registry": {
+      "path": "skae/dynamics/analytic/registry.py",
+      "sha256": "d063a0401648bd0cf93da4815ee91933e4c73639b1ef335d634672ac94a6fdd4"
+    },
+    "analytic_systems": {
+      "path": "skae/dynamics/analytic/systems.py",
+      "sha256": "538964ce562f21779990466e5257549794858a788a988ec53ff6240d77c7a021"
+    },
+    "project_dependencies": {
+      "path": "pyproject.toml",
+      "sha256": "e145568a7e12d8befe8f14c06113cd3b955da25e052ab9a8dca15e22c8e8c288"
+    },
+    "locked_environment": {
+      "path": "uv.lock",
+      "sha256": "56f64327aa7348e74ba3ed45b56a7c0603fe78c01d78b998c1471a9244e0df11"
+    }
+  },
+  "external_files": {
+    "reproduction_tasks": {
+      "path": "/network/scratch/l/lia/skae/local_edmd_poly_reproduction_20260720/inputs/tasks.tsv",
+      "sha256": "f9dbf990446586bb07f56b46e56cedea272d02c0416b790f19cbbf836f333440"
+    },
+    "reproduction_task_manifest": {
+      "path": "/network/scratch/l/lia/skae/local_edmd_poly_reproduction_20260720/inputs/task_manifest.json",
+      "sha256": "2c4032adc3fa2a2a4a01ba735a639c5ed58280a60877cfcf18f31a42fff9183e"
+    },
+    "historical_controlled_manifest": {
+      "path": "/network/scratch/l/lia/skae/results/paper_baseline_local_edmd_retained15_20260623/paper_baseline_manifest.json",
+      "sha256": "0e2082ebedd5cf1aa0836a98691e6d16b5c04250b8a66da4114177abd868f2a0"
+    },
+    "historical_controlled_tasks": {
+      "path": "/network/scratch/l/lia/skae/results/paper_baseline_local_edmd_retained15_20260623/paper_baseline_tasks.tsv",
+      "sha256": "d161eec8ff1eff8eb00d003316ba05a609a74ddee681cef3a916900a26c7fcb5"
+    },
+    "historical_dysts_manifest": {
+      "path": "/network/scratch/l/lia/skae/results/paper_baseline_local_edmd_dysts_dt30_20260623/paper_baseline_manifest.json",
+      "sha256": "59c7f23cfc02a7ef7bfed3562f5d348d1cf96e5a0203675b8a71e27f0623430c"
+    },
+    "historical_dysts_tasks": {
+      "path": "/network/scratch/l/lia/skae/results/paper_baseline_local_edmd_dysts_dt30_20260623/paper_baseline_tasks.tsv",
+      "sha256": "fb5226d4e9491460a5acc18488f81be7a475e3f779edf5a7ceb4344b3649c711"
+    },
+    "cpu_resource_audit": {
+      "path": "/network/scratch/l/lia/skae/local_edmd_reproduction_resources_20260720.json",
+      "sha256": "095ed0ff62d5dc74cdbe71fd89350cde4209c2349de599446fef1c6b282ec3cb"
+    }
+  },
+  "external_trees": {
+    "historical_controlled_raw_rows": {
+      "root": "/network/scratch/l/lia/skae/results/paper_baseline_local_edmd_retained15_20260623",
+      "pattern": "runs/**/rows.csv",
+      "file_count": 45,
+      "sha256": "22137e7b8ee3081c9109b9d53b7b0133f52a27f3c1ad0f7c45c2984ab51dfb79"
+    },
+    "historical_dysts_raw_rows": {
+      "root": "/network/scratch/l/lia/skae/results/paper_baseline_local_edmd_dysts_dt30_20260623",
+      "pattern": "runs/**/rows.csv",
+      "file_count": 30,
+      "sha256": "d6c8cac37b068435ef575b19bb4c48fae4dffcc74dea6f76669f5e62074ed050"
+    }
+  },
+  "compute": {
+    "partition": "long",
+    "array_tasks": 75,
+    "array_throttle": 32,
+    "cpus_per_task": 4,
+    "memory_per_task": "8G",
+    "gpu_count": 0,
+    "rationale": "Trajectory generation, k-means routing, and small polynomial ridge solves are CPU-bound. Historical tasks used four CPUs; requesting a GPU would waste the device."
+  },
+  "historical_commit": "c27490de63a499edab328065fe933f73a63f5d1a",
+  "claim_boundary": "This can authenticate a serious label-free switching-style local polynomial EDMD control as an unmatched descriptive baseline. It cannot support formal paired significance, support-alignment claims, a universal ranking, or a sparsity-only causal conclusion."
+}

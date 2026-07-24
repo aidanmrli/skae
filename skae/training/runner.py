@@ -328,20 +328,40 @@ def build_optimizer(model: nn.Module, cfg: Config) -> torch.optim.Optimizer:
 def evaluate(
     model: nn.Module,
     x: torch.Tensor,
-    env_step_fn,
+    env_step_fn=None,
     num_steps: int = 50,
+    true_trajectory: Optional[torch.Tensor] = None,
+    rollout_mode: str = "every_step_reencode",
 ) -> Dict[str, Any]:
     """Quick evaluation helper used during training and unit tests."""
 
     # Lazy import to avoid loading evaluation module at startup
-    from skae.evaluation import rollout_every_step_reencode
+    from skae.evaluation import rollout_every_step_reencode, rollout_no_reencode
+
+    if rollout_mode not in {"direct", "every_step_reencode"}:
+        raise ValueError(f"Unknown rollout_mode: {rollout_mode}")
 
     model.eval()
     device = next(model.parameters()).device
 
     with torch.no_grad():
-        true_traj = generate_trajectory(env_step_fn, x.cpu(), length=num_steps)
-        pred_traj = rollout_every_step_reencode(model, x.to(device), num_steps)
+        if true_trajectory is None:
+            if env_step_fn is None:
+                raise ValueError("env_step_fn is required when true_trajectory is absent")
+            true_traj = generate_trajectory(env_step_fn, x.cpu(), length=num_steps)
+        else:
+            true_traj = true_trajectory.detach().cpu()
+            expected_shape = (num_steps, x.shape[0], x.shape[1])
+            if tuple(true_traj.shape) != expected_shape:
+                raise ValueError(
+                    f"true_trajectory shape {tuple(true_traj.shape)} != {expected_shape}"
+                )
+        rollout_fn = (
+            rollout_no_reencode
+            if rollout_mode == "direct"
+            else rollout_every_step_reencode
+        )
+        pred_traj = rollout_fn(model, x.to(device), num_steps)
 
         pred_traj_cpu = pred_traj.cpu()
         diff = pred_traj_cpu - true_traj
@@ -359,6 +379,15 @@ def evaluate(
         step_error = torch.nanmean(step_error, dim=1)
         obs_dim = max(1, int(diff.shape[-1]))
         step_error_per_dim = step_error / math.sqrt(float(obs_dim))
+        squared_error = torch.sum(diff ** 2, dim=-1)
+        full_horizon_finite = torch.isfinite(squared_error).all(dim=0)
+        strict_values = squared_error[:, full_horizon_finite]
+        strict_full_horizon_mse = (
+            strict_values.mean().item()
+            if strict_values.numel() > 0
+            else float("nan")
+        )
+        full_horizon_finite_fraction = full_horizon_finite.float().mean().item()
 
         return {
             "true_trajectory": true_traj,
@@ -369,6 +398,8 @@ def evaluate(
             "mean_error_per_dim": torch.nanmean(step_error_per_dim).item(),
             "final_error": torch.nanmean(step_error[-1]).item(),
             "final_error_per_dim": torch.nanmean(step_error_per_dim[-1]).item(),
+            "strict_full_horizon_mse": strict_full_horizon_mse,
+            "full_horizon_finite_fraction": full_horizon_finite_fraction,
         }
 
 
@@ -516,11 +547,17 @@ def train(
             else:
                 print("Warning: Dysts cache enabled but environment is not dysts.")
         except Exception as e:
+            if cfg.ENV.DYSTS.USE_NATIVE_CACHE:
+                raise RuntimeError(
+                    "Failed to initialize required Dysts native cache"
+                ) from e
             print(f"Warning: Failed to initialize dysts cache: {e}")
 
     print("Generating fixed validation set...")
     val_rng = torch.Generator().manual_seed(cfg.SEED + 999999) # Separate seed
     val_window = max(1, cfg.TRAIN.SEQUENCE_LENGTH)
+    if val_dysts_cache is not None:
+        val_window = max(val_window, int(cfg.TRAIN.EVAL_NUM_STEPS))
     if val_dysts_cache is not None:
         val_seq = val_dysts_cache.sample_sequence_batch(
             val_rng,
@@ -536,6 +573,15 @@ def train(
             device=device,
         )
     val_x = val_seq[:16, 0, :]
+    val_true_trajectory = None
+    if val_dysts_cache is not None:
+        val_true_trajectory = val_seq[
+            :16, 1 : int(cfg.TRAIN.EVAL_NUM_STEPS) + 1, :
+        ].transpose(0, 1).contiguous()
+    checkpoint_rollout_mode = (
+        "direct" if val_dysts_cache is not None else "every_step_reencode"
+    )
+    print(f"Checkpoint selection rollout: {checkpoint_rollout_mode}")
 
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
     print(f"Device: {device}")
@@ -601,19 +647,35 @@ def train(
             eval_results = evaluate(
                 model,
                 val_x,
-                lambda s: eval_env.step(s),
+                None if val_true_trajectory is not None else lambda s: eval_env.step(s),
                 num_steps=cfg.TRAIN.EVAL_NUM_STEPS,
+                true_trajectory=val_true_trajectory,
+                rollout_mode=checkpoint_rollout_mode,
             )
             logger.log_scalar('eval/mean_error', eval_results['mean_error'], step)
             logger.log_scalar('eval/mean_error_per_dim', eval_results['mean_error_per_dim'], step)
             logger.log_scalar('eval/final_error', eval_results['final_error'], step)
             logger.log_scalar('eval/final_error_per_dim', eval_results['final_error_per_dim'], step)
+            if checkpoint_rollout_mode == "direct":
+                checkpoint_score = (
+                    eval_results["strict_full_horizon_mse"]
+                    if eval_results["full_horizon_finite_fraction"] == 1.0
+                    else float("inf")
+                )
+                checkpoint_metric = (
+                    "direct_strict_full_horizon_cumulative_state_summed_mse"
+                )
+            else:
+                checkpoint_score = eval_results["final_error"]
+                checkpoint_metric = "every_step_reencode_final_l2_error"
 
             print(
                 f"  Eval | Mean error: {eval_results['mean_error']:.4f} "
                 f"(per-dim {eval_results['mean_error_per_dim']:.4f}) | "
                 f"Final error: {eval_results['final_error']:.4f} "
-                f"(per-dim {eval_results['final_error_per_dim']:.4f})"
+                f"(per-dim {eval_results['final_error_per_dim']:.4f}) | "
+                f"Checkpoint score: {checkpoint_score:.4f} "
+                f"(coverage {eval_results['full_horizon_finite_fraction']:.3f})"
             )
 
             # Save checkpoint
@@ -623,6 +685,17 @@ def train(
                 'optimizer_state_dict': optimizer.state_dict() if save_last_checkpoint else None,
                 'config': cfg.to_dict(),
                 'metrics': metrics,
+                'checkpoint_selection_rollout': checkpoint_rollout_mode,
+                'checkpoint_selection_metric': checkpoint_metric,
+                'checkpoint_selection_score': checkpoint_score,
+                'checkpoint_selection_horizon': int(cfg.TRAIN.EVAL_NUM_STEPS),
+                'checkpoint_selection_batch_size': int(val_x.shape[0]),
+                'checkpoint_selection_split': (
+                    'val' if val_dysts_cache is not None else 'generated_validation'
+                ),
+                'checkpoint_selection_full_horizon_finite_fraction': (
+                    eval_results['full_horizon_finite_fraction']
+                ),
             }
             last_checkpoint_dict = checkpoint_dict
 
@@ -630,10 +703,10 @@ def train(
                 torch.save(checkpoint_dict, run_dir / 'last.pt')
 
             # Save best checkpoint if eval error improved
-            if eval_results['final_error'] < best_eval_final_error:
-                best_eval_final_error = eval_results['final_error']
+            if checkpoint_score < best_eval_final_error:
+                best_eval_final_error = checkpoint_score
                 torch.save(checkpoint_dict, run_dir / 'checkpoint.pt')
-                print(f"  Saved best checkpoint (final eval error: {best_eval_final_error:.4f})")
+                print(f"  Saved best checkpoint ({checkpoint_metric}: {best_eval_final_error:.4f})")
 
     if not (run_dir / 'checkpoint.pt').exists() and last_checkpoint_dict is not None:
         torch.save(last_checkpoint_dict, run_dir / 'checkpoint.pt')
@@ -991,7 +1064,7 @@ Examples:
     parser.add_argument('--dysts_cache_reuse', action='store_true',
                         help='Reuse/load/save on-disk dysts cache when cache dir is set')
     parser.add_argument('--dysts_cache_split', type=str, default='train',
-                        choices=['train', 'val', 'test'],
+                        choices=['train', 'val', 'policy', 'test'],
                         help='Cache split namespace to use')
     parser.add_argument('--dysts_cache_num_workers', type=int, default=None,
                         help='Parallel workers for dysts native cache construction')

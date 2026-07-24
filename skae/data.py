@@ -14,6 +14,7 @@ import json
 import math
 import os
 from pathlib import Path
+import signal
 import time
 import numpy as np
 import torch
@@ -419,6 +420,34 @@ def wrap_training_env(env: Env, cfg: Config) -> Env:
 # Dysts trajectory cache for training
 # ---------------------------------------------------------------------------
 
+class DystsTrajectoryTimeout(TimeoutError):
+    """Raised when one native Dysts integration exceeds its wall budget."""
+
+
+def _run_with_wall_timeout(callable_, timeout_seconds: float):
+    """Run a worker-local integration with a POSIX wall-clock timeout."""
+
+    timeout_seconds = float(timeout_seconds)
+    if timeout_seconds <= 0.0:
+        return callable_()
+    if not hasattr(signal, "SIGALRM") or not hasattr(signal, "setitimer"):
+        raise RuntimeError("Dysts trajectory timeouts require POSIX SIGALRM support")
+
+    def _handle_timeout(_signum, _frame):
+        raise DystsTrajectoryTimeout(
+            f"Dysts trajectory exceeded {timeout_seconds:.1f}s wall time"
+        )
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, _handle_timeout)
+    signal.setitimer(signal.ITIMER_REAL, timeout_seconds)
+    try:
+        return callable_()
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0.0)
+        signal.signal(signal.SIGALRM, previous_handler)
+
+
 def _build_dysts_native_trajectory(
     system_name: str,
     dt: float,
@@ -427,24 +456,54 @@ def _build_dysts_native_trajectory(
     resample: bool,
     pts_per_period: int,
     standardize: bool,
-) -> torch.Tensor:
+    primary_method: str = "Radau",
+    primary_timeout_seconds: float = 0.0,
+    fallback_method: str = "",
+    fallback_timeout_seconds: float = 0.0,
+    trajectory_index: int = -1,
+) -> Tuple[torch.Tensor, str]:
     """Worker helper for parallel dysts trajectory generation."""
     from skae.benchmarks.dysts_adapter import DystsEnv
 
-    worker_env = DystsEnv(
-        system_name=system_name,
-        dt_override=float(dt),
-        ic_noise_scale=0.0,
-        standardize=standardize,
-    )
-    if hasattr(worker_env.system, "ic"):
-        worker_env.system.ic = np.array(ic, dtype=np.float32)
-    return worker_env.make_trajectory_native(
-        n=n_steps,
-        resample=resample,
-        pts_per_period=pts_per_period,
-        standardize=standardize,
-    )
+    def _integrate(method: str, timeout_seconds: float) -> torch.Tensor:
+        worker_env = DystsEnv(
+            system_name=system_name,
+            dt_override=float(dt),
+            ic_noise_scale=0.0,
+            standardize=standardize,
+        )
+        if hasattr(worker_env.system, "ic"):
+            worker_env.system.ic = np.array(ic, dtype=np.float32)
+        return _run_with_wall_timeout(
+            lambda: worker_env.make_trajectory_native(
+                n=n_steps,
+                resample=resample,
+                pts_per_period=pts_per_period,
+                standardize=standardize,
+                method=method,
+                rtol=1e-12,
+                atol=1e-12,
+            ),
+            timeout_seconds,
+        )
+
+    primary_method = str(primary_method or "Radau")
+    try:
+        return _integrate(primary_method, primary_timeout_seconds), primary_method
+    except DystsTrajectoryTimeout:
+        fallback_method = str(fallback_method or "").strip()
+        if not fallback_method:
+            raise
+        print(
+            "[dysts cache] trajectory "
+            f"{trajectory_index} timed out under {primary_method}; "
+            f"retrying the same IC with {fallback_method}",
+            flush=True,
+        )
+        return (
+            _integrate(fallback_method, fallback_timeout_seconds),
+            fallback_method,
+        )
 
 
 def _init_dysts_cache_worker() -> None:
@@ -467,6 +526,8 @@ def _init_dysts_cache_worker() -> None:
 class DystsTrajectoryCache:
     """In-memory cache of dysts trajectories for fast batch sampling."""
 
+    _CACHE_SCHEMA_VERSION = 3
+
     # Cache IC construction is intentionally deterministic and independent of model seed
     # so cache files can be reused across runs with different training seeds.
     _CACHE_BUILD_SEED = 0
@@ -481,6 +542,8 @@ class DystsTrajectoryCache:
             return 1
         if normalized == "test":
             return 2
+        if normalized == "policy":
+            return 3
         digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()
         return int(digest[:8], 16) % 1_000_000
 
@@ -502,6 +565,33 @@ class DystsTrajectoryCache:
         self.cache_reuse = bool(getattr(cfg.ENV.DYSTS, "CACHE_REUSE", False))
         self.cache_split = str(getattr(cfg.ENV.DYSTS, "CACHE_SPLIT", "train")).strip().lower() or "train"
         self.cache_num_workers = max(1, int(getattr(cfg.ENV.DYSTS, "CACHE_NUM_WORKERS", 1)))
+        self.cache_primary_method = str(
+            getattr(cfg.ENV.DYSTS, "CACHE_PRIMARY_METHOD", "Radau") or "Radau"
+        )
+        self.cache_trajectory_timeout_seconds = max(
+            0.0,
+            float(
+                getattr(
+                    cfg.ENV.DYSTS,
+                    "CACHE_TRAJECTORY_TIMEOUT_SECONDS",
+                    0.0,
+                )
+            ),
+        )
+        self.cache_timeout_fallback_method = str(
+            getattr(cfg.ENV.DYSTS, "CACHE_TIMEOUT_FALLBACK_METHOD", "") or ""
+        ).strip()
+        self.cache_fallback_timeout_seconds = max(
+            0.0,
+            float(
+                getattr(
+                    cfg.ENV.DYSTS,
+                    "CACHE_FALLBACK_TIMEOUT_SECONDS",
+                    0.0,
+                )
+            ),
+        )
+        self._cache_integration_method_counts: dict[str, int] = {}
 
         if self.cache_steps < 2:
             raise ValueError("Dysts cache requires CACHE_STEPS >= 2")
@@ -518,7 +608,7 @@ class DystsTrajectoryCache:
             return None
         os.makedirs(self.cache_dir, exist_ok=True)
         payload = {
-            "version": 1,
+            "version": self._CACHE_SCHEMA_VERSION,
             "system": str(getattr(self.env, "system_name", "unknown")),
             "dt": float(getattr(self.env, "dt", 0.0)),
             "cache_split": self.cache_split,
@@ -544,15 +634,61 @@ class DystsTrajectoryCache:
             return None
         try:
             payload = torch.load(cache_path, map_location="cpu")
-            trajectories = payload["trajectories"] if isinstance(payload, dict) else payload
+            if not isinstance(payload, dict):
+                print(f"[dysts cache] legacy payload at {cache_path}; rebuilding.")
+                return None
+            meta = payload.get("meta", {})
+            expected_dt = float(getattr(self.env, "dt", 0.0))
+            if int(meta.get("schema_version", -1)) != self._CACHE_SCHEMA_VERSION:
+                print(f"[dysts cache] stale schema at {cache_path}; rebuilding.")
+                return None
+            if not math.isclose(
+                float(meta.get("dt", float("nan"))),
+                expected_dt,
+                rel_tol=0.0,
+                abs_tol=1e-15,
+            ):
+                print(f"[dysts cache] timestep mismatch at {cache_path}; rebuilding.")
+                return None
+            expected_meta = {
+                "system": str(getattr(self.env, "system_name", "unknown")),
+                "cache_split": self.cache_split,
+                "cache_steps": int(self.cache_steps),
+                "cache_trajectories": int(self.cache_trajectories),
+                "cache_warmup": int(self.cache_warmup),
+                "standardize": bool(self.standardize),
+                "resample": bool(self.resample),
+                "pts_per_period": int(self.pts_per_period),
+                "ic_noise_scale": float(getattr(self.env, "ic_noise_scale", 0.0)),
+            }
+            for key, expected in expected_meta.items():
+                if meta.get(key) != expected:
+                    print(
+                        f"[dysts cache] metadata mismatch for {key} at "
+                        f"{cache_path}; rebuilding.",
+                        flush=True,
+                    )
+                    return None
+            trajectories = payload.get("trajectories")
             if not isinstance(trajectories, torch.Tensor):
                 print(f"[dysts cache] invalid tensor payload at {cache_path}; rebuilding.")
                 return None
-            if trajectories.dim() != 3:
-                print(f"[dysts cache] invalid tensor shape at {cache_path}; rebuilding.")
+            expected_shape = (
+                self.cache_trajectories,
+                self.cache_steps + 1,
+                int(self.env.observation_size),
+            )
+            if tuple(trajectories.shape) != expected_shape:
+                print(
+                    f"[dysts cache] invalid tensor shape {tuple(trajectories.shape)} "
+                    f"!= {expected_shape} at {cache_path}; rebuilding."
+                )
                 return None
-            if trajectories.shape[1] < self.cache_steps + 1:
-                print(f"[dysts cache] cached trajectories too short at {cache_path}; rebuilding.")
+            if trajectories.dtype != torch.float32:
+                print(f"[dysts cache] non-float32 payload at {cache_path}; rebuilding.")
+                return None
+            if not torch.isfinite(trajectories).all():
+                print(f"[dysts cache] nonfinite payload at {cache_path}; rebuilding.")
                 return None
             print(
                 f"[dysts cache] cache hit: loaded {trajectories.shape[0]} trajectories "
@@ -577,11 +713,42 @@ class DystsTrajectoryCache:
                 {
                     "trajectories": trajectories.cpu(),
                     "meta": {
+                        "schema_version": self._CACHE_SCHEMA_VERSION,
                         "system": str(getattr(self.env, "system_name", "unknown")),
+                        "dt": float(getattr(self.env, "dt", 0.0)),
                         "cache_split": self.cache_split,
                         "cache_steps": int(self.cache_steps),
                         "cache_trajectories": int(self.cache_trajectories),
                         "cache_warmup": int(self.cache_warmup),
+                        "standardize": bool(self.standardize),
+                        "resample": bool(self.resample),
+                        "pts_per_period": int(self.pts_per_period),
+                        "ic_noise_scale": float(
+                            getattr(self.env, "ic_noise_scale", 0.0)
+                        ),
+                        "integration_primary_method": str(
+                            getattr(self, "cache_primary_method", "Radau")
+                        ),
+                        "integration_primary_timeout_seconds": float(
+                            getattr(
+                                self,
+                                "cache_trajectory_timeout_seconds",
+                                0.0,
+                            )
+                        ),
+                        "integration_fallback_method": str(
+                            getattr(self, "cache_timeout_fallback_method", "")
+                        ),
+                        "integration_fallback_timeout_seconds": float(
+                            getattr(
+                                self,
+                                "cache_fallback_timeout_seconds",
+                                0.0,
+                            )
+                        ),
+                        "integration_method_counts": dict(
+                            getattr(self, "_cache_integration_method_counts", {})
+                        ),
                     },
                 },
                 tmp_path,
@@ -589,21 +756,21 @@ class DystsTrajectoryCache:
             os.replace(tmp_path, cache_path)
             print(f"[dysts cache] saved cache to {cache_path}", flush=True)
         except Exception as e:
-            print(f"[dysts cache] warning: failed to save cache at {cache_path}: {e}")
             if tmp_path.exists():
                 try:
                     tmp_path.unlink()
                 except OSError:
                     pass
+            raise RuntimeError(f"Failed to save Dysts cache at {cache_path}") from e
 
     def _initial_conditions(self, base_ic: np.ndarray, base_std: np.ndarray) -> List[np.ndarray]:
         ic_list: List[np.ndarray] = []
-        for i in range(self.cache_trajectories):
-            if i == 0:
-                ic = base_ic
-            else:
-                noise = torch.randn(self.env._dim, generator=self._cache_build_rng).numpy()
-                ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
+        for _ in range(self.cache_trajectories):
+            # Every split receives its own deterministically seeded perturbations.
+            # Keeping trajectory zero at the exact default IC made train/val/test
+            # share one identical rollout despite separate cache namespaces.
+            noise = torch.randn(self.env._dim, generator=self._cache_build_rng).numpy()
+            ic = base_ic + noise * base_std * float(self.env.ic_noise_scale)
             ic_list.append(np.array(ic, dtype=np.float32))
         return ic_list
 
@@ -614,6 +781,7 @@ class DystsTrajectoryCache:
     ) -> List[torch.Tensor]:
         total_steps = self.cache_steps + self.cache_warmup + 1
         trajectories: List[Optional[torch.Tensor]] = [None] * len(ic_list)
+        method_counts: dict[str, int] = {}
         completed = 0
         print(
             f"[dysts cache] using parallel workers={self.cache_num_workers} "
@@ -636,12 +804,20 @@ class DystsTrajectoryCache:
                     bool(self.resample),
                     int(self.pts_per_period),
                     bool(self.standardize),
+                    str(self.cache_primary_method),
+                    float(self.cache_trajectory_timeout_seconds),
+                    str(self.cache_timeout_fallback_method),
+                    float(self.cache_fallback_timeout_seconds),
+                    int(idx),
                 )] = idx
             for future in as_completed(futures):
                 idx = futures[future]
                 completed += 1
                 try:
-                    traj = future.result()
+                    traj, integration_method = future.result()
+                    method_counts[integration_method] = (
+                        method_counts.get(integration_method, 0) + 1
+                    )
                     if self.cache_warmup > 0:
                         traj = traj[self.cache_warmup:]
                     if traj.dtype != torch.float32:
@@ -662,6 +838,13 @@ class DystsTrajectoryCache:
                         f"(elapsed={elapsed:.1f}s)",
                         flush=True,
                     )
+        missing = [idx for idx, traj in enumerate(trajectories) if traj is None]
+        if missing:
+            raise RuntimeError(
+                "Dysts cache construction failed for trajectory indices: "
+                + ",".join(str(idx) for idx in missing)
+            )
+        self._cache_integration_method_counts = method_counts
         return [traj for traj in trajectories if traj is not None]
 
     def _build_cache(self) -> torch.Tensor:
@@ -705,20 +888,23 @@ class DystsTrajectoryCache:
                         resample=self.resample,
                         pts_per_period=self.pts_per_period,
                         standardize=self.standardize,
+                        method=self.cache_primary_method,
+                        rtol=1e-12,
+                        atol=1e-12,
                     )
                 except Exception as e:
-                    if i == 0:
-                        raise
-                    print(
-                        f"Warning: Failed to build dysts trajectory {i + 1}/"
-                        f"{self.cache_trajectories}: {e}. Using fewer trajectories."
-                    )
-                    break
+                    raise RuntimeError(
+                        f"Failed to build dysts trajectory {i + 1}/"
+                        f"{self.cache_trajectories}"
+                    ) from e
                 if self.cache_warmup > 0:
                     traj = traj[self.cache_warmup:]
                 if traj.dtype != torch.float32:
                     traj = traj.to(dtype=torch.float32)
                 trajectories.append(traj)
+            self._cache_integration_method_counts = {
+                self.cache_primary_method: len(trajectories)
+            }
 
         if original_ic is not None:
             self.env.system.ic = original_ic
@@ -731,10 +917,28 @@ class DystsTrajectoryCache:
             flush=True,
         )
 
+        if len(trajectories) != self.cache_trajectories:
+            raise RuntimeError(
+                f"Expected {self.cache_trajectories} Dysts trajectories, "
+                f"built {len(trajectories)}"
+            )
+
         if len(trajectories) == 1:
             stacked = trajectories[0].unsqueeze(0)
         else:
             stacked = torch.stack(trajectories, dim=0)
+
+        expected_shape = (
+            self.cache_trajectories,
+            self.cache_steps + 1,
+            int(self.env.observation_size),
+        )
+        if tuple(stacked.shape) != expected_shape:
+            raise RuntimeError(
+                f"Dysts cache shape {tuple(stacked.shape)} != {expected_shape}"
+            )
+        if stacked.dtype != torch.float32 or not torch.isfinite(stacked).all():
+            raise RuntimeError("Dysts cache must be finite float32")
 
         self._save_cached_trajectories(cache_path, stacked)
         return stacked

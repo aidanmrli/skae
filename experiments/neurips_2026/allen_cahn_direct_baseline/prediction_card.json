@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_matched_direct_baseline_v1",
+  "status": "fourth_and_final_outcome_blind_smoke_length_amendment_pending_authenticated_gpu_smoke_and_root_launch_decision",
+  "freeze_date": "2026-07-21",
+  "experiment_type": "post_hoc_strong_baseline_completion_with_prospective_direct_model_outcomes",
+  "question": "How does the forecast-optimized sparse Koopman autoencoder compare with a parameter- and optimization-budget-matched nonlinear observation-space predictor on the same Allen--Cahn fitting, checkpoint-selection, development-evaluation, and new-initial-condition datasets?",
+  "chronology_and_outcome_awareness": {
+    "direct_outcomes_under_this_protocol_opened_before_freeze": false,
+    "direct_checkpoints_under_this_protocol_exist_before_freeze": false,
+    "sparse_and_dense_koopman_outcomes_already_opened": true,
+    "older_direct_control_outcomes_already_opened": true,
+    "disclosure": "The sparse-versus-dense H200 result and a smaller, short-window direct convolutional control from the representation packet were known when this card was written. This is therefore not an independent preregistration of the overall Allen--Cahn question. It prospectively freezes the previously missing matched direct baseline and requires reporting its result in every direction. The architecture is determined by exact reuse of the old direct stepper plus an outcome-independent effective-parameter match; it is not tuned against the opened Koopman outcomes."
+  },
+  "amendment_history": [
+    {
+      "superseded_card_sha256": "c4495ca64f4e89a9eb8014d8e9694dcca038bc96532237d4273f89c1695ed7c0",
+      "superseded_source_manifest_sha256": "6bad0fecf0ad4524d88f0a2f44f28cbfcf4dd4bcf3a07c993a39e1e23050d07c",
+      "superseded_task_lock_sha256": "eafc27c629cc967edba470e56bc0353c38758158d78012a31ac57839bf0ae7f7",
+      "reason": "Independent outcome-blind red-team required the final packet to authenticate the complete training-manifest -> model-audit -> exact selector history -> selected checkpoint -> evaluation -> raw telemetry chain; validate every dataset identity and curve/endpoint identity; report both statistical orientations, terminal context, explicit gates, and capacity/update accounting; strengthen telemetry range/cadence/boundary checks; source-lock the complete train/evaluate/packet dependency graph; and reproduce the historical zero-based selector cadence and batch size exactly.",
+      "zero_outcome_attestation": "No authenticated matched-direct GPU smoke, checkpoint, selector result, development evaluation, or new-IC evaluation existed or had been opened when this amendment was made. The discarded partial login-host unit-test attempt produced no scientific artifact and is not evidence.",
+      "scientific_choices_unchanged": "Model, datasets, seeds, objective, 5,500 updates, H200 BPTT, endpoints, effect margin, inference, and claim branches are unchanged. Only exact historical selector timing/batch parity and fail-closed validity/reporting controls were strengthened."
+    },
+    {
+      "superseded_card_sha256": "2cffeffe5e0e0db22f62f8e1d9c3eb0e3feab6760eedec872c8a55f579e5893a",
+      "superseded_source_manifest_sha256": "37aa87d0d65f2e61311d6088f89d006cee7a85a44e34ff99854a2f065e982660",
+      "superseded_task_lock_sha256": "b7da4ccddfb4e7cc565f59c573eec1fc98410a14c041c4af90413d6105454fc1",
+      "reason": "Authenticated outcome-free A100L smoke 10165178 was finite and used 17,475 MiB peak device memory, but correctly failed the frozen utilization gate (marker-bounded mean 49.9375%, p10 6.0%). The execution path synchronously checked each parameter and gradient tensor and launched the fixed H200 recurrent graph from Python on every update. The repair batches all finiteness checks into device reductions and, after one eager state-initializing update, captures and replays the complete fixed-shape loss/backward/Adam step as a CUDA graph. A fixed 20-update smoke amortizes its one-time eager/capture startup.",
+      "zero_scientific_outcome_attestation": "Smoke 10165178 performed eight training updates only and opened no selector, development, new-initial-condition, sparse, dense, or distinct-law outcome. No matched-direct checkpoint or evaluation exists.",
+      "scientific_choices_unchanged": "Model parameters and architecture, tanh activations, loss, Adam equations and hyperparameters, sampled and augmented batches and order, batch size 8, H200 BPTT, 5,500-update budget, selector, datasets, seeds, endpoints, inference, and claim branches are unchanged. CUDA capture changes launch scheduling only; any nonfinite post-replay loss, gradient, or parameter still invalidates the complete run.",
+      "outcome_free_equivalence_validation": "GPU test allocation 10165214 exposed and rejected a one-update step-accounting bug before freeze. After requiring one replay immediately after capture, allocation 10165223 matched eager Adam parameters. Expanded allocation 10165233 matched eager losses, every parameter, and every Adam state tensor through three updates."
+    },
+    {
+      "superseded_card_sha256": "b41c9c7bea7718bbf7145bcdfd4868964763d58445b3ad356f01ff17582f322c",
+      "superseded_source_manifest_sha256": "0925d931e4d2f376e76b856d4d935da525e4ac8d05334790551b3b9eba51b49d",
+      "superseded_task_lock_sha256": "ff965add8d6ce17a65255446bf444cdda5c4ab5ffe54501c38c3588365f4c5c8",
+      "reason": "Authenticated outcome-free A100L smoke 10165256 completed all 20 finite updates without OOM and improved steady replay to 0.891673 seconds per update, but correctly failed the unchanged all-loop utilization gate because its seven one-time eager/capture samples occupied too much of the 23-sample core (mean 75.913%, p10 1%). Every one of the subsequent 16 steady samples was 98--100%. The final smoke therefore uses 80 genuine updates so the diagnostic interval represents the 5,500-update scientific workload while retaining every one-time idle sample.",
+      "zero_scientific_outcome_attestation": "Smoke 10165256 opened no selector, development, new-initial-condition, sparse, dense, or distinct-law outcome. It created no matched-direct scientific checkpoint or evaluation.",
+      "scientific_choices_unchanged": "Only non-scientific smoke length changes from 20 to 80. Model, data, loss, Adam configuration, batch stream, batch size, H200 graph, 5,500 scientific updates, selector, evaluation, telemetry samples, utilization thresholds, inference, and claim branches are byte-for-byte unchanged in meaning.",
+      "terminal_amendment_rule": "This is the final permitted smoke-length or utilization amendment. If the 80-update smoke fails any existing OOM, finiteness, source, cadence, boundary, retained-zero, mean-at-least-85%, or p10-at-least-80% gate, the matched-direct scientific launch is NO-GO; no longer smoke and no weaker or redefined utilization interval or threshold may rescue it."
+    }
+  ],
+  "known_context_at_freeze": {
+    "sparse_vs_dense_new_ic_h200_through_horizon_reduction_percent": 5.8574,
+    "sparse_vs_dense_new_ic_seed_wins": "8_of_10",
+    "older_direct_control": "The 298,818-parameter, 20-step-window direct control was the best T20 predictor in the representation-focused packet, but it used a different train dataset, H80 checkpoint selection, 2,500 updates, and seeds 21--30 and therefore is not the requested matched control.",
+    "comparator_evidence_at_freeze": [
+      {
+        "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_new_ic_replication_seed_rows.csv",
+        "sha256": "4d05c4c3327c56f26929c061968fa5a08e5e0a92e926c3bff579445ccb1f0f7a"
+      },
+      {
+        "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_new_ic_replication_summary.json",
+        "sha256": "c7a715d1c98c61ff9c8723173bb43f85b4d7a19b70a20dd193dd70a02236732f"
+      },
+      {
+        "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_seed_rows.csv",
+        "sha256": "e5e42f86b2d434fb69cc959102ce7c7b2ae5254aea484635b4e59379b6bb9fbd"
+      }
+    ]
+  },
+  "hypothesis_and_competing_explanations": {
+    "hypothesis": "The sparse Koopman recipe's lower error than the exact-dense Koopman arm remains scientifically useful even after comparison with a strong matched nonlinear direct predictor.",
+    "competing_explanations": [
+      "The sparse advantage is only relative to a dense Koopman bottleneck; a local nonlinear observation-space stepper forecasts substantially better.",
+      "A direct model only appeared strong previously because it had a different dataset, short training windows, or an H80 checkpoint selector.",
+      "Any apparent direct advantage is driven by one initialization or one new-initial-condition dataset.",
+      "A parameter match based on allocated but functionally inert tensors would misstate effective model capacity."
+    ],
+    "expected_outcome": "Based on the older under-parameterized control, the direct model is expected to be at least competitive and may beat both Koopman arms. That outcome would narrow, not erase, the paper's claim: sparse support structure improves forecasting within matched Koopman autoencoders while its distinct value is representation and operator organization rather than unrestricted forecasting supremacy.",
+    "surprising_outcome": "The sparse Koopman model beats the direct model by at least 5% on the three-dataset H200 through-horizon endpoint with a positive paired-seed confidence bound and at least 8 of 10 seed wins."
+  },
+  "datasets_and_firewall": {
+    "training_and_checkpoint_selection": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+      "sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+      "dataset_seed": 20260723,
+      "full_field_shape": [768, 201, 16, 16, 2],
+      "fit_scope": "512 train trajectories",
+      "checkpoint_scope": "even-indexed half of the 256 validation trajectories, yielding 128 selector trajectories",
+      "forbidden_scope": "odd-indexed validation trajectories are not used for fitting or checkpoint selection"
+    },
+    "development_evaluation": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/confirmation_data/allen_cahn_4_grid16_dt0p1_t20_validation_seed20260724.pt",
+      "sha256": "68620c9d355ec62c8d9b5edd1cc635690f251733b2731e7627f0d4575c83b344",
+      "dataset_seed": 20260724,
+      "field_shape": [256, 201, 16, 16, 2],
+      "policy": "Evaluation only after the checkpoint is frozen; never used for model or checkpoint selection."
+    },
+    "new_initial_condition_evaluation": [
+      {
+        "dataset_index": 0,
+        "dataset_seed": 1775404171,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed1775404171.pt",
+        "sha256": "4c3b8755459c27e00584d03c130496cd6edc909780156672a201c7bc502657e3",
+        "field_shape": [256, 201, 16, 16, 2]
+      },
+      {
+        "dataset_index": 1,
+        "dataset_seed": 74732421,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed74732421.pt",
+        "sha256": "b776c8cffdb03ffc9577c9c30b48dc79f48095c3f2bf51b0052c093ae89e2896",
+        "field_shape": [256, 201, 16, 16, 2]
+      },
+      {
+        "dataset_index": 2,
+        "dataset_seed": 293789188,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed293789188.pt",
+        "sha256": "7d7611d14ab0176695b364fe6ca4dded4d1427b1dc6e82d30318ef2c702b34d4",
+        "field_shape": [256, 201, 16, 16, 2]
+      }
+    ],
+    "label_firewall": "Training, checkpoint selection, and direct forecasting may deserialize the dataset containers but code may access only fields and split_indices. No basin/fate label, well center, majority fraction, basin count, support family, sparse checkpoint outcome, or trajectory assignment enters the direct model, objective, selector, or rollout.",
+    "physical_protocol": "Every stored step is dt=0.1. Training and primary evaluation use all 200 autonomous steps, physical time 20.0."
+  },
+  "model_and_capacity_contract": {
+    "model": "periodic residual convolutional observation-space stepper",
+    "architecture": "2 input channels -> circular 3x3 conv -> tanh -> four blocks, each with two circular 3x3 width-344 convolutions, GroupNorm, and tanh -> circular 3x3 two-channel update; residual scale 0.1; final convolution initialized to zero",
+    "rollout": "Autonomous recurrence x_hat[t+1] = f_theta(x_hat[t]) from the true x0 only. No future truth, teacher forcing during evaluation, reencoding, routing, labels, or basin count.",
+    "direct_trainable_parameters": 8541178,
+    "koopman_effective_forward_parameters": 8504386,
+    "direct_relative_excess_over_effective_koopman_percent": 0.4326,
+    "koopman_allocated_parameters_including_inert_lista_s": 12698690,
+    "accounting_policy": "The primary capacity match uses effective forward parameters because the 4,194,304-entry lista_s tensor is inert at one LISTA loop in both Koopman arms. Both effective and raw allocated counts are always reported.",
+    "activation_and_regularization": "tanh only; no ReLU, GELU, soft shrinkage, dropout, sparsity loss, L1/L2 parameter penalty, or weight decay",
+    "optimizer": "Adam, learning rate 3e-4, weight decay 0, capturable execution mode for exact fixed-shape CUDA-graph replay",
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73]
+  },
+  "training_and_selection_contract": {
+    "optimizer_updates": 5500,
+    "matching_rationale": "Matches the 2,000 autoencoder-pretraining plus 3,500 forecast-training updates of each Koopman arm. All direct updates optimize forecasting, favoring the baseline. This matches updates and examples, not FLOPs or wall-clock time.",
+    "batch_size": 8,
+    "training_horizon_steps": 200,
+    "physical_training_horizon": 20.0,
+    "objective": "uniform mean field MSE over all steps 1--200 plus 0.05 times periodic spatial-gradient MSE over all steps 1--200",
+    "spatial_augmentation": "the exact square-periodic rotations, reflections, and translations used by the Koopman arms",
+    "common_random_stream": "For each model seed, a dedicated CPU generator with seed model_seed+12345 selects trajectories and augmentations. Because the batch size, sequence length, update count, and calls are identical, the 5,500 sampled/augmented sequence batches match the Koopman packet's combined pretraining and forecast stream.",
+    "checkpoint_selector": "Reproduce the historical zero-based cadence exactly: after the 2,000-update burn-in, evaluate update 2,000; updates 2,251, 2,501, ..., 5,251; and update 5,500, for 15 fixed candidate looks. Use selector batch size 64. On the even 128 validation trajectories, minimize the unweighted mean of persistence-normalized through-horizon and terminal MSE at H160 and H200. This matches the Koopman packet's four-cell metric, data, candidate count, timing, and batch size.",
+    "selection_firewall": "Development seed 20260724 and the three new-IC datasets cannot be loaded by training jobs and cannot affect checkpoint choice. No hyperparameter, seed, step, trajectory, or result is omitted or changed after direct outcomes are observed.",
+    "finiteness": "Any nonfinite field, loss, gradient, parameter, selector rollout, or evaluation rollout invalidates the affected run; finite prefixes may not be reported. Training checks the loss, every gradient, and every parameter in one post-replay device reduction on each CUDA-graph update.",
+    "execution": "Update 1 runs eagerly to initialize Adam state and fixed-shape kernels. Update 2 is captured and replayed once; updates 3--5,500 replay that same complete zero-gradient, H200 forward, loss, backward, and Adam graph after copying the next frozen sampled/augmented batch into static input storage. GPU equivalence must match eager Adam parameters, optimizer state, and losses."
+  },
+  "estimands_and_report_always_statistics": {
+    "primary_contextual_endpoint": "H200 through-horizon field MSE averaged over every trajectory, predicted time, grid cell, and channel on each of the three new-IC datasets, then averaged equally over the three fixed datasets within each model seed.",
+    "secondary_endpoints": "Development-seed H80/H120/H160/H200 through-horizon and terminal MSE; new-IC dataset-specific H200 through-horizon and terminal MSE; full 200-step instantaneous and cumulative curves; all ten seed values; persistence.",
+    "inference_unit": "ten model initialization seeds; trajectories and fixed datasets are measurements within seed",
+    "pairing": "Pair direct and Koopman rows by numerical model seed. This shares the fitting data, sampled/augmented batch stream, and evaluation data, although architecture-specific initialization tensors differ.",
+    "effect": "For comparator c, direct advantage is 1 - mean_seed(direct)/mean_seed(c). Also report the reverse orientation explicitly.",
+    "uncertainty": "100,000 paired-seed percentile bootstrap resamples with seed 20260721 and a two-sided 95% interval for the ratio-of-means effect",
+    "tests": "One-sided exact paired sign-flip p-values for direct<c and c<direct, literal enumeration of all 2^10 signs; Holm correction over the two contextual comparator families (direct versus sparse, direct versus dense). Tests are secondary because comparator outcomes and the older direct result were known at freeze.",
+    "fixed_meaningful_margin": "5% relative H200 through-horizon reduction and at least 8 of 10 paired seed wins, matching the forecast packet's pre-existing practical-effect convention",
+    "mandatory_reporting": "Every valid seed, all four evaluation datasets, both Koopman comparators, both comparison orientations, absolute errors, terminal limitations, telemetry, parameter counts, update counts, and every failed gate are reported regardless of direction."
+  },
+  "nonadaptive_decision_branches": {
+    "direct_meaningfully_better_than_sparse": "If direct has at least 5% lower primary error, its paired-seed 95% effect interval is entirely above zero, and it wins at least 8 of 10 seeds, state that a strong nonlinear direct predictor forecasts better and bound the sparse forecasting claim to the Koopman class. Preserve the representation/support evidence as the main value claim.",
+    "sparse_meaningfully_better_than_direct": "If sparse has at least 5% lower primary error, its paired-seed 95% effect interval is entirely above zero, and it wins at least 8 of 10 seeds, state that the sparse Koopman recipe also beats this matched direct baseline on this synthetic Allen--Cahn endpoint, while retaining the post-hoc/outcome-aware limitation.",
+    "practically_comparable_or_uncertain": "Otherwise report exact direction and uncertainty, call neither method meaningfully superior under this fixed margin, and make no rescue claim from a dataset, terminal point, seed subset, or shorter horizon.",
+    "invalid": "If completeness, source, dataset, parameter, label-firewall, finiteness, or checkpoint-selection integrity fails, mark the complete direct packet invalid; permit only an outcome-blind implementation repair with an explicit amendment and never omit the failure."
+  },
+  "compute_and_telemetry_contract": {
+    "partition": "long",
+    "gpu_count_per_task": 1,
+    "preferred_gpu": "A100L 40GB or larger",
+    "scientific_array": "ten one-seed training tasks followed by ten one-seed evaluation tasks; do not request GPUs for CPU-only packet construction",
+    "smoke_before_scientific_launch": "One seed-64 non-scientific full-width, batch-8, H200-BPTT smoke of exactly 80 genuine updates on an A100-class GPU; every startup, eager, capture, replay, and tail telemetry sample is retained. It may inspect runtime, memory, finiteness, CUDA-graph replay, and utilization but may not evaluate selector/development/new-IC outcomes.",
+    "telemetry": "Sample GPU utilization, memory, power, GPU UUID, and timestamp every second. Report all samples including startup and tail, and separately the marker-bounded optimizer-loop samples without deleting zero-utilization samples.",
+    "utilization_gate": "For scientific training and evaluation, every run must have marker-bounded mean GPU utilization at least 85%, marker-bounded p10 at least 80%, retained zero-utilization samples, valid ranges, strictly increasing timestamps with at most a 3-second gap, marker boundary coverage, startup and tail samples, one GPU UUID, and no OOM. Raw startup-to-exit utilization is always reported but is not a validity gate because one-time dataset hashing/loading is deliberately inside the authenticated job.",
+    "smoke_decision": "Do not launch scientific training unless one A100 can complete full H200 BPTT at batch 8 without OOM, the unchanged utilization gate passes, and projected total GPU-hours are disclosed to the root agent. The 80-update smoke is terminal: failure cannot be followed by a longer smoke, a filtered interval, or a weaker/redefined utilization threshold."
+  },
+  "claim_boundary": {
+    "warrants_if_valid": [
+      "A strong nonlinear observation-space forecast comparison on the exact Allen--Cahn data and H200 autonomous horizon used by the forecast-optimized Koopman packet.",
+      "A capacity match within 0.5% of effective Koopman forward parameters and an optimization-update/data-stream match deliberately favorable to the direct control.",
+      "A reviewer-facing distinction between unrestricted forecasting quality and the representational/operator goals of a Koopman autoencoder."
+    ],
+    "does_not_warrant": [
+      "An independently preregistered confirmation, because comparator and older-direct outcomes were known.",
+      "Physics or system generalization beyond this synthetic four-well Allen--Cahn benchmark.",
+      "Attribution of any sparse-versus-dense effect to sparsity alone rather than the complete soft-thresholding-plus-L1 recipe.",
+      "Causal mediation from basin-support alignment to forecasting.",
+      "Equal FLOPs, wall-clock time, architecture inductive bias, or raw allocated parameter count across direct and Koopman models.",
+      "Forecasting supremacy if the direct model wins, or representation quality from the direct model, which has no Koopman latent/operator."
+    ]
+  }
+}

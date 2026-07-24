@@ -53,6 +53,16 @@ BATCH_SIZE="${BATCH_SIZE:-100}"
 HORIZONS="${HORIZONS:-100 500 1000 1500 2000 3000 4000 5000}"
 DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS:-10 25 50 100 150 200}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+TASK_TSV_SHA256="${TASK_TSV_SHA256:-}"
+REQUIRE_TRAINING_RECEIPT="${REQUIRE_TRAINING_RECEIPT:-0}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
+if [[ -n "${TASK_TSV_SHA256}" ]]; then
+  printf '%s  %s\n' "${TASK_TSV_SHA256}" "${TASK_TSV}" | sha256sum -c -
+fi
 
 TASK_ID=${SLURM_ARRAY_TASK_ID:-0}
 LINE_NO=$((TASK_ID + ARRAY_OFFSET + 2))
@@ -85,6 +95,24 @@ with open(path, newline="") as handle:
 PY
 )"
 eval "${TASK_EXPORTS}"
+
+if [[ "${REQUIRE_TRAINING_RECEIPT}" == "1" ]]; then
+  uv run python - "${run_dir}" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+run_dir = Path(sys.argv[1])
+receipt = json.loads((run_dir / "training_success.json").read_text())
+checkpoint = run_dir / "checkpoint.pt"
+digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+if receipt.get("status") != "training_complete":
+    raise SystemExit("invalid training receipt status")
+if digest != receipt.get("best_checkpoint_sha256"):
+    raise SystemExit("best checkpoint hash does not match training receipt")
+PY
+fi
 
 echo "============================================="
 echo "Dysts Long-Horizon Reevaluation"

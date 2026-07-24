@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_global_k_support_subspaces_v4",
+  "status": "v4_refrozen_after_outcome_blind_v3_telemetry_failure_before_v4_execution",
+  "v2_failed_attempt_provenance": "Two v2 tasks transiently executed mechanism kernels before a late historical-replay guard failed. They wrote no scientific shard, no mechanism value was persisted or inspected, the remaining tasks and summary were cancelled, and v3 changes only provenance control flow/profile coverage—not any scientific estimator, threshold, or decision gate.",
+  "v3_failed_attempt_provenance": "The v3 seed-64 evaluator completed and wrote scientific shard SHA-256 921ec1bcb2eab90f775290aa776a47f6f990b8e998ec4fe4b63f32e34e0b5908, but its telemetry gate failed because the wrapper sampled one pre-compute zero and one post-compute/pre-serialization zero. The scientific shard JSON was never deserialized and no mechanism metric or value was inspected; only stdout/stderr, raw GPU telemetry, the metric-free lineage sidecar, telemetry JSON, and the shard hash were inspected. All downstream v3 jobs were cancelled. v4 changes only telemetry handshakes, cadence, provenance, and output paths; scientific computations, estimators, thresholds, and decision gates remain unchanged.",
+  "v4_scientific_change_boundary": "The evaluator marks one contiguous frozen-v3 scientific-computation block. v4 additions occur only before it (release/start synchronization) and after it (done synchronization, marker provenance, and serialization); no estimator inside the block was edited.",
+  "experiment_type": "discriminating_mechanism",
+  "hypothesis": "An initial sparse support selects an approximately invariant coordinate subspace of one unchanged global Koopman matrix and its fixed restriction retains long-horizon decoded forecasting.",
+  "competing_explanations": [
+    "support is fate-correlated but not dynamically closed",
+    "near-identity dynamics make raw leakage trivially small",
+    "arbitrary coordinate subsets of equal cardinality are equally closed",
+    "initial projection denoises while repeated restricted dynamics add no value",
+    "stable supports exist only after future evolution and cannot route an initial-state forecast"
+  ],
+  "inputs": {
+    "training_dataset": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+      "sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+      "allowed_split": "train",
+      "expected_selected_trajectories": 512
+    },
+    "score_dataset": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/confirmation_data/allen_cahn_4_grid16_dt0p1_t20_validation_seed20260724.pt",
+      "sha256": "68620c9d355ec62c8d9b5edd1cc635690f251733b2731e7627f0d4575c83b344",
+      "allowed_split": "val",
+      "expected_selected_trajectories": 256,
+      "status": "already_opened_for_ordinary_forecast_but_not_for_this_mechanism_diagnostic"
+    },
+    "artifact_roster": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_artifacts.csv",
+      "sha256": "4f44178ac78f4ffea91efb825bad272ec5840b52250bae2fab9713f8a62ac170",
+      "expected_rows": 20
+    },
+    "pinned_model_source": {
+      "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py",
+      "sha256": "4f71c674d1e82174f437365c728c8e3684617364b979d624ed35fbbba0371f3b"
+    },
+    "architecture_audit": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_architecture_audit.json",
+      "sha256": "f414cffce5c37144891e93292dbf9a6d0c66165170b9a20c4cbd3a7674ff2421"
+    },
+    "ordinary_forecast_seed_rows": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_seed_rows.csv",
+      "sha256": "e5e42f86b2d434fb69cc959102ce7c7b2ae5254aea484635b4e59379b6bb9fbd",
+      "field_mse_relative_tolerance": 0.00002,
+      "field_mse_absolute_tolerance": 1e-8,
+      "terminal_field_mse_relative_tolerance": 0.00002,
+      "terminal_field_mse_absolute_tolerance": 1e-8,
+      "historical_reproduction_batch_size": 128,
+      "historical_evaluator_horizon_sequence": [80, 120, 160, 200],
+      "historical_reproduction_kernel": "Replay H80, H120, H160, and H200 in the original order with separate rollout_observation_discrete calls, whole [batch times horizon] latent-stack decode, and float32 squared-error reductions exactly matching the frozen original evaluator; assert only the frozen H160/H200 mechanism references.",
+      "scientific_kernel_boundary": "The historical kernel is provenance-only. Scientific full, mask-once, and repeated-restriction estimates remain jointly evaluated by the unchanged three-mode kernel and may differ at floating-point scale because its decoder batch shape and reduction arithmetic differ.",
+      "cross_kernel_discrepancy_policy": "Always record absolute and relative differences descriptively; never use them as an adaptive scientific gate."
+    }
+  },
+  "roster": {
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "arms": ["dense", "sparse"],
+    "state_dim": 512,
+    "latent_dim": 2048,
+    "stored_dt": 0.1,
+    "horizons": [160, 200],
+    "rollout_mode": "direct_repeated_global_K_without_reencoding"
+  },
+  "model_assertions": {
+    "sparse_encoder_kind": "lista",
+    "sparse_is_sign_split": false,
+    "sparse_softshrink_threshold": 0.15,
+    "sparse_elementwise_l1_weight": 0.01,
+    "dense_encoder_kind": "dense",
+    "dense_softshrink_threshold": 0.0,
+    "dense_elementwise_l1_weight": 0.0,
+    "lista_loops": 1,
+    "lista_s_must_be_exactly_zero": true,
+    "grid_size": 16,
+    "channels": 2,
+    "hidden_channels": 32,
+    "num_blocks": 2,
+    "conv_activation": "tanh",
+    "dense_activation": "tanh",
+    "padding_mode": "circular",
+    "decoder_kind": "upsample",
+    "full_K_shape": [2048, 2048],
+    "dropout_module_count": 0,
+    "relu_module_count": 0,
+    "common_loss_weights": {
+      "prediction": 1.0,
+      "reconstruction": 0.25,
+      "latent": 0.1,
+      "temporal_group_sparsity": 0.0,
+      "k_stability": 0.0,
+      "gradient": 0.05
+    },
+    "optimizer": "Adam",
+    "weight_decay": 0.0,
+    "row_operator_probe_relative_tolerance": 1e-6,
+    "row_operator_probe_absolute_tolerance": 1e-7,
+    "common_training_args": {
+      "batch_size": 8,
+      "checkpoint_horizons": [160, 200],
+      "checkpoint_metric": "joint_endpoints",
+      "conv_activation": "tanh",
+      "forecast_weighting": "uniform",
+      "hidden_channels": 32,
+      "k_init_scale": 0.0,
+      "k_matrix_lr": 1e-6,
+      "k_stability_weight": 0.0,
+      "latent_weight": 0.1,
+      "lista_num_loops": 1,
+      "lr": 0.0003,
+      "num_blocks": 2,
+      "num_steps": 3500,
+      "padding_mode": "circular",
+      "prediction_weight": 1.0,
+      "pretrain_steps": 2000,
+      "reconstruction_weight": 0.25,
+      "sequence_length": 200,
+      "spatial_augmentation": true,
+      "temporal_group_sparsity_weight": 0.0,
+      "train_trajectory_limit": 512,
+      "validation_partition": "even",
+      "weight_decay": 0.0,
+      "z_dim": 2048
+    },
+    "dense_training_args": {
+      "model_variant": "conv_dense",
+      "lista_alpha": 0.0,
+      "sparsity_weight": 0.0
+    },
+    "sparse_training_args": {
+      "model_variant": "conv_lista",
+      "lista_alpha": 0.15,
+      "sparsity_weight": 0.01
+    }
+  },
+  "information_firewall": {
+    "allowed_dataset_keys": ["fields", "split_indices"],
+    "forbidden_key_fragments": ["label", "basin", "fate", "well", "center"],
+    "family_fit": "unaugmented training-split initial states only",
+    "score_masks": "score initial state z0 only",
+    "future_states_for_routing": false,
+    "periodic_reencoding": false,
+    "untouched_seed_20260725_must_remain_unopened": true
+  },
+  "estimands": {
+    "row_operator": "A = kmat.T because step_latent(z) = F.linear(z, kmat) = z @ kmat.T",
+    "primary_projector": "exact score-initial-state mask P0 = diag(abs(E(x0)) > 1e-3), fixed for the full rollout",
+    "secondary_projector": "train-fit initial-support family representative assigned from score x0 only, fixed for the full rollout",
+    "estimand_selection": "Both exact-mask and family-prototype results are always reported; neither can be selected by outcome.",
+    "full_rollout": "z_h = z0 @ A^h; decode every step",
+    "mask_once_rollout": "z_0 = z0 * P0, then z_h = z_0 @ A^h with no later projection",
+    "repeated_fixed_restriction": "z_0 = z0 * P0; each step z <- (z @ A) * P0",
+    "targets": "fields[:, 1:H+1]; H160/H200 are physical times 16/20",
+    "raw_closure": "sqrt(sum ||z_t P0 A (I-P0)||^2 / sum ||z_t P0 A||^2)",
+    "change_closure": "sqrt(sum ||z_t P0 A (I-P0)||^2 / sum ||z_t P0 (A-I)||^2)",
+    "decoded_null_policy": "No decoder is applied to coordinate-permuted latents; the coordinate null is raw/operator-only."
+    ,"family_derangement": "For the two families selected solely by training assignment count, swap their fixed representative masks on exactly those routed score ICs. K and decoder remain fixed; validation routing counts and all forecast outcomes are excluded from selection."
+    ,"zero_padded_coordinate_distance_descriptive_only": "The zero-padded P_f(A-I)P_f distance is reported only as coordinate-chart geometry and is never a decision gate. The joint coordinate null preserves both family cardinalities and pair overlap/Jaccard. No inequivalence under arbitrary latent-coordinate relabeling is claimed."
+  },
+  "support": {
+    "primary_threshold": 0.001,
+    "raw_only_sensitivity_thresholds": [0.0001, 0.01],
+    "dense_mask": "top-k absolute dense coordinates with k equal to paired sparse z0 support cardinality",
+    "tie_break": "stable_coordinate_index",
+    "family_jaccard": 0.4,
+    "max_representatives": 256,
+    "min_fit_trajectories": 16,
+    "min_score_trajectories_for_per_family_estimates": 16,
+    "unknown_below_jaccard": true,
+    "no_fixed_family_count": true,
+    "representative_order": "descending exact-mask frequency, then packed-mask bytes",
+    "representative_choice": "first mask below Jaccard 0.40 from all earlier representatives",
+    "assignment_tie_break": "lowest representative index",
+    "cap_behavior": "After 256 representatives, unmatched masks remain unknown and are never forced below Jaccard 0.40."
+  },
+  "null": {
+    "replicates": 16,
+    "seed": 20260727,
+    "kind": "ordinary_coordinate_permutation",
+    "reason_no_sign_pairs": "The selected sparse arm is ordinary real-valued soft-thresholded conv_lista, not sign-split.",
+    "jointly_permuted": ["z", "z_next", "fixed_support_projector"],
+    "fixed": ["global_K", "trajectory_indices", "family_assignments"],
+    "decoded_coordinate_null_is_primary": false
+  },
+  "aggregation": {
+    "trajectory_reduction": "ratio_of_sums_within_model_seed",
+    "independent_unit": "model_initialization_seed",
+    "absolute_metric_and_null_ratio_median_guard": "median across the ten paired model seeds; this descriptive robustness guard has no bootstrap interval",
+    "paired_ratio_interval": "percentile interval of ratio of arithmetic means under paired model-seed resampling",
+    "paired_ratio_point_estimate": "ratio of arithmetic means across paired model seeds, aligned to the paired bootstrap interval",
+    "projected_vs_dense_full_estimand": "1 - mean_seed(sparse restricted field MSE) / mean_seed(dense full field MSE)",
+    "projected_vs_dense_full_seed_win": "sparse restricted field MSE < paired dense full field MSE",
+    "signature_ratio_point_estimate": "arithmetic mean across qualifying model seeds of observed/null-median signature distance, aligned to its bootstrap interval; median is a separate guard",
+    "signature_ratio_interval": "percentile interval for mean per-seed observed/null-median signature-distance ratios",
+    "max_t_test": "one-sided exact 2^n-sign enumeration of studentized paired null-minus-observed differences; adjusted p is count/2^n with no add-one correction (1024 signs for exact-support n=10)",
+    "bootstrap_replicates": 100000,
+    "bootstrap_seed": 20260728,
+    "sign_flip_count": "2^n exact signs: 1024 for the n=10 exact-support family and 2^n_eligible for the separately adjusted family-support analysis",
+    "max_t_family": [
+      "fixed_P0_activity_K_leakage_H160",
+      "fixed_P0_activity_KminusI_leakage_H160",
+      "fixed_P0_activity_K_leakage_H200",
+      "fixed_P0_activity_KminusI_leakage_H200",
+      "fixed_P0_matrix_K_leakage",
+      "fixed_P0_matrix_KminusI_leakage"
+    ],
+    "max_t_multiplicity_policy": "Apply the same six-metric one-sided max-T adjustment separately to exact-score-initial supports and to train-fit family supports over their x0-qualified seed set.",
+    "scope": "Uncertainty is over ten model-initialization seeds conditional on one already-opened 256-trajectory score dataset; this is an internally frozen post-hoc mechanism diagnostic, not new-dataset generalization."
+  },
+  "validity_gates": {
+    "checkpoint_count": 20,
+    "all_hashes_match": true,
+    "all_rollouts_finite": true,
+    "minimum_sparse_exact_initial_source_capture_rms": 0.995,
+    "requested_dataset_key_name_firewall_must_pass": true,
+    "support_lock_must_precede_future_encoding": true,
+    "score_trajectory_count": 256
+  },
+  "family_gates": {
+    "minimum_qualifying_seeds": 8,
+    "minimum_qualified_families": 2,
+    "minimum_score_coverage": 0.8,
+    "minimum_qualified_family_coverage": 0.8,
+    "maximum_top_family_fraction": 0.95,
+    "minimum_mean_jaccard": 0.4,
+    "minimum_routed_initial_source_capture_rms": 0.995,
+    "maximum_projected_initial_reconstruction_over_full": 1.25,
+    "family_representative_closure_must_pass_same_absolute_and_null_ratio_gates": true,
+    "minimum_top_two_individual_matrix_closure_seeds": 8,
+    "nontransductive_routing": "Every score x0 is independently assigned to the training-only codebook. Score frequencies never remove or change a representative.",
+    "per_family_qualification": "The score-count threshold qualifies uncertainty-bearing per-family/operator estimates only; aggregate routed closure and forecast include every assigned score initial condition."
+    ,"top_two_family_forecast_selection": "The two training-codebook representatives with largest training assignment counts, with lower codebook index breaking ties. If either has fewer than 16 routed score x0 states, the seed is ineligible; no score-adaptive substitution is allowed."
+  },
+  "closure_gates": {
+    "maximum_activity_K_leakage": 0.35,
+    "maximum_activity_KminusI_leakage": 0.5,
+    "maximum_matrix_K_leakage": 0.35,
+    "maximum_matrix_KminusI_leakage": 0.5,
+    "maximum_observed_over_null_ratio": 0.8,
+    "minimum_seed_wins": 8,
+    "maximum_max_t_adjusted_p": 0.05,
+    "maximum_encoded_future_outside_ratio": 0.35,
+    "maximum_global_K_over_identity_residual": 1.0
+  },
+  "closure_specificity_gates": {
+    "control": "paired dense top-k initial mask with cardinality exactly matched trajectory by trajectory",
+    "metrics": ["activity_k_leakage_rms", "activity_kminusI_leakage_rms", "matrix_k_leakage_fro", "matrix_kminusI_leakage_fro"],
+    "horizons": [160, 200],
+    "maximum_sparse_over_dense_ratio_of_seed_means": 0.9,
+    "minimum_seed_wins": 8,
+    "paired_ratio_bootstrap_upper_below": 1.0
+  },
+  "forecast_gates": {
+    "maximum_sparse_mean_restricted_over_mask_once": 1.1,
+    "maximum_sparse_terminal_restricted_over_mask_once": 1.2,
+    "maximum_sparse_over_dense_restriction_factor_ratio_of_seed_means": 0.9,
+    "maximum_sparse_over_dense_restriction_factor_median_guard": 0.9,
+    "minimum_seed_wins": 8,
+    "paired_ratio_bootstrap_upper_below": 1.0,
+    "strong_minimum_H200_sparse_projected_vs_dense_full_reduction": 0.03,
+    "strong_sparse_projected_vs_dense_full_lower_bound_above": 0.0,
+    "family_maximum_restricted_over_mask_once": 1.2,
+    "family_maximum_mask_once_over_full": 1.2,
+    "family_maximum_restricted_over_full": 1.2,
+    "minimum_family_qualifying_seeds": 8
+  },
+  "signature_differentiation_gates": {
+    "active_block": "B_f=(A-I)[S_f,S_f] in float64",
+    "signature": "g_f=[tr(B_f)/k_f, ||sym(B_f)-mu_f I||_F/sqrt(k_f), ||skew(B_f)||_F/sqrt(k_f)]",
+    "distance": "delta=2||g_1-g_2||_2/(||g_1||_2+||g_2||_2)",
+    "minimum_mean_observed_over_null_distance_ratio": 1.1,
+    "minimum_median_observed_over_null_distance_ratio": 1.1,
+    "minimum_seed_wins": 8,
+    "bootstrap_lower_bound_above": 1.0
+  },
+  "routing_specificity_gates": {
+    "horizons": [160, 200],
+    "maximum_correct_over_wrong_restricted_ratio_of_seed_means": 0.9,
+    "maximum_correct_over_wrong_restriction_factor_ratio_of_seed_means": 0.9,
+    "minimum_seed_wins": 8,
+    "paired_ratio_bootstrap_upper_below": 1.0
+  },
+  "decision_branches": {
+    "strong_routed_low_leakage_charts_with_distinct_signatures": "Exact and train-fit family supports pass the frozen activity and operator low-leakage gates for approximate invariance, correct routing beats a wrong-family swap, sparse projected forecasting beats dense full forecasting, and the fit-frozen pair has distinct low-order orthogonal-basis-invariant dynamical signatures versus the joint-permutation null. This does not establish exact invariance, full operator inequivalence, or universal local laws.",
+    "distinct_signatures_without_dense_forecast_win": "Closure, routed-family utility, routing specificity, and low-order signature differentiation pass, but sparse projected forecasting does not beat dense full forecasting; claim chart-specific mechanism evidence only.",
+    "distinct_signatures_without_routing_specificity": "Train-fit family restrictions have distinct low-order dynamical signatures and aggregate closure, but the correct routed chart does not beat an outcome-blind wrong-family swap; do not claim predictive specialization.",
+    "multiple_closed_support_charts": "Validity, family, closure, and routed-family utility pass but low-order signature differentiation fails; do not claim distinct dynamical signatures or local laws.",
+    "state_specific_support_utility": "Exact initial-support closure and forecast gates pass but family gates fail; do not claim stable families.",
+    "latent_closure_only": "Raw closure passes but decoded utility fails; do not claim forecasting-useful support restrictions.",
+    "activity_weighted_closure_only": "Visited projected states show trajectory-weighted closure, but an absolute operator-level or dense-specificity subspace guard fails; report only activity-weighted closure and never call the coordinate subspaces invariant.",
+    "failed": "Fixed-support closure fails; make no Allen-Cahn approximate-invariance or low-leakage-chart claim.",
+    "invalid": "Any provenance, information-firewall, finite-rollout, or roster gate fails."
+  },
+  "hardware_profile": {
+    "outcomes_quarantined": true,
+    "synthetic_inputs_only": true,
+    "candidate_batch_sizes": [128, 256],
+    "minimum_profile_seconds_each": 50,
+    "telemetry_interval_seconds": 2,
+    "minimum_active_samples": 20,
+    "minimum_mean_active_gpu_utilization_percent": 85.0,
+    "minimum_mean_all_gpu_utilization_percent": 85.0,
+    "maximum_peak_memory_fraction": 0.8,
+    "required_device_name_fragment": "A100",
+    "required_visible_cuda_device_count": 1,
+    "resident_model_count": 2,
+    "closure_state_batch_size": 8192,
+    "selection": "smallest passing batch"
+    ,"telemetry_scope": "Synchronized post-warmup synthetic historical-provenance H80/H120/H160/H200 kernels plus unchanged scientific three-mode and closure kernels after both models are resident; excludes import/checkpoint I/O."
+  },
+  "scientific_hardware_gates": {
+    "telemetry_interval_seconds": 1,
+    "maximum_median_sample_interval_seconds": 1.5,
+    "minimum_active_samples": 10,
+    "minimum_mean_active_gpu_utilization_percent": 85.0,
+    "minimum_mean_all_gpu_utilization_percent": 85.0,
+    "maximum_peak_memory_fraction": 0.8,
+    "required_device_name_fragment": "A100",
+    "required_visible_cuda_device_count": 1,
+    "telemetry_scope": "Evaluator-owned GPU-start marker immediately before fail-fast historical replay through evaluator-owned GPU-done marker immediately after the final scientific CUDA synchronization. One-second samples are retained only when both pre-query and post-query checks confirm the done marker is absent; preload, boundary-idle queries, and serialization are excluded."
+  },
+  "staged_science_launch": {
+    "canary_task_index": 0,
+    "canary_model_seed": 64,
+    "release_rule": "Run seed 64 alone, then a CPU validator may reference only lineage, historical-replay validity, information-firewall fields, and GPU telemetry. Release tasks 1--9 only after that validator exits zero.",
+    "canary_semantic_firewall": "The evaluator writes a separate lineage receipt containing no mechanism metric keys. The validator parses only that receipt and telemetry and streams the scientific shard solely for its SHA-256; mechanism metrics are neither deserialized nor used for release.",
+    "remaining_tasks": "Frozen task indices 1--9 with no source, card, threshold, estimator, or gate change after the canary.",
+    "summary_dependency": "Run the frozen reducer only after all remaining tasks succeed."
+  },
+  "root_of_trust": {
+    "source_manifest": "Exact-roster SHA-256 manifest of all scientific Python, card, focused test, and SLURM worker/reducer scripts; missing, extra, duplicate, unsafe, or drifted entries fail closed.",
+    "queue_launcher_boundary": "The two small top-level queue launchers are intentionally outside the manifest to avoid hash self-reference. They hardcode and verify card+source hashes immediately before sbatch; the post-profile science launcher additionally hardcodes the profile-decision hash.",
+    "worker_boundary": "Manifest-pinned workers require the expected hashes from the launcher and independently verify card, exact source roster, profile raw artifacts, telemetry contract, and smallest-passing batch before any outcome computation."
+  }
+}
