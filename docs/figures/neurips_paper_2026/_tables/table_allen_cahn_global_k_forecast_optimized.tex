@@ -1,0 +1,13 @@
+\begin{tabular}{llrrrrl}
+\toprule
+Horizon & Endpoint & Dense & Sparse & Reduction & Wins & Marginal 95\% CI; max-$t$ $p$ \\
+\midrule
+H160 & Mean through H & 0.04503 & 0.04220 & 6.3\% & 8/10 & [2.6, 9.5]\%; 0.014 \\
+H160 & Terminal & 0.05189 & 0.05065 & 2.4\% & 7/10 & [-1.6, 6.0]\%; 0.197 \\
+H200 & Mean through H & 0.04731 & 0.04472 & 5.5\% & 8/10 & [1.7, 8.8]\%; 0.019 \\
+H200 & Terminal & 0.06086 & 0.05890 & 3.2\% & 7/10 & [-0.8, 6.7]\%; 0.112 \\
+\midrule
+\multicolumn{7}{l}{\footnotesize Matched trainable tensor shapes and effective forward-path parameter count; sparse jointly applies soft-thresholding $0.15$ and $L_1$ weight $0.01$.} \\
+\multicolumn{7}{l}{\footnotesize Internally frozen confirmation gate: failed; sealed holdout not generated or opened.} \\
+\bottomrule
+\end{tabular}

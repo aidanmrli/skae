@@ -1,0 +1,686 @@
+{
+  "claim_boundary": "This outcome-aware same-checkpoint secondary analysis translates the existing field-MSE result within one fixed synthetic PDE condition. It does not reclassify the field-MSE endpoint, isolate sparsity causally, establish terminal superiority, or show physics/system generalization.",
+  "evidence_grade": "outcome_aware_same_checkpoint_secondary",
+  "figure_caption": "Outcome-aware same-checkpoint Allen--Cahn physics analysis showing all seven frozen metrics at the H200 cumulative endpoint. Curves trace those metrics across physical time for sparse, exact-dense, and persistence forecasts. The top panel shows ten paired model-seed effects and frozen 95% paired-seed bootstrap intervals. Filled markers survive Holm correction across all seven H200 metrics; hollow markers are descriptive. Three fixed datasets are averaged within seed.",
+  "gpu_evaluation": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "mean_retained_utilization_percent": 99.11194029850746,
+    "no_padding": true,
+    "p10_retained_utilization_percent": 100.0,
+    "peak_memory_fraction": 0.22886962890625,
+    "retained_samples": 134,
+    "status": "passed"
+  },
+  "interpretation": "Sparse is directionally better in all seven H200 cumulative physical metrics and covers all three frozen families. Five metrics survive Holm correction; modal-well accuracy and potential-energy absolute error remain descriptive.",
+  "metrics": [
+    {
+      "arm_mean_effect": {
+        "label": "relative_error_reduction_of_arm_means",
+        "value": 0.0460698403829739
+      },
+      "direction": "lower",
+      "display_name": "Pixel phase error",
+      "family": "phase_assignment",
+      "h200_cumulative": {
+        "dense": 0.09423750813802084,
+        "dense_over_persistence": 0.28589203506094624,
+        "persistence": 0.32962621053059893,
+        "sparse": 0.08989600118001302,
+        "sparse_over_dense": 0.9539301596170261,
+        "sparse_over_persistence": 0.2727210346389249
+      },
+      "h200_cumulative_seed_wins": 9,
+      "holm_p": 0.0146484375,
+      "holm_significant_0p05": true,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.0973780663808187,
+          "dense_over_persistence": 0.31191012871992335,
+          "persistence": 0.31219911575317383,
+          "sparse": 0.0924909750620524,
+          "sparse_over_dense": 0.9498132228293152,
+          "sparse_over_persistence": 0.2962563645925769
+        },
+        "h160_terminal": {
+          "dense": 0.07849934895833333,
+          "dense_over_persistence": 0.19864085667215814,
+          "persistence": 0.3951822916666667,
+          "sparse": 0.07648518880208333,
+          "sparse_over_dense": 0.9743416960398092,
+          "sparse_over_persistence": 0.19354406919275122
+        },
+        "h200_cumulative": {
+          "dense": 0.09423750813802084,
+          "dense_over_persistence": 0.28589203506094624,
+          "persistence": 0.32962621053059893,
+          "sparse": 0.08989600118001302,
+          "sparse_over_dense": 0.9539301596170261,
+          "sparse_over_persistence": 0.2727210346389249
+        },
+        "h200_terminal": {
+          "dense": 0.08488820393880207,
+          "dense_over_persistence": 0.2108909640000505,
+          "persistence": 0.4025217692057292,
+          "sparse": 0.08255513509114583,
+          "sparse_over_dense": 0.9725159829116162,
+          "sparse_over_persistence": 0.2050948331416874
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.0776517842610677,
+          "dense_over_persistence": 0.1983019275483718,
+          "persistence": 0.39158360799153646,
+          "sparse": 0.0756455078125,
+          "sparse_over_dense": 0.9741631635684953,
+          "sparse_over_persistence": 0.19317843308225244
+        }
+      },
+      "name": "nearest_well_pixel_disagreement",
+      "paired_bootstrap": {
+        "ci95_lower": 0.0022881321589151887,
+        "ci95_upper": 0.006102541923522971,
+        "oriented_absolute_improvement": 0.004341506958007821,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072101
+      },
+      "paired_seed_oriented_absolute_effect": [
+        0.005024490356445338,
+        0.007512156168619805,
+        0.007421010335286471,
+        -0.002660649617513028,
+        0.0032948811848958204,
+        0.007085749308268233,
+        0.0029691060384114676,
+        0.0009372965494791607,
+        0.005336023966471329,
+        0.006495005289713529
+      ],
+      "raw_one_sided_p": 0.0029296875
+    },
+    {
+      "arm_mean_effect": {
+        "label": "accuracy_percentage_point_difference",
+        "value": 0.2356119791666722
+      },
+      "direction": "higher",
+      "display_name": "Modal-well accuracy",
+      "family": "phase_assignment",
+      "h200_cumulative": {
+        "dense": 0.9074153645833334,
+        "dense_over_persistence": 1.0075468970253372,
+        "persistence": 0.9006184895833332,
+        "sparse": 0.9097714843750001,
+        "sparse_over_dense": 1.0025965174093658,
+        "sparse_over_persistence": 1.010163010084216
+      },
+      "h200_cumulative_seed_wins": 5,
+      "holm_p": 0.302734375,
+      "holm_significant_0p05": false,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.9079150390624999,
+          "dense_over_persistence": 1.004778716429202,
+          "persistence": 0.9035970052083333,
+          "sparse": 0.9104305013020833,
+          "sparse_over_dense": 1.002770592105381,
+          "sparse_over_persistence": 1.0075625484085955
+        },
+        "h160_terminal": {
+          "dense": 0.9079427083333333,
+          "dense_over_persistence": 1.0209370424597366,
+          "persistence": 0.8893229166666666,
+          "sparse": 0.91015625,
+          "sparse_over_dense": 1.0024379750466084,
+          "sparse_over_persistence": 1.0234260614934114
+        },
+        "h200_cumulative": {
+          "dense": 0.9074153645833334,
+          "dense_over_persistence": 1.0075468970253372,
+          "persistence": 0.9006184895833332,
+          "sparse": 0.9097714843750001,
+          "sparse_over_dense": 1.0025965174093658,
+          "sparse_over_persistence": 1.010163010084216
+        },
+        "h200_terminal": {
+          "dense": 0.9033854166666666,
+          "dense_over_persistence": 1.0173020527859236,
+          "persistence": 0.8880208333333334,
+          "sparse": 0.9049479166666666,
+          "sparse_over_dense": 1.0017296050735083,
+          "sparse_over_persistence": 1.0190615835777126
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.907421875,
+          "dense_over_persistence": 1.0185171652806806,
+          "persistence": 0.8909244791666666,
+          "sparse": 0.9110611979166667,
+          "sparse_over_dense": 1.0040106184531497,
+          "sparse_over_persistence": 1.022602049018605
+        }
+      },
+      "name": "modal_well_accuracy",
+      "paired_bootstrap": {
+        "ci95_lower": -0.005511083984374987,
+        "ci95_upper": 0.010607438151041738,
+        "oriented_absolute_improvement": 0.002356119791666722,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072102
+      },
+      "paired_seed_oriented_absolute_effect": [
+        -0.0034505208333334147,
+        0.00748046875000008,
+        0.005156250000000195,
+        -0.019479166666666714,
+        0.009850260416666812,
+        0.02798177083333353,
+        -0.00813802083333326,
+        -7.16145833332682e-05,
+        -0.01033203125000004,
+        0.014563802083333188
+      ],
+      "raw_one_sided_p": 0.302734375
+    },
+    {
+      "arm_mean_effect": {
+        "label": "relative_error_reduction_of_arm_means",
+        "value": 0.060727123836104235
+      },
+      "direction": "lower",
+      "display_name": "Well-area TV error",
+      "family": "phase_assignment",
+      "h200_cumulative": {
+        "dense": 0.054023981730143236,
+        "dense_over_persistence": 0.19083537878045392,
+        "persistence": 0.28309206644694007,
+        "sparse": 0.05074326070149739,
+        "sparse_over_dense": 0.9392728761638958,
+        "sparse_over_persistence": 0.17924649510094343
+      },
+      "h200_cumulative_seed_wins": 8,
+      "holm_p": 0.03515625,
+      "holm_significant_0p05": true,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.053838561375935866,
+          "dense_over_persistence": 0.20177453059473882,
+          "persistence": 0.2668253580729167,
+          "sparse": 0.0500338077545166,
+          "sparse_over_dense": 0.9293303252504836,
+          "sparse_over_persistence": 0.18751519014487228
+        },
+        "h160_terminal": {
+          "dense": 0.05151774088541666,
+          "dense_over_persistence": 0.14985427053897707,
+          "persistence": 0.3437856038411458,
+          "sparse": 0.050467936197916674,
+          "sparse_over_dense": 0.9796224626806731,
+          "sparse_over_persistence": 0.14680060954860857
+        },
+        "h200_cumulative": {
+          "dense": 0.054023981730143236,
+          "dense_over_persistence": 0.19083537878045392,
+          "persistence": 0.28309206644694007,
+          "sparse": 0.05074326070149739,
+          "sparse_over_dense": 0.9392728761638958,
+          "sparse_over_persistence": 0.17924649510094343
+        },
+        "h200_terminal": {
+          "dense": 0.057923380533854166,
+          "dense_over_persistence": 0.16474077074412682,
+          "persistence": 0.3516031901041667,
+          "sparse": 0.05659891764322918,
+          "sparse_over_dense": 0.9771342266556613,
+          "sparse_over_persistence": 0.16097384561971997
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.050746693929036454,
+          "dense_over_persistence": 0.1492986013627088,
+          "persistence": 0.33990066528320306,
+          "sparse": 0.04971892293294271,
+          "sparse_over_dense": 0.9797470353924737,
+          "sparse_over_persistence": 0.1462748620733567
+        }
+      },
+      "name": "well_area_fraction_tv_error",
+      "paired_bootstrap": {
+        "ci95_lower": 0.0011207763036092204,
+        "ci95_upper": 0.00534843139648437,
+        "oriented_absolute_improvement": 0.003280721028645843,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072103
+      },
+      "paired_seed_oriented_absolute_effect": [
+        0.0048645528157552145,
+        0.005497105916341144,
+        0.007524770100911453,
+        -0.001162770589192702,
+        0.001812184651692715,
+        0.003233362833658854,
+        0.0006764984130859381,
+        -0.002703323364257805,
+        0.004909998575846362,
+        0.00815483093261718
+      ],
+      "raw_one_sided_p": 0.01171875
+    },
+    {
+      "arm_mean_effect": {
+        "label": "relative_error_reduction_of_arm_means",
+        "value": 0.022496643443140174
+      },
+      "direction": "lower",
+      "display_name": "Interface-edge error",
+      "family": "interface_geometry",
+      "h200_cumulative": {
+        "dense": 0.09966459401448569,
+        "dense_over_persistence": 0.46970678288409023,
+        "persistence": 0.21218470255533858,
+        "sparse": 0.09742247517903647,
+        "sparse_over_dense": 0.9775033565568598,
+        "sparse_over_persistence": 0.4591399568667224
+      },
+      "h200_cumulative_seed_wins": 9,
+      "holm_p": 0.0146484375,
+      "holm_significant_0p05": true,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.10692888736724852,
+          "dense_over_persistence": 0.5156053023304152,
+          "persistence": 0.20738515853881834,
+          "sparse": 0.10433658917744955,
+          "sparse_over_dense": 0.9757568019865792,
+          "sparse_over_persistence": 0.5031053808892493
+        },
+        "h160_terminal": {
+          "dense": 0.07110392252604167,
+          "dense_over_persistence": 0.3082262154117517,
+          "persistence": 0.23068745930989584,
+          "sparse": 0.07015380859375,
+          "sparse_over_dense": 0.986637672036396,
+          "sparse_over_persistence": 0.30410759563443945
+        },
+        "h200_cumulative": {
+          "dense": 0.09966459401448569,
+          "dense_over_persistence": 0.46970678288409023,
+          "persistence": 0.21218470255533858,
+          "sparse": 0.09742247517903647,
+          "sparse_over_dense": 0.9775033565568598,
+          "sparse_over_persistence": 0.4591399568667224
+        },
+        "h200_terminal": {
+          "dense": 0.0702313741048177,
+          "dense_over_persistence": 0.3031072330150367,
+          "persistence": 0.2317047119140625,
+          "sparse": 0.0694806416829427,
+          "sparse_over_dense": 0.9893105833191508,
+          "sparse_over_persistence": 0.29986719350235974
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.07167833964029949,
+          "dense_over_persistence": 0.31152208861308633,
+          "persistence": 0.23009071350097657,
+          "sparse": 0.07072950744628906,
+          "sparse_over_dense": 0.9867626370982934,
+          "sparse_over_persistence": 0.3073983576742173
+        }
+      },
+      "name": "interface_edge_disagreement",
+      "paired_bootstrap": {
+        "ci95_lower": 0.00117508824666343,
+        "ci95_upper": 0.003114997863769523,
+        "oriented_absolute_improvement": 0.002242118835449211,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072104
+      },
+      "paired_seed_oriented_absolute_effect": [
+        0.002270507812499989,
+        0.004245974222818999,
+        0.0032921981811523393,
+        -0.001684633890787754,
+        0.0016903432210286506,
+        0.0038384501139323013,
+        0.002561047871907557,
+        0.0012946701049804665,
+        0.0021144485473632985,
+        0.002798182169596361
+      ],
+      "raw_one_sided_p": 0.0029296875
+    },
+    {
+      "arm_mean_effect": {
+        "label": "relative_error_reduction_of_arm_means",
+        "value": 0.061973370034029696
+      },
+      "direction": "lower",
+      "display_name": "Free-energy error",
+      "family": "thermodynamics",
+      "h200_cumulative": {
+        "dense": 0.028430823979672577,
+        "dense_over_persistence": 0.0666149080770459,
+        "persistence": 0.4267937133049838,
+        "sparse": 0.026668870004807964,
+        "sparse_over_dense": 0.9380266299659703,
+        "sparse_over_persistence": 0.062486557729004265
+      },
+      "h200_cumulative_seed_wins": 10,
+      "holm_p": 0.0068359375,
+      "holm_significant_0p05": true,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.029961603588907388,
+          "dense_over_persistence": 0.07294471057596874,
+          "persistence": 0.41074401902936725,
+          "sparse": 0.0278727696685833,
+          "sparse_over_dense": 0.9302829732018271,
+          "sparse_over_persistence": 0.06785922223395896
+        },
+        "h160_terminal": {
+          "dense": 0.02195502304292066,
+          "dense_over_persistence": 0.04502752304482468,
+          "persistence": 0.4875911788677459,
+          "sparse": 0.02148439801414123,
+          "sparse_over_dense": 0.9785641295907826,
+          "sparse_over_persistence": 0.044062318895987766
+        },
+        "h200_cumulative": {
+          "dense": 0.028430823979672577,
+          "dense_over_persistence": 0.0666149080770459,
+          "persistence": 0.4267937133049838,
+          "sparse": 0.026668870004807964,
+          "sparse_over_dense": 0.9380266299659703,
+          "sparse_over_persistence": 0.062486557729004265
+        },
+        "h200_terminal": {
+          "dense": 0.0230949078689132,
+          "dense_over_persistence": 0.0467667743735224,
+          "persistence": 0.4938315327128628,
+          "sparse": 0.0226892244622987,
+          "sparse_over_dense": 0.9824340755582504,
+          "sparse_over_persistence": 0.04594527274849275
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.02258520222136167,
+          "dense_over_persistence": 0.046612054803641084,
+          "persistence": 0.4845356489110932,
+          "sparse": 0.0220895316768003,
+          "sparse_over_dense": 0.9780533050046125,
+          "sparse_over_persistence": 0.045589074253757286
+        }
+      },
+      "name": "free_energy_absolute_error",
+      "paired_bootstrap": {
+        "ci95_lower": 0.0011238350387240068,
+        "ci95_upper": 0.0024283655624038874,
+        "oriented_absolute_improvement": 0.0017619539748646128,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072105
+      },
+      "paired_seed_oriented_absolute_effect": [
+        0.0019336143271895846,
+        0.001712196182497388,
+        0.0035873824740686143,
+        0.0001598253645904782,
+        0.0005697632051281792,
+        0.0032358493395556014,
+        0.0011468526034163207,
+        0.0009139126581066692,
+        0.00183281476083701,
+        0.002527328833256251
+      ],
+      "raw_one_sided_p": 0.0009765625
+    },
+    {
+      "arm_mean_effect": {
+        "label": "relative_error_reduction_of_arm_means",
+        "value": 0.0376893685004136
+      },
+      "direction": "lower",
+      "display_name": "Potential-energy error",
+      "family": "thermodynamics",
+      "h200_cumulative": {
+        "dense": 0.03597454267962586,
+        "dense_over_persistence": 0.24755871202346139,
+        "persistence": 0.14531721540147824,
+        "sparse": 0.034618684883939585,
+        "sparse_over_dense": 0.9623106314995864,
+        "sparse_over_persistence": 0.2382283805005214
+      },
+      "h200_cumulative_seed_wins": 8,
+      "holm_p": 0.119140625,
+      "holm_significant_0p05": false,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.03665257392595765,
+          "dense_over_persistence": 0.26845944892826606,
+          "persistence": 0.13652927498838544,
+          "sparse": 0.03535276550178454,
+          "sparse_over_dense": 0.9645370492451942,
+          "sparse_over_persistence": 0.25893908471126065
+        },
+        "h160_terminal": {
+          "dense": 0.03364481258868375,
+          "dense_over_persistence": 0.18846532122617443,
+          "persistence": 0.17851991215034788,
+          "sparse": 0.03195383310546738,
+          "sparse_over_dense": 0.9497402614813457,
+          "sparse_over_persistence": 0.17899310346151273
+        },
+        "h200_cumulative": {
+          "dense": 0.03597454267962586,
+          "dense_over_persistence": 0.24755871202346139,
+          "persistence": 0.14531721540147824,
+          "sparse": 0.034618684883939585,
+          "sparse_over_dense": 0.9623106314995864,
+          "sparse_over_persistence": 0.2382283805005214
+        },
+        "h200_terminal": {
+          "dense": 0.03313909173839872,
+          "dense_over_persistence": 0.1819830319931152,
+          "persistence": 0.1820998989600989,
+          "sparse": 0.031684756006288006,
+          "sparse_over_dense": 0.9561141945714355,
+          "sparse_over_persistence": 0.1739965600597651
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.03409797115831367,
+          "dense_over_persistence": 0.192982970272654,
+          "persistence": 0.17668901618696567,
+          "sparse": 0.03238365523355813,
+          "sparse_over_dense": 0.9497238144522987,
+          "sparse_over_persistence": 0.18328052265167952
+        }
+      },
+      "name": "potential_energy_absolute_error",
+      "paired_bootstrap": {
+        "ci95_lower": -6.142752033130295e-05,
+        "ci95_upper": 0.0031078248162098865,
+        "oriented_absolute_improvement": 0.0013558577956862758,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072106
+      },
+      "paired_seed_oriented_absolute_effect": [
+        0.0011739126380124476,
+        0.001424743044265979,
+        0.002549837846056141,
+        0.0017297914330994119,
+        -0.00044844717346924357,
+        0.007979709576586475,
+        0.00011417540664950682,
+        0.0007884792938243623,
+        -0.0025681140419924198,
+        0.0008144899338300496
+      ],
+      "raw_one_sided_p": 0.0595703125
+    },
+    {
+      "arm_mean_effect": {
+        "label": "relative_error_reduction_of_arm_means",
+        "value": 0.08581349456538312
+      },
+      "direction": "lower",
+      "display_name": "Gradient-energy error",
+      "family": "thermodynamics",
+      "h200_cumulative": {
+        "dense": 0.02897135891097787,
+        "dense_over_persistence": 0.10138865853813964,
+        "persistence": 0.2857455590072694,
+        "sparse": 0.026485225360518904,
+        "sparse_over_dense": 0.9141865054346169,
+        "sparse_over_persistence": 0.09268814343968551
+      },
+      "h200_cumulative_seed_wins": 10,
+      "holm_p": 0.0068359375,
+      "holm_significant_0p05": true,
+      "mandatory_endpoints": {
+        "h160_cumulative": {
+          "dense": 0.03111004071274981,
+          "dense_over_persistence": 0.11129682548089444,
+          "persistence": 0.27952316320190335,
+          "sparse": 0.028359306623340696,
+          "sparse_over_dense": 0.9115805049949105,
+          "sparse_over_persistence": 0.10145601637620416
+        },
+        "h160_terminal": {
+          "dense": 0.020225426967796625,
+          "dense_over_persistence": 0.06541469873602278,
+          "persistence": 0.309187802720229,
+          "sparse": 0.01885559305920151,
+          "sparse_over_dense": 0.9322716939041041,
+          "sparse_over_persistence": 0.060984271996858616
+        },
+        "h200_cumulative": {
+          "dense": 0.02897135891097787,
+          "dense_over_persistence": 0.10138865853813964,
+          "persistence": 0.2857455590072694,
+          "sparse": 0.026485225360518904,
+          "sparse_over_dense": 0.9141865054346169,
+          "sparse_over_persistence": 0.09268814343968551
+        },
+        "h200_terminal": {
+          "dense": 0.020829028998600663,
+          "dense_over_persistence": 0.0667932916870815,
+          "persistence": 0.3118431278425706,
+          "sparse": 0.019373553592814303,
+          "sparse_over_dense": 0.9301227433173125,
+          "sparse_over_persistence": 0.06212595969918168
+        },
+        "late_t10p1_to_t20": {
+          "dense": 0.020621048758826,
+          "dense_over_persistence": 0.06694897791933771,
+          "persistence": 0.30801140509823627,
+          "sparse": 0.01920623133187184,
+          "sparse_over_dense": 0.9313896473694818,
+          "sparse_over_persistence": 0.06235558493603917
+        }
+      },
+      "name": "gradient_energy_absolute_error",
+      "paired_bootstrap": {
+        "ci95_lower": 0.0016372128831836522,
+        "ci95_upper": 0.0033241852471517465,
+        "oriented_absolute_improvement": 0.0024861335504589646,
+        "replicates": 100000,
+        "resampling_unit": "paired_model_seed_after_three_dataset_average",
+        "seed": 2026072107
+      },
+      "paired_seed_oriented_absolute_effect": [
+        0.0030923711881493225,
+        0.0037641664761947184,
+        0.0036864296804111664,
+        0.0010464221039891211,
+        0.0012853491366204943,
+        0.0037089342629386506,
+        0.0013197805403764168,
+        0.0002712616545411037,
+        0.004513184921844798,
+        0.0021734355395238193
+      ],
+      "raw_one_sided_p": 0.0009765625
+    }
+  ],
+  "multiplicity": {
+    "adjusted_p": {
+      "free_energy_absolute_error": 0.0068359375,
+      "gradient_energy_absolute_error": 0.0068359375,
+      "interface_edge_disagreement": 0.0146484375,
+      "modal_well_accuracy": 0.302734375,
+      "nearest_well_pixel_disagreement": 0.0146484375,
+      "potential_energy_absolute_error": 0.119140625,
+      "well_area_fraction_tv_error": 0.03515625
+    },
+    "family": [
+      "nearest_well_pixel_disagreement",
+      "modal_well_accuracy",
+      "well_area_fraction_tv_error",
+      "interface_edge_disagreement",
+      "free_energy_absolute_error",
+      "potential_energy_absolute_error",
+      "gradient_energy_absolute_error"
+    ],
+    "method": "Holm across all seven H200 cumulative secondary metrics",
+    "raw_one_sided_p": {
+      "free_energy_absolute_error": 0.0009765625,
+      "gradient_energy_absolute_error": 0.0009765625,
+      "interface_edge_disagreement": 0.0029296875,
+      "modal_well_accuracy": 0.302734375,
+      "nearest_well_pixel_disagreement": 0.0029296875,
+      "potential_energy_absolute_error": 0.0595703125,
+      "well_area_fraction_tv_error": 0.01171875
+    }
+  },
+  "packet_id": "allen_cahn_physics_metrics",
+  "protocol": {
+    "arms": [
+      "sparse",
+      "dense",
+      "persistence"
+    ],
+    "dataset_seeds": [
+      1775404171,
+      74732421,
+      293789188
+    ],
+    "horizon_steps": 200,
+    "inference_unit": "Ten paired model seeds after equal averaging of the three fixed datasets within seed. Trajectories and datasets are repeated measurements, not independent n.",
+    "latent_dimension": 2048,
+    "model_seeds": [
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73
+    ],
+    "physical_horizon": 20.0,
+    "rollout": "one encode followed by 200 repeated global-K steps; no reencoding",
+    "state_dimension": 512,
+    "system": "synthetic spatialized Allen--Cahn reaction--diffusion PDE",
+    "time_step": 0.1,
+    "trajectories_per_dataset": 256
+  },
+  "schema_version": 1,
+  "secondary_pattern": {
+    "classification": "broad_secondary_concordance",
+    "directionally_positive_families": [
+      "interface_geometry",
+      "phase_assignment",
+      "thermodynamics"
+    ],
+    "directionally_sparse_better_metrics": 7,
+    "policy": "classification_is_descriptive_and_cannot_reclassify_prior_field_MSE_inference",
+    "required_families": [
+      "interface_geometry",
+      "phase_assignment",
+      "thermodynamics"
+    ]
+  },
+  "status": "broad_secondary_concordance"
+}

@@ -1,0 +1,66 @@
+{
+  "builder_sources": {
+    "builder_sha256": "8ea20ecd2ebf9d076ccff82705a85b30ea5fe8727d9f5a902bc51be32825f932",
+    "contract_sha256": "a4a3460990b9ee1c8e63af582d87d3c66a3b5329878b34a274f60ca156288f66",
+    "reduction_sha256": "b6438487f115c4b453232f13928e36bdda468bb28a650e512880e2f5ee8c0060",
+    "rendering_sha256": "12ce619ec8e22c559c5dc4a6c06db163eb1d6cfcd0cd3fa0700ce0c6b1c9af4b"
+  },
+  "fixed_panel_ids": [
+    "validation_risk",
+    "heldout_curves",
+    "paired_ratios",
+    "accuracy_refresh_frontier"
+  ],
+  "fixed_table_row_ids": [
+    "selected_sparse_vs_dense_h200",
+    "direct_sparse_vs_dense_h200",
+    "selected_sparse_vs_dense_h400",
+    "direct_sparse_vs_dense_h400",
+    "selected_sparse_vs_dense_h201_h400",
+    "direct_sparse_vs_dense_h201_h400",
+    "dense_selected_vs_direct_h200",
+    "sparse_selected_vs_direct_h200",
+    "dense_selected_vs_direct_h201_h400",
+    "sparse_selected_vs_direct_h201_h400"
+  ],
+  "outputs": {
+    "figure_pdf": {
+      "path": "fig_allen_cahn_periodic_reencoding_confirmation.pdf",
+      "sha256": "638ae603574c9f7a45ea4c64eac202a0bbfd1c638e9008ad3baef252452c2bd1"
+    },
+    "figure_png": {
+      "path": "fig_allen_cahn_periodic_reencoding_confirmation.png",
+      "sha256": "c321a10e085f773c41fa860ae10a51e08691e2a4db03bb0777ebc0f8f7445fab"
+    },
+    "rows": {
+      "path": "comparison_rows.csv",
+      "sha256": "0719ddbbbcd55bddec0fb324a6ac11e351967187c5272706126630e988da4dc6"
+    },
+    "summary": {
+      "path": "summary.json",
+      "sha256": "1401a41af59e0f20838c438312e2dc082d54e9d42fb1d191ac27334754f24dc0"
+    },
+    "table": {
+      "path": "table_allen_cahn_periodic_reencoding_confirmation.tex",
+      "sha256": "a35a78d633b0c897a609980833232cf53f97da6211cc9d0ed3bdd1f2110423e1"
+    }
+  },
+  "packet_id": "allen_cahn_periodic_reencoding_confirmation",
+  "portable_check": "uv run skae-paper build allen-cahn-periodic-reencoding --check",
+  "schema_version": 1,
+  "source_authentication": {
+    "card_sha256": "f90861bc060a9f13461fb470fd7a12f428fe49c7e92533cae90c46cc4c0c5bf4",
+    "decision_sha256": "9e1de24c4cc865ca87e9db2f287f29786bccc5c3b90636060ef0aa19b884017d",
+    "forecast_curve_sha256": "85b302b140e6177661d099e4a1341a7cb3e3fb4396175eb25df907ee3d9950b4",
+    "outcome_guard_receipt_sha256": "76def5a0ba2104fc1d7e22dda743f992e96fc177de62659571b31a4ea33e1217",
+    "raw_telemetry_sha256": "8f2e63d678e4eb2aa762b5e263673dc758e33324af8ef39f274afa97f9600020",
+    "runtime_lineage_sha256": "f875e274cc813b2176800d0e813f1cad073e4792498707a0d473676257b49573",
+    "scientific_payload_sha256": "3678bd8917be6a99cae53bbd224104d22e291b51b8f4d22307d3c94f5574cda3",
+    "seed_rows_sha256": "052621d5bd9122e7d33f7bc4b3f31d2792986e5c8a658202e650e1989e2fa33c",
+    "source_manifest_sha256": "3e702edab74521c55ad1c78fa90170e49ff61a4653f441566b6760294c1dc278",
+    "source_root": "/network/scratch/l/lia/skae/allen_cahn_periodic_reencoding_confirmation_20260721_v5",
+    "summary_receipt_sha256": "029c821adf568ee99195d9acdb5b30a93c9a607b9ce63067500a0e1f41c8949c",
+    "summary_sha256": "fdce1252a1090a5670de186b879260e8e1ed275c57493c876f15e19f498c0971",
+    "telemetry_audit_sha256": "6bd1deae74abed5e1d92525232e601ecefc5133485fef6d80a149e96232b6edb"
+  }
+}

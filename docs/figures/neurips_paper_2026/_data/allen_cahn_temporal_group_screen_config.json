@@ -2,6 +2,8 @@
   "status": "frozen_before_screen_training_or_results",
   "experiment": "label_free_within_trajectory_support_consistency",
   "motivation": "This fallback objective and its implementation predate the first time-20 test summary. The time-20 test is not used to select a weight or checkpoint.",
+  "label_policy": "The training objective uses no fate label, basin count, or trajectory assignment. Validation fate labels enter the ARI and conditional-entropy gates used to select the temporal weight and promote fresh model seeds.",
+  "post_audit_selection_disclosure": "The input T=20 scoring scope and Jaccard 0.40 evaluation rule had themselves already been selected using validation fate metrics. This screen additionally uses validation fate metrics to select the temporal weight and advance the entire fixed ten-seed packet. Conditional on that recipe, the objective, representative fit, and assignment remain label-free.",
   "training_dataset": {
     "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_20260719/data/allen_cahn_4_grid16_dt0p1.pt",
     "observed_time": 12.0,
@@ -19,7 +21,7 @@
     "otherwise_matches": "selected signed sparse confirmation recipe",
     "family_jaccard": 0.4,
     "support_threshold": 0.001,
-    "selection_rule": "smallest weight passing every frozen validation check"
+    "selection_rule": "smallest weight passing every frozen validation check; ARI and conditional-entropy checks use validation fate labels"
   },
   "validation_checks": {
     "label_free_guard_must_pass": true,

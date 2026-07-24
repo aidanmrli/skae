@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "packet_id": "allen_cahn_half_global_half_local_negative",
+  "status": "negative_one_seed_noncausal_control",
+  "claim_boundary": "One seed of a sequence-80, nearly dense sign-split ancestor. Full route-local matrices did not improve the frozen midpoint and were worse than matched continued-global training. This falsifies the tested routing recipe but is not a same-recipe causal global-versus-local comparison to the separate positive sequence-200 sparse global-K result.",
+  "source_git_commit_recorded_by_jobs": "4d384ac976b520f49e53be1ded9c6909aa5335df",
+  "jobs": {
+    "stage1_array": 10157078,
+    "stage2_full_local_array": 10157080,
+    "adjudication": 10157317
+  },
+  "source_roots": {
+    "experiment": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719",
+    "source_worktree": "/network/scratch/l/lia/skae-rebuttal"
+  },
+  "paper_packet_roots": {
+    "protocol.json": "ebcd3120ea035dd7bda9c320453f9debc05df17010e957ff9e86ff3bb30c11eb",
+    "result.json": "e8ed176a00a2bbbbb6d7593d6f3f46145a1541557caa98cf62264290b74b865a"
+  },
+  "source_files": {
+    "source_worktree": {
+      "configs/allen_cahn_exact_full_local_k_screen_20260719.json": "ebcd3120ea035dd7bda9c320453f9debc05df17010e957ff9e86ff3bb30c11eb",
+      "experiments/neurips_2026/allen_cahn_routed_transition.py": "01f556c76c2fe13b08c4a6b33e92f436f471d5b9bae26ec69a8b636b1eaf32cb",
+      "experiments/neurips_2026/select_allen_cahn_exact_full_local_k.py": "be0631f822777bb5e2328a45da3617a9d1da43d530faa3342a774aaa450fe0bd",
+      "experiments/neurips_2026/train_allen_cahn_routed_transition.py": "3ead9122d3de95f37f05dbfdd8a820cc8b42304d6564bc7fe1ac5a482336064b",
+      "scripts/neurips_2026/allen_cahn_rebuttal/run_exact_full_local_k_screen_array.sh": "957ba866ea7178cd3d3b58a67d8a92fe8dc47cac2ac2b8d4c98b17e00322e0bf",
+      "scripts/neurips_2026/allen_cahn_rebuttal/run_exact_full_local_k_screen_gate.sh": "8fd44886f6e829d2a5e1bbadfda4b9d016bc9495116e13f5372e33e280086d4e",
+      "scripts/neurips_2026/allen_cahn_rebuttal/run_exact_local_stage1_array.sh": "c59e3a3923537d3d724d85073f3458860bf5f26732b1b14ed9031ef36ed733fe"
+    },
+    "experiment": {
+      "data/allen_cahn_4_grid16_dt0p1_t20_dev.pt": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+      "exact_full_local_k/stage1/dense/seed_61/global_validation_odd_evaluation.json": "bd24b0760738b6160358c9e9bc00f550f748e98a39eae75053a1c1a89f50ca5c",
+      "exact_full_local_k/stage1/dense/seed_61/model/milestone_step_1750.pt": "05a8d4d3f2c5edfd266ad409fbbb31f0607b2ff51d52ad47335042b548f5b966",
+      "exact_full_local_k/stage1/dense/seed_61/model/model_config.json": "91cebfd1e2ce7f4a66a29c7b3c248ea84472571765e0c87e0c33b2510474bc61",
+      "exact_full_local_k/stage1/dense/seed_61/model/training_args.json": "43772bd10e441d5ce2500ce9c2036fe3cf28cbbbf13b28740db863479d10cd71",
+      "exact_full_local_k/stage1/signsplit/seed_61/global_validation_odd_evaluation.json": "bb74dc361908423c08b1aecfd17221859c41a192361183df8e15715ed5673863",
+      "exact_full_local_k/stage1/signsplit/seed_61/model/milestone_step_1750.pt": "d2851e93d2fe4bc8248dbfada1db647a9155d31cc6f408dcaefa1eda690124f2",
+      "exact_full_local_k/stage1/signsplit/seed_61/model/model_config.json": "846affacbd6b6052fe6bb0871b1c28fc7127fcc060ac270a6f5257acfc82f436",
+      "exact_full_local_k/stage1/signsplit/seed_61/model/training_args.json": "dd66aea3289b86ff966b06bcdf9f8e5131a3910fbad56d6b63f848cb6f5f708f",
+      "exact_full_local_k/stage2/lr1e5/dense_kmeans/seed_61/checkpoint.pt": "89355eca5ad3a97f30370cc30cd8877400420d362411e4418b5bfed6cb8f5c5e",
+      "exact_full_local_k/stage2/lr1e5/dense_kmeans/seed_61/gpu_utilization_audit.tsv": "291bae9fb8bda2f503e51e7c0e376522815e5934a594806b185c085c4e632bb2",
+      "exact_full_local_k/stage2/lr1e5/dense_kmeans/seed_61/training_args.json": "a45cc00985a59f9f3894ec47aa8b06029e75d82f6cab40fb6f8e94f296f3249d",
+      "exact_full_local_k/stage2/lr1e5/dense_kmeans/seed_61/validation_evaluation.json": "721f9b7dc0c6d9175be1c328def59d12dd0760be6505a9e8a0cda9c9b9977568",
+      "exact_full_local_k/stage2/lr1e5/sparse_kmeans/seed_61/checkpoint.pt": "996ecef273f8ca81945a6d0a50f4a37380afc7ef498472c913e8d9de66cf55be",
+      "exact_full_local_k/stage2/lr1e5/sparse_kmeans/seed_61/gpu_utilization_audit.tsv": "b282e741da578bffe6db7704e0ff24a1998977fcc279c69282603f63c84b8765",
+      "exact_full_local_k/stage2/lr1e5/sparse_kmeans/seed_61/training_args.json": "d6bb675464d7aef9b2dddbc01ea57ce5de73d1d0c47462cb87fdc8f9c793320b",
+      "exact_full_local_k/stage2/lr1e5/sparse_kmeans/seed_61/validation_evaluation.json": "c20d267503c802244ec7d702f91318b0c925538a914279ccb9c225f610c9f768",
+      "exact_full_local_k/stage2/lr1e5/sparse_support/seed_61/checkpoint.pt": "58abaf936a6bccab2eb0ff2d492fa64d969bc89a1baaf15a5bef8436256097fd",
+      "exact_full_local_k/stage2/lr1e5/sparse_support/seed_61/gpu_utilization_audit.tsv": "629e33d8a252befe5f78f1f003ce6ca22bf6c0ae1962f7891057984f206b7d1e",
+      "exact_full_local_k/stage2/lr1e5/sparse_support/seed_61/training_args.json": "cc3d99974d81162bfbf788c2e564d548fd5f941f3185c1584273312a1a8788f1",
+      "exact_full_local_k/stage2/lr1e5/sparse_support/seed_61/validation_evaluation.json": "5286021ef178bab1a18868e5c566ebfae1deb7d7c375418be1213f12b3753681",
+      "exact_full_local_k/stage2/lr3e5/dense_kmeans/seed_61/checkpoint.pt": "89355eca5ad3a97f30370cc30cd8877400420d362411e4418b5bfed6cb8f5c5e",
+      "exact_full_local_k/stage2/lr3e5/dense_kmeans/seed_61/gpu_utilization_audit.tsv": "c0bf7957b3a8a9363b6f476937e46f0951bfb79af6abc155f102783131822045",
+      "exact_full_local_k/stage2/lr3e5/dense_kmeans/seed_61/training_args.json": "78ef9059db03ab39288c68ccc3270acf07c1f1417a50cf8798a7c8e465cfb2ff",
+      "exact_full_local_k/stage2/lr3e5/dense_kmeans/seed_61/validation_evaluation.json": "721f9b7dc0c6d9175be1c328def59d12dd0760be6505a9e8a0cda9c9b9977568",
+      "exact_full_local_k/stage2/lr3e5/sparse_kmeans/seed_61/checkpoint.pt": "996ecef273f8ca81945a6d0a50f4a37380afc7ef498472c913e8d9de66cf55be",
+      "exact_full_local_k/stage2/lr3e5/sparse_kmeans/seed_61/gpu_utilization_audit.tsv": "00bb405a92c46188e8e85af874d35b4a74f2479924785d3031d2ede64727b3d7",
+      "exact_full_local_k/stage2/lr3e5/sparse_kmeans/seed_61/training_args.json": "a2d412aac4df3fd493ce857b764f3b72d66aca0cc2a5ed76903331b85a0b3217",
+      "exact_full_local_k/stage2/lr3e5/sparse_kmeans/seed_61/validation_evaluation.json": "c20d267503c802244ec7d702f91318b0c925538a914279ccb9c225f610c9f768",
+      "exact_full_local_k/stage2/lr3e5/sparse_support/seed_61/checkpoint.pt": "58abaf936a6bccab2eb0ff2d492fa64d969bc89a1baaf15a5bef8436256097fd",
+      "exact_full_local_k/stage2/lr3e5/sparse_support/seed_61/gpu_utilization_audit.tsv": "d88a2febd3179c54ca2164d2a87b0816cf84003402acd1d28e328bdfc9ba3fe0",
+      "exact_full_local_k/stage2/lr3e5/sparse_support/seed_61/training_args.json": "fa457c1beceb6e3ccff74b08f9e54ee4ff2902ed2cc9f048ecd8c2bdf517923c",
+      "exact_full_local_k/stage2/lr3e5/sparse_support/seed_61/validation_evaluation.json": "5286021ef178bab1a18868e5c566ebfae1deb7d7c375418be1213f12b3753681",
+      "exact_full_local_k/summary/selection.json": "e8ed176a00a2bbbbb6d7593d6f3f46145a1541557caa98cf62264290b74b865a",
+      "logs/full-local-gate-10157317.out": "bf3faceeea3d3fcecbcff95f0f7832a2a58cd158ea7a26766239b7cd773fe9d5"
+    }
+  },
+  "source_validation_audit": [
+    {
+      "recipe": "lr1e5",
+      "arm": "sparse_support",
+      "best_step": -1,
+      "mean_active_gpu_utilization_percent": 90.750,
+      "gpu_gate_at_least_85_percent": true
+    },
+    {
+      "recipe": "lr3e5",
+      "arm": "sparse_support",
+      "best_step": -1,
+      "mean_active_gpu_utilization_percent": 91.582,
+      "gpu_gate_at_least_85_percent": true
+    },
+    {
+      "recipe": "lr1e5",
+      "arm": "sparse_kmeans",
+      "best_step": -1,
+      "mean_active_gpu_utilization_percent": 93.221,
+      "gpu_gate_at_least_85_percent": true
+    },
+    {
+      "recipe": "lr3e5",
+      "arm": "sparse_kmeans",
+      "best_step": -1,
+      "mean_active_gpu_utilization_percent": 93.176,
+      "gpu_gate_at_least_85_percent": true
+    },
+    {
+      "recipe": "lr1e5",
+      "arm": "dense_kmeans",
+      "best_step": -1,
+      "mean_active_gpu_utilization_percent": 93.018,
+      "gpu_gate_at_least_85_percent": true
+    },
+    {
+      "recipe": "lr3e5",
+      "arm": "dense_kmeans",
+      "best_step": -1,
+      "mean_active_gpu_utilization_percent": 93.110,
+      "gpu_gate_at_least_85_percent": true
+    }
+  ]
+}

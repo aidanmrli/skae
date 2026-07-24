@@ -1,0 +1,50 @@
+{
+  "all_seven_metrics_rendered": true,
+  "descriptive_metrics": [
+    "modal_well_accuracy",
+    "potential_energy_absolute_error"
+  ],
+  "evidence_grade": "outcome_aware_same_checkpoint_secondary",
+  "holm_significant_metrics": [
+    "nearest_well_pixel_disagreement",
+    "well_area_fraction_tv_error",
+    "interface_edge_disagreement",
+    "free_energy_absolute_error",
+    "gradient_energy_absolute_error"
+  ],
+  "metric_roster": [
+    "nearest_well_pixel_disagreement",
+    "modal_well_accuracy",
+    "well_area_fraction_tv_error",
+    "interface_edge_disagreement",
+    "free_energy_absolute_error",
+    "potential_energy_absolute_error",
+    "gradient_energy_absolute_error"
+  ],
+  "outputs": {
+    "curve_rows": "da6f0fca2df76aee11f14789f6a90df811071b443fbfd13c2132b35241cd34dd",
+    "figure_pdf": "3dad4d126b7fbadb0bef8066804a2a55a18889f5243d5cd5a94c93f5cd0cae3a",
+    "figure_png": "e5ee5e82ca9ddb7304e3db2f2b747fe500093443c43c1cea1305e150abde8c1a",
+    "provenance": "002bcb87c0c7362562d1551d19f2feb73d65ca0e50b4a14248aadeeee65a139d",
+    "seed_rows": "ce2616b85b1fa282aa1cfc10d1eeff098a3da27b213fea2c05a35f8a7960f80f",
+    "summary": "e5aa8c07dc6b4f23311176519c3880446435f72ae4eebe1d09be8a1a24870dfb",
+    "table": "8508130bbc4cb81121297def4829d9f740dcd6d2ea3608d88f9e68de7daf21db",
+    "tie_rows": "2c928c7424e7e490b4410558265015bb0b5fdf1cc3bbda320f1f3678d945b8b2"
+  },
+  "packet_id": "allen_cahn_physics_metrics",
+  "portable_check": "uv run skae-paper build allen-cahn-physics-metrics --check",
+  "schema_version": 1,
+  "source_artifact_hashes": {
+    "card": "d4748ec37aaf6d10de0c02eb988c5278840eacbbcf649007e1675a0c788bcb88",
+    "outcome_receipt": "b0cf579a38ed472e6ae40ec225141e3ee86e76b2393d85b6c14763307798bc8c",
+    "raw_gpu_telemetry": "1df11d171374b213d357ff626fc0526565275ddda222ba77832d3bf5e7ad2646",
+    "runtime_lineage": "11cfa65eee98ccb70d0cc5d0dfa209851c2454fac10a0f1f091278ff2cb1b018",
+    "scientific_payload": "3ab7d3ee5fc1b155bad66571d353a867eb48896306b48378f5076e2d7af45e43",
+    "scratch_summary": "de0e8b84fab79d2198ffd2807924957d4a5d1986520b2eca67034c66f052c128",
+    "snapshot": "955c4ae968df66908ede5e7c9bdd7c94be2016736b766a70adf17eac7909b079",
+    "source_manifest": "2c0af1fac15f182b3dd6538d909b77b68e123566a46f488a93b89068c31c3221",
+    "telemetry_audit": "0a48e9c153bbc47e981909f0bd057e6fc32b36be58249c8df43ec30e6d843a84"
+  },
+  "source_check": "uv run skae-paper build allen-cahn-physics-metrics --check-sources",
+  "status": "broad_secondary_concordance"
+}

@@ -28,6 +28,10 @@
     "batch_size": 1024,
     "training_horizon": 20,
     "test_horizons": [1, 5, 10, 25, 50, 100],
+    "rollout_mode": "no_reencode_repeated_K",
+    "rollout_implementation": "skae/model.py::GenericKoopmanModel.rollout_observation_discrete",
+    "model_source_sha256_at_training_commit": "50a12d1e2ea0fda03081e66b2164fe541107e77eb67718e14e13acf0d9887d64",
+    "evaluator_source_sha256_at_training_commit": "1667c2d3507f630bbbbc86eaab8ce9e670d0ff366dec80cf9ce89fd887e8a03d",
     "dense_audits_passed": 10,
     "inferential_unit": "model initialization seed",
     "test_trajectories_are_averaged_within_seed": true

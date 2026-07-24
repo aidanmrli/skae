@@ -1,0 +1,208 @@
+{
+  "comparisons": {
+    "dense_global": {
+      "all_primary_cells_lower": false,
+      "cells": {
+        "h160_field_mse": {
+          "reference": 0.06108915209770203,
+          "relative_reduction": -0.15215521468467852,
+          "sparse_support": 0.07038418515003286
+        },
+        "h160_final_field_mse": {
+          "reference": 0.0848359614610672,
+          "relative_reduction": -0.21057087050777934,
+          "sparse_support": 0.10269994371628854
+        },
+        "h200_field_mse": {
+          "reference": 0.06742181301116944,
+          "relative_reduction": -0.16739449740133372,
+          "sparse_support": 0.07870785351406084
+        },
+        "h200_final_field_mse": {
+          "reference": 0.09999030828475952,
+          "relative_reduction": -0.20495066158428266,
+          "sparse_support": 0.12048338811973736
+        }
+      }
+    },
+    "dense_routed": {
+      "all_primary_cells_lower": false,
+      "cells": {
+        "h160_field_mse": {
+          "reference": 0.061089152048225515,
+          "relative_reduction": -0.15215521561781675,
+          "sparse_support": 0.07038418515003286
+        },
+        "h160_final_field_mse": {
+          "reference": 0.08483596828136797,
+          "relative_reduction": -0.21057077318517425,
+          "sparse_support": 0.10269994371628854
+        },
+        "h200_field_mse": {
+          "reference": 0.06742181164008798,
+          "relative_reduction": -0.1673945211413208,
+          "sparse_support": 0.07870785351406084
+        },
+        "h200_final_field_mse": {
+          "reference": 0.09999031078325515,
+          "relative_reduction": -0.20495063147572568,
+          "sparse_support": 0.12048338811973736
+        }
+      }
+    },
+    "sparse_global": {
+      "all_primary_cells_lower": false,
+      "cells": {
+        "h160_field_mse": {
+          "reference": 0.05786437392234802,
+          "relative_reduction": -0.21636475743237105,
+          "sparse_support": 0.07038418515003286
+        },
+        "h160_final_field_mse": {
+          "reference": 0.0814591646194458,
+          "relative_reduction": -0.2607537064254668,
+          "sparse_support": 0.10269994371628854
+        },
+        "h200_field_mse": {
+          "reference": 0.06463029384613037,
+          "relative_reduction": -0.21781673624207643,
+          "sparse_support": 0.07870785351406084
+        },
+        "h200_final_field_mse": {
+          "reference": 0.10167954862117767,
+          "relative_reduction": -0.1849323659826243,
+          "sparse_support": 0.12048338811973736
+        }
+      }
+    },
+    "sparse_kmeans": {
+      "all_primary_cells_lower": false,
+      "cells": {
+        "h160_field_mse": {
+          "reference": 0.07038418515003286,
+          "relative_reduction": 0.0,
+          "sparse_support": 0.07038418515003286
+        },
+        "h160_final_field_mse": {
+          "reference": 0.10269994371628854,
+          "relative_reduction": 0.0,
+          "sparse_support": 0.10269994371628854
+        },
+        "h200_field_mse": {
+          "reference": 0.07870785351406084,
+          "relative_reduction": 0.0,
+          "sparse_support": 0.07870785351406084
+        },
+        "h200_final_field_mse": {
+          "reference": 0.12048338811973736,
+          "relative_reduction": 0.0,
+          "sparse_support": 0.12048338811973736
+        }
+      }
+    }
+  },
+  "decision": "do_not_promote",
+  "h200_relative_reductions": {
+    "dense_global": {
+      "field_mse": -0.16739449740133372,
+      "final_field_mse": -0.20495066158428266
+    },
+    "dense_routed": {
+      "field_mse": -0.1673945211413208,
+      "final_field_mse": -0.20495063147572568
+    },
+    "sparse_global": {
+      "field_mse": -0.21781673624207643,
+      "final_field_mse": -0.1849323659826243
+    },
+    "sparse_kmeans": {
+      "field_mse": 0.0,
+      "final_field_mse": 0.0
+    }
+  },
+  "label_policy": "Training fields/model latents only; no basin labels or basin count.",
+  "minimum_predicted_rollout_route_coverage": 0.83984375,
+  "route_codebook": {
+    "discovered_route_count_lower_bound": 17,
+    "family_jaccard": 0.4,
+    "fit_coverage": 0.88826171875,
+    "fit_mean_nearest_jaccard": 0.6575093471352011,
+    "fit_state_count": 102400,
+    "kind": "support",
+    "label_policy": "Training fields and model latents only; no basin labels, assignments, or basin count.",
+    "latent_sparsity": {
+      "encoder_kind": "lista_signsplit",
+      "intrinsic_signed_dimension": 1024,
+      "output_active_density": 0.4991167485713959,
+      "pair_exclusivity_fraction": 1.0,
+      "pre_split_group_active_density": 0.9982335567474365,
+      "threshold": 0.001,
+      "threshold_induced_group_zero_fraction": 0.0017664623446762562
+    },
+    "prototype_fit_state_count": 10240,
+    "route_cap": 16,
+    "route_cap_saturated": true,
+    "route_count": 4,
+    "route_counts": [
+      22864,
+      24220,
+      24867,
+      19007
+    ],
+    "support_threshold": 0.001,
+    "unique_support_count": 7028
+  },
+  "route_diagnostics": {
+    "all_time_coverage": 0.8352272510528564,
+    "applicable": true,
+    "initial_coverage": 0.7890625,
+    "label_policy": "Model latents only; no basin labels, assignments, or basin count.",
+    "route_count": 4,
+    "route_transition_rate_mean": 0.014414414414414416,
+    "time_indices": [
+      0,
+      20,
+      40,
+      60,
+      80,
+      100,
+      120,
+      140,
+      160,
+      180,
+      200
+    ],
+    "trajectory_modal_route_fraction_mean": 0.8160511363636364
+  },
+  "selected_recipe_coverage_qualified": {
+    "dense_kmeans": true,
+    "sparse_kmeans": true,
+    "sparse_support": false
+  },
+  "selected_recipes": {
+    "dense_kmeans": "lr1e5",
+    "sparse_kmeans": "lr1e5",
+    "sparse_support": "lr1e5"
+  },
+  "status": "failed",
+  "transition_diagnostics": {
+    "bias_l2_norm_by_route": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cuda_peak_memory_allocated_bytes": 4662431232,
+    "delta_frobenius_norm_by_route": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "full_local_matrix_count": 4,
+    "full_local_slope_parameter_count": 16777216,
+    "global_map_frozen": true,
+    "local_parameterization": "full_delta",
+    "trainable_parameter_count": 16785408
+  }
+}

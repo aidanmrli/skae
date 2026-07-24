@@ -1,6 +1,6 @@
 {
   "status": "complete_with_prespecified_support_gate_failure",
-  "experiment": "fixed-data four-well vector Allen-Cahn time-20 confirmation",
+  "experiment": "fixed-data four-well vector Allen-Cahn time-20 development study",
   "generated_at": "2026-07-19",
   "code": {
     "isolated_worktree": "/network/scratch/l/lia/skae-rebuttal",
@@ -28,7 +28,8 @@
     "family_jaccard": 0.4,
     "representative_fit": "even-indexed validation trajectories",
     "test_scoring": "all held-out test trajectories",
-    "primary_support_scope": "final state at physical time 20",
+    "primary_support_scope": "final state at physical time 20, selected using validation fate metrics before this test was opened",
+    "recipe_selection_disclosure": "Validation fate metrics selected physical-time-20 scoring and family Jaccard 0.40. Conditional on those selected evaluation hyperparameters, encoder training, representative fitting, and family assignment use no fate labels or basin counts. All ten fixed model seeds remain in the opened-test summary.",
     "forecast_horizons": [1, 5, 10, 20, 40, 80, 120, 160, 200],
     "test_job": 10152933,
     "summary_job": 10152939,
@@ -70,7 +71,7 @@
     "support_seed_rows": "allen_cahn_time20_confirmation_support_seed_rows.csv",
     "support_seed_rows_sha256": "552f5dd80b3a84a2cd0f59bed39e204c01145012b3932d10d163ac76a89421e4",
     "display": "../fig_highdimensional_confirmation.pdf",
-    "display_sha256": "4e8863f981d5346fc4d96f603b4554315306f5fdf53ed6d418e35d989eb3482c"
+    "display_sha256": "73ff8dcdc30276453cdd850ddaf6ec37096fdf6dfef69fba6ae48821cabf1be8"
   },
   "statistics": {
     "bootstrap_resamples": 100000,
@@ -79,5 +80,5 @@
     "long_horizon_multiplicity": "Holm over physical times 8, 12, 16, and 20",
     "normality_assumption": "none"
   },
-  "interpretation": "Strong but bounded transferred basin-support alignment; the prespecified one-support-per-basin uniqueness criterion failed, and sparse PDE forecasting is worse than exact dense at long horizons."
+  "interpretation": "Strong but bounded transferred finite-time fate-support alignment conditional on a validation-label-selected T=20/Jaccard-0.40 recipe; the prespecified one-support-per-fate uniqueness criterion failed, and sparse PDE forecasting is worse than exact dense at long horizons. Once opened, this packet became development evidence for the later independent holdout."
 }

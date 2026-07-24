@@ -3,7 +3,8 @@
   "consensus_fraction": null,
   "evaluation_split": "validation_odd_trajectories",
   "family_jaccard": 0.4,
-  "label_policy": "Benchmark fate labels score the frozen transferred families only; labels do not fit the encoder, threshold, representatives, or assignments.",
+  "label_policy": "Validation fate labels supply the ARI and conditional-entropy gates used for fresh-seed promotion. They do not fit the encoder, threshold, representatives, or assignments; the subsequently generated independent holdout only scores the already-frozen recipe and map.",
+  "post_audit_selection_disclosure": "Validation fate metrics had already selected the T=20 scoring scope and family Jaccard 0.40, and they select the temporal weight and advancement of the whole fixed ten-seed packet. All ten seeds are retained.",
   "model_seeds": [
     21,
     22,

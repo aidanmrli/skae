@@ -136,7 +136,9 @@
   "family_jaccard": 0.4,
   "selected_family_jaccard": 0.4,
   "selected_temporal_group_sparsity_weight": 0.001,
-  "selection_rule": "smallest temporal-group weight passing every frozen validation check",
+  "selection_rule": "smallest temporal-group weight passing every frozen validation check; validation fate labels enter ARI and conditional-entropy checks",
+  "selection_label_policy": "Label-assisted validation recipe selection: labels do not enter the objective, encoding, representative fitting, or assignment, but validation fate metrics select the temporal weight.",
+  "post_audit_selection_disclosure": "Validation fate metrics had already selected T=20 scoring and family Jaccard 0.40, and here select the temporal weight. They subsequently govern advancement of the complete fixed ten-seed packet; no seed is omitted.",
   "status": "selected",
   "support_threshold": 0.001,
   "test_access": "none"
