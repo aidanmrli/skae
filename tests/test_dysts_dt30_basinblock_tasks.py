@@ -9,6 +9,8 @@ from experiments.neurips_2026.workflows.dysts_tasks import (
     _build_parser,
     _build_rows,
 )
+from experiments.neurips_2026.workflows.dysts_cache import _apply_dysts_dt_multiplier
+from skae.config import get_config
 
 
 def _args() -> Namespace:
@@ -29,6 +31,7 @@ def _args() -> Namespace:
         generic_lr=1e-4,
         generic_k_matrix_lr=1e-5,
         lista_alpha=0.15,
+        lista_sb_num_loops=2,
         lista_lr=5e-5,
         lista_k_matrix_lr=5e-6,
         weight_decay=1e-4,
@@ -120,3 +123,22 @@ def test_default_arguments_are_the_exact_dysts_paper_protocol():
     assert by_variant["lista_bd"]["lista_final_op"] == "relu"
     assert by_variant["lista_sb"]["lista_num_loops"] == 2
     assert by_variant["lista_sb"]["lista_final_op"] == "sign_split"
+
+
+def test_lista_sb_can_match_the_one_refinement_lista_rows():
+    args = _args()
+    args.lista_sb_num_loops = 1
+    rows = _build_rows(args)
+    by_variant = {row["model_variant"]: row for row in rows}
+
+    assert by_variant["lista_bd"]["lista_num_loops"] == 1
+    assert by_variant["lista_sb"]["lista_num_loops"] == 1
+    assert by_variant["lista_sb"]["lista_final_op"] == "sign_split"
+    assert by_variant["lista_sb"]["soft_block"] == 1
+
+
+def test_cache_prebuild_uses_the_exact_frozen_task_timestep():
+    cfg = get_config("lista_nonlinear")
+    cfg.ENV.ENV_NAME = "dysts:Chua"
+    dt = _apply_dysts_dt_multiplier(cfg, 30.0)
+    assert dt == float(DYSTS_SYSTEM_SPECS["dysts:Chua"]["base_dt"]) * 30.0

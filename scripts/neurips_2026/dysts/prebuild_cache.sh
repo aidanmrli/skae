@@ -35,9 +35,18 @@ source .venv/bin/activate
 SYSTEMS_FILE="${SYSTEMS_FILE:?SYSTEMS_FILE must point to a generated paper-system list}"
 CACHE_DIR="${CACHE_DIR:-${DYSTS_CACHE_DIR}}"
 CACHE_NUM_WORKERS="${CACHE_NUM_WORKERS:-2}"
+CACHE_PRIMARY_METHOD="${CACHE_PRIMARY_METHOD:-Radau}"
+CACHE_TRAJECTORY_TIMEOUT_SECONDS="${CACHE_TRAJECTORY_TIMEOUT_SECONDS:-0}"
+CACHE_TIMEOUT_FALLBACK_METHOD="${CACHE_TIMEOUT_FALLBACK_METHOD:-}"
+CACHE_FALLBACK_TIMEOUT_SECONDS="${CACHE_FALLBACK_TIMEOUT_SECONDS:-0}"
 PROFILES_STR="${PROFILES:-full}"
 SPLITS_STR="${SPLITS:-train val test}"
 DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-30}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
 
 if [[ ! -f "${SYSTEMS_FILE}" ]]; then
   echo "Missing SYSTEMS_FILE=${SYSTEMS_FILE}"
@@ -78,6 +87,10 @@ echo "Profile: ${PROFILE}"
 echo "Split: ${SPLIT}"
 echo "CACHE_DIR: ${CACHE_DIR}"
 echo "CACHE_NUM_WORKERS: ${CACHE_NUM_WORKERS}"
+echo "CACHE_PRIMARY_METHOD: ${CACHE_PRIMARY_METHOD}"
+echo "CACHE_TRAJECTORY_TIMEOUT_SECONDS: ${CACHE_TRAJECTORY_TIMEOUT_SECONDS}"
+echo "CACHE_TIMEOUT_FALLBACK_METHOD: ${CACHE_TIMEOUT_FALLBACK_METHOD:-<none>}"
+echo "CACHE_FALLBACK_TIMEOUT_SECONDS: ${CACHE_FALLBACK_TIMEOUT_SECONDS}"
 echo "DYSTS_DT_MULTIPLIER: ${DYSTS_DT_MULTIPLIER}"
 echo "Start Time: $(date)"
 echo "============================================="
@@ -88,6 +101,10 @@ uv run skae-paper cache dysts \
   --splits "${SPLIT}" \
   --cache_dir "${CACHE_DIR}" \
   --cache_num_workers "${CACHE_NUM_WORKERS}" \
+  --primary_method "${CACHE_PRIMARY_METHOD}" \
+  --trajectory_timeout_seconds "${CACHE_TRAJECTORY_TIMEOUT_SECONDS}" \
+  --timeout_fallback_method "${CACHE_TIMEOUT_FALLBACK_METHOD}" \
+  --fallback_timeout_seconds "${CACHE_FALLBACK_TIMEOUT_SECONDS}" \
   --dt_multiplier "${DYSTS_DT_MULTIPLIER}" \
   --standardize
 

@@ -1232,7 +1232,7 @@ class KoopmanMachine(ABC, nn.Module):
         step: int = 0,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Pure tensor aggregation for unified loss."""
-        del x0, step, homogeneous_loss, block_losses
+        del x0, homogeneous_loss, block_losses
         if x_pred.ndim < 3 or x_true.ndim < 3:
             raise ValueError("x_pred/x_true must have shape [B, H, ...]")
         if x_pred.shape != x_true.shape:
@@ -1270,7 +1270,6 @@ class KoopmanMachine(ABC, nn.Module):
         )
 
         with torch.no_grad():
-            max_eigenvalue, spectral_radius = self._k_eigen_metrics()
             sparsity_ratio = self._sparsity_ratio_from_latent(
                 z_pred, z_true, z0, device=device, dtype=dtype
             )
@@ -1289,10 +1288,20 @@ class KoopmanMachine(ABC, nn.Module):
             'obs_loss_dim_normalization': str(
                 getattr(self.cfg.MODEL, "OBS_LOSS_DIM_NORMALIZATION", "sqrt_dim")
             ),
-            'A_max_eigenvalue': max_eigenvalue.item(),
-            'spectral_radius': spectral_radius.item(),
             'sparsity_ratio': sparsity_ratio.item(),
         }
+        # A full eigendecomposition of K is diagnostic-only and cubic in the
+        # latent dimension.  Computing it every optimizer step dominated the
+        # small-state Dysts workload without affecting gradients.
+        if step % 100 == 0:
+            with torch.no_grad():
+                max_eigenvalue, spectral_radius = self._k_eigen_metrics()
+            metrics.update(
+                {
+                    'A_max_eigenvalue': max_eigenvalue.item(),
+                    'spectral_radius': spectral_radius.item(),
+                }
+            )
         return total_loss, metrics
 
     def loss(

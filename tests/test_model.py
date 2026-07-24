@@ -200,6 +200,22 @@ class TestLISTA:
         x = torch.randn(16, xdim)
         z = lista(x)
         assert z.shape == (16, zdim)
+
+    def test_one_refinement_gives_s_nonzero_gradient(self):
+        """NUM_LOOPS=1 must mean one learned refinement after initialization."""
+        cfg = get_config("lista")
+        cfg.MODEL.TARGET_SIZE = 4
+        cfg.MODEL.ENCODER.LISTA.LINEAR_ENCODER = True
+        cfg.MODEL.ENCODER.LISTA.NUM_LOOPS = 1
+        cfg.MODEL.ENCODER.LISTA.ALPHA = 0.0
+        cfg.MODEL.ENCODER.LISTA.FINAL_OP = "shrink"
+
+        lista = LISTA(cfg, 4, torch.eye(4), L_override=2.0)
+        loss = lista(torch.tensor([[1.0, -2.0, 0.5, 3.0]])).square().sum()
+        loss.backward()
+
+        assert lista.S.grad is not None
+        assert torch.count_nonzero(lista.S.grad).item() > 0
     
     def test_sparsity(self):
         """Test LISTA produces sparse codes."""

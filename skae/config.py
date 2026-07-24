@@ -315,6 +315,10 @@ class DystsConfig:
     CACHE_REUSE: bool = False  # Reuse/load/save on-disk cached trajectories
     CACHE_SPLIT: str = "train"  # Cache namespace: train/val/test
     CACHE_NUM_WORKERS: int = 1  # Parallel workers for cache construction
+    CACHE_PRIMARY_METHOD: str = "Radau"  # scipy solve_ivp method
+    CACHE_TRAJECTORY_TIMEOUT_SECONDS: float = 0.0  # 0 disables wall timeout
+    CACHE_TIMEOUT_FALLBACK_METHOD: str = ""  # Optional same-IC solver fallback
+    CACHE_FALLBACK_TIMEOUT_SECONDS: float = 0.0  # 0 disables fallback timeout
 
 
 @dataclass

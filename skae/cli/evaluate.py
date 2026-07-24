@@ -310,7 +310,7 @@ def main():
         '--dysts_cache_split',
         type=str,
         default='test',
-        choices=['train', 'val', 'test'],
+        choices=['train', 'val', 'policy', 'test'],
         help='Cache split namespace for evaluation'
     )
     parser.add_argument(

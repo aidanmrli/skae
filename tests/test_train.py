@@ -213,6 +213,55 @@ class TestEvaluate:
         assert not results['true_trajectory'].requires_grad
         assert not results['pred_trajectory'].requires_grad
 
+    def test_evaluate_direct_mode_uses_no_reencode_rollout(self, monkeypatch):
+        cfg = get_config("generic")
+        cfg.MODEL.TARGET_SIZE = 8
+        cfg.MODEL.ENCODER.LAYERS = [8]
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+        x = torch.zeros(3, env.observation_size)
+        expected = torch.full((4, 3, env.observation_size), 2.0)
+
+        import skae.evaluation as evaluation_module
+
+        monkeypatch.setattr(
+            evaluation_module,
+            "rollout_no_reencode",
+            lambda _model, _x, _horizon: expected,
+        )
+
+        def fail_reencode(*_args, **_kwargs):
+            raise AssertionError("direct checkpoint selection reencoded")
+
+        monkeypatch.setattr(
+            evaluation_module, "rollout_every_step_reencode", fail_reencode
+        )
+        results = evaluate(
+            model,
+            x,
+            num_steps=4,
+            true_trajectory=torch.zeros_like(expected),
+            rollout_mode="direct",
+        )
+        assert torch.equal(results["pred_trajectory"], expected)
+        assert results["full_horizon_finite_fraction"] == 1.0
+        assert results["strict_full_horizon_mse"] == pytest.approx(
+            4.0 * env.observation_size
+        )
+
+    def test_evaluate_rejects_unknown_rollout_mode(self):
+        cfg = get_config("generic")
+        env = make_env(cfg)
+        model = make_model(cfg, env.observation_size)
+        with pytest.raises(ValueError, match="Unknown rollout_mode"):
+            evaluate(
+                model,
+                torch.zeros(1, env.observation_size),
+                num_steps=1,
+                true_trajectory=torch.zeros(1, 1, env.observation_size),
+                rollout_mode="oracle",
+            )
+
 
 class TestTrain:
     """Test full training loop."""

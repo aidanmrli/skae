@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "protocol_id": "dysts_lista_sb_refinement1_replacement_v1",
+  "status": "frozen_before_training_or_evaluation",
+  "question": "Does the Dysts LISTA-SB row retain its forecasting benefit when it uses one learned LISTA refinement, exactly matching LISTA and LISTA-BD?",
+  "motivation": "The historical LISTA-SB row used two refinements while LISTA and LISTA-BD used one. This full replacement row removes refinement depth as a confound.",
+  "roster": {
+    "systems": ["Chua", "Dadras", "DequanLi", "Hadley", "LuChenCheng", "QiChen", "Sakarya", "SanUmSrisuchinwong", "ShimizuMorioka", "WangSun"],
+    "model_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "run_count": 150
+  },
+  "matched_contract": {
+    "changed_from_historical_lista_sb": {"lista_num_loops": {"historical": 2, "replacement": 1}},
+    "unchanged": [
+      "native Dysts train/validation/test caches and dt multiplier 30",
+      "100000 optimizer steps, batch 256, latent size 256, sequence length 10",
+      "LISTA alpha 0.15, sign-split output, sparsity loss 0.006",
+      "dense global K with soft-block regularization using the listed diagnostic structure count",
+      "learning rates, weight decay, initialization, and all evaluation horizons"
+    ],
+    "fairness_note": "This matches learned-refinement count. Sign splitting and soft-block regularization remain the defining LISTA-SB treatment."
+  },
+  "evaluation": {
+    "horizons": [100, 500, 1000, 1500, 2000, 3000, 4000, 5000],
+    "physical_time": "system-specific stored dt times horizon; dt is 30 times the native benchmark step",
+    "policies": ["direct repeated-K", "every-step decoded-prediction reencoding", "best periodic cadence from 10,25,50,100,150,200"],
+    "comparators": ["historical LISTA-SB", "LISTA", "LISTA-BD", "Sparse MLP", "Sparse MLP-BD", "Dense MLP tanh"],
+    "primary_reporting": "Use the frozen paper aggregation at H100, H2000, and H4000 and report all system-level paired seed distributions.",
+    "inference_unit": "System is the top-level generalization unit; model seeds are repeated fits nested within system."
+  },
+  "interpretation": {
+    "success": "One-refinement LISTA-SB preserves or improves the historical aggregate and remains better than the dense tanh baseline on the predeclared horizons without broad system reversals.",
+    "failure": "A material loss relative to the historical two-refinement row identifies depth as part of the treatment; the replacement must be reported rather than silently mixing rows.",
+    "ambiguity": "If the aggregate improves but several systems reverse, report heterogeneity and avoid a universal claim."
+  },
+  "hardware": {
+    "partition": "long",
+    "gpu": "one L40S-class GPU per packed array element",
+    "packing": "Twelve concurrent fits share one L40S allocation after an exact 12-fit smoke reached sustained 99% utilization with about 7 GiB peak aggregate memory.",
+    "telemetry": "Each fit records GPU utilization; packing concurrency is recorded in the queue manifest."
+  }
+}
