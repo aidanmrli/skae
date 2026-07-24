@@ -39,6 +39,9 @@ DEFAULT_GRID_POINTS = 80
 DEFAULT_CHUNK_SIZE = 4096
 DEFAULT_STREAM_DENSITY = 1.05
 DEFAULT_DPI = 300
+FIELD_DECIMALS = 4
+LOG_SPEED_DECIMALS = 7
+DIRECTION_DECIMALS = 8
 CMAP = "viridis"
 GENERATOR_ID = "experiments.neurips_2026.evidence.ground_truth"
 
@@ -256,11 +259,18 @@ def attractor_centers(env, system_key: str) -> np.ndarray | None:
 def compute_field(spec: SystemSpec, grid_points: int, chunk_size: int) -> FieldData:
     env = make_system_env(spec.system_key)
     xs, ys, states = grid_states(spec.xlim, spec.ylim, grid_points)
+    # BLAS/libm kernels differ in the last float32 bit across the cluster's
+    # CPU families.  Quantize only the display grid, far below plot
+    # resolution, so streamlines and PDF coordinates are reproducible while
+    # the environment dynamics and all scientific evidence remain untouched.
     vectors = evaluate_dynamics(env, states, chunk_size=chunk_size).numpy()
+    vectors = np.round(vectors.astype(np.float64), decimals=FIELD_DECIMALS)
     u = vectors[:, 0].reshape((grid_points, grid_points))
     v = vectors[:, 1].reshape((grid_points, grid_points))
-    speed = np.sqrt(u * u + v * v)
-    log_speed = np.log10(np.maximum(speed, 1e-10))
+    speed = np.hypot(u, v)
+    log_speed = np.round(
+        np.log10(np.maximum(speed, 1e-10)), decimals=LOG_SPEED_DECIMALS
+    )
     finite = log_speed[np.isfinite(log_speed)]
     if finite.size == 0:
         vmin, vmax = -10.0, 0.0
@@ -292,10 +302,14 @@ def draw_field(
     label_axes: bool,
     stream_density: float,
 ) -> object:
-    speed = 10.0 ** field.log_speed
+    speed = np.hypot(field.u, field.v)
     denom = np.maximum(speed, 1e-8)
-    u_dir = np.nan_to_num(field.u / denom)
-    v_dir = np.nan_to_num(field.v / denom)
+    u_dir = np.round(
+        np.nan_to_num(field.u / denom), decimals=DIRECTION_DECIMALS
+    )
+    v_dir = np.round(
+        np.nan_to_num(field.v / denom), decimals=DIRECTION_DECIMALS
+    )
     log_speed = np.nan_to_num(field.log_speed, nan=field.log_speed_vmin)
     norm = Normalize(vmin=field.log_speed_vmin, vmax=field.log_speed_vmax)
     stream = ax.streamplot(

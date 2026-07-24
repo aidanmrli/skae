@@ -4,22 +4,25 @@
 \begingroup
 \sloppy
 \paragraph{Status.}
-This is a factual pre-submission record for coauthor review, not the official
-venue questionnaire.  Application of the final venue style determines the
-official question set, numbering, and response format; these answers must then
-be reconciled with that form.  Nothing here asserts that a public artifact,
+This is a current working record for coauthor review of the revised manuscript
+and rebuttal, not a record of the binary PDF submitted at commit
+\texttt{fd68bc5}. Application of the final venue style determines the official
+question set, numbering, and response format; these answers must then be
+reconciled with that form. Nothing here asserts that a public artifact,
 anonymous URL, DOI, or release has been completed.
 \paragraph{Claims and evidence.}
-The manuscript makes three bounded empirical claims: sparse KAE rows improve
-forecasting over the reported Dense MLP KAE rows; sparse support families align
-with evaluation-only basin labels in the transductive controlled diagnostic and
-under frozen transfer on the independent high-dimensional PDE holdout; and a
+The manuscript makes three bounded empirical claims: sparse KAE rows have
+lower reported aggregate error than Dense MLP on the controlled and separate
+high-dimensional comparisons; sparse support
+families align with evaluation-only labels in the transductive controlled
+diagnostic and under frozen transfer on the independent high-dimensional PDE
+holdout; and a
 staged training-distribution support-family route has descriptively lower
 controlled-forecasting error than a same-budget global-\(K\) LISTA baseline
 under an optimistic asymmetric selector.  The paper states no new theorem
 or proof, no exact global linearization, and no out-of-sample basin-discovery
 guarantee.  Benchmark definitions and training/evaluation protocols are in
-\cref{app:controlled_inventory,app:dysts_inventory_full,app:experimental_details,app:highdimensional_confirmation};
+\cref{app:controlled_inventory,app:experimental_details,app:highdimensional_confirmation,app:global_k_support_closure};
 support construction and inference are in
 \cref{app:support_definitions,app:statistical_testing}.
 \paragraph{Limits on interpretation.}
@@ -48,24 +51,38 @@ support construction and inference are in
   \item Standalone controls use three seeds and unmatched trajectories; the
   intervention covers one checkpoint.
   \item LISTA decoders are atom-normalized whereas MLP decoders are not.
-  Dysts LISTA--SB is a same-budget two-loop/sign-split ablation, unlike the
-  one-loop/ReLU LISTA and LISTA--BD rows. Structured-transition rows use a known
-  controlled-benchmark basin count or a hand-set Dysts lobe/scroll/equilibrium
-  count only to set the number of blocks.
+  Structured-transition rows use a known controlled-benchmark basin count only
+  to set the number of blocks. Historical Dysts evidence is quarantined; the
+  corrected campaign matches all LISTA rows at one learned refinement.
   \item Lorenz--96 uses one fixed generated dataset and is chaotic rather than
-  multibasin.  Allen--Cahn is one synthetic PDE: its primary all-state
-  uniqueness score misses the frozen gate by \(0.009\), its exact interior
-  slice is evaluation-only, and temporal sparse is worse than dense at long
-  forecast horizons.  Neither experiment establishes empirical real-world
+  multibasin.  Allen--Cahn is one synthetic PDE: its primary all-trajectory
+  final-state uniqueness score misses the frozen gate by \(0.009\), its exact
+  one-family-per-fate result is on an evaluation-only single-well-dominated
+  finite-time slice rather than proven basin interiors, and both support and
+  fate are measured at \(T=20\), not from \(x_0\) or throughout a trajectory.
+  Conditional on the recipe, its objective, representative fitting, and holdout
+  assignment use no labels, but validation fate metrics selected T20 scoring,
+  Jaccard 0.40, the temporal weight, and whole-packet advancement. Temporal sparse
+  is worse than dense at long forecast horizons. A separate direct-rollout
+  sparse model has lower through-horizon mean error, but its terminal-inclusive
+  gate fails.  Neither experiment establishes empirical real-world
   generalization.
+  \item The global-\(K\) closure diagnostic is support-projected, one-step, and
+  restricted to two-dimensional controlled systems. Its frozen primary is
+  future-conditioned. A pre-execution evaluator-emitted all-current guard gives
+  similar leakage, but it adds only 0.96 percentage points because persistence
+  is high and therefore does not resolve boundary-heavy switching. The
+  operator-differentiation gate fails, so neither slice establishes invariant
+  subspaces or distinct local laws.
 \end{itemize}
 \paragraph{Reproducibility and access status.}
 The working repository contains explicit controlled-system vector fields,
 benchmark adapters, training and evaluation code, seeds, locked dependencies,
 tests, manuscript sources, and paper-facing aggregate artifacts.  Controlled
 trajectories are regenerable from the explicit analytic or piecewise-analytic
-systems; Dysts trajectories are
-regenerable from the documented package and cache protocol.  Exact model,
+systems. The quarantined historical Dysts trajectories are not treated as
+regenerable paper evidence; the corrected campaign records a schema-versioned,
+numerically verified cache protocol. Exact model,
 metric, split, cadence, support, and standalone-control recipes are recorded in
 \cref{app:experimental_details,app:support_definitions}.  Bitwise equality
 across GPU models and numerical-library versions is not claimed.  No verified
@@ -79,24 +96,24 @@ consumption or energy estimates:
   requesting one cluster-assigned GPU, four CPU cores, \(16\) GB host memory,
   and at most \(24\) hours: at most \(32{,}400\) GPU-hours and \(129{,}600\)
   allocated CPU-core-hours.
-  \item Dysts training comprises \(10\times6\times15=900\) runs packed up to
-  \(12\) per allocation, with one GPU, four CPU cores, \(16\) GB, and at most
-  \(72\) hours per full pack: at most \(5{,}400\) GPU-hours and \(21{,}600\)
-  allocated CPU-core-hours.
   \item The staged routing packet comprises \(15\times15=225\) runs, each
   requesting one GPU, four CPU cores, \(24\) GB, and at most three hours: at
   most \(675\) GPU-hours and \(2{,}700\) allocated CPU-core-hours.
-  \item Retained Dysts cache/evaluation jobs add approximately \(4{,}700\)
-  CPU-core-hours; controlled support diagnostics add approximately \(290\)
+  \item Controlled support diagnostics add approximately \(290\)
   CPU-core-hours; the one-checkpoint intervention allocation adds at most
   \(3\) GPU-hours.
-  \item The final Lorenz--96 confirmation uses one two-hour GPU allocation.
+  \item The final Lorenz--96 comparison uses one two-hour GPU allocation.
   The Allen--Cahn temporal screen, promotion, holdout evaluation, and new-data
   generation request at most \(64.2\) GPU-hours in total.  Measured mean GPU
   utilization is \(81\%\) for Lorenz--96 and \(84.7\%\)--\(92.6\%\) for the
   promoted dense and sparse Allen--Cahn training runs.
+  \item The separate 20-run Allen--Cahn direct-rollout comparison used A100L
+  GPUs with \(95.55\%\) mean active utilization.  The 45-checkpoint raw
+  global-\(K\) closure evaluator is CPU-only because its host-routed
+  \(256\)-dimensional algebra would not use an accelerator efficiently.
 \end{itemize}
-The GPU model was scheduler-assigned and is therefore unspecified.  These
+Except where a study records its assigned hardware above, the GPU model
+was scheduler-assigned and is unspecified.  These
 ceilings exclude superseded historical packets and can substantially exceed
 actual use because jobs may finish early and packed runs share allocations.
 \paragraph{Assets, attribution, and licenses.}
@@ -108,7 +125,7 @@ of model training, rollout, routing, metric computation, or statistical
 testing.  LLM assistance also contributed to manuscript and checklist editing;
 the authors remain responsible for the equations, protocols, and numerical
 claims.
-The external benchmark uses right-hand sides and metadata from
+The corrected external campaign uses right-hand sides and metadata from
 \texttt{dysts} \(0.96\), with project-generated standardized trajectories, and
 the manuscript cites the associated Gilpin papers.  Local package metadata is
 not sufficient to state a definitive redistribution license: it contains an

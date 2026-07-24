@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "description": "PDF vector-field displays for 15 controlled multibasin systems.",
   "generated_by": "experiments.neurips_2026.evidence.ground_truth",
   "compute_allocation": "salloc --mem=8G -c 4 --partition=long",
@@ -10,11 +10,14 @@
       "pdf"
     ],
     "dpi": 300,
-    "stream_density": 1.05
+    "stream_density": 1.05,
+    "field_decimals": 4,
+    "log_speed_decimals": 7,
+    "direction_decimals": 8
   },
   "composite": {
     "path": "ground_truth_vector_fields_retained15.pdf",
-    "sha256": "b4b4a70c6e216470dc5d1fd86595cd941c3721271b39a3634528e96b77190377"
+    "sha256": "d605b4f35f2657be5832992cced67d6376191c069a3517efcaad571032a8e0d0"
   },
   "systems": [
     {
@@ -23,7 +26,7 @@
       "basins": 3,
       "pdf": {
         "path": "ground_truth_vector_field_gated_local_linear.pdf",
-        "sha256": "abbe02207a74e7d8d10b2a73e827cd21177955669e237cd573e62da024f115a5"
+        "sha256": "139a5578d51319fa2397f290bdd505f1146c2ce6c868455b9ba680e11617816b"
       }
     },
     {
@@ -32,7 +35,7 @@
       "basins": 3,
       "pdf": {
         "path": "ground_truth_vector_field_gated_transfer_linear.pdf",
-        "sha256": "eead67e42f2ee90bb02d26db3d9dcb17c5966de4617ec2265b49e0af7f81d5ed"
+        "sha256": "dd8c4ae10632fa5e3cf87031bca898fea2bf1ee19ecccf732118bd4cbb89e4a0"
       }
     },
     {
@@ -41,7 +44,7 @@
       "basins": 5,
       "pdf": {
         "path": "ground_truth_vector_field_arrested_spiral.pdf",
-        "sha256": "faa0531bb9fa70a50ce9a9214d525e6fe133b5146bd3b4f75a22dc279f65d1f0"
+        "sha256": "9b5bbab431b85b1d23261510aba1a96bca1a107d8670bf91d6941055a4e2208e"
       }
     },
     {
@@ -50,7 +53,7 @@
       "basins": 3,
       "pdf": {
         "path": "ground_truth_vector_field_cal_asymmetric_3.pdf",
-        "sha256": "e015825abaab22980931a1748444de78c6505abcfae90f117190fb3aff0922b2"
+        "sha256": "7a4dbdf2f21d8e2a3e02cbe17f8c200420f0cc474b4feb70b9bb35a1b8126d10"
       }
     },
     {
@@ -59,7 +62,7 @@
       "basins": 3,
       "pdf": {
         "path": "ground_truth_vector_field_cal_high_cross_3.pdf",
-        "sha256": "ee201259273442654fdd5fc71dfbbea3732fceec2fffe05dd2237c656dc1aff2"
+        "sha256": "a8155c8e9878478199f7e928091ddd27dfba9751e19ed70e951bd02d2a2486ec"
       }
     },
     {
@@ -68,7 +71,7 @@
       "basins": 6,
       "pdf": {
         "path": "ground_truth_vector_field_cal_hexagon_6.pdf",
-        "sha256": "3e8f54ea2e8059bb5e9a2c247d8abd7a4726abdf75867b5672ab53e3dbcf6b09"
+        "sha256": "19757a77c7dcc56b7fac611402b0beba1d3de5cab11bf032c00c10e3b224e613"
       }
     },
     {
@@ -77,7 +80,7 @@
       "basins": 8,
       "pdf": {
         "path": "ground_truth_vector_field_cal_octagon_8.pdf",
-        "sha256": "216c5095adeb0e03386ce2385c418a94220d507cbd1af8702f732b7188ae16f6"
+        "sha256": "237a0a908720011fb5f3489140192128630fbf7d4a49e90c80c94291955e2045"
       }
     },
     {
@@ -86,7 +89,7 @@
       "basins": 5,
       "pdf": {
         "path": "ground_truth_vector_field_cal_pentagon_5.pdf",
-        "sha256": "65fa984c441fca3c0468d99febf2797a5ffb617affeb3ed669a1abe7d828afcb"
+        "sha256": "4b1665dd978108dfb93d39619857d1975e06537875dab5d765f6763761c08601"
       }
     },
     {
@@ -95,7 +98,7 @@
       "basins": 4,
       "pdf": {
         "path": "ground_truth_vector_field_cal_square_4.pdf",
-        "sha256": "e89b98763e4cdc3c8428706dd328f7ef976076f943f8c3911b3511a7c8b206d4"
+        "sha256": "c8555fe9dc0e383bf77b4c20e5e71f889890c1e861e3fca21f9798d90cf45e29"
       }
     },
     {
@@ -104,7 +107,7 @@
       "basins": 3,
       "pdf": {
         "path": "ground_truth_vector_field_duffing_triple_well.pdf",
-        "sha256": "96514513efddace80e8ddffe2d7314dc5602a3c1617b2ad332397f95c17861fe"
+        "sha256": "c70d8a75790456d075e26c4af021078acb0d01c46ab4d971562c2da9f0606431"
       }
     },
     {
@@ -113,7 +116,7 @@
       "basins": 3,
       "pdf": {
         "path": "ground_truth_vector_field_snic_multi.pdf",
-        "sha256": "51c7e1e355ae3f3aea0924f5c36c09f42dee4097cd403bc576290809a9b9f856"
+        "sha256": "c8b52d338598121496a4d14389d3da83eaaf6220dab4dd844414a881d45a0261"
       }
     },
     {
@@ -122,7 +125,7 @@
       "basins": 4,
       "pdf": {
         "path": "ground_truth_vector_field_transition_routes_4.pdf",
-        "sha256": "f85e7b1e32f6828dcba7f36a97c4814cd52a4f21bffbf8012f3ec1d2d41efeeb"
+        "sha256": "b7f8da63b57b9d23a09cef2ad96b92bdb1d91d1c2cfaab525ac9938147e3cefc"
       }
     },
     {
@@ -131,7 +134,7 @@
       "basins": 4,
       "pdf": {
         "path": "ground_truth_vector_field_var_depth_gradient_4.pdf",
-        "sha256": "5032863e4f8554aef4849c906c32b8058b898d985e699d96b3c49dc5863d8e40"
+        "sha256": "f8b0f42b66030d5322f546e7ea4ccac3996327c4736aedbaa042b70337a43ebf"
       }
     },
     {
@@ -140,7 +143,7 @@
       "basins": 4,
       "pdf": {
         "path": "ground_truth_vector_field_var_diamond_4.pdf",
-        "sha256": "7ae50c58369d0e7746bf85313b7ac4c51e165ab1e205043c0e1c7b8a0c0e14d7"
+        "sha256": "7434325eba13fcb872354de58e10facd2eef98ffa2c06bfac7d99df39c53ba3d"
       }
     },
     {
@@ -149,7 +152,7 @@
       "basins": 5,
       "pdf": {
         "path": "ground_truth_vector_field_var_l_shape_5.pdf",
-        "sha256": "f0d810ee2851b6fad8e3239e122e76ef3d61d9199940e2f4445a46d3a04f0e9b"
+        "sha256": "4a2add7e86eb7c23f02b57b361ff3a07959454eed4b7935471ae59691baf8425"
       }
     }
   ]
