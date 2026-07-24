@@ -1,0 +1,145 @@
+{
+  "comparison": {
+    "all_four_ci95_lower_bounds_above_zero": false,
+    "all_four_means_lower": true,
+    "cells": {
+      "h160_field_mse": {
+        "ci95_lower": 0.026042577731699684,
+        "ci95_upper": 0.0954425461328371,
+        "coverage": "marginal paired-seed percentile interval; the four-cell decision is an intersection-union gate",
+        "dense_mean": 0.045034652948379474,
+        "estimand": "1 - mean(sparse_seed_metric) / mean(dense_seed_metric)",
+        "relative_reduction_of_means": 0.06304563287888254,
+        "replicates": 50000,
+        "seed": 20260719,
+        "sparse_mean": 0.04219541475176806,
+        "sparse_seed_wins": 8
+      },
+      "h160_final_field_mse": {
+        "ci95_lower": -0.01628686162691905,
+        "ci95_upper": 0.05963187416548877,
+        "coverage": "marginal paired-seed percentile interval; the four-cell decision is an intersection-union gate",
+        "dense_mean": 0.05188669022172686,
+        "estimand": "1 - mean(sparse_seed_metric) / mean(dense_seed_metric)",
+        "relative_reduction_of_means": 0.0237754268133773,
+        "replicates": 50000,
+        "seed": 20260719,
+        "sparse_mean": 0.05065306201577181,
+        "sparse_seed_wins": 7
+      },
+      "h200_field_mse": {
+        "ci95_lower": 0.017489019714802902,
+        "ci95_upper": 0.08760583048110776,
+        "coverage": "marginal paired-seed percentile interval; the four-cell decision is an intersection-union gate",
+        "dense_mean": 0.04730945658683772,
+        "estimand": "1 - mean(sparse_seed_metric) / mean(dense_seed_metric)",
+        "relative_reduction_of_means": 0.054828366057083855,
+        "replicates": 50000,
+        "seed": 20260719,
+        "sparse_mean": 0.04471555638313286,
+        "sparse_seed_wins": 8
+      },
+      "h200_final_field_mse": {
+        "ci95_lower": -0.007962300076051676,
+        "ci95_upper": 0.06699936785103172,
+        "coverage": "marginal paired-seed percentile interval; the four-cell decision is an intersection-union gate",
+        "dense_mean": 0.060858016088604895,
+        "estimand": "1 - mean(sparse_seed_metric) / mean(dense_seed_metric)",
+        "relative_reduction_of_means": 0.03224233677265487,
+        "replicates": 50000,
+        "seed": 20260719,
+        "sparse_mean": 0.05889581143856045,
+        "sparse_seed_wins": 7
+      }
+    },
+    "h200_minimum_effects_passed": false,
+    "h200_minimum_win_counts_passed": false,
+    "passed": false
+  },
+  "completeness": {
+    "arms": [
+      "dense",
+      "sparse"
+    ],
+    "horizons": [
+      80,
+      120,
+      160,
+      200
+    ],
+    "rows": 80,
+    "seeds": [
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73
+    ],
+    "unique_evaluation_artifacts": 20
+  },
+  "decision": "terminate_allen_cahn_tuning",
+  "max_t_sensitivity": {
+    "H160 terminal": {
+      "observed_studentized_statistic": 1.1437248293393671,
+      "one_sided_exact_sign_flip_p": 0.1396484375,
+      "one_sided_max_t_fwer_adjusted_p": 0.197265625,
+      "swaps": 1024.0
+    },
+    "H160 through-horizon mean": {
+      "observed_studentized_statistic": 3.2481680173430836,
+      "one_sided_exact_sign_flip_p": 0.009765625,
+      "one_sided_max_t_fwer_adjusted_p": 0.013671875,
+      "swaps": 1024.0
+    },
+    "H200 terminal": {
+      "observed_studentized_statistic": 1.5699331493454067,
+      "one_sided_exact_sign_flip_p": 0.07421875,
+      "one_sided_max_t_fwer_adjusted_p": 0.1123046875,
+      "swaps": 1024.0
+    },
+    "H200 through-horizon mean": {
+      "observed_studentized_statistic": 2.8118817955848647,
+      "one_sided_exact_sign_flip_p": 0.0126953125,
+      "one_sided_max_t_fwer_adjusted_p": 0.0185546875,
+      "swaps": 1024.0
+    }
+  },
+  "packet_id": "allen_cahn_global_k_forecast_optimized",
+  "protocol": {
+    "bootstrap_replicates": 50000,
+    "bootstrap_seed": 20260719,
+    "fresh_validation_trajectories": 256,
+    "labels_used": false,
+    "latent_dim": 2048,
+    "max_t_swaps": 1024,
+    "overcomplete_factor": 4,
+    "rollout_mode": "no_reencode",
+    "state_dim": 512
+  },
+  "qualification": {
+    "all_runs_qualified": true,
+    "dense_near_zero_fraction_maximum": 0.0037345886230468,
+    "dense_near_zero_fraction_mean": 0.00251186370849603,
+    "dense_near_zero_fraction_minimum": 0.0012348175048828,
+    "dense_no_sparsity_audit_passed": true,
+    "dense_no_sparsity_audited_seeds": 10,
+    "finite_rollouts_passed": true,
+    "gpu_utilization_guard_passed": true,
+    "gpu_utilization_maximum_percent": 96.782,
+    "gpu_utilization_mean_percent": 95.55025,
+    "gpu_utilization_minimum_percent": 90.559,
+    "sparse_near_zero_fraction_maximum": 0.4634086608886718,
+    "sparse_near_zero_fraction_mean": 0.43381500244140625,
+    "sparse_near_zero_fraction_minimum": 0.3905792236328125,
+    "sparsity_guard_passed": true
+  },
+  "schema_version": 1,
+  "scope": "A separately forecast-optimized Allen--Cahn packet; it does not replace the representation-optimized temporal-group experiment.",
+  "sealed_holdout": "not_generated_or_opened",
+  "status": "confirmation_gate_failed_secondary_evidence"
+}

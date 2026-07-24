@@ -1,0 +1,102 @@
+[
+  {
+    "ownership": "invalid_historical_provenance",
+    "lock": "experiments/neurips_2026/allen_cahn_lista_refinement_stable_v2/source_manifest.sha256",
+    "lock_sha256": "8f4f41bf39ac7bb545c9c4cae88e2242d9bb5c9f6dc92aad30680f7cef767645",
+    "card_sha": "f1679825bf5f836e1e8e24a9a36c67f31a698018752cd64a657f76a65c1cf2d5",
+    "format": "sha256_manifest",
+    "entry_count": 28,
+    "script_dir": "scripts/neurips_2026/allen_cahn_lista_refinement_stable_v2/",
+    "scripts": {
+      "run_array.sh": "1bc26b8e8b37022cff61de445dce1b823e48f164b6178c15ea0698c396eee8fd",
+      "smoke.sh": "c23b0f48d1f2a9aa8a614c5c201e556957c3b5ca04e76858ba070c91304383c6"
+    }
+  },
+  {
+    "ownership": "invalid_historical_provenance",
+    "lock": "experiments/neurips_2026/allen_cahn_periodic_reencoding/source_manifest.sha256",
+    "lock_sha256": "a4729c04d1981c031d1531304668dc01b4165c1d5b1610d4d780d9730d123c6f",
+    "card_sha": "97716bb6dc2c0e6a4f8389d362c06ad67045ac2a85574c794f1966a388ce9e17",
+    "format": "sha256_manifest",
+    "entry_count": 54,
+    "additional_roots": {
+      "docs/archive/allen_cahn_periodic_reencoding_v1_lineage_failure_20260721.md": "082f30cbdfa945e6d5a0a9c4a8fdfa076a3976c15b0a2c137ebf80d58e2935a9"
+    },
+    "script_dir": "scripts/neurips_2026/allen_cahn_periodic_reencoding/",
+    "scripts": {
+      "queue.sh": "02bebcaf9eda739c45afd44234d52399bc0dd2c68b4724cc84b38471a0421d72",
+      "run_generate_select_evaluate.sh": "c44399419becbe065d39441d796777fffe8102c4cd5cd5d6c745578ef9872d28",
+      "run_smoke.sh": "8039384ad663c7df09714d6d68b45b4cb86c86f6f9cf0f6357f62293f6109476",
+      "run_summary.sh": "e58a45de0dab946f67c5c7e7f3f6c3861d4c98e20594813f7b8f9299f5957197"
+    }
+  },
+  {
+    "ownership": "invalid_historical_provenance",
+    "lock": "experiments/neurips_2026/allen_cahn_periodic_reencoding_v2/source_manifest.sha256",
+    "lock_sha256": "0fa8b1994c1634164224441c3baf19f48314fb9db9ae89472c2802d491d82265",
+    "card_sha": "e5af3746ae9a537f4c7860221228c9f39fc92acd7ce6442b85cd48d1f35cab4f",
+    "format": "sha256_manifest",
+    "entry_count": 66,
+    "additional_roots": {
+      "docs/archive/allen_cahn_periodic_reencoding_v2_smoke_uuid_failure_20260721.md": "2c5681ccef9aae9eb6e4fe35e52dfc5a19eaafc911a4bb55c0f523df06fd7090"
+    },
+    "script_dir": "scripts/neurips_2026/allen_cahn_periodic_reencoding_v2/",
+    "scripts": {
+      "queue.sh": "139c420bb6bb5cdca88d8936c4c813b9bc26a6dbe4dcb818a552f73ba317c203",
+      "run_generate_select_evaluate.sh": "ba49f82f05afae0a9d947f9c54310dcf2ec179d205bd293f95760703dddefd88",
+      "run_smoke.sh": "ac711923f137f1e3d350200a2dbad04d3589171cc7c1dd374c3e5d52ff7d24db",
+      "run_summary.sh": "f87a81b85dc30d70ebdefbd13bbe83caaea70d533b9d495822cbb87000330b4e"
+    }
+  },
+  {
+    "ownership": "invalid_historical_provenance",
+    "lock": "experiments/neurips_2026/allen_cahn_periodic_reencoding_v3/source_manifest.sha256",
+    "lock_sha256": "6e738758bcb1fc6d3041e0cd46696588a668085df53e722e7a5203af54ad8a68",
+    "card_sha": "a8636606f3248135759efe18f82b6dd62c95ad0d731f979611bf2093bdee5f48",
+    "format": "sha256_manifest",
+    "entry_count": 79,
+    "additional_roots": {
+      "docs/archive/allen_cahn_periodic_reencoding_v3_jq_startup_failure_20260721.md": "603d83c873a8b6461f364978ac2bcbd113b355b5080c6d7a577ebe9bf2ca36e4"
+    },
+    "script_dir": "scripts/neurips_2026/allen_cahn_periodic_reencoding_v3/",
+    "scripts": {
+      "queue.sh": "8022bd1aa7d271d859a552888c1599f8be39a624825ab6d65148cca120a5e8ea",
+      "run_generate_select_evaluate.sh": "791548930c4ab869299f6e113a219c498d10a0201032554a84a320e9dec7bdb3",
+      "run_smoke.sh": "3573a85438517a5a8869d665fe2f39825044cb2954480deb7ca3adede0a95bb4",
+      "run_summary.sh": "ebee9d3c8e76263dca123c178a84ac62c250a861d5a631e57af77d3c68f14145"
+    }
+  },
+  {
+    "ownership": "invalid_historical_provenance",
+    "lock": "experiments/neurips_2026/allen_cahn_periodic_reencoding_v4/source_manifest.sha256",
+    "lock_sha256": "015a305244ba0fc037b5af8d09fc3e15b633991f6f628d3ee7d27ac6a28dd593",
+    "card_sha": "9d2374f986164941771af076576046358bce6bdbf19501a10a079d84081bc6f7",
+    "format": "sha256_manifest",
+    "entry_count": 89,
+    "additional_roots": {
+      "docs/archive/allen_cahn_periodic_reencoding_v4_smoke_telemetry_failure_20260721.md": "b23037ac097817ece6b923f7a2d7c3e52222ccbd73a280849f9e1ea825672c56"
+    },
+    "script_dir": "scripts/neurips_2026/allen_cahn_periodic_reencoding_v4/",
+    "scripts": {
+      "queue.sh": "060925d62456f1189733f3b021fca58164579cc979030a025efc31e58995c359",
+      "run_generate_select_evaluate.sh": "ebb95fba9ef1bc4cf7ff0864fd17411244d2b7b4aa05461fac0311c76afe44fd",
+      "run_smoke.sh": "0012cd43e9c35af9ebd1df73a7548bda66720a856b0c16b5c2ee4928350648e6",
+      "run_summary.sh": "d8b2e8552d356ef903fc5e08794a638a3990b923c23f5b6a55373f7d84501d91"
+    }
+  },
+  {
+    "ownership": "authorized_prospective_packet_provenance",
+    "lock": "experiments/neurips_2026/allen_cahn_periodic_reencoding_v5/source_manifest.sha256",
+    "lock_sha256": "3e702edab74521c55ad1c78fa90170e49ff61a4653f441566b6760294c1dc278",
+    "card_sha": "f90861bc060a9f13461fb470fd7a12f428fe49c7e92533cae90c46cc4c0c5bf4",
+    "format": "sha256_manifest",
+    "entry_count": 102,
+    "script_dir": "scripts/neurips_2026/allen_cahn_periodic_reencoding_v5/",
+    "scripts": {
+      "queue.sh": "0540b79150c753bd710dd8e1d86c3305690c563f524e28ef0a08ecbe26af29a5",
+      "run_generate_select_evaluate.sh": "491292d7dc5f40b4fd0463d8191e0c54c75c0c585bacb093105f83277d94a28a",
+      "run_smoke.sh": "1a7833b45f170a02563b5984800cdd8c4cece236e40647f9e3cac376cda429ab",
+      "run_summary.sh": "622545004fb658045b67a9655faa21c0f1f24cc2d734eb6ec0d86b837131c2ba"
+    }
+  }
+]

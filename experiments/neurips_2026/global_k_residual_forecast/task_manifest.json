@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "protocol_id": "global_k_residual_support_forecast_v1",
+  "roster_rule": "Exactly ten paired V2 initialization seeds 100--109; one task loads the frozen sparse checkpoint and its paired exact dense-tanh checkpoint. No retraining or checkpoint reselection is permitted.",
+  "provenance_contract": {
+    "sparse_trainable_parameter_counts": {"total": 95104, "encoder": 29056, "decoder": 512, "koopman": 65536, "other": 0},
+    "dense_trainable_parameter_counts": {"total": 87040, "encoder": 20992, "decoder": 512, "koopman": 65536, "other": 0}
+  },
+  "tasks": [
+    {
+      "task_id": 0,
+      "model_seed": 100,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_100/20260720-230254/checkpoint.pt", "sha256": "6e044f8e450022d0d4c312bc157450bc8fa397c1cd05814220e8abfd229baabc"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_100/20260720-230254/checkpoint.pt", "sha256": "dbbabe898299b883f8494e56afac20f4e666902be890d5203211c4c3efe2c1d4"}
+    },
+    {
+      "task_id": 1,
+      "model_seed": 101,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_101/20260720-230254/checkpoint.pt", "sha256": "e29b2ea1a92fc32a2a613e74851e5c539e50afd17b7cbf7b734731a09bcc52a5"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_101/20260720-230254/checkpoint.pt", "sha256": "e7dbd71a7502d40266d9425271d38a9d7bbef29383b9f4b072387ccd6bb21396"}
+    },
+    {
+      "task_id": 2,
+      "model_seed": 102,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_102/20260720-230254/checkpoint.pt", "sha256": "6f2de77eccf901910acb842ace81eecc49b0d540e5d80f9a6b5d1691741f8e37"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_102/20260720-230254/checkpoint.pt", "sha256": "7089a933c6c6d9cbe374189c716ca5a2c127e274a012a141ce0a2cd80ec5ebbf"}
+    },
+    {
+      "task_id": 3,
+      "model_seed": 103,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_103/20260720-230254/checkpoint.pt", "sha256": "98c4871666c3ed4a5edf5cee8564fece5c663f6bd9bace1e70253b998e1f3e85"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_103/20260720-230254/checkpoint.pt", "sha256": "9ffd44046b02e30340fb24a094f2359ec5007862bf64133051e25c10688d12fa"}
+    },
+    {
+      "task_id": 4,
+      "model_seed": 104,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_104/20260720-230254/checkpoint.pt", "sha256": "be92692ba199c9ce88d0a27d1f6ef18a65a59e4201f51a46668d37a71e23d8f0"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_104/20260720-230254/checkpoint.pt", "sha256": "0f17a99db95d64f41c32f373351c04decc4a2a33008b48c09d41ef42dabbf550"}
+    },
+    {
+      "task_id": 5,
+      "model_seed": 105,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_105/20260720-230254/checkpoint.pt", "sha256": "5e3a315c6cc8fd382e53a2fb03cfc54fa1bf63d57d98e282547bbdfa528d16ad"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_105/20260720-230254/checkpoint.pt", "sha256": "ccff971382a544d58a5c4887cd421afa9745f0916d94fabacd8560c566d74c67"}
+    },
+    {
+      "task_id": 6,
+      "model_seed": 106,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_106/20260720-230254/checkpoint.pt", "sha256": "c6ff3e6901933133783ca4c441f278b0c0150a111a4eb5dc433fc48d48db6978"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_106/20260720-230254/checkpoint.pt", "sha256": "46b6d38c628343f2e5a6e0a9c1697c78aee3937f7dd518d42ad586623ccd6ac5"}
+    },
+    {
+      "task_id": 7,
+      "model_seed": 107,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_107/20260720-230254/checkpoint.pt", "sha256": "8a051946675b864211e908d807155fcb38df709fbdf1c2236fd86ae8fb588bda"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_107/20260720-230254/checkpoint.pt", "sha256": "cd321d3f235dc974134969dacdf49944f0ce4a05d29cc850a48955373986ccf2"}
+    },
+    {
+      "task_id": 8,
+      "model_seed": 108,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_108/20260720-230254/checkpoint.pt", "sha256": "595eec7db70dc8ece26185ef50232f5d8dc0f55293de52b7e747868241209624"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_108/20260720-230254/checkpoint.pt", "sha256": "72c675a213b19059146552c04b316620c25f7b03a5615bed9d783181ac42052c"}
+    },
+    {
+      "task_id": 9,
+      "model_seed": 109,
+      "sparse_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/lista_dense_signsplit_p256_hardinit_distinct_laws_v2/gated_local_linear/dt_0p04/seed_109/20260720-230254/checkpoint.pt", "sha256": "56b6e94644ca30fc4c78edb1dfbc34b06097765aeabb292e9af2d7494db62b59"},
+      "dense_checkpoint": {"path": "/network/scratch/l/lia/skae/global_k_distinct_laws_v2_scientific_663fd03/runs/neurips_2026_global_k_distinct_laws_v2_full/mlp_tanh_zero_sparse_zero_wd_p256_distinct_laws_v2/gated_local_linear/dt_0p04/seed_109/20260720-230254/checkpoint.pt", "sha256": "60f770fb7621fa6b5306f463f927d66db0f02327d6fc750eafcbfccf85f2dc47"}
+    }
+  ]
+}

@@ -277,7 +277,7 @@ def _recipes(
     lista_sb = dict(lista)
     lista_sb.update(
         {
-            "lista_num_loops": LISTA_SB_PAPER_OVERRIDE.lista_num_loops,
+            "lista_num_loops": args.lista_sb_num_loops,
             "lista_final_op": LISTA_SB_PAPER_OVERRIDE.lista_final_op,
             "soft_block": 1,
             "soft_block_num_blocks": diagnostic_structure_count,
@@ -402,6 +402,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--generic_lr", type=float, default=1e-4)
     parser.add_argument("--generic_k_matrix_lr", type=float, default=1e-5)
     parser.add_argument("--lista_alpha", type=float, default=0.15)
+    parser.add_argument(
+        "--lista_sb_num_loops",
+        type=int,
+        default=LISTA_SB_PAPER_OVERRIDE.lista_num_loops,
+        help=(
+            "Number of learned LISTA refinements for LISTA-SB after the initial "
+            "shrinkage code. The historical paper row uses two; use one for the "
+            "matched-refinement replacement experiment."
+        ),
+    )
     parser.add_argument("--lista_lr", type=float, default=5e-5)
     parser.add_argument("--lista_k_matrix_lr", type=float, default=5e-6)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
@@ -419,6 +429,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.lista_sb_num_loops < 0:
+        raise ValueError("--lista_sb_num_loops must be nonnegative")
     rows = _build_rows(args)
     output_tsv = Path(args.output_tsv)
     _write_tsv(output_tsv, rows)
@@ -435,7 +447,11 @@ def main() -> None:
             "paper_row_overrides": [
                 {
                     "variant": LISTA_SB_PAPER_OVERRIDE.variant,
-                    "lista_num_loops": LISTA_SB_PAPER_OVERRIDE.lista_num_loops,
+                    "historical_lista_num_loops": (
+                        LISTA_SB_PAPER_OVERRIDE.lista_num_loops
+                    ),
+                    "lista_num_loops": args.lista_sb_num_loops,
+                    "realized_lista_num_loops": args.lista_sb_num_loops,
                     "lista_final_op": LISTA_SB_PAPER_OVERRIDE.lista_final_op,
                     "source_campaign_system_count": (
                         LISTA_SB_PAPER_OVERRIDE.source_campaign_system_count
@@ -454,6 +470,7 @@ def main() -> None:
             "generic_lr": args.generic_lr,
             "generic_k_matrix_lr": args.generic_k_matrix_lr,
             "lista_alpha": args.lista_alpha,
+            "lista_sb_num_loops": args.lista_sb_num_loops,
             "lista_lr": args.lista_lr,
             "lista_k_matrix_lr": args.lista_k_matrix_lr,
             "weight_decay": args.weight_decay,
@@ -469,7 +486,11 @@ def main() -> None:
                 "Block-diagonal K and soft-block recipes use the listed hand-set lobe, scroll, or equilibrium count.",
                 "The diagnostic structure count only sizes K blocks; it is not a basin count and no training-time labels are used.",
                 "dense_mlp_tanh uses generic_no_shrink: tanh hidden activation, no final ReLU, sparsity_coeff=0.",
-                "LISTA-SB is a retained ablation row with two LISTA loops and sign-split output; LISTA and LISTA-BD use one loop and ReLU.",
+                (
+                    "LISTA-SB uses "
+                    f"{args.lista_sb_num_loops} learned LISTA refinement(s) and a "
+                    "sign-split output; LISTA and LISTA-BD use one refinement and ReLU."
+                ),
                 "The LISTA-SB source campaign contained 12 systems; paper summaries retain the frozen 10-system Dysts cohort.",
             ],
         }

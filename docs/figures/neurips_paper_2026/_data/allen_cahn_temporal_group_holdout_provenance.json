@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "status": "complete_with_primary_uniqueness_near_miss_and_exact_deep_interior_alignment",
-  "experiment": "label-free temporal-support Allen-Cahn replication and independent dataset holdout",
+  "status": "complete_with_primary_uniqueness_near_miss_and_exact_single_well_final_field_alignment",
+  "experiment": "temporal-support Allen-Cahn replication with label-assisted validation recipe selection and independent dataset holdout",
   "generated_at": "2026-07-19",
   "code": {
     "isolated_worktree": "/network/scratch/l/lia/skae-rebuttal",
@@ -48,12 +48,12 @@
     "selected_temporal_group_sparsity_weight": 0.001,
     "support_threshold": 0.001,
     "family_jaccard": 0.4,
-    "support_scope": "final state at physical time 20",
-    "deep_interior_definition": "evaluation-only final modal-well area fraction at least 0.90",
-    "selection_policy": "smallest temporal weight passing every frozen validation-only screen check",
+    "support_scope": "final state at physical time 20; this scoring time was selected using validation fate metrics before the earlier T=20 test was opened",
+    "deep_interior_definition": "historical internal name for the evaluation-only T=20 final field with modal-well area fraction at least 0.90; the slice was prospectively frozen for the new holdout after earlier mixed-domain fragmentation and is not a geometric basin-interior claim",
+    "selection_policy": "Validation fate metrics selected T=20 scoring, family Jaccard 0.40, the smallest temporal weight passing every frozen validation-only screen check, and advancement of the entire fixed ten-seed packet. The temporal-group objective itself was implemented and frozen before the earlier T=20 test was opened. No seed was omitted.",
     "test_release_policy": "dataset seed 20260720 was generated only after every fresh-seed promotion check passed",
     "representative_policy": "support representatives fit only on seed-20260719 validation trajectories; never refit on the new holdout",
-    "label_policy": "no fate labels, basin count, or trajectory assignments enter training, encoding, representative fitting, or transfer; labels score frozen assignments only"
+    "label_policy": "No fate label, basin count, or trajectory assignment enters the objective, encoding, representative fitting, or assignment conditional on the selected recipe. Validation fate metrics selected the T=20 scoring scope, Jaccard 0.40, temporal weight, and whole-packet advancement. Independent-holdout labels only score the already-frozen recipe, representatives, assignments, and prospectively frozen >=90% final-field slice."
   },
   "dense_no_sparsity_contract": {
     "audits_passed": 10,
@@ -97,7 +97,7 @@
       "failed_check": "mean normalized H(F|B)/H(F) <= 0.35",
       "distance_above_ceiling": 0.0092790039603441
     },
-    "predeclared_deep_interior_slice": {
+    "prospectively_frozen_single_well_slice": {
       "trajectories": 130,
       "fraction_of_test": 0.5078125,
       "mean_num_families": 4.0,
@@ -108,7 +108,7 @@
       "mean_purity": 1.0,
       "model_seeds_with_exact_alignment": 10
     },
-    "interpretation": "The sparse family map is strongly basin-informative on all unseen initial conditions and exactly one-to-one on predeclared basin-interior fields; residual fragmentation is concentrated in mixed-domain/interface states."
+    "interpretation": "The sparse family map carries strong finite-time modal-well-fate information on unseen initial conditions. On the single-well-dominated final-field slice prospectively frozen for this new holdout after earlier mixed-domain fragmentation, it transfers exactly one family per finite-time fate; this does not establish geometric basin-interior membership. Residual fragmentation is associated with mixed-domain/interface-rich final fields."
   },
   "independent_holdout_forecast": {
     "physical_time_20_final_field_mse": {
@@ -146,18 +146,21 @@
     "holdout_dataset_core_gpu_utilization_percent": [98, 99]
   },
   "evidence": {
-    "screen_config": {"path": "allen_cahn_temporal_group_screen_config.json", "sha256": "afa19bd5af256908c4b119c773143c0e2bd5ab37db891af9793f8b0c5a653c4f"},
-    "screen_selection": {"path": "allen_cahn_temporal_group_screen_selection.json", "sha256": "d3ce26007e6a247e6c4b8cb5fc23653523f2dd846dc51e1eb7eeb94638778db8"},
-    "holdout_config": {"path": "allen_cahn_temporal_group_holdout_config.json", "sha256": "5470b33656f68fae7d9ebccd1b032eceb48c1e5dcbe0edf6c1f1e50b6518b6b4"},
-    "validation_alignment": {"path": "allen_cahn_temporal_group_validation_alignment.json", "sha256": "da010f7be800387c7f748033681bab073a40eb492b7bbc9c5eedc9407f389723"},
+    "screen_config": {"path": "allen_cahn_temporal_group_screen_config.json", "sha256": "4af63169256c94f19118a8d08cb6d4a90260f6a77865900d9d3cb2ef9243a182"},
+    "screen_selection": {"path": "allen_cahn_temporal_group_screen_selection.json", "sha256": "c1910467403f045811e52ade0d094f583cd6edb0a15d7389e395a740ce30478c"},
+    "holdout_config": {"path": "allen_cahn_temporal_group_holdout_config.json", "sha256": "73007e92eddf602b50627c45babf720872888a9cfda3c88bb1b2bac7f2a6d880"},
+    "validation_alignment": {"path": "allen_cahn_temporal_group_validation_alignment.json", "sha256": "659497005028c1e0d3f73858a2a5f57d37f515272dab76851e209278e289919f"},
     "validation_rows": {"path": "allen_cahn_temporal_group_validation_rows.csv", "sha256": "3c1fad7d3f1eeae33b79ef09f6870ef8402bd4b2c6afa271931c66e11de8ddf3"},
     "holdout_summary": {"path": "allen_cahn_temporal_group_holdout_summary.json", "sha256": "24b6235f7e78ca1b4471edd593b8022d543a6898d372f49f1341a23f92ddb106"},
     "forecast_seed_rows": {"path": "allen_cahn_temporal_group_holdout_forecast_seed_rows.csv", "sha256": "70d4831828d995f08e2530ff8df8fc5a20ddefb217de2a0d4b43354b972d72b2"},
     "support_seed_rows": {"path": "allen_cahn_temporal_group_holdout_support_seed_rows.csv", "sha256": "5a2ed4abf96ec0b29b4e1a76a00cb7c685f7f82937c8a07e12c5064fbb02a085"},
     "fixed_seed_records": {"path": "allen_cahn_temporal_group_holdout_fixed_seed_records.csv", "sha256": "c720c97cd2b1ea0b869501e6e0a05c376ef0527fbce167a800ea48c5a0b0832e"},
-    "main_display_pdf": {"path": "../fig_highdimensional_confirmation.pdf", "sha256": "b332d118612290872a43ed673e8e8665e728abf9e94e88d9c43b1580e506a021"},
-    "support_contingency_pdf": {"path": "../fig_allen_cahn_support_contingency.pdf", "sha256": "3be84fb3029605aa06f114580e3569fe745a99f4a2821abd6d2c4a37918ad601"},
+    "main_display_pdf": {"path": "../fig_highdimensional_confirmation.pdf", "sha256": "73ff8dcdc30276453cdd850ddaf6ec37096fdf6dfef69fba6ae48821cabf1be8"},
+    "main_display_png": {"path": "../fig_highdimensional_confirmation.png", "sha256": "1584dbb17b4f8f5d0b49361aa24ca33c70a71d45ef9a1f3e387c50023b3eb964"},
+    "support_contingency_pdf": {"path": "../fig_allen_cahn_support_contingency.pdf", "sha256": "26ae1e6669de3dfae67bd8bd7eb8018a1f511e7941690c62d820b2201f74b639"},
+    "support_contingency_png": {"path": "../fig_allen_cahn_support_contingency.png", "sha256": "75e863371b87f300853caaefcfdbe7542fc88b6186ba7371f676939010eb6954"},
     "snapshot_pdf": {"path": "../fig_allen_cahn_time20_snapshots.pdf", "sha256": "e41ddb3e5f4dabae0b97c66e9a65298b0fc3d4137c46cb237c25a3e42c398d58"}
   },
-  "terminal_decision": "Stop tuning. The high-dimensional forecasting claim is supplied by Lorenz-96; the independent PDE holdout supplies strong all-state basin information and exact predeclared deep-interior alignment. Trying another threshold after the 0.009 primary miss would weaken test discipline."
+  "terminology_amendment": "Post-audit correction: historical deep-interior/basin language denotes the evaluation-only >=90% final modal-well occupancy slice. Reviewer-facing claims use finite-time modal-well fate and single-well-dominated final field; they do not claim geometric basin-interior membership.",
+  "terminal_decision": "Stop tuning this representation packet. Across all 256 trajectories, the T=20 final-state support families carry strong information about the T=20 modal-well fate label; this is neither x0 fate prediction nor trajectory-wide alignment. The single-well-dominated T=20 final-field slice, prospectively frozen for this new holdout after earlier mixed-domain fragmentation, has exact one-family-per-fate alignment, while the all-trajectory final-state uniqueness score preserves its 0.009 miss and long-horizon sparse forecasting remains negative."
 }

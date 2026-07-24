@@ -1,0 +1,23 @@
+\begin{tabular}{llrrrrl}
+\toprule
+Slice & Diagnostic & Observed & Matched null & Obs./null & Wins & Gate \\
+\midrule
+All-current guard$^{\dagger}$ & Raw-$K$ activity leakage & 0.0047 & 0.2065 & 0.022 & 15/15 & Ref. pass \\
+ & Raw-$K$ matrix Frobenius leakage & 0.0538 & 0.2080 & 0.240 & 15/15 & Diagnostic \\
+ & $(K-I)$-normalized leakage & 0.3382 & 0.7830 & 0.433 & 15/15 & Ref. pass \\
+ & $(K-I)$ matrix Frobenius leakage & 0.5541 & 0.7834 & 0.699 & 15/15 & Diagnostic \\
+ & Post-hoc $PKP$ inside residual & 0.0100 & 0.1646 & 0.053 & 15/15 & Ref. pass \\
+ & Restricted-operator distance & 0.9741 & 0.9830 & 0.993 & 0/15 & \textbf{Ref. fail} \\
+\midrule
+Persistent primary & Raw-$K$ activity leakage & 0.0047 & 0.2065 & 0.022 & 15/15 & Pass \\
+ & Raw-$K$ matrix Frobenius leakage & 0.0538 & 0.2080 & 0.240 & 15/15 & Diagnostic \\
+ & $(K-I)$-normalized leakage & 0.3394 & 0.7831 & 0.435 & 15/15 & Pass \\
+ & $(K-I)$ matrix Frobenius leakage & 0.5539 & 0.7834 & 0.699 & 15/15 & Diagnostic \\
+ & Post-hoc $PKP$ inside residual & 0.0100 & 0.1646 & 0.053 & 15/15 & Pass \\
+ & Restricted-operator distance & 0.9741 & 0.9830 & 0.993 & -- & \textbf{Fail} \\
+\midrule
+\multicolumn{7}{l}{\footnotesize $^\dagger$Post-hoc reduction of a pre-execution evaluator-emitted no-next-state guard; not a second frozen decision.} \\
+\multicolumn{7}{l}{\footnotesize The guard adds only 3,527 transitions (0.96 percentage points); medians are over system-level seed medians.} \\
+\multicolumn{7}{l}{\footnotesize Frozen primary decision: partial closure; the differentiation guard fails; $PKP$ is a post-hoc restriction.} \\
+\bottomrule
+\end{tabular}

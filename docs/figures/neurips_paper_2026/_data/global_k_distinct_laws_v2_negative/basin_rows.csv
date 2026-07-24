@@ -1,0 +1,4 @@
+basin_index,planned_model_seeds,kink_valid,g_own_nearest,g_ratio_at_most_0p8,h_own_nearest,h_ratio_at_most_0p8,closure_evaluable,closure_at_most_0p50,affine_both_guards,finite_every_gate
+0,10,8,8,8,4,2,8,8,2,0
+1,10,8,8,8,3,1,8,7,0,0
+2,10,8,8,8,2,1,8,8,0,0

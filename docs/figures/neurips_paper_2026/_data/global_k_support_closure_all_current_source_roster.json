@@ -1,0 +1,371 @@
+{
+  "card_sha256": "b569868dbdcef00dc361f2bba93ca708a5cdd7399cd929ecf4ec3a98f8efd7f5",
+  "portable_digest": "cd3c708ba7314f91074bf5b4c84a93e5736c8a6930f2a3869d1970d49b8f9836",
+  "portable_digest_specification": "SHA-256 of sorted lines '<shard_sha256>  <basename>\\n'",
+  "schema_version": 1,
+  "shard_count": 45,
+  "shards": [
+    {
+      "basename": "task_000.json",
+      "checkpoint_sha256": "055afec659a66f4842b471992fe687f1cce0f751eac75650136d4b1544bcb478",
+      "seed": 0,
+      "sha256": "bf6c1d5169a8f7d2d063874d3b0fc003b5f780106c91aa9669f7ab6f8100674c",
+      "system_key": "claude:arrested_spiral",
+      "task_index": 0
+    },
+    {
+      "basename": "task_001.json",
+      "checkpoint_sha256": "672e076a3ec6bd8ecfaa53e21549e330d3a2f771d03f4963a0337ea219c544ab",
+      "seed": 1,
+      "sha256": "496f6bd8fdd050d2ebf0d2d7ca075f267bc0ce5226ef55a70b4ae1e88f466049",
+      "system_key": "claude:arrested_spiral",
+      "task_index": 1
+    },
+    {
+      "basename": "task_002.json",
+      "checkpoint_sha256": "902828a7676418fb963e0847318d8ebe71889b4fa6ff378e5d9ee65e9090e054",
+      "seed": 2,
+      "sha256": "bdb0e7b847af5b80292b90fa5b50585b5cd84d176e8b1b8dfdbf77e434022e92",
+      "system_key": "claude:arrested_spiral",
+      "task_index": 2
+    },
+    {
+      "basename": "task_003.json",
+      "checkpoint_sha256": "99ef2964157873fb45af8c3e4ef8ea1bf110838466689d60766529173b59afcb",
+      "seed": 0,
+      "sha256": "71eb1a28607154dfb58d59da6c5acd1db4ff6cae9deb6c6b18dff19927a929b8",
+      "system_key": "claude:cal_asymmetric_3",
+      "task_index": 3
+    },
+    {
+      "basename": "task_004.json",
+      "checkpoint_sha256": "c6b6037cc51dacb0b76f6a00b761890a545a40b3ce45c567bb69a27efb3d9041",
+      "seed": 1,
+      "sha256": "bb2e6154e35894ccc109de4eae5c3b356c7a2172910f8dc2bb165a15a5531ab8",
+      "system_key": "claude:cal_asymmetric_3",
+      "task_index": 4
+    },
+    {
+      "basename": "task_005.json",
+      "checkpoint_sha256": "14431c13531f4a5d90a74cef64aa02acc365665707f45230c2fd6b42c9f08c1d",
+      "seed": 2,
+      "sha256": "4958b91f67e3c76bb7810f1f11e24b758477775ff7cbd0508553886ea48a770b",
+      "system_key": "claude:cal_asymmetric_3",
+      "task_index": 5
+    },
+    {
+      "basename": "task_006.json",
+      "checkpoint_sha256": "671b08212edc767b2d1754f67ea3cead60f9598edcbccaecb073d5f66330a2de",
+      "seed": 0,
+      "sha256": "6c58927166e7a3060b3b057abd40013b59f65d9d13356a8c0da2a4066c3f9540",
+      "system_key": "claude:cal_hexagon_6",
+      "task_index": 6
+    },
+    {
+      "basename": "task_007.json",
+      "checkpoint_sha256": "2df9dbe5427744e00d1f3e7fc3af55f4d15ab215f7188d6f3681f81114c36505",
+      "seed": 1,
+      "sha256": "3dde2c4cac55b9bfe3644462b83ba042bbe2086377445a80f3073fee029e7a26",
+      "system_key": "claude:cal_hexagon_6",
+      "task_index": 7
+    },
+    {
+      "basename": "task_008.json",
+      "checkpoint_sha256": "5bd01b4d79e23ba5945e19049f34d6a98b5a0ba0ee197c156f81c0bd5b51314e",
+      "seed": 2,
+      "sha256": "0d064b91165dd0b4ebb0f5dfaf29e718f118b4e15b59e565f6d5d8e424977482",
+      "system_key": "claude:cal_hexagon_6",
+      "task_index": 8
+    },
+    {
+      "basename": "task_009.json",
+      "checkpoint_sha256": "a4a2143034a8169f76da02bca4cb8db3838e8fdaf1a43c05ec994741dc524ac6",
+      "seed": 0,
+      "sha256": "61bda9b605c1fb3ed83ac12601141014430dd96588d984fe16b724e094ee789f",
+      "system_key": "claude:cal_high_cross_3",
+      "task_index": 9
+    },
+    {
+      "basename": "task_010.json",
+      "checkpoint_sha256": "84b587601a7e2a96e33d58271e74bc5c766deee623492e1b47d18aad236520c1",
+      "seed": 1,
+      "sha256": "5e235ef48f5322b86d04973735812abde4efd033709d0d9734fab66a542a5404",
+      "system_key": "claude:cal_high_cross_3",
+      "task_index": 10
+    },
+    {
+      "basename": "task_011.json",
+      "checkpoint_sha256": "fcb79bb6e7ca9a791138325973b30a1e1672be6914c1260fadd8c25c47941b44",
+      "seed": 2,
+      "sha256": "97651d82fc8b2d4ad58de2abf460941f90e982e8060a445eefe57bd6fa59f249",
+      "system_key": "claude:cal_high_cross_3",
+      "task_index": 11
+    },
+    {
+      "basename": "task_012.json",
+      "checkpoint_sha256": "f55fac0746be35558204d10f3e38f2eedcf662bdfac54e58feeee8957ea5aa99",
+      "seed": 0,
+      "sha256": "43d518a91ceeaf2e2483c69875b2cc3e2b7cb46b44687cfffe143b8e2cc2df54",
+      "system_key": "claude:cal_octagon_8",
+      "task_index": 12
+    },
+    {
+      "basename": "task_013.json",
+      "checkpoint_sha256": "e7dc21c19e3ca061e5abed1146a51ebcb4fa84a80e6998f42155946f02100c5a",
+      "seed": 1,
+      "sha256": "e51ba4069c17c33cd7d87087f22182b6cf82b0b25072b617c79b873ace8ede2d",
+      "system_key": "claude:cal_octagon_8",
+      "task_index": 13
+    },
+    {
+      "basename": "task_014.json",
+      "checkpoint_sha256": "1ed543c2235f6b039682b58f8ae2b83e77358d9184028c7c208b406ab3c483a8",
+      "seed": 2,
+      "sha256": "95c9fe4c48526f054a133b87e18de08778d9ca2473edbb49672d7f20e2c213ee",
+      "system_key": "claude:cal_octagon_8",
+      "task_index": 14
+    },
+    {
+      "basename": "task_015.json",
+      "checkpoint_sha256": "b1e8d0f0d08563fe33906da10000ee1fd4a4fcecc434af04d2a860589c3fced5",
+      "seed": 0,
+      "sha256": "ecf526f02e8f6d04ff8979147d5c18fec017655d4b6e28dcf53ff5ca47654774",
+      "system_key": "claude:cal_pentagon_5",
+      "task_index": 15
+    },
+    {
+      "basename": "task_016.json",
+      "checkpoint_sha256": "2d1374a6abccc5ba053456aaada3665dad7cfbe074d9dd832a505a7bc39b9cc8",
+      "seed": 1,
+      "sha256": "2bcb741f64c91e8938c59b034b80d97ea6714bc566175e788925f18a3300b09b",
+      "system_key": "claude:cal_pentagon_5",
+      "task_index": 16
+    },
+    {
+      "basename": "task_017.json",
+      "checkpoint_sha256": "bc5b856bfc13ca667479af6418d178a80f634750d5a548daf81fc3737edc90ea",
+      "seed": 2,
+      "sha256": "6b8d4e34ffb1de734a113a47ea2b67bbf6028727f9a62122335b677f58419896",
+      "system_key": "claude:cal_pentagon_5",
+      "task_index": 17
+    },
+    {
+      "basename": "task_018.json",
+      "checkpoint_sha256": "091624303495aef9f168fbe953da7040d4e0e7639145f465f1449099c72babeb",
+      "seed": 0,
+      "sha256": "cd2023dca6218b9cf9d35df2fe26a0a736e5745c89937637e68861f9a1269eef",
+      "system_key": "claude:cal_square_4",
+      "task_index": 18
+    },
+    {
+      "basename": "task_019.json",
+      "checkpoint_sha256": "d47820ffb3f0763e2883fd9e1ef8ce359f2e306ec99366a7e1b83c15db63772d",
+      "seed": 1,
+      "sha256": "a2fc08732db34f940fa6d15b3070c3a7dabcafcdf6e0a243c01d0d8cc531e478",
+      "system_key": "claude:cal_square_4",
+      "task_index": 19
+    },
+    {
+      "basename": "task_020.json",
+      "checkpoint_sha256": "2dc6f98b30c180401a47e994cca242ba24d49b7f92dd8df9adaf807f55633dd2",
+      "seed": 2,
+      "sha256": "f1e24d6928cdf228c0273ef7b1ee6dbfbda0de11f489c1bd567555c41482c6e1",
+      "system_key": "claude:cal_square_4",
+      "task_index": 20
+    },
+    {
+      "basename": "task_021.json",
+      "checkpoint_sha256": "f435c508e9504c83afcaeb5137a509b7ddf450c18defba58b14d90e52c866b2d",
+      "seed": 0,
+      "sha256": "26d66b978a53b55fbd393651fc1c9304cba73ea0bbf4b938ae8ae8912211bf03",
+      "system_key": "claude:duffing_triple_well",
+      "task_index": 21
+    },
+    {
+      "basename": "task_022.json",
+      "checkpoint_sha256": "82fe6b9c77b906e7a9f75f3c5969687e57acb78bbd2f31a32e18bae2ee037a25",
+      "seed": 1,
+      "sha256": "dcfab5f35c615265df2eecca64be3c2a23237514753b405d01f968f2bc3afe3c",
+      "system_key": "claude:duffing_triple_well",
+      "task_index": 22
+    },
+    {
+      "basename": "task_023.json",
+      "checkpoint_sha256": "d36c354cf31cef6abcfa0a9eeecd8b04a2ae2fd3421432985d3c40c4c994af7c",
+      "seed": 2,
+      "sha256": "a1cb0885f9ed3bbf9d65bec5cb4ae618e089095e8dc7edffbe3ff73cf38c0e15",
+      "system_key": "claude:duffing_triple_well",
+      "task_index": 23
+    },
+    {
+      "basename": "task_024.json",
+      "checkpoint_sha256": "c53f9a7cacfb8784c059c342e731bdc87273c8a94729add4042370311c34f274",
+      "seed": 0,
+      "sha256": "d9371d468c7551faefedf96fb22cfe9ebf1e2d17ebe686375e2f5140a98cbd54",
+      "system_key": "claude:snic_multi",
+      "task_index": 24
+    },
+    {
+      "basename": "task_025.json",
+      "checkpoint_sha256": "18ada1839b6b3f4bcdd2b7636621ae66182e38a18f665e08323663f0b4aef67a",
+      "seed": 1,
+      "sha256": "82a9ccda18a9d19bfbe0e488dc282a22cebad15e346ac020ef4228b56d0a8c7d",
+      "system_key": "claude:snic_multi",
+      "task_index": 25
+    },
+    {
+      "basename": "task_026.json",
+      "checkpoint_sha256": "b7080221e8551736a922a0e6616f5a3367022409f3b7c8739a1832ae62e199a1",
+      "seed": 2,
+      "sha256": "7ab1774deb0dbc78e205f31057a11144f322de32eb476b1b6fad52fb83e53779",
+      "system_key": "claude:snic_multi",
+      "task_index": 26
+    },
+    {
+      "basename": "task_027.json",
+      "checkpoint_sha256": "4213b4aa9ff78e483aba3d38da359063fef458b08f6c5292d4d0522acb816c36",
+      "seed": 0,
+      "sha256": "eaad20ab5df3c5829f714ca4974c078544fba22e3cf72001583cc017fd5fd9cd",
+      "system_key": "claude:transition_routes_4",
+      "task_index": 27
+    },
+    {
+      "basename": "task_028.json",
+      "checkpoint_sha256": "3cfa38efd374733ad72b809b598324a63f8253b022e7c15444efa11f25d881ad",
+      "seed": 1,
+      "sha256": "65a6f21c67122a5f61a97219bfac85e0f0f156abb8f2bf4b1cce8c7f45bfaf08",
+      "system_key": "claude:transition_routes_4",
+      "task_index": 28
+    },
+    {
+      "basename": "task_029.json",
+      "checkpoint_sha256": "089f4e0f708f976185145b0c654d0e00b1cd3a4878aea70b56d7956e11a671fb",
+      "seed": 2,
+      "sha256": "1d8c31b607b7b45365e0da733418bbc46afdd63546b345349ec9df5810ff06fe",
+      "system_key": "claude:transition_routes_4",
+      "task_index": 29
+    },
+    {
+      "basename": "task_030.json",
+      "checkpoint_sha256": "9bcc09b94eca9c0d82b4feeb21a7d84f57d55fa0315d576abb38df98a115492a",
+      "seed": 0,
+      "sha256": "e2f249b1a6f6fe8829febf85cc897f5254e11d3e52df31fb0b6c958fd58bbe75",
+      "system_key": "claude:var_depth_gradient_4",
+      "task_index": 30
+    },
+    {
+      "basename": "task_031.json",
+      "checkpoint_sha256": "7562413d4b1521f24b9d9b8a817f5ea16cc7105cf4817378ab304f6839bb763a",
+      "seed": 1,
+      "sha256": "5c581c7ac2311d6f1247330e468a18123e454dff96e49b7b5c7e309e90300a06",
+      "system_key": "claude:var_depth_gradient_4",
+      "task_index": 31
+    },
+    {
+      "basename": "task_032.json",
+      "checkpoint_sha256": "1785bfc415bfbab0964dab6b87100488978562d9a9a2d7f361d3b537e26eb8d2",
+      "seed": 2,
+      "sha256": "9aa5464e205a7d05f79f86df918c26ef08bfde998218fc1a3a780ce9c0418b04",
+      "system_key": "claude:var_depth_gradient_4",
+      "task_index": 32
+    },
+    {
+      "basename": "task_033.json",
+      "checkpoint_sha256": "56fcb0f6f611191e8e220a2f7a04c1095b9c5f98aa96c5192443c812085ffff6",
+      "seed": 0,
+      "sha256": "e597ed078d335d7207cdf5291ecd08ecfc427d4c58604547c166ba07c2a0645c",
+      "system_key": "claude:var_diamond_4",
+      "task_index": 33
+    },
+    {
+      "basename": "task_034.json",
+      "checkpoint_sha256": "2e3f701c834d65e0e1cce8be0f9b72af5345d83d076d96c3ad13de1550ec14d1",
+      "seed": 1,
+      "sha256": "d4c3e5003cd65803a25d991e788713aa73319460d451efd8c5704e7183e014ad",
+      "system_key": "claude:var_diamond_4",
+      "task_index": 34
+    },
+    {
+      "basename": "task_035.json",
+      "checkpoint_sha256": "4291768b6497db1996329b41d7832104d35ed314f0454647480d6d964fcd3321",
+      "seed": 2,
+      "sha256": "bc6940014235977f07e5e208133f2ada6fe2c3ec2e399f1796fef62ed80b877a",
+      "system_key": "claude:var_diamond_4",
+      "task_index": 35
+    },
+    {
+      "basename": "task_036.json",
+      "checkpoint_sha256": "b4f1aa1a22a038998358178e7507f8e0bb5f04ea7d9c0d35508b8c85f0d890b8",
+      "seed": 0,
+      "sha256": "f81765b972f631b741a6a60eb6be602c174565d4afccfc3d9d1322a97be1c9b4",
+      "system_key": "claude:var_l_shape_5",
+      "task_index": 36
+    },
+    {
+      "basename": "task_037.json",
+      "checkpoint_sha256": "fb19fbc2d652fe4e251f618ca06514e58f9ea836260a88a70cd5f7765e8a204e",
+      "seed": 1,
+      "sha256": "996578054db317bb9e0c7591a1ffed44dca9811f0b397ad48d7b79ded7bdcf1f",
+      "system_key": "claude:var_l_shape_5",
+      "task_index": 37
+    },
+    {
+      "basename": "task_038.json",
+      "checkpoint_sha256": "08a7cbacc23338ff9e59196625bd9e6b87f7d8bb85f2a5c3805493833e02197e",
+      "seed": 2,
+      "sha256": "0a62069d97863dd358da4051c789c526687120b3ec56f964665d4787db8d9aa2",
+      "system_key": "claude:var_l_shape_5",
+      "task_index": 38
+    },
+    {
+      "basename": "task_039.json",
+      "checkpoint_sha256": "95b57b1eb3c567f434dcfa19db0af08630dba639c849a9687982dd2454b47223",
+      "seed": 0,
+      "sha256": "df35f73fe3b622598437f23e81df9f0ede9b462eea58158174c07fc82e8d0cce",
+      "system_key": "gated_local_linear",
+      "task_index": 39
+    },
+    {
+      "basename": "task_040.json",
+      "checkpoint_sha256": "f9d733c10353c8938011b332004d819b273eb7041062e8173e607e26d6c8fe41",
+      "seed": 1,
+      "sha256": "9a63a50023054732f1500a21725113ad2f64421ab0c42f71e1c29886373d053c",
+      "system_key": "gated_local_linear",
+      "task_index": 40
+    },
+    {
+      "basename": "task_041.json",
+      "checkpoint_sha256": "201607393beb15a52891a836bcc2a9935f2684fa7b68254cf620f062d15956a9",
+      "seed": 2,
+      "sha256": "669922d8b074c3c27780e74b6ad540868b84507cb57d06a0e0cdd637132c32ec",
+      "system_key": "gated_local_linear",
+      "task_index": 41
+    },
+    {
+      "basename": "task_042.json",
+      "checkpoint_sha256": "ac01f6f13359b36ac2343418cc9a9b29f9f2a6a7429bc41612f86aecc2f8c5c4",
+      "seed": 0,
+      "sha256": "e44679b77b23614fed2e7c6aecca5d96527f5dff9b99c2236c9dd543222d6392",
+      "system_key": "gated_transfer_linear",
+      "task_index": 42
+    },
+    {
+      "basename": "task_043.json",
+      "checkpoint_sha256": "15102c8cd674291deb2c4bc70ae58b35c320dc1c7f5f2212afc965b5c9127662",
+      "seed": 1,
+      "sha256": "9859149a4e815e5e027a520dec708228fcacd46958dfe8eeb93dd1621e89634e",
+      "system_key": "gated_transfer_linear",
+      "task_index": 43
+    },
+    {
+      "basename": "task_044.json",
+      "checkpoint_sha256": "b099f8cb7fb4e22bcb45882265aaeefcc72450cf4c5203733b07a2ebdd67a89a",
+      "seed": 2,
+      "sha256": "c6aba6a784ae8686fa7bb66d50f6b3aab57796955b487c72be551c49c55dcda9",
+      "system_key": "gated_transfer_linear",
+      "task_index": 44
+    }
+  ],
+  "source_root": "/network/scratch/l/lia/skae/global_k_support_invariance_20260720/shards",
+  "status": "post-hoc reduction of a pre-execution evaluator-emitted guard; not the internally frozen primary and not a public preregistration"
+}

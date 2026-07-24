@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_same_checkpoint_mechanistic_bridge_v2",
+  "status": "provisional_static_hardening_no_generation_authorized",
+  "question": "Do the same sparse checkpoints that forecast better on Allen--Cahn expose label-free support families that carry out-of-sample finite-time fate information and have support-specific predictive utility?",
+  "claim_boundary": "A positive result is a same-checkpoint mechanistic bridge, not formal causal mediation and not single-component attribution: the sparse treatment jointly changes soft-thresholding and L1 loss.",
+  "conditional_launch": {
+    "decision_path": "/network/scratch/l/lia/skae/allen_cahn_support_subspaces_20260720_v4/summary/decision.json",
+    "required_card_sha256": "fafa3b1a0e8f63095c3926171673fa62f2baec6e2af36a954cbca83d35f35743",
+    "required_source_manifest_sha256": "e4219ecb3b2e25d08f9f1e5afc51a16f84d94409baf62280651cc101fc3f7024",
+    "requirements": [
+      "validity.passed is true",
+      "validity.provenance_and_firewall is true",
+      "family.family_checks.eligible_seeds is true",
+      "family.qualification.eligible_seed_count is at least 8"
+    ],
+    "outcome_independent": "No bridge threshold or feature definition may change after reading the mechanism decision. Failure terminates the bridge without generating data."
+  },
+  "inputs": {
+    "training_dataset": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+      "sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+      "field_only_split": "train",
+      "expected_trajectories": 512,
+      "label_aware_probe_target": "global_basin_labels at physical time 20"
+    },
+    "artifact_roster": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_artifacts.csv",
+      "sha256": "4f44178ac78f4ffea91efb825bad272ec5840b52250bae2fab9713f8a62ac170",
+      "rows": 20
+    },
+    "architecture_audit": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_architecture_audit.json",
+      "sha256": "f414cffce5c37144891e93292dbf9a6d0c66165170b9a20c4cbd3a7674ff2421"
+    },
+    "ordinary_forecast_reference": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_seed_rows.csv",
+      "sha256": "e5e42f86b2d434fb69cc959102ce7c7b2ae5254aea484635b4e59379b6bb9fbd"
+    },
+    "pinned_model_source": {
+      "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py",
+      "sha256": "4f71c674d1e82174f437365c728c8e3684617364b979d624ed35fbbba0371f3b"
+    },
+    "pinned_generator_source": {
+      "path": "/network/scratch/l/lia/skae-rebuttal/experiments/neurips_2026/allen_cahn_rebuttal_dataset.py",
+      "sha256": "ab3733dec9c00f46ed036f0a837c1e631972fa6c8cd650745d1fe9c38e59946f"
+    },
+    "pinned_generator_benchmark_source": {
+      "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_reaction_diffusion.py",
+      "sha256": "3bca7b076b4d29f8db89b438e34612c5da04d46b48fa62879f9af6817d5084d1"
+    }
+  },
+  "new_datasets": {
+    "output_root": "/network/scratch/l/lia/skae/allen_cahn_mechanistic_bridge_20260720_v2",
+    "seeds": [20260729, 20260730, 20260731],
+    "reserved_forbidden_seed": 20260725,
+    "paths": [
+      "data/allen_cahn_grid16_dt0p1_t40_seed20260729.pt",
+      "data/allen_cahn_grid16_dt0p1_t40_seed20260730.pt",
+      "data/allen_cahn_grid16_dt0p1_t40_seed20260731.pt"
+    ],
+    "generation": {
+      "train_trajectories": 0,
+      "val_trajectories": 256,
+      "test_trajectories": 0,
+      "trajectory_length": 400,
+      "label_extra_observations": 0,
+      "batch_size": 256,
+      "grid_size": 16,
+      "channels": 2,
+      "state_dim": 512,
+      "rk4_dt": 0.005,
+      "substeps_per_observation": 20,
+      "stored_dt": 0.1,
+      "diffusion": 0.005,
+      "source_system": "allen_cahn_4",
+      "min_regions": 2,
+      "max_regions": 3,
+      "mask_temperature": 0.65,
+      "low_frequency_cutoff": 3,
+      "noise_scale": 0.03,
+      "require_min_area_fraction": 0.08,
+      "allen_cahn_beta": 8.0,
+      "allen_cahn_reaction_strength": 1.0,
+      "allen_cahn_center_radius": 1.5,
+      "device": "cuda"
+    },
+    "immutability": "All three files and summaries must be absent before launch, generated together after the conditional guard, hashed before semantic access, and never overwritten."
+  },
+  "roster": {
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "arms": ["sparse", "dense"],
+    "latent_dim": 2048,
+    "primary_horizons": [160, 200],
+    "secondary_horizons": [400],
+    "rollout": "direct repeated global K without periodic reencoding"
+  },
+  "field_only_stage": {
+    "allowed_dataset_keys": ["fields", "split_indices"],
+    "forbidden_key_fragments": ["label", "basin", "fate", "well", "center"],
+    "support_fit": "original training split x0 only",
+    "new_route": "each unseen x0 independently assigned to the train-only codebook before future encoding",
+    "future_access": "The monolithic torch payload and future field tensors are deserialized before routing, but only x0 values are encoded or read for route construction; future values may be encoded only after routes and probe features at x0 are sealed.",
+    "label_firewall": "torch.load may deserialize label tensors embedded in the monolithic files. The field-only code never requests a label key, indexes a label tensor, or uses a label value; artifacts and manifests record deserialization separately from semantic key/value access.",
+    "outputs": "features, route identifiers, support stability, per-trajectory forecast errors, and final predicted/truth fields; no label-valued metadata"
+  },
+  "support": {
+    "threshold": 0.001,
+    "family_jaccard": 0.4,
+    "max_representatives": 256,
+    "min_train_count": 16,
+    "unknown_below_jaccard": true,
+    "dense_binary_control": "stable-index top-k abs(dense z0), with k matched to paired sparse support cardinality per trajectory",
+    "wrong_support_control": "For every train-fit sparse family, select another family by closest cardinality then training count; resize its train-only coordinate-frequency prototype to the target cardinality, require a distinct mask, and freeze it before routing any new trajectory.",
+    "families": ["sparse threshold support", "dense matched-top-k support"],
+    "stability_times": [0, 40, 80, 120, 160, 200, 400]
+  },
+  "forecast_estimands": {
+    "ordinary": "sparse full versus dense full at H160/H200 primary and H400 secondary",
+    "modes": ["full", "mask_once", "repeated_fixed_restriction"],
+    "correct_route": "train-fit sparse family representative selected from unseen x0 only and fixed for the rollout",
+    "wrong_route": "Apply the train-frozen same-cardinality wrong prototype for the x0-selected family. Correct/wrong mask-once and repeated-restriction rollouts use exactly the same eligible trajectories, K, decoder, and projected-state cardinality.",
+    "routing_evaluable_models": "Freeze model-seed eligibility before reading forecast errors or fates: a model is routing-evaluable only when all three untouched datasets have a covered, distinct, same-cardinality wrong-family control. Require at least 8 of 10 model seeds and analyze their complete model-by-dataset cross; report every exclusion.",
+    "restriction_interaction": "At each horizon report (correct restricted / correct mask-once) / (wrong restricted / wrong mask-once); a value below one isolates support-specific repeated restriction beyond the shared t0 projection cost.",
+    "initial_projection_controls": ["correct and wrong latent-energy capture at t0", "correct and wrong reconstruction MSE at t0", "exact paired cardinality", "support Jaccard", "mask-once and restricted share identical t0 state"],
+    "metrics": ["through_horizon_field_mse", "terminal_field_mse", "modal_fate_accuracy"],
+    "always_report": "Both mean and terminal errors, finite fractions, all dataset seeds, all model seeds, and the original failed four-cell confirmation gate."
+  },
+  "label_aware_stage": {
+    "start_condition": "field-only artifacts are complete, immutable, and manifest-hashed before any label key is accessed; prior payload-level label-tensor deserialization is disclosed, not misreported as byte-level isolation",
+    "new_fate": "nearest fixed Allen--Cahn well of the modal grid area at each scored physical horizon",
+    "use_of_labels": "evaluation and post-hoc probe fitting only; labels never train or route a KAE",
+    "family_metrics": ["coverage", "ARI", "NMI", "purity", "H_fate_given_family_over_H_fate", "H_family_given_fate_over_H_family"],
+    "primary_fate_horizon": 200,
+    "secondary_fate_horizon": 400
+  },
+  "probes": {
+    "feature_sets": ["raw_x0", "sparse_support", "sparse_values", "dense_values", "dense_topk"],
+    "train_rows": "512 original training trajectories",
+    "test_rows": "each untouched 256-trajectory dataset, never pooled for model selection",
+    "target": "physical-time-20 modal-well fate",
+    "model": "standardized linear ridge one-vs-rest classifier in the dual",
+    "alpha_grid": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0],
+    "outer_folds": 5,
+    "inner_folds": 4,
+    "final_selection_folds": 5,
+    "split_seed": 20260802,
+    "selection_metric": "balanced accuracy; ties select the larger alpha",
+    "metrics": ["balanced_accuracy", "macro_f1", "accuracy"],
+    "fairness": "Identical folds, alpha grid, standardization, classifier, and target for all feature sets; dense values and raw x0 are steelman controls."
+  },
+  "h400_truth_difficulty": {
+    "continued_change_ratio": "MSE(x400,x200) / MSE(x200,x0)",
+    "modal_fate_change_fraction": "fraction whose modal nearest-well fate differs at H200 and H400",
+    "dynamic_label_rule": "Deduplicate the ten model repeats and classify the three unique datasets only. Call H400 dynamic temporal extrapolation only if the ratio of unique-dataset mean continued-change MSE to unique-dataset mean H200 change MSE is at least 0.05 or the unique-dataset mean modal-fate change fraction is at least 0.05; otherwise call it asymptotic-stability extrapolation.",
+    "claim_policy": "H400 is always secondary and can never rescue a failed H160/H200 primary bridge."
+  },
+  "aggregation": {
+    "independent_axes": ["10 model initialization seeds", "3 independently generated dataset seeds"],
+    "trajectory_reduction": "average trajectories within each model-by-dataset cell",
+    "point_estimate": "equal-weight arithmetic mean over the crossed 10-by-3 cells",
+    "interval": "two-way percentile bootstrap resampling model seeds and dataset seeds independently",
+    "bootstrap_replicates": 100000,
+    "bootstrap_seed": 20260801,
+    "reporting": "always report each dataset seed and each model-seed paired difference, through-horizon MSE, terminal MSE, and modal-fate accuracy; forecast/alignment/probe use all 10 model seeds, while routing uses the frozen complete-case subset of at least 8 model seeds with distinct controls on all three datasets and reports exclusions; never treat 768 trajectories or repeated copies of a dataset's H400 truth difficulty as independent replications"
+  },
+  "generation_hardware": {
+    "required_device_name_fragment": "RTX 8000",
+    "required_visible_gpu_count": 1,
+    "telemetry_interval_seconds": 2,
+    "maximum_median_sample_interval_seconds": 3.0,
+    "minimum_active_samples": 10,
+    "minimum_mean_active_gpu_utilization_percent": 85.0,
+    "minimum_mean_all_gpu_utilization_percent": 80.0,
+    "maximum_peak_memory_fraction": 0.8,
+    "telemetry_scope": "end-to-end pinned generator invocation, including initialization, numerical integration, transfer, and save; each dataset must independently pass and raw telemetry is hash-frozen"
+  },
+  "hardware": {
+    "profile_decision": "/network/scratch/l/lia/skae/allen_cahn_support_subspaces_20260720_v4/profile/decision.json",
+    "required_profile_decision_sha256": "043ee246bdfcc8d4ef50431d234274404bfd2438114c8755d513a62f5a04b993",
+    "batch_selection": "reuse the independently audited smallest-passing batch from the related paired-checkpoint support kernel, then require every bridge extraction task to pass end-to-end telemetry for its larger four-mode H400 kernel",
+    "allowed_batch_sizes": [128, 256],
+    "required_device_name_fragment": "A100",
+    "required_visible_gpu_count": 1,
+    "telemetry_interval_seconds": 1,
+    "maximum_median_sample_interval_seconds": 1.5,
+    "minimum_active_samples": 10,
+    "minimum_mean_active_gpu_utilization_percent": 85.0,
+    "minimum_mean_all_gpu_utilization_percent": 85.0,
+    "maximum_peak_memory_fraction": 0.8,
+    "telemetry_scope": "evaluator-owned marker interval around synchronized H160/H200/H400 direct, correct mask-once/restricted, and wrong mask-once/restricted rollout kernels after models, data, features, and train-only routes are resident; excludes preload, I/O, CPU label-free preprocessing, and serialization"
+  },
+  "primary_gates": {
+    "forecast": {
+      "h160_h200_sparse_full_over_dense_full_ratio_below": 1.0,
+      "two_way_bootstrap_upper_below": 1.0,
+      "minimum_model_seed_wins_after_averaging_datasets": 8,
+      "minimum_dataset_seed_wins": 2
+    },
+    "family_alignment": {
+      "minimum_sparse_coverage": 0.8,
+      "minimum_sparse_ari": 0.3,
+      "minimum_sparse_minus_dense_topk_ari": 0.1,
+      "minimum_model_seed_wins": 8,
+      "minimum_dataset_seed_wins": 2,
+      "minimum_each_dataset_sparse_coverage": 0.8,
+      "two_way_bootstrap_lower_above": 0.0
+    },
+    "probe": {
+      "minimum_sparse_support_balanced_accuracy": 0.6,
+      "minimum_sparse_support_minus_dense_topk_balanced_accuracy": 0.05,
+      "minimum_model_seed_wins": 8,
+      "minimum_dataset_seed_wins": 2,
+      "two_way_bootstrap_lower_above": 0.0,
+      "dense_values_and_raw_x0_are_reported_not_required_to_lose": true
+    },
+    "routing": {
+      "minimum_evaluable_model_seeds": 8,
+      "maximum_h200_correct_over_wrong_restricted_mse": 0.9,
+      "maximum_h200_correct_restricted_over_full_mse": 1.2,
+      "maximum_h200_restriction_interaction": 1.0,
+      "minimum_each_dataset_route_coverage": 0.8,
+      "minimum_model_seed_wins": 8,
+      "minimum_dataset_seed_wins": 2,
+      "two_way_bootstrap_upper_below": 1.0
+    }
+  },
+  "decision_branches": {
+    "same_checkpoint_mechanistic_bridge": "Forecast replication, family alignment, support probe, and correct-over-wrong routing all pass. Claim predictively useful out-of-sample support structure with bounded mechanistic evidence.",
+    "forecast_and_alignment_without_routing": "Forecast and representation transfer, but support identity lacks intervention-specific utility; make correlational representation and forecast claims separately.",
+    "forecast_only": "New-data forecasting replicates but support alignment/probe evidence fails; do not connect representation to forecasting.",
+    "representation_only": "Support/fate evidence transfers but sparse forecasting does not replicate; do not claim it explains forecasting.",
+    "failed": "Neither bridge component passes; preserve all negative results and make no new claim.",
+    "invalid": "Any source, roster, firewall, seed, finite-value, artifact-integrity, or conditional-launch guard fails."
+  },
+  "provenance": {
+    "reserved_seed_policy": "Any path or runtime argument containing 20260725 aborts.",
+    "root_of_trust": "Exact source manifest plus hardcoded card/source/mechanism-decision hashes in dormant launchers; dataset and field-only manifests are added as immutable post-generation roots before later stages.",
+    "no_launch_status": "This bridge card and code may be audited and tested synthetically, but no generation/evaluation job is authorized until the parent support-subspace experiment qualifies, all static tests pass, the card/source roots are refrozen, and an independent reviewer explicitly authorizes generation."
+  }
+}

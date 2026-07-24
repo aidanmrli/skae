@@ -17,6 +17,11 @@ from experiments.neurips_2026.evidence.ground_truth import (
     validate_manifest,
     write_manifest,
 )
+from experiments.neurips_2026.evidence.ground_truth_rendering import (
+    DIRECTION_DECIMALS,
+    FIELD_DECIMALS,
+    LOG_SPEED_DECIMALS,
+)
 
 
 def test_ground_truth_manifest_matches_the_active_pdf_inventory(tmp_path):
@@ -50,7 +55,16 @@ def test_ground_truth_manifest_matches_the_active_pdf_inventory(tmp_path):
     )
 
     manifest = json.loads((tmp_path / "manifest.json").read_text())
-    assert manifest["schema_version"] == 2
+    assert manifest["schema_version"] == 3
+    assert manifest["render_parameters"] == {
+        "grid_points": 80,
+        "formats": ["pdf"],
+        "dpi": 300,
+        "stream_density": 1.05,
+        "field_decimals": FIELD_DECIMALS,
+        "log_speed_decimals": LOG_SPEED_DECIMALS,
+        "direction_decimals": DIRECTION_DECIMALS,
+    }
     assert manifest["composite"]["path"] == "composite.pdf"
     assert manifest["systems"] == [
         {
@@ -105,7 +119,7 @@ def test_ground_truth_manifest_rejects_a_tampered_pdf(tmp_path):
     # validate_manifest requires the complete roster, so copy the active packet
     # and alter one declared artifact in the temporary directory.
     active_manifest = json.loads((DEFAULT_OUTPUT_DIR / "manifest.json").read_text())
-    if active_manifest.get("schema_version") != 2:
+    if active_manifest.get("schema_version") != 3:
         pytest.skip("active manifest has not yet been regenerated")
     for path in validate_manifest(DEFAULT_OUTPUT_DIR / "manifest.json"):
         (tmp_path / path.name).write_bytes(path.read_bytes())

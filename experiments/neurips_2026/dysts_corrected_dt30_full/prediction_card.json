@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "protocol_id": "dysts_corrected_dt30_full_v1",
+  "status": "frozen_before_corrected_cache_generation_or_training",
+  "scientific_question": "Do sparse Koopman autoencoders, including matched one-refinement LISTA-SB, improve direct long-horizon forecasting on ten chaotic Dysts systems sampled at the intended dt times 30?",
+  "invalid_predecessor": {
+    "finding": "Historical KAE native-cache trajectories used intrinsic Dysts dt while cache keys and paper text labeled dt times 30. H100/H2000/H4000/H5000 therefore covered about 0.02/0.40/0.80/1.00 characteristic periods, not 0.60/12/24/30.",
+    "impact": "All historical KAE Dysts rows and physical-horizon claims are quarantined. The canceled one-refinement replacement jobs 10173118, 10173119, and 10173120 produced no trained model.",
+    "repair": "Propagate the override to the native integrator, use schema-3 exact caches with split-disjoint initial conditions, and retrain every comparator on the corrected discrete-time problem."
+  },
+  "roster": {
+    "systems": ["Chua", "Dadras", "DequanLi", "Hadley", "LuChenCheng", "QiChen", "Sakarya", "SanUmSrisuchinwong", "ShimizuMorioka", "WangSun"],
+    "model_variants": ["LISTA", "LISTA-BD", "LISTA-SB", "Sparse MLP", "Sparse MLP-BD", "Dense MLP tanh"],
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "expected_fits": 900
+  },
+  "time_grid": {
+    "multiplier": 30,
+    "resample": false,
+    "integrator": "Dysts adaptive native integrator for train, checkpoint-validation, policy, and test futures",
+    "horizon_periods": {"H100": 0.6001000167, "H2000": 12.00200033, "H4000": 24.00400067, "H5000": 30.00500083},
+    "preflight": "All ten installed native timesteps must match the frozen values; returned increments must equal requested dt; nine corrected points must agree within 1e-5 normalized max error with every 30th point of a native-grid integration."
+  },
+  "cache": {
+    "schema": 3,
+    "root": "/network/scratch/l/lia/skae/dysts_native_cache_schema3_dt30_20260722_v2",
+    "profile": "full: 200 trajectories, 30000 usable transitions after 2000-step warmup",
+    "splits": ["train", "val", "policy", "test"],
+    "requirements": ["exact shape and count", "float32 finite payload", "exact metadata", "split-disjoint deterministically perturbed initial conditions", "atomic save", "legacy rejection"]
+  },
+  "model_contract": {
+    "latent_dim": 256,
+    "optimizer_steps": 100000,
+    "batch_size": 256,
+    "sequence_length": 10,
+    "lista_refinements": {"LISTA": 1, "LISTA-BD": 1, "LISTA-SB": 1},
+    "dense_baseline": "tanh hidden activation, dense K, zero sparsity coefficient, no shrinkage/final ReLU/top-k/block penalty",
+    "only_lista_sb_structural_treatments": "sign-split output and soft-block regularization; refinement count is matched to the other LISTA rows"
+  },
+  "evaluation": {
+    "primary": "direct repeated-K rollout",
+    "primary_metrics": ["strict full-horizon MSE", "full-horizon finite fraction", "per-system paired-seed log MSE ratio to Dense MLP tanh"],
+    "horizons": [100, 500, 1000, 1500, 2000, 3000, 4000, 5000],
+    "secondary": "fixed periodic reencoding sensitivities are retained, but test-set best-periodic is exploratory and cannot support the main claim",
+    "future_operational_endpoint": "Select a cadence on the policy split, freeze it, and test once; this is separate from the direct architectural endpoint.",
+    "nonfinite_rule": "Track survival per initial condition; finite prefixes never outrank complete trajectories."
+  },
+  "statistics": {
+    "independent_unit": "system",
+    "nested_repeats": "15 paired model seeds per system",
+    "reporting": "system-level paired effects, ten-system win count, robust aggregate and uncertainty; do not treat 150 fits as independent systems"
+  },
+  "compute": {
+    "partition": "long",
+    "packing": "12 concurrent fits per L40S-class GPU, 32 GiB host memory",
+    "production_telemetry_seconds": 60,
+    "smoke": "12 fits spanning all six recipes on corrected Chua smoke caches; all receipts/losses finite and pack GPU utilization audited before full cache generation"
+  }
+}

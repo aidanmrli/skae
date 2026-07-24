@@ -29,32 +29,55 @@ The per-system tables in \cref{app:controlled_results} display the arithmetic me
 The alignment partition \(F_{\rm abs}^{\rm align}\) is fit on all states in an evaluation trajectory collection and scored on states at or above the within-label \(75\)th center-margin percentile contained in that collection; ties are retained, so the subset need not contain exactly one quarter of a label, and no between-label count balancing is performed. Labels and centers are native for the two gated systems. For the \(13\) catalog systems they are nearest-center proxies obtained by deterministic clustering of long-rolled endpoints at the known benchmark count. The margin \(d_2-d_1\) is nearest-center separation, not a true boundary-distance measurement. \(H(B\mid F_{\rm abs}^{\rm align})\) uses natural logarithms and is reported in nats. The seed is the paired unit within each system and the one-sided alternative is candidate \(<\) Dense MLP. Holm correction is across eligible systems within each model--metric cell. Triple-well Duffing's frozen proxy realizes one observed label, so its zero entropy for every model is uninformative and it is excluded from primary aggregates; the all-zero paired differences and undefined signed-rank statistic are consequences. Every displayed alignment star passes on all \(14/14\) eligible systems. The observed high-margin-slice family count has no directional test because closeness to the number of represented evaluation labels, rather than monotone increase, is the relevant descriptive comparison. These tests quantify model differences in the transductive diagnostic; they do not turn it into an out-of-sample classification experiment.
 
 \paragraph{Dysts forecasting effects.}
-For each Dysts system and horizon, seeds are first summarized within system:
-\[
-  I^{a}_{s,h}=\operatorname{IQM}_{r}\{E^{a}_{s,r,h}\},
-  \qquad
-  I^{\rm Dense}_{s,h}=\operatorname{IQM}_{r}\{E^{\rm Dense}_{s,r,h}\}.
-\]
-Each system contributes one paired effect
-\[
-  d_{s,h}=\log_{10}I^{a}_{s,h}-\log_{10}I^{\rm Dense}_{s,h}.
-\]
-The compact-table superscript uses an exact one-sided sign test on the number of retained systems with \(d_{s,h}<0\). Holm correction is one family of \(40\) tests: five non-Dense models at each of the eight evaluated horizons \(100,500,1000,1500,2000,3000,4000,5000\), not only the three displayed columns. With \(10\) retained systems and this correction, a displayed star corresponds to improvement on all \(10/10\) systems in that cell. LISTA is starred at H100 and H4000; LISTA--BD at H2000 and H4000; Sparse MLP--BD only at H4000; Sparse MLP at H100 and H2000; and LISTA--SB at none of the three displayed horizons.
+The historical Dysts KAE rows and their associated point estimates, sign tests, Holm corrections, and significance markers are quarantined because the KAE and standalone-control trajectories used mismatched physical cadences. No Dysts inferential result is reported until the corrected all-six-row campaign is complete.
 
 \paragraph{Descriptive comparisons.}
 The standalone DMD, EDMD, and local-linear controls configure three seeds and use independently generated evaluation trajectories; their per-system summaries omit nonfinite seed values, so they are not included in paired KAE tests. The staged support-family result reports \(225\) system--seed pairs nested within \(15\) systems, plus MSE ratios, without a confirmatory \(p\)-value. Its checkpoint score applies the same finite-prefix state-summed error reducer as the reported table, minimizes separately over the eight cadences at H100, H500, and H1000, and averages those three minima. The \(32\) selector starts are the first \(32\) of the \(100\) reported starts, whereas the global baseline selects its checkpoint on \(16\) distinct starts with an H200 final-error proxy. This \(32\%\) staged overlap and selector asymmetry make the comparison optimistic and preclude interpreting the paired win counts as held-out causal evidence. The Local-linear gates coordinate intervention uses one LISTA checkpoint at seed \(0\); bootstrap intervals summarize its \(100\) starts, while random-support medians and interquartile ranges pool \(2{,}000\) dependent point--shuffle outcomes per horizon. These describe within-checkpoint variability only.
 
-\paragraph{High-dimensional confirmations.}
-Lorenz--96 and Allen--Cahn each fix one generated dataset and use ten model
-initialization seeds as paired inferential units; trajectories are averaged
-within seed and are not treated as independent replicates. Mean effects use
-100,000 percentile bootstrap resamples of the paired seed-level outcomes.
-Two-sided sign-flip tests enumerate all \(2^{10}\) assignments and therefore
-make no Gaussian assumption. Lorenz--96 corrects over its two declared long
-physical horizons, \(2.5\) and \(5\). Allen--Cahn forecasting corrects over
-physical times \(8,12,16,20\); its final-time support gate combines frozen
-absolute thresholds with a paired sparse-minus-dense ARI interval. These
-intervals condition on the fixed dataset and do not cover new dataset draws.
+\paragraph{High-dimensional stress tests.}
+The Lorenz--96, Allen--Cahn temporal-support, and forecast-optimized
+Allen--Cahn packets each average trajectories within model seed and use ten
+paired model-initialization seeds as inferential units; trajectories are not
+independent replicates. Lorenz--96 and the temporal-support packet use
+100,000 percentile bootstrap resamples of seed-level outcomes and exact
+two-sided sign-flip tests over all \(2^{10}\) assignments. Lorenz--96 applies
+Holm correction over its two declared long physical horizons, \(2.5\) and
+\(5\); temporal-support forecasting corrects over physical times
+\(8,12,16,20\), and its final-state support gate combines frozen absolute
+thresholds with a paired sparse-minus-dense ARI interval. The separate
+forecast-optimized Allen--Cahn packet uses 50,000 paired-seed bootstrap
+resamples of each ratio-of-arm-means reduction. Those four intervals are
+marginal; the frozen primary decision is their four-cell intersection-union
+gate. An exact one-sided paired sign-flip max-\(t\) calculation over the four
+H160/H200 mean/terminal cells is reported only as a multiplicity sensitivity.
+H160 is a prefix of H200, so these cells are dependent. Every interval
+conditions on its packet's fixed generated data and does not cover new dataset
+draws.
+
+The same-checkpoint Allen--Cahn new-initial-condition check crosses three newly
+generated datasets with each of the same ten paired sparse/dense checkpoint
+seeds. It first averages the three datasets within checkpoint seed, then uses
+the ten paired seeds for a 100,000-resample paired bootstrap interval and exact
+one-sided sign-flip test over all $2^{10}$ assignments. Thus 30 seed--dataset
+cells are not treated as independent replicates, and the three dataset-specific
+effects are descriptive. The H200 through-horizon endpoint was frozen only
+after the original four-cell gate failed, so this inference is an outcome-aware
+same-checkpoint robustness check rather than independent retraining replication
+or a repair of that gate.
+
+The secondary Allen--Cahn physical-metric packet uses the identical forecasts
+and the same within-checkpoint averaging over three datasets. Its sole
+statistical family contains all seven H200 cumulative phase, interface, and
+energy metrics. For each metric, the one-sided paired sign-flip test enumerates
+all $2^{10}$ assignments of the oriented seed effects; Holm correction is over
+all seven raw values. The 100,000-resample paired-seed interval is for the
+oriented absolute arm-mean difference. Relative error reductions divide that
+absolute difference by the observed dense arm mean; modal accuracy is instead
+reported in percentage points. Instantaneous curves, terminal values, H160,
+and the late half are mandatory descriptives and receive no separate
+inference. Because the metrics translate an outcome-selected H200 advantage
+on unchanged checkpoints, favorable results remain secondary and cannot
+reclassify the original gate.
 
 \paragraph{Holm correction and assumptions.}
-For each formal family, eligible raw \(p\)-values are sorted, multiplied by the number of remaining hypotheses, made monotone by a running maximum, and clipped at one. Paired Wilcoxon tests assume the common seed differences are the relevant exchangeable units within a controlled system. Dysts sign tests treat benchmark systems as the independent units. All conclusions condition on the fixed benchmark roster. Evaluation-set period selection, finite-prefix omission, staged checkpoint-selection overlap, selector asymmetry, and transductive family fitting are protocol limitations independent of the multiple-comparison correction.
+For each formal family, eligible raw \(p\)-values are sorted, multiplied by the number of remaining hypotheses, made monotone by a running maximum, and clipped at one. Paired Wilcoxon tests assume the common seed differences are the relevant exchangeable units within a controlled system. All conclusions condition on the fixed benchmark roster. Evaluation-set period selection, finite-prefix omission, staged checkpoint-selection overlap, selector asymmetry, and transductive family fitting are protocol limitations independent of the multiple-comparison correction.

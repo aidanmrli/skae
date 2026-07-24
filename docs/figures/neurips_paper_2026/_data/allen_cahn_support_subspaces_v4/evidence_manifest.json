@@ -1,0 +1,8 @@
+{
+  "files": {
+    "decision.json": "fe64ea1eaca12bfb4c20a583b3da94c8f9f2a3bc735c3f4e2dca3ab319c87b1a",
+    "provenance.json": "fbc4df60c0f2840a6abe5793d27a625ae2f6aea72c97d3e882f060a8d2979ec8",
+    "seed_rows.csv": "12dc1860d4f1e74b7fc9847a0a086525f8a6a8fc95e0d705a2fa1090e1d7ef20"
+  },
+  "schema_version": 1
+}

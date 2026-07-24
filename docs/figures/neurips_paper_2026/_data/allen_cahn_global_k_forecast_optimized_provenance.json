@@ -1,0 +1,39 @@
+{
+  "aggregation_contract": "Paired model seeds 64--73; ratio-of-means reductions; 50,000 paired bootstrap resamples with seed 20260719; exact 1024-swap one-sided max-t sensitivity over four H160/H200 cells.",
+  "artifact_manifest_sha256": "3f2e53c23953f3109bb1c45619b57c9caad854cc3cb2dd5d6899904195a4203e",
+  "claim_boundary": "Secondary evidence supports lower through-horizon mean H160/H200 MSE for the joint soft-thresholding-plus-L1 sparse treatment under matched trainable tensor shapes and effective forward-path parameter count, with a shared convolutional, decoder, and K backbone. Terminal intervals cross zero and the internally frozen four-cell gate failed.",
+  "generated_by": "experiments.neurips_2026.evidence.allen_cahn_global_forecast",
+  "inputs": {
+    "allen_cahn_global_k_forecast_optimized_architecture_audit.json": "f414cffce5c37144891e93292dbf9a6d0c66165170b9a20c4cbd3a7674ff2421",
+    "allen_cahn_global_k_forecast_optimized_artifacts.csv": "4f44178ac78f4ffea91efb825bad272ec5840b52250bae2fab9713f8a62ac170",
+    "allen_cahn_global_k_forecast_optimized_protocol.json": "52a5bcf856758cdd9cbbea8c5a72cbce49c1e4e789f04e47ddf8018adf83bfb9",
+    "allen_cahn_global_k_forecast_optimized_seed_rows.csv": "e5e42f86b2d434fb69cc959102ce7c7b2ae5254aea484635b4e59379b6bb9fbd"
+  },
+  "integrator_final": {
+    "clean_a100l_array_job_id": 10157457,
+    "clean_confirmation_launch_git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+    "completed_at": "2026-07-20T01:23:01-04:00",
+    "decision_sha256": "80bea4b94446a869e6652d6d343a92fa506e1c32dea9095a213559710aa67f05",
+    "evidence_report_git_commit": "6bbfd7104f7523618ab215430f902d2f99f7d888",
+    "gate_git_commit": "21d150999e07b9472e17994d335245b62b72a111",
+    "hostname": "cn-f002.server.mila.quebec",
+    "low_utilization_replacement_job_id": 10157586,
+    "pre_specified_config_sha256": "5fb285233b87b8051a8cbd07a257fe308a167ecab6756f89ff4692d425914a57",
+    "replacement_task_git_commit": "6bf2f15b592f266bd154d5de79dcd31a028f3fa1",
+    "rows_sha256": "6f3fa43db5f01b052068a8b235f937eb9e6bf6cbfda775ac93d2d373d4cd3ef8",
+    "screen_selection_sha256": "2c8720da0eb65e6d11f90fd9e7d91dd957fcf9950f68d8e870f08d7c3ad1db8b",
+    "slurm_job_id": 10157591,
+    "validation_dataset_sha256": "68620c9d355ec62c8d9b5edd1cc635690f251733b2731e7627f0d4575c83b344",
+    "validation_summary_sha256": "6331b37cfacd4f9cab20726b9acf004c17c0474f83f99ca774d3b1963acc37f6"
+  },
+  "outputs": {
+    "_data/allen_cahn_global_k_forecast_optimized_artifact_manifest.json": "3f2e53c23953f3109bb1c45619b57c9caad854cc3cb2dd5d6899904195a4203e",
+    "_data/allen_cahn_global_k_forecast_optimized_statistics.json": "554cfe69b0ef47261bd342ad869cd58a1dd5b8808f8bc397fee43ebd128581bb",
+    "_tables/table_allen_cahn_global_k_forecast_optimized.tex": "4e2b952122b2ec5d05f5743e9f3059d1bc0f1ddae646dcdae9ffcb32a2728e8d",
+    "fig_allen_cahn_global_k_forecast_optimized.pdf": "ecbc1ba9d28b26912cf5ffae45843336647887b40e90715bf5c2601f5c3eeef1",
+    "fig_allen_cahn_global_k_forecast_optimized.png": "5735b30ca1abb67f9ba850f51cbce3e3716c99bd54c901920d3cc06ba273ea0d"
+  },
+  "packet_id": "allen_cahn_global_k_forecast_optimized",
+  "schema_version": 1,
+  "status": "confirmation_gate_failed_secondary_evidence"
+}

@@ -1,0 +1,64 @@
+{
+  "aggregation_contract": "run metric divided by its within-run 16-permutation null median; median across eligible seeds within system; median across eligible systems",
+  "authenticated_sources": {
+    "dense_checkpoint_audit": {
+      "path": "experiments/neurips_2026/global_k_dense_checkpoint_audit.py",
+      "sha256": "333fdf6356b3205557a0560a48ddb177c7af0ad6e9a123467696e78fedd53b3e"
+    },
+    "dense_evaluator": {
+      "path": "experiments/neurips_2026/global_k_dense_specificity.py",
+      "sha256": "bcd2d005f615ffcd8bd1dc32c7310ec511e1a4c05c95573ae239afe0c5948e0a"
+    },
+    "dense_specificity_summarizer": {
+      "path": "experiments/neurips_2026/summarize_global_k_dense_specificity.py",
+      "sha256": "ee2445bbca6d80f4a6c4810109f6b493dfccb8becccbee8296dfbb73436019c2"
+    },
+    "dense_task_module": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_tasks.py",
+      "sha256": "3cde66a3f5b4b42fcfda8123f73c32447f8a6641de153b0389fdebd095d152df"
+    },
+    "frozen_card": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_card.json",
+      "sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083"
+    },
+    "imported_sparse_evaluator": {
+      "path": "experiments/neurips_2026/global_k_support_invariance.py",
+      "sha256": "f2aaf0dddef233df3f340de425da8cd207057b93fd589e14bb3f023304172bf6"
+    },
+    "source_lock": {
+      "path": "experiments/neurips_2026/global_k_dense_specificity_source_lock.json",
+      "sha256": "cc2c37f431ee0a577265b5c36698e249d4b4f30354c1722ebe71511e7d05dd9f"
+    },
+    "task_tsv": {
+      "sha256": "ceedcbf3fb9367be106a69a86d5ddf84c3951b8ccb8233af8d29a0208b77443b"
+    }
+  },
+  "checks": {
+    "activity_specificity": true,
+    "eligible_runs": true,
+    "eligible_systems": true,
+    "restricted_residual_specificity": true,
+    "roster_complete": true
+  },
+  "decision": "sparse_support_specific",
+  "dense_system_medians": {
+    "activity_leakage_null": 0.03495621993055123,
+    "activity_leakage_true": 0.016999599034707064,
+    "activity_leakage_true_over_null": 0.5667105995607603,
+    "restricted_residual_null": 0.027715381058800198,
+    "restricted_residual_true": 0.01246651663996369,
+    "restricted_residual_true_over_null": 0.4855139035947796
+  },
+  "eligible_run_count": 41,
+  "eligible_system_count": 14,
+  "interpretation": "Both frozen 0.90 ratios pass: the sparse recipe's support closure is specific relative to sparse-cardinality-matched dense tanh coordinate masks.",
+  "schema_version": 1,
+  "sparse_over_dense": {
+    "activity_leakage_null_ratio": 0.03891100644881209,
+    "restricted_residual_null_ratio": 0.10848538454888403
+  },
+  "sparse_system_medians": {
+    "activity_leakage_true_over_null": 0.02205127979411891,
+    "restricted_residual_true_over_null": 0.05267116253530947
+  }
+}

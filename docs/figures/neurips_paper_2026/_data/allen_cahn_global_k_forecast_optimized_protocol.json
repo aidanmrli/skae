@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "packet_id": "allen_cahn_global_k_forecast_optimized",
+  "status": "confirmation_gate_failed_secondary_through_horizon_mean_forecast_evidence",
+  "scope": "A separately forecast-optimized Allen--Cahn packet; it does not replace the representation-optimized temporal-group experiment.",
+  "system": {
+    "name": "four-well vector Allen--Cahn phase-field PDE",
+    "grid_size": 16,
+    "channels": 2,
+    "state_dim": 512,
+    "latent_dim": 2048,
+    "overcomplete_factor": 4,
+    "stored_dt": 0.1,
+    "trajectory_length": 200,
+    "physical_time": 20.0
+  },
+  "evaluation": {
+    "split": "fresh_validation_seed_20260724",
+    "dataset_seed": 20260724,
+    "trajectories": 256,
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "reported_horizons": [80, 120, 160, 200],
+    "decision_horizons": [160, 200],
+    "rollout_mode": "no_reencode",
+    "label_policy": "Forecast and label-free guards only; basin labels and basin count were not read."
+  },
+  "arms": {
+    "dense": "Dense tanh encoder, linear latent output, full trainable Koopman matrix, Adam, zero sparsity losses, zero weight decay, no dropout, and no zero-inducing activation.",
+    "sparse": "Soft-thresholded LISTA encoder with one learned global Koopman matrix; the historical source-arm label is signed, but this is not a sign-split encoder.",
+    "selected_sparse_arm": "signed",
+    "selected_recipe": "uniform_l1",
+    "sparse_lista_alpha": 0.15,
+    "sparse_elementwise_sparsity_weight": 0.01,
+    "sparse_temporal_group_sparsity_weight": 0.0
+  },
+  "training": {
+    "train_trajectories": 512,
+    "sequence_length": 200,
+    "batch_size": 8,
+    "pretrain_steps": 2000,
+    "forecast_training_steps": 3500,
+    "learning_rate": 0.0003,
+    "koopman_matrix_learning_rate": 0.000001,
+    "optimizer": "Adam",
+    "weight_decay": 0.0,
+    "prediction_weight": 1.0,
+    "reconstruction_weight": 0.25,
+    "latent_weight": 0.1,
+    "gradient_weight": 0.05,
+    "koopman_stability_weight": 0.0,
+    "forecast_weighting": "uniform",
+    "evaluation_horizon": 200,
+    "checkpoint_metric": "joint_endpoints",
+    "checkpoint_horizons": [160, 200],
+    "checkpoint_evaluation_every_steps": 250,
+    "spatial_augmentation": true,
+    "validation_partition_for_checkpointing": "even",
+    "dense_model_config_sha256_for_each_seed": "91cebfd1e2ce7f4a66a29c7b3c248ea84472571765e0c87e0c33b2510474bc61",
+    "dense_loss_weights_sha256_for_each_seed": "b6a648dca72818b6705d949203326985bfe219f8de20c747013a3b957670b866",
+    "sparse_model_config_sha256_for_each_seed": "606ef93dd2a7745bd8a3dc0c016f65736f238aebef5f1d9ba17da10d4aa55cff",
+    "sparse_loss_weights_sha256_for_each_seed": "8ab3d31285743e2a38628aae3d9fd1482de38c67d573fdd66cb9644e73b20eb2"
+  },
+  "qualification": {
+    "finite_rollouts_required": true,
+    "sparse_minimum_near_zero_fraction_at_1e_minus_3": 0.2,
+    "minimum_mean_active_gpu_utilization_percent": 85.0,
+    "dense_audits_required": 10
+  },
+  "decision_gate": {
+    "all_four_h160_h200_through_horizon_mean_and_terminal_means_lower": true,
+    "all_four_marginal_bootstrap_lower_bounds_above_zero": true,
+    "minimum_h200_relative_reduction_each_endpoint": 0.05,
+    "minimum_h200_paired_seed_wins_each_endpoint": 8,
+    "bootstrap_replicates": 50000,
+    "bootstrap_seed": 20260719,
+    "bootstrap_interval": [0.025, 0.975],
+    "multiplicity_sensitivity": "one-sided exact paired sign-flip max-t over four cells",
+    "max_t_swaps": 1024
+  },
+  "holdout": {
+    "generation_condition": "Only after the confirmation gate passes.",
+    "seed": 20260725,
+    "status": "not_generated_or_opened"
+  },
+  "dense_no_sparsity_audit": {
+    "audited_seed_count": 10,
+    "identical_artifact_sha256_for_each_seed": "4d79d43889311e57aca02ab0940772e24029e5e856ff3f9d72adfef17d0056af",
+    "model_config_sha256_for_each_seed": "91cebfd1e2ce7f4a66a29c7b3c248ea84472571765e0c87e0c33b2510474bc61",
+    "loss_weights_sha256_for_each_seed": "b6a648dca72818b6705d949203326985bfe219f8de20c747013a3b957670b866",
+    "audit": {
+      "applicable": true,
+      "checks": {
+        "all_optimizer_group_weight_decay_is_zero": true,
+        "encoder_kind_is_dense": true,
+        "hidden_activation_is_tanh": true,
+        "k_stability_weight_is_zero": true,
+        "koopman_operator_is_full_trainable_parameter": true,
+        "no_zero_inducing_activation_or_dropout_modules": true,
+        "optimizer_is_adam_not_adamw": true,
+        "sparsity_loss_weight_is_zero": true,
+        "temporal_group_sparsity_weight_is_zero": true,
+        "unused_shrinkage_threshold_is_zero": true,
+        "weight_decay_is_zero": true
+      },
+      "forbidden_modules": [],
+      "latent_output": "linear",
+      "operator_parameterization": "full_dense_matrix",
+      "operator_regularization": "none",
+      "optimizer": "Adam",
+      "passed": true
+    }
+  },
+  "frozen_compact_evidence": {
+    "path": "allen_cahn_global_k_forecast_optimized_seed_rows.csv",
+    "sha256": "e5e42f86b2d434fb69cc959102ce7c7b2ae5254aea484635b4e59379b6bb9fbd",
+    "rows": 80,
+    "unique_evaluation_artifacts": 20,
+    "artifact_roster_path": "allen_cahn_global_k_forecast_optimized_artifacts.csv",
+    "artifact_roster_sha256": "4f44178ac78f4ffea91efb825bad272ec5840b52250bae2fab9713f8a62ac170",
+    "artifact_roster_rows": 20,
+    "architecture_audit_path": "allen_cahn_global_k_forecast_optimized_architecture_audit.json",
+    "architecture_audit_sha256": "f414cffce5c37144891e93292dbf9a6d0c66165170b9a20c4cbd3a7674ff2421"
+  },
+  "integrator_final": {
+    "clean_confirmation_launch_git_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+    "replacement_task_git_commit": "6bf2f15b592f266bd154d5de79dcd31a028f3fa1",
+    "gate_git_commit": "21d150999e07b9472e17994d335245b62b72a111",
+    "evidence_report_git_commit": "6bbfd7104f7523618ab215430f902d2f99f7d888",
+    "clean_a100l_array_job_id": 10157457,
+    "low_utilization_replacement_job_id": 10157586,
+    "slurm_job_id": 10157591,
+    "hostname": "cn-f002.server.mila.quebec",
+    "completed_at": "2026-07-20T01:23:01-04:00",
+    "pre_specified_config_sha256": "5fb285233b87b8051a8cbd07a257fe308a167ecab6756f89ff4692d425914a57",
+    "screen_selection_sha256": "2c8720da0eb65e6d11f90fd9e7d91dd957fcf9950f68d8e870f08d7c3ad1db8b",
+    "rows_sha256": "6f3fa43db5f01b052068a8b235f937eb9e6bf6cbfda775ac93d2d373d4cd3ef8",
+    "decision_sha256": "80bea4b94446a869e6652d6d343a92fa506e1c32dea9095a213559710aa67f05",
+    "validation_dataset_sha256": "68620c9d355ec62c8d9b5edd1cc635690f251733b2731e7627f0d4575c83b344",
+    "validation_summary_sha256": "6331b37cfacd4f9cab20726b9acf004c17c0474f83f99ca774d3b1963acc37f6"
+  }
+}

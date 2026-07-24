@@ -1,0 +1,20 @@
+\begin{tabular}[t]{@{}l rrr@{}}
+\toprule
+Model & H100 & H500 & H1000 \\
+\midrule
+LISTA & ${0.0413}^{\ast}$ & ${0.154}^{\ast}$ & ${0.176}^{\ast}$ \\
+LISTA-BD & ${0.0414}^{\ast}$ & ${0.126}^{\ast}$ & ${0.147}^{\ast}$ \\
+LISTA-SB & ${\mathbf{0.0387}}^{\ast}$ & ${0.125}^{\ast}$ & ${0.150}^{\ast}$ \\
+Sparse MLP, BD & ${0.0477}^{\ast}$ & ${0.150}^{\ast}$ & ${0.178}^{\ast}$ \\
+Sparse MLP \citep{fathi2024course} & ${0.0400}^{\ast}$ & ${\mathbf{0.0955}}^{\ast}$ & ${\mathbf{0.109}}^{\ast}$ \\
+\midrule
+Dense MLP \citep{lusch_deep_2018} \emph{[baseline]} & $0.832$ & $2.68$ & $2.91$ \\
+\midrule
+DMD & $2.58$ & $2.14$ & $1.70$ \\
+Polynomial EDMD & $0.864$ & $0.968$ & $0.887$ \\
+RBF-dictionary EDMD & $0.660$ & $0.808$ & $0.751$ \\
+$k$-means local linear & $1.40$ & $3.04$ & $138$ \\
+GMM local linear & $1.65$ & $3.57$ & $3.93$ \\
+Soft-gated GMM local linear & $1.66$ & $3.71$ & $4.07$ \\
+\bottomrule
+\end{tabular}

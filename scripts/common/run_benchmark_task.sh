@@ -29,6 +29,16 @@ echo "Git commit: $(git rev-parse HEAD)"
 TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
 BASE_OUT="${BASE_OUT:?BASE_OUT is required}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
+TRAIN_SKIP_EVAL="${TRAIN_SKIP_EVAL:-0}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+TASK_TSV_SHA256="${TASK_TSV_SHA256:-}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
+if [[ -n "${TASK_TSV_SHA256}" ]]; then
+  printf '%s  %s\n' "${TASK_TSV_SHA256}" "${TASK_TSV}" | sha256sum -c -
+fi
 
 tagify() {
   local raw="$1"
@@ -76,11 +86,19 @@ mkdir -p "${LOG_DIR}"
 
 COMPLETED_RUN=""
 if [[ "${SKIP_COMPLETED:-1}" == "1" ]]; then
-  COMPLETED_RUN="$(
-    find "${LOG_DIR}" -mindepth 1 -maxdepth 1 -type d \
-      -name '20*' -exec test -f '{}/evaluation_summary.json' ';' -print \
-      | sort | tail -n 1
-  )"
+  if [[ "${TRAIN_SKIP_EVAL}" == "1" ]]; then
+    COMPLETED_RUN="$(
+      find "${LOG_DIR}" -mindepth 1 -maxdepth 1 -type d \
+        -name '20*' -exec test -f '{}/training_success.json' ';' -print \
+        | sort | tail -n 1
+    )"
+  else
+    COMPLETED_RUN="$(
+      find "${LOG_DIR}" -mindepth 1 -maxdepth 1 -type d \
+        -name '20*' -exec test -f '{}/evaluation_summary.json' ';' -print \
+        | sort | tail -n 1
+    )"
+  fi
 fi
 
 RESUME_CHECKPOINT=""
@@ -328,6 +346,9 @@ fi
 if [[ -n "${dysts_cache_profile:-}" ]]; then
   TRAIN_ARGS+=(--dysts_cache_profile "${dysts_cache_profile}")
 fi
+if [[ -n "${DYSTS_CACHE_DIR:-}" ]]; then
+  TRAIN_ARGS+=(--dysts_cache_dir "${DYSTS_CACHE_DIR}")
+fi
 if [[ "${dysts_cache_reuse:-0}" == "1" ]]; then
   TRAIN_ARGS+=(--dysts_cache_reuse)
 fi
@@ -337,17 +358,116 @@ fi
 if [[ -n "${RESUME_CHECKPOINT}" ]]; then
   TRAIN_ARGS+=(--checkpoint "${RESUME_CHECKPOINT}")
 fi
+if [[ "${TRAIN_SKIP_EVAL}" == "1" ]]; then
+  TRAIN_ARGS+=(--skip_eval --save_last_checkpoint)
+fi
 
-gpu_guard_start_sampler \
-  "${LOG_DIR}/gpu_utilization_${SLURM_JOB_ID:-local}_${TASK_ID}.csv" \
-  "${GPU_TELEMETRY_INTERVAL:-30}"
+if [[ "${PACK_LEVEL_GPU_GUARD:-0}" != "1" ]]; then
+  gpu_guard_start_sampler \
+    "${LOG_DIR}/gpu_utilization_${SLURM_JOB_ID:-local}_${TASK_ID}.csv" \
+    "${GPU_TELEMETRY_INTERVAL:-60}"
+fi
 gpu_guard_phase "paper benchmark training start task_id=${task_id}"
 set +e
 uv run skae-train "${TRAIN_ARGS[@]}"
 EXIT_CODE=$?
 set -e
 gpu_guard_phase "paper benchmark training end task_id=${task_id} exit_code=${EXIT_CODE}"
-gpu_guard_stop_sampler
+if [[ "${PACK_LEVEL_GPU_GUARD:-0}" != "1" ]]; then
+  gpu_guard_stop_sampler
+fi
+
+if (( EXIT_CODE == 0 )) && [[ "${TRAIN_SKIP_EVAL}" == "1" ]]; then
+  RUN_DIR="$(
+    find "${LOG_DIR}" -mindepth 1 -maxdepth 1 -type d -name '20*' \
+      -exec test -f '{}/last.pt' ';' -print | sort | tail -n 1
+  )"
+  [[ -n "${RUN_DIR}" ]] || { echo "Missing completed training run" >&2; exit 1; }
+  uv run python - "${RUN_DIR}" "${TASK_TSV}" "${task_id}" "${num_steps}" \
+    "${env_name}" "${env_dt}" "${model_variant}" "${lista_num_loops:-}" <<'PY'
+import hashlib
+import json
+import math
+import os
+import sys
+from pathlib import Path
+
+import torch
+
+run_dir = Path(sys.argv[1])
+task_path = Path(sys.argv[2])
+task_id = int(sys.argv[3])
+expected_steps = int(sys.argv[4])
+env_name = sys.argv[5]
+expected_dt = float(sys.argv[6])
+model_variant = sys.argv[7]
+expected_lista_loops = sys.argv[8]
+checkpoint = run_dir / "last.pt"
+best_checkpoint = run_dir / "checkpoint.pt"
+metrics = run_dir / "final_metrics.json"
+if not checkpoint.is_file() or not best_checkpoint.is_file() or not metrics.is_file():
+    raise SystemExit("missing best/last checkpoint or final metrics")
+
+last_payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+best_payload = torch.load(best_checkpoint, map_location="cpu", weights_only=False)
+if int(last_payload.get("step", -1)) != expected_steps - 1:
+    raise SystemExit(
+        f"last checkpoint step {last_payload.get('step')} != {expected_steps - 1}"
+    )
+if env_name.lower().startswith("dysts:"):
+    config = last_payload["config"]
+    dysts = config["ENV"]["DYSTS"]
+    expected_cache = str(Path(os.environ["DYSTS_CACHE_DIR"]).resolve())
+    actual_cache = str(Path(dysts["CACHE_DIR"]).resolve())
+    if actual_cache != expected_cache:
+        raise SystemExit(f"wrong Dysts cache root: {actual_cache} != {expected_cache}")
+    if dysts["CACHE_SPLIT"] != "train" or not dysts["USE_NATIVE_CACHE"]:
+        raise SystemExit("Dysts training did not use the native train cache")
+    if not math.isclose(float(dysts["DT_OVERRIDE"]), expected_dt, rel_tol=0, abs_tol=1e-15):
+        raise SystemExit("Dysts checkpoint dt does not match the task")
+    required_selection = {
+        "checkpoint_selection_rollout": "direct",
+        "checkpoint_selection_metric": "direct_strict_full_horizon_cumulative_state_summed_mse",
+        "checkpoint_selection_horizon": 200,
+        "checkpoint_selection_batch_size": 16,
+        "checkpoint_selection_split": "val",
+    }
+    for key, expected in required_selection.items():
+        if best_payload.get(key) != expected:
+            raise SystemExit(f"Dysts checkpoint {key}={best_payload.get(key)!r} != {expected!r}")
+    if not math.isfinite(float(best_payload.get("checkpoint_selection_score", math.inf))):
+        raise SystemExit("Dysts best checkpoint has no finite strict direct score")
+    if float(best_payload.get("checkpoint_selection_full_horizon_finite_fraction", 0.0)) != 1.0:
+        raise SystemExit("Dysts best checkpoint is not fully finite on validation")
+    if model_variant.startswith("lista"):
+        actual_loops = int(config["MODEL"]["ENCODER"]["LISTA"]["NUM_LOOPS"])
+        if actual_loops != int(expected_lista_loops):
+            raise SystemExit(f"LISTA loops {actual_loops} != {expected_lista_loops}")
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+payload = {
+    "schema_version": 1,
+    "status": "training_complete",
+    "task_id": task_id,
+    "expected_optimizer_steps": expected_steps,
+    "task_table_sha256": sha256(task_path),
+    "last_checkpoint_sha256": sha256(checkpoint),
+    "best_checkpoint_sha256": sha256(best_checkpoint),
+    "final_metrics_sha256": sha256(metrics),
+    "last_checkpoint_step": int(last_payload["step"]),
+    "checkpoint_selection_rollout": best_payload.get("checkpoint_selection_rollout"),
+    "checkpoint_selection_metric": best_payload.get("checkpoint_selection_metric"),
+    "checkpoint_selection_score": best_payload.get("checkpoint_selection_score"),
+}
+(run_dir / "training_success.json").write_text(json.dumps(payload, indent=2) + "\n")
+PY
+fi
 
 echo "============================================="
 echo "End Time: $(date)"

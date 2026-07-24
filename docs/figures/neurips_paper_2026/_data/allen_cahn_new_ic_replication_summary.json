@@ -1,0 +1,135 @@
+{
+  "authentication": {
+    "checkpoint_roster_sha256": "ad29e12864655820f3e4027c3784e89f03fabda9f57dc768082713546fbd4a58",
+    "crossed_model_by_dataset_cells": 60,
+    "dataset_manifest_sha256": "31fcd9f7e52ec790a8a88bce5c445289136c867da90af4a7a6b8907b82c0f1c8",
+    "gpu_uuid": "GPU-d8ace22e-8d57-9a85-1273-396c972a99b5",
+    "raw_telemetry_sha256": "38901589178c4ac22e8ba671744ca4d99ad84b6f4b01f583d069f1410b95d56c",
+    "runtime_lineage_sha256": "f5ca7f20f50cdf694cf955deacb84da12f2d1174417d0b6af2d2827bf2ed961c",
+    "scientific_payload_sha256": "4c536871e71f47fd055db057da8c1c4a1213a0aceee9687ddb1c14dbc8963cf0",
+    "slurm_job_id": "10163830",
+    "source_artifact_sha256": {
+      "card": "5519644cbbc8992a356045e68ff496818dceed500300432fd985febf80a555de",
+      "decision": "fde59ff99cc407270c5b9e6a8eaaa1730a0f0639d10abf968f8db2d2fce5583d",
+      "receipt": "0ba035b5d48eafcfa67e22d2ab5cfd31bb642d9341c632e678a9d216b26ecac4",
+      "source_manifest": "8add4eb16eea0f1e4b6d1483bf96149e092549f20977d93cb94b566502587595",
+      "telemetry": "fca5ab4bb8434a344be01bc71b510d3c8f4e2526a083fa425ad802dea48c373b"
+    }
+  },
+  "claim_boundary": "A strong result supports same-checkpoint, new-initial-condition evaluation replication of lower average H200 direct-rollout MSE for the joint soft-thresholding-plus-L1 sparse recipe. This is not retraining and not physics or system generalization. It does not repair the failed original four-cell gate, establish terminal superiority, attribute the effect to one sparse component, connect support alignment causally to forecasting, or establish performance beyond this Allen--Cahn system.",
+  "development_context": {
+    "comparison_policy": "show beside prospective aggregate only; never pool or call the opened result confirmatory",
+    "dataset_seed": 20260724,
+    "four_cell_gate_passed": false,
+    "h200_cumulative_reduction_card_rounded": 0.0548,
+    "h200_terminal_ci95_percent": [
+      -0.7962300076051676,
+      6.699936785103172
+    ],
+    "h200_terminal_reduction": 0.03224233607265487,
+    "role": "opened development evidence; permanently excluded from this replication"
+  },
+  "figure_caption": "Same-checkpoint Allen--Cahn new-initial-condition replication. At H=200 (physical time T=20), the joint sparse recipe lowers mean direct-rollout field MSE over steps 1--200 by 5.86% across three new 256-trajectory datasets (ten paired model seeds; 95% paired-seed bootstrap CI 2.40--9.21%; exact one-sided sign-flip p=0.0088). Dataset-specific effects are descriptive and all positive. H200 terminal error is descriptive. Opened development and prospective results are shown separately and never pooled. Checkpoints were neither retrained nor reselected.",
+  "gpu_evaluation": {
+    "mean_retained_utilization_percent": 98.62406015037594,
+    "no_padding": true,
+    "p10_retained_utilization_percent": 100.0,
+    "peak_memory_fraction": 0.21866455078125,
+    "retained_samples": 133,
+    "status": "passed",
+    "zero_utilization_samples_retained": 1
+  },
+  "mandatory_disclosure": "If every strong gate passes, report prospective new-initial-condition replication of lower H200 through-horizon direct-rollout MSE for the joint sparse recipe. Regardless of this branch, the original four-cell gate remains failed; both original terminal 95% paired-seed CIs crossed zero (H160 [-1.63%, 5.96%], H200 [-0.80%, 6.70%]); the original H200 terminal reduction was 3.22% with 7/10 seed wins, missing both 5% and 8/10 gates. This is an outcome-aware, endpoint-specific prospective replication of H200 through-horizon MSE, not a reclassification of the original experiment.",
+  "not_supported": [
+    "repair of the original failed four-cell gate",
+    "terminal superiority",
+    "sparsity-component-only causal attribution",
+    "support-alignment mediation",
+    "physics or system generalization"
+  ],
+  "packet_id": "allen_cahn_new_ic_replication",
+  "primary": {
+    "bootstrap_replicates": 100000,
+    "bootstrap_unit": "paired model seed after averaging three datasets",
+    "ci95_lower": 0.024028248853500533,
+    "ci95_upper": 0.09208249660573453,
+    "dataset_effects": [
+      {
+        "dataset_seed": 1775404171,
+        "dense_h200_cumulative_field_mse": 0.04935352829657495,
+        "relative_reduction": 0.046778320592200995,
+        "role": "prospective_new_initial_conditions",
+        "sparse_better": true,
+        "sparse_h200_cumulative_field_mse": 0.04704485312756151
+      },
+      {
+        "dataset_seed": 74732421,
+        "dense_h200_cumulative_field_mse": 0.0490015799831599,
+        "relative_reduction": 0.058791275800516574,
+        "role": "prospective_new_initial_conditions",
+        "sparse_better": true,
+        "sparse_h200_cumulative_field_mse": 0.04612071457970887
+      },
+      {
+        "dataset_seed": 293789188,
+        "dense_h200_cumulative_field_mse": 0.04873067869059741,
+        "relative_reduction": 0.07030232235157208,
+        "role": "prospective_new_initial_conditions",
+        "sparse_better": true,
+        "sparse_h200_cumulative_field_mse": 0.04530479880888015
+      }
+    ],
+    "dense_mean": 0.04902859565677742,
+    "endpoint": "H200 through-horizon mean field MSE over steps 1--200",
+    "one_sided_exact_sign_flip_p": 0.0087890625,
+    "paired_model_seed_wins": 8,
+    "relative_reduction_of_arm_means": 0.058574119441734296,
+    "sparse_mean": 0.04615678883871684,
+    "strong_gate_checks": {
+      "at_least_8_of_10_paired_seed_wins": true,
+      "one_sided_exact_sign_flip_p_at_most_0p05": true,
+      "paired_bootstrap_lower_above_zero": true,
+      "relative_reduction_at_least_5_percent": true,
+      "sparse_mean_lower_on_all_three_new_datasets": true
+    }
+  },
+  "protocol": {
+    "horizon_steps": 200,
+    "latent_dimension": 2048,
+    "model_seeds": [
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73
+    ],
+    "new_dataset_seeds": [
+      1775404171,
+      74732421,
+      293789188
+    ],
+    "physical_time": 20.0,
+    "retraining_or_reselection": false,
+    "rollout": "one encode followed by 200 repeated global-K steps; no re-encoding",
+    "same_fixed_checkpoints": true,
+    "state_dimension": 512,
+    "system": "Allen--Cahn spatialized reaction-diffusion PDE",
+    "trajectories_per_dataset": 256
+  },
+  "schema_version": 1,
+  "secondary": {
+    "h200_terminal": {
+      "dense_mean": 0.06682981252670288,
+      "paired_model_seed_wins": 7,
+      "relative_reduction_of_arm_means": 0.03092028422002624,
+      "sparse_mean": 0.06476341572900615,
+      "status": "descriptive_only_no_test_no_interval_no_rescue"
+    }
+  },
+  "status": "strong_same_checkpoint_new_initial_condition_replication"
+}

@@ -30,12 +30,23 @@ set -euo pipefail
 
 ROOT_DIR="$(git -C "${SLURM_SUBMIT_DIR:-$PWD}" rev-parse --show-toplevel)"
 cd "${ROOT_DIR}"
+source scripts/common/gpu_guard.sh
+trap gpu_guard_stop_sampler EXIT
 
 TASK_TSV="${TASK_TSV:?TASK_TSV is required}"
 BASE_OUT="${BASE_OUT:?BASE_OUT is required}"
 ARRAY_OFFSET="${ARRAY_OFFSET:-0}"
 PACK_SIZE="${PACK_SIZE:-12}"
 PACK_CONCURRENCY="${PACK_CONCURRENCY:-1}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+TASK_TSV_SHA256="${TASK_TSV_SHA256:-}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
+if [[ -n "${TASK_TSV_SHA256}" ]]; then
+  printf '%s  %s\n' "${TASK_TSV_SHA256}" "${TASK_TSV}" | sha256sum -c -
+fi
 
 if (( PACK_SIZE <= 0 )); then
   echo "PACK_SIZE must be positive, got ${PACK_SIZE}"
@@ -54,6 +65,13 @@ if (( PACKED_TASK_THREADS < 1 )); then
 fi
 
 echo "============================================="
+
+TELEMETRY_DIR="${BASE_OUT}/gpu_telemetry"
+mkdir -p "${TELEMETRY_DIR}"
+gpu_guard_start_sampler \
+  "${TELEMETRY_DIR}/job_${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:-local}}_${PACK_TASK_ID}.csv" \
+  "${GPU_TELEMETRY_INTERVAL:-60}"
+gpu_guard_phase "packed benchmark start array_task=${PACK_TASK_ID}"
 echo "Packed Paper Benchmark Runner"
 echo "Job ID: ${SLURM_JOB_ID:-local}"
 echo "Array Task: ${PACK_TASK_ID}"
@@ -99,6 +117,9 @@ for ((PACK_INDEX = 0; PACK_INDEX < PACK_SIZE; PACK_INDEX++)); do
     ARRAY_OFFSET=0 \
     TASK_TSV="${TASK_TSV}" \
     BASE_OUT="${BASE_OUT}" \
+    PACK_LEVEL_GPU_GUARD=1 \
+    SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+    TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
     bash scripts/common/run_benchmark_task.sh
   ) &
   RUNNING_TASKS=$((RUNNING_TASKS + 1))
@@ -114,4 +135,6 @@ done
 echo "============================================="
 echo "Packed runner end time: $(date)"
 echo "============================================="
+gpu_guard_phase "packed benchmark end array_task=${PACK_TASK_ID} failed=${FAILED_TASKS}"
+gpu_guard_stop_sampler
 exit "${FAILED_TASKS}"

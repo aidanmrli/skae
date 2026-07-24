@@ -11,6 +11,9 @@ copy; the TeX source takes precedence if they differ.
 - `neurips_sparse_koopman_multibasin.tex`: main paper and current project
   priorities that affect the paper.
 - `neurips_sparse_koopman_multibasin.bib`: references cited by the active TeX.
+- `neurips_rebuttal_defense.md`: reviewer-facing defense dossier that maps
+  objections to exact evidence, contrary results, safe wording, and
+  provenance. It does not replace the TeX draft as the paper claim tracker.
 - `appendix/experimental_details.tex`: canonical human-readable training and
   evaluation protocol.
 - `appendix/benchmark_inventory.tex` and its included inventory fragments:
@@ -22,8 +25,12 @@ copy; the TeX source takes precedence if they differ.
 - `appendix/controlled_benchmark_results.tex` and `appendix/dysts_full.tex`:
   per-system and robustness displays for the two reported benchmarks.
 - `appendix/highdimensional_confirmation.tex`: fixed-data Lorenz--96 and
-  independent physics-based Allen--Cahn confirmation protocols, dense audits,
-  basin-interior analysis, and limits.
+  new-simulation-seed synthetic Allen--Cahn study protocols, dense audits,
+  finite-time fate, forecasting, all-seven physical-metric analysis, and limits.
+- `appendix/global_k_support_closure.tex`: held-out one-global-operator
+  support-projected leakage diagnostic, no-next-state guard, matched null, failed
+  differentiation guard, exact existence construction, negative prospective
+  physical-law test, invalid residual-routing follow-up, and exact claim boundary.
 - `appendix/support_coordinate_interventions.tex`: the scoped one-checkpoint
   intervention result; it is not a general paper claim.
 - `appendix/checklist_details.tex`: submission checklist, limitations, compute,
@@ -71,7 +78,8 @@ Do not recreate `EXPERIMENTS.md`, `PAPER_TRACK_STATUS.md`,
 - Preserve compact source data, sample counts, seeds, splits, hyperparameters,
   aggregation rules, and artifact provenance needed to support paper claims.
 - Do not treat benchmark basin labels or known basin counts as training-time
-  inputs; they are allowed for evaluation only.
+  inputs for label-free methods; BD/SB diagnostic architectures are the documented
+  exception whose transition-block count is sized from a known or hand-set count.
 - Keep only the current paper PDF beside the source. LaTeX intermediates and old
   PDFs are generated or archived material.
 - Before removing an artifact, confirm that it is neither included by active TeX

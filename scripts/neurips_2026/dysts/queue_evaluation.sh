@@ -18,6 +18,7 @@
 #   INPUT_ROOT_SPECS_TSV=/abs/path/to/generated_paper_root_specs.tsv (required)
 #   SYSTEMS_CSV=dysts:Chua,dysts:Dadras
 #   SEEDS_CSV=0,1,2
+#   ALLOW_ROOT_SUBSET=1
 #   HORIZONS="100 500 1000 1500 2000 3000 4000 5000"
 #   DYSTS_PERIODIC_REENCODE_PERIODS="10 25 50 100 150 200"
 #   SAVE_SELECTED_ROLLOUTS=0
@@ -53,6 +54,7 @@ VALIDATION_INDEX="${VALIDATION_INDEX:-0}"
 INPUT_ROOT_SPECS_TSV="${INPUT_ROOT_SPECS_TSV:?INPUT_ROOT_SPECS_TSV is required}"
 SYSTEMS_CSV="${SYSTEMS_CSV:-}"
 SEEDS_CSV="${SEEDS_CSV:-}"
+ALLOW_ROOT_SUBSET="${ALLOW_ROOT_SUBSET:-0}"
 EVAL_DEVICE="${EVAL_DEVICE:-cpu}"
 DYSTS_CACHE_DIR="${DYSTS_CACHE_DIR:-${SKAE_SCRATCH_ROOT}/dysts_native_cache}"
 DYSTS_CACHE_PROFILE="${DYSTS_CACHE_PROFILE:-full}"
@@ -63,6 +65,11 @@ HORIZONS="${HORIZONS:-100 500 1000 1500 2000 3000 4000 5000}"
 DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS:-10 25 50 100 150 200}"
 SAVE_SELECTED_ROLLOUTS="${SAVE_SELECTED_ROLLOUTS:-0}"
 DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER:-30}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+TASK_TSV_SHA256="${TASK_TSV_SHA256:-}"
+REQUIRE_TRAINING_RECEIPT="${REQUIRE_TRAINING_RECEIPT:-0}"
+REQUIRE_COMPLETE_COVERAGE="${REQUIRE_COMPLETE_COVERAGE:-0}"
+EXPECTED_TASK_COUNT="${EXPECTED_TASK_COUNT:-}"
 EVAL_TIME_LIMIT="${EVAL_TIME_LIMIT:-03:00:00}"
 MAX_EXISTING_JOBS_BEFORE_SUBMIT="${MAX_EXISTING_JOBS_BEFORE_SUBMIT:-10000}"
 SUBMIT_WAIT_SECONDS="${SUBMIT_WAIT_SECONDS:-300}"
@@ -102,9 +109,14 @@ echo "SAVE_SELECTED_ROLLOUTS: ${SAVE_SELECTED_ROLLOUTS}"
 echo "DYSTS_DT_MULTIPLIER: ${DYSTS_DT_MULTIPLIER}"
 echo "SYSTEMS_CSV: ${SYSTEMS_CSV:-<default>}"
 echo "SEEDS_CSV: ${SEEDS_CSV:-<default>}"
+echo "ALLOW_ROOT_SUBSET: ${ALLOW_ROOT_SUBSET}"
 echo "EVAL_TIME_LIMIT: ${EVAL_TIME_LIMIT}"
 echo "EVAL_PACK_SIZE: ${EVAL_PACK_SIZE}"
 echo "MAX_EXISTING_JOBS_BEFORE_SUBMIT: ${MAX_EXISTING_JOBS_BEFORE_SUBMIT}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
 
 BUILD_ARGS=(
   --output_tsv "${TASK_TSV}"
@@ -114,6 +126,15 @@ BUILD_ARGS=(
   --output_tag "${OUTPUT_TAG}"
   --root_specs_tsv "${INPUT_ROOT_SPECS_TSV}"
 )
+if [[ "${ALLOW_ROOT_SUBSET}" == "1" ]]; then
+  BUILD_ARGS+=(--allow_root_subset)
+fi
+if [[ "${REQUIRE_TRAINING_RECEIPT}" == "1" ]]; then
+  BUILD_ARGS+=(--require_training_receipt)
+fi
+if [[ "${REQUIRE_COMPLETE_COVERAGE}" == "1" ]]; then
+  BUILD_ARGS+=(--require_complete)
+fi
 
 if [[ -n "${SYSTEMS_CSV}" ]]; then
   BUILD_ARGS+=(--systems_csv "${SYSTEMS_CSV}")
@@ -125,6 +146,7 @@ fi
 uv run skae-paper tasks dysts-evaluation "${BUILD_ARGS[@]}"
 
 TASK_COUNT=$(( $(wc -l < "${TASK_TSV}") - 1 ))
+TASK_TSV_SHA256="$(sha256sum "${TASK_TSV}" | awk '{print $1}')"
 SYSTEM_COUNT=$(wc -l < "${SYSTEMS_FILE}")
 if (( TASK_COUNT <= 0 )); then
   echo "No reevaluation tasks were built."
@@ -132,6 +154,10 @@ if (( TASK_COUNT <= 0 )); then
 fi
 if (( VALIDATION_INDEX < 0 || VALIDATION_INDEX >= TASK_COUNT )); then
   echo "VALIDATION_INDEX=${VALIDATION_INDEX} is out of range for TASK_COUNT=${TASK_COUNT}"
+  exit 1
+fi
+if [[ -n "${EXPECTED_TASK_COUNT}" ]] && (( TASK_COUNT != EXPECTED_TASK_COUNT )); then
+  echo "TASK_COUNT=${TASK_COUNT} != EXPECTED_TASK_COUNT=${EXPECTED_TASK_COUNT}"
   exit 1
 fi
 
@@ -158,7 +184,10 @@ VALIDATE_JOB_ID=$(
   HORIZONS="${HORIZONS}" \
   DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS}" \
   SAVE_SELECTED_ROLLOUTS="${SAVE_SELECTED_ROLLOUTS}" \
-  sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterany:${CACHE_JOB_ID} --array=${VALIDATION_INDEX}-${VALIDATION_INDEX}%1 scripts/neurips_2026/dysts/run_evaluation_array.sh
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
+  REQUIRE_TRAINING_RECEIPT="${REQUIRE_TRAINING_RECEIPT}" \
+  sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterok:${CACHE_JOB_ID} --array=${VALIDATION_INDEX}-${VALIDATION_INDEX}%1 scripts/neurips_2026/dysts/run_evaluation_array.sh
 )
 
 EVAL_ARRAY_TASK_COUNT=$(( (TASK_COUNT + EVAL_PACK_SIZE - 1) / EVAL_PACK_SIZE ))
@@ -176,6 +205,9 @@ EVAL_JOB_ID=$(
   DYSTS_PERIODIC_REENCODE_PERIODS="${DYSTS_PERIODIC_REENCODE_PERIODS}" \
   SAVE_SELECTED_ROLLOUTS="${SAVE_SELECTED_ROLLOUTS}" \
   PACK_SIZE="${EVAL_PACK_SIZE}" \
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
+  REQUIRE_TRAINING_RECEIPT="${REQUIRE_TRAINING_RECEIPT}" \
   sbatch --parsable -p long --time="${EVAL_TIME_LIMIT}" --dependency=afterok:${VALIDATE_JOB_ID} --array=0-$((EVAL_ARRAY_TASK_COUNT - 1))%${ARRAY_PARALLEL} scripts/neurips_2026/dysts/run_evaluation_packed_array.sh
 )
 
@@ -184,7 +216,11 @@ COLLECT_JOB_ID=$(
   OUT_DIR="${COLLECT_DIR}" \
   OUTPUT_TAG="${OUTPUT_TAG}" \
   HORIZONS="${HORIZONS}" \
-  sbatch --parsable -p long --dependency=afterany:${EVAL_JOB_ID} scripts/neurips_2026/dysts/collect_evaluation.sh
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
+  REQUIRE_COMPLETE="${REQUIRE_COMPLETE_COVERAGE}" \
+  EXPECTED_TASK_COUNT="${EXPECTED_TASK_COUNT}" \
+  sbatch --parsable -p long --dependency=afterok:${EVAL_JOB_ID} scripts/neurips_2026/dysts/collect_evaluation.sh
 )
 
 cat > "${QUEUE_RECORD_JSON}" <<EOF
@@ -204,6 +240,9 @@ cat > "${QUEUE_RECORD_JSON}" <<EOF
   "dysts_dt_multiplier": "${DYSTS_DT_MULTIPLIER}",
   "systems_csv": "${SYSTEMS_CSV}",
   "seeds_csv": "${SEEDS_CSV}",
+  "allow_root_subset": "${ALLOW_ROOT_SUBSET}",
+  "require_complete_coverage": "${REQUIRE_COMPLETE_COVERAGE}",
+  "expected_task_count": "${EXPECTED_TASK_COUNT}",
   "task_count": ${TASK_COUNT},
   "system_count": ${SYSTEM_COUNT},
   "array_parallel": ${ARRAY_PARALLEL},

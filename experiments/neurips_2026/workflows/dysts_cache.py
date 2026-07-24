@@ -14,6 +14,7 @@ from skae.dysts_cache_profiles import (
     apply_dysts_cache_profile,
     default_dysts_cache_dir,
 )
+from experiments.neurips_2026.workflows.dysts_tasks import DYSTS_SYSTEM_SPECS
 
 
 def _normalize_system(name: str) -> str:
@@ -55,12 +56,19 @@ def _apply_dysts_dt_multiplier(cfg, multiplier: float) -> float:
     if multiplier <= 0.0:
         raise ValueError("--dt_multiplier must be positive")
 
-    base_cfg = get_config("lista_nonlinear")
-    base_cfg.ENV.ENV_NAME = cfg.ENV.ENV_NAME
-    base_cfg.ENV.DYSTS.STANDARDIZE = bool(cfg.ENV.DYSTS.STANDARDIZE)
-    base_cfg.ENV.DYSTS.IC_NOISE_SCALE = float(cfg.ENV.DYSTS.IC_NOISE_SCALE)
-    base_env = make_env(base_cfg)
-    base_dt = float(getattr(base_env.unwrapped, "dt"))
+    paper_spec = DYSTS_SYSTEM_SPECS.get(str(cfg.ENV.ENV_NAME))
+    if paper_spec is not None:
+        # Use the exact frozen value used by the training task builder. Even a
+        # last-bit float difference changes the deterministic cache key and
+        # would make GPU jobs rebuild a supposedly prebuilt CPU cache.
+        base_dt = float(paper_spec["base_dt"])
+    else:
+        base_cfg = get_config("lista_nonlinear")
+        base_cfg.ENV.ENV_NAME = cfg.ENV.ENV_NAME
+        base_cfg.ENV.DYSTS.STANDARDIZE = bool(cfg.ENV.DYSTS.STANDARDIZE)
+        base_cfg.ENV.DYSTS.IC_NOISE_SCALE = float(cfg.ENV.DYSTS.IC_NOISE_SCALE)
+        base_env = make_env(base_cfg)
+        base_dt = float(getattr(base_env.unwrapped, "dt"))
     dt_used = base_dt * multiplier
     apply_env_dt_override(cfg, dt_used, env_name=cfg.ENV.ENV_NAME)
     return dt_used
@@ -83,12 +91,16 @@ def main() -> None:
         "--splits",
         nargs="+",
         default=["train", "val", "test"],
-        choices=["train", "val", "test"],
+        choices=["train", "val", "policy", "test"],
         help="Cache splits to build",
     )
     parser.add_argument("--config", type=str, default="lista_nonlinear", help="Base config preset")
     parser.add_argument("--cache_dir", type=str, default=default_dysts_cache_dir(), help="Cache output directory")
     parser.add_argument("--cache_num_workers", type=int, default=2, help="Workers for cache build fallback")
+    parser.add_argument("--primary_method", default="Radau", help="Primary scipy solve_ivp method")
+    parser.add_argument("--trajectory_timeout_seconds", type=float, default=0.0)
+    parser.add_argument("--timeout_fallback_method", default="")
+    parser.add_argument("--fallback_timeout_seconds", type=float, default=0.0)
     parser.add_argument("--ic_noise_scale", type=float, default=0.2, help="IC perturbation scale")
     parser.add_argument(
         "--dt_multiplier",
@@ -117,6 +129,12 @@ def main() -> None:
     print(f"Standardize: {standardize}")
     print(f"DT multiplier: {args.dt_multiplier}")
     print(f"Cache workers: {args.cache_num_workers}")
+    print(
+        "Integration policy: "
+        f"{args.primary_method} timeout={args.trajectory_timeout_seconds}s "
+        f"fallback={args.timeout_fallback_method or '<none>'} "
+        f"fallback_timeout={args.fallback_timeout_seconds}s"
+    )
     print(f"Total cache jobs: {total}")
     print("=" * 80)
 
@@ -141,6 +159,16 @@ def main() -> None:
                     cfg.ENV.DYSTS.CACHE_REUSE = True
                     cfg.ENV.DYSTS.CACHE_SPLIT = split
                     cfg.ENV.DYSTS.CACHE_NUM_WORKERS = int(args.cache_num_workers)
+                    cfg.ENV.DYSTS.CACHE_PRIMARY_METHOD = str(args.primary_method)
+                    cfg.ENV.DYSTS.CACHE_TRAJECTORY_TIMEOUT_SECONDS = float(
+                        args.trajectory_timeout_seconds
+                    )
+                    cfg.ENV.DYSTS.CACHE_TIMEOUT_FALLBACK_METHOD = str(
+                        args.timeout_fallback_method
+                    )
+                    cfg.ENV.DYSTS.CACHE_FALLBACK_TIMEOUT_SECONDS = float(
+                        args.fallback_timeout_seconds
+                    )
                     apply_dysts_cache_profile(cfg, profile)
                     dt_used = _apply_dysts_dt_multiplier(cfg, float(args.dt_multiplier))
 

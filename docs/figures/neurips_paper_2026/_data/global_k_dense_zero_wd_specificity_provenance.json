@@ -1,0 +1,827 @@
+{
+  "assertion_contract": {
+    "basin_labels_or_counts_used": false,
+    "dense_masks_reported_as_cardinality_matched_coordinates": true,
+    "exact_dense_zero_wd_control": true,
+    "global_k_unmodified": true,
+    "mechanism_hyperparameters_tuned_after_sparse_outcome": false,
+    "paired_sparse_cardinality": true,
+    "same_physical_states": true
+  },
+  "authenticated_sources": {
+    "dense_checkpoint_audit": {
+      "path": "experiments/neurips_2026/global_k_dense_checkpoint_audit.py",
+      "sha256": "333fdf6356b3205557a0560a48ddb177c7af0ad6e9a123467696e78fedd53b3e"
+    },
+    "dense_evaluator": {
+      "path": "experiments/neurips_2026/global_k_dense_specificity.py",
+      "sha256": "bcd2d005f615ffcd8bd1dc32c7310ec511e1a4c05c95573ae239afe0c5948e0a"
+    },
+    "dense_specificity_summarizer": {
+      "path": "experiments/neurips_2026/summarize_global_k_dense_specificity.py",
+      "sha256": "ee2445bbca6d80f4a6c4810109f6b493dfccb8becccbee8296dfbb73436019c2"
+    },
+    "dense_task_module": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_tasks.py",
+      "sha256": "3cde66a3f5b4b42fcfda8123f73c32447f8a6641de153b0389fdebd095d152df"
+    },
+    "frozen_card": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_card.json",
+      "sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083"
+    },
+    "frozen_evidence_builder": {
+      "path": "experiments/neurips_2026/evidence/global_k_dense_specificity.py",
+      "sha256": "0aed406952df8dbb8a333bdfa1b4db55eef3dd93a936308a77701d8a5ab2e187"
+    },
+    "imported_sparse_evaluator": {
+      "path": "experiments/neurips_2026/global_k_support_invariance.py",
+      "sha256": "f2aaf0dddef233df3f340de425da8cd207057b93fd589e14bb3f023304172bf6"
+    },
+    "portable_evidence_builder": {
+      "path": "/home/mila/l/lia/skae/experiments/neurips_2026/evidence/global_k_dense_specificity_portable.py",
+      "sha256": "0926a9ce97cfd72d69a393ab71a0c9993f7b5d981dc09497aed8b1c80fbc139d"
+    },
+    "source_lock": {
+      "path": "experiments/neurips_2026/global_k_dense_specificity_source_lock.json",
+      "sha256": "cc2c37f431ee0a577265b5c36698e249d4b4f30354c1722ebe71511e7d05dd9f"
+    },
+    "task_tsv": {
+      "sha256": "ceedcbf3fb9367be106a69a86d5ddf84c3951b8ccb8233af8d29a0208b77443b"
+    }
+  },
+  "card_sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083",
+  "checkpoints_and_shards": [
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_arrested_spiral/dt_0p02/seed_0/20260720-134142/checkpoint.pt",
+        "sha256": "03fade4d960c005477dcef2a1ab657393b6a061aa75489dc1d37f4931f64a9e6"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_000.json",
+        "sha256": "4c056c5324ad602eaf01d0e792f590ae6d696264009c296eec2befc06164b46b"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_arrested_spiral/dt_0p02/seed_0/20260430-184717/checkpoint.pt",
+        "sha256": "055afec659a66f4842b471992fe687f1cce0f751eac75650136d4b1544bcb478"
+      },
+      "system_key": "claude:arrested_spiral"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_arrested_spiral/dt_0p02/seed_1/20260720-134142/checkpoint.pt",
+        "sha256": "08eaaa269e9b946096aa9f07e7308de2bab5ba2fead786de887b0f88e7d9f147"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_001.json",
+        "sha256": "6c60e179519f2311e0f59fd1981c56018ea361c0416ea3c829d6fded7b949b44"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_arrested_spiral/dt_0p02/seed_1/20260430-185026/checkpoint.pt",
+        "sha256": "672e076a3ec6bd8ecfaa53e21549e330d3a2f771d03f4963a0337ea219c544ab"
+      },
+      "system_key": "claude:arrested_spiral"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_arrested_spiral/dt_0p02/seed_2/20260720-134142/checkpoint.pt",
+        "sha256": "031d8de638bb765871ce51d65fbde376f8dbb6681c1dc4db85612fb1b3a5faac"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_002.json",
+        "sha256": "21a60ab4535a93f7bde1955a5db63032b89ebc18394f422c76e1ec80b7571791"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_arrested_spiral/dt_0p02/seed_2/20260430-185939/checkpoint.pt",
+        "sha256": "902828a7676418fb963e0847318d8ebe71889b4fa6ff378e5d9ee65e9090e054"
+      },
+      "system_key": "claude:arrested_spiral"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_asymmetric_3/dt_0p03/seed_0/20260720-134142/checkpoint.pt",
+        "sha256": "8d9a43a5ad2010d2688fc402c6b710c964b0b8a142a8576600b66ee624acf5c6"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_003.json",
+        "sha256": "ebb8390e15dc7407ea0e1eda1677e2dbcb7c9d10108065f3fe0099afa30d99f7"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_asymmetric_3/dt_0p03/seed_0/20260430-225603/checkpoint.pt",
+        "sha256": "99ef2964157873fb45af8c3e4ef8ea1bf110838466689d60766529173b59afcb"
+      },
+      "system_key": "claude:cal_asymmetric_3"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_asymmetric_3/dt_0p03/seed_1/20260720-134142/checkpoint.pt",
+        "sha256": "4414432d6a57d6dc0c0739549bc8dc535a68169654382e934318d73c8f6af858"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_004.json",
+        "sha256": "d8c2135b0566c37475156bf5d654bb66a7b29ca50310eb7fc399aba84f79b33e"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_asymmetric_3/dt_0p03/seed_1/20260430-225608/checkpoint.pt",
+        "sha256": "c6b6037cc51dacb0b76f6a00b761890a545a40b3ce45c567bb69a27efb3d9041"
+      },
+      "system_key": "claude:cal_asymmetric_3"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_asymmetric_3/dt_0p03/seed_2/20260720-134142/checkpoint.pt",
+        "sha256": "efda600aa73fa83be0516565e4a3de05d35783865e871c73a5f61941488aafc0"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_005.json",
+        "sha256": "02921ab6c04c3ee04931b73b06eec865c1104a23e4db0bcb6e618c45e75cffcb"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_asymmetric_3/dt_0p03/seed_2/20260430-225608/checkpoint.pt",
+        "sha256": "14431c13531f4a5d90a74cef64aa02acc365665707f45230c2fd6b42c9f08c1d"
+      },
+      "system_key": "claude:cal_asymmetric_3"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_hexagon_6/dt_0p03/seed_0/20260720-134142/checkpoint.pt",
+        "sha256": "c983512d0e0bc0313b8acfe634f7ea5e13dd5fb5da90628d6872a3f1b4c7c3ef"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_006.json",
+        "sha256": "53f33b84ca8d479d5f4096f990bb6882abab40685ed9529f61eb7d05b84482a4"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_hexagon_6/dt_0p03/seed_0/20260430-230212/checkpoint.pt",
+        "sha256": "671b08212edc767b2d1754f67ea3cead60f9598edcbccaecb073d5f66330a2de"
+      },
+      "system_key": "claude:cal_hexagon_6"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_hexagon_6/dt_0p03/seed_1/20260720-134142/checkpoint.pt",
+        "sha256": "e57bd875f486bdec59bed43d0d229b8052292ad76f6bb87b6023a50039e1e460"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_007.json",
+        "sha256": "2fb38ac97594b67f200dc75c6f0c698d3343e64e58accdb02a68db436611c3fd"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_hexagon_6/dt_0p03/seed_1/20260430-230218/checkpoint.pt",
+        "sha256": "2df9dbe5427744e00d1f3e7fc3af55f4d15ab215f7188d6f3681f81114c36505"
+      },
+      "system_key": "claude:cal_hexagon_6"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_hexagon_6/dt_0p03/seed_2/20260720-134142/checkpoint.pt",
+        "sha256": "e1d467a2201483b4e6d9f4720c3d9b315b9247b1eee5cd7323dffd95b1836176"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_008.json",
+        "sha256": "17d3d811eb528a2d6ed1dd740dbd701e71805023ec8cfbec01a9a58ec3c52f5a"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_hexagon_6/dt_0p03/seed_2/20260430-230218/checkpoint.pt",
+        "sha256": "5bd01b4d79e23ba5945e19049f34d6a98b5a0ba0ee197c156f81c0bd5b51314e"
+      },
+      "system_key": "claude:cal_hexagon_6"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_high_cross_3/dt_0p03/seed_0/20260720-134142/checkpoint.pt",
+        "sha256": "4966ad6aa75db7353bddfec6eded4346e06e8a75e0f36ef37af8d04b0fbadcc2"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_009.json",
+        "sha256": "62976328abfc9cd22b941bedc823fa9e4ad6a4f3781eb6573ef720d762844a0c"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_high_cross_3/dt_0p03/seed_0/20260430-230521/checkpoint.pt",
+        "sha256": "a4a2143034a8169f76da02bca4cb8db3838e8fdaf1a43c05ec994741dc524ac6"
+      },
+      "system_key": "claude:cal_high_cross_3"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_high_cross_3/dt_0p03/seed_1/20260720-134142/checkpoint.pt",
+        "sha256": "675a044563703fc11d9d7bc938f619e645d5019c6f8b724b310609cc787dd09b"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_010.json",
+        "sha256": "af11fe9f044ff4facd8d9933be87063841bfa3299b72cdf892d26d8ed89afd6c"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_high_cross_3/dt_0p03/seed_1/20260430-230524/checkpoint.pt",
+        "sha256": "84b587601a7e2a96e33d58271e74bc5c766deee623492e1b47d18aad236520c1"
+      },
+      "system_key": "claude:cal_high_cross_3"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_high_cross_3/dt_0p03/seed_2/20260720-134142/checkpoint.pt",
+        "sha256": "74666153306bf16a0244c82907d4a917e8d41a17716c496cac18948cfdbc14dd"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_011.json",
+        "sha256": "8bf4985057ff2d1e1b8d1b72342ae407edf2b6b34ab05fcaee552c05f4dbfa51"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_high_cross_3/dt_0p03/seed_2/20260430-230524/checkpoint.pt",
+        "sha256": "fcb79bb6e7ca9a791138325973b30a1e1672be6914c1260fadd8c25c47941b44"
+      },
+      "system_key": "claude:cal_high_cross_3"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_octagon_8/dt_0p03/seed_0/20260720-134142/checkpoint.pt",
+        "sha256": "22fe63860c71833e3ea526f2767cb1d99b2cf118ae9ebde01c0bb04323e2cf3e"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_012.json",
+        "sha256": "bf8abfcd3bc627084898a73d4be7ad1c690840a48789d1e89bbf73aadcd954ec"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_octagon_8/dt_0p03/seed_0/20260430-231742/checkpoint.pt",
+        "sha256": "f55fac0746be35558204d10f3e38f2eedcf662bdfac54e58feeee8957ea5aa99"
+      },
+      "system_key": "claude:cal_octagon_8"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_octagon_8/dt_0p03/seed_1/20260720-134142/checkpoint.pt",
+        "sha256": "a5eeeb815ae1253cab06618d40766e9fb0770b3350b6bed7f50f2d00c026c0f5"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_013.json",
+        "sha256": "677e18dfd756da26232c95f7de78f9d9412c7698438cf3704b01f7870a70b763"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_octagon_8/dt_0p03/seed_1/20260430-231743/checkpoint.pt",
+        "sha256": "e7dc21c19e3ca061e5abed1146a51ebcb4fa84a80e6998f42155946f02100c5a"
+      },
+      "system_key": "claude:cal_octagon_8"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_octagon_8/dt_0p03/seed_2/20260720-134142/checkpoint.pt",
+        "sha256": "d4dcb9a17d85a24ba63f95e50a66ce6712073f69c157c04d90771eff7bd2d63a"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_014.json",
+        "sha256": "e4d51c3e261d9f9f639a9b6788903a4c25925c0d74444d8030c7319b66fa8488"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_octagon_8/dt_0p03/seed_2/20260430-231748/checkpoint.pt",
+        "sha256": "1ed543c2235f6b039682b58f8ae2b83e77358d9184028c7c208b406ab3c483a8"
+      },
+      "system_key": "claude:cal_octagon_8"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_pentagon_5/dt_0p03/seed_0/20260720-134138/checkpoint.pt",
+        "sha256": "ef5c7d7568f09cf1d81634e49a15d5830b097b25179e315c818d774655783287"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_015.json",
+        "sha256": "24b0b886d9152c013e4672c51c45790e0cf3ea24b34cf85684c6282c39fdbbb2"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_pentagon_5/dt_0p03/seed_0/20260501-003514/checkpoint.pt",
+        "sha256": "b1e8d0f0d08563fe33906da10000ee1fd4a4fcecc434af04d2a860589c3fced5"
+      },
+      "system_key": "claude:cal_pentagon_5"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_pentagon_5/dt_0p03/seed_1/20260720-134138/checkpoint.pt",
+        "sha256": "87f7a4623b253c145038988ad57ab2eeaf5d778484cb9299be9129009e8c4da6"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_016.json",
+        "sha256": "0a38fb81f76d1b37b1991c7135274ad0c9fc51eac4297cc545a95c5767d76490"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_pentagon_5/dt_0p03/seed_1/20260501-003818/checkpoint.pt",
+        "sha256": "2d1374a6abccc5ba053456aaada3665dad7cfbe074d9dd832a505a7bc39b9cc8"
+      },
+      "system_key": "claude:cal_pentagon_5"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_pentagon_5/dt_0p03/seed_2/20260720-134138/checkpoint.pt",
+        "sha256": "c0ed8da5e388e97fe1856f44f4db7d5fff83ac70731de356d693088831e72a5f"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_017.json",
+        "sha256": "e1de444094b33517c7795b1ce2d806896abb26c1b7df0f4b8742de480b6f8a2d"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_pentagon_5/dt_0p03/seed_2/20260501-003809/checkpoint.pt",
+        "sha256": "bc5b856bfc13ca667479af6418d178a80f634750d5a548daf81fc3737edc90ea"
+      },
+      "system_key": "claude:cal_pentagon_5"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_square_4/dt_0p03/seed_0/20260720-134138/checkpoint.pt",
+        "sha256": "ce29724f5ee8903a7df29c4f1494d5f04461cfa26be5343a97d33d56afe99c87"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_018.json",
+        "sha256": "5025bf435f4b866f33dd5affbe0d00047c3b5dc968205cb8fda02ccb3f4d3852"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_0/20260501-005024/checkpoint.pt",
+        "sha256": "091624303495aef9f168fbe953da7040d4e0e7639145f465f1449099c72babeb"
+      },
+      "system_key": "claude:cal_square_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_square_4/dt_0p03/seed_1/20260720-134138/checkpoint.pt",
+        "sha256": "b37a5915c63462030a49119619af177eb08569ca08296baf147ae1d1d65fe4b3"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_019.json",
+        "sha256": "de5de83ef848e04f4fca2ed738fe2155291e459d4bf444825b2f9ee6bc611e9a"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_1/20260501-005335/checkpoint.pt",
+        "sha256": "d47820ffb3f0763e2883fd9e1ef8ce359f2e306ec99366a7e1b83c15db63772d"
+      },
+      "system_key": "claude:cal_square_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_cal_square_4/dt_0p03/seed_2/20260720-134138/checkpoint.pt",
+        "sha256": "b790e6df809f65af93f8caa52f1b8692b2c0ae52f0da4662aeaaff8ed8f10f9c"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_020.json",
+        "sha256": "74ec813ab772f0c618f1b8b1c53218fc257a28de6a913ddc8523e714c70bb1f0"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_cal_square_4/dt_0p03/seed_2/20260501-005943/checkpoint.pt",
+        "sha256": "2dc6f98b30c180401a47e994cca242ba24d49b7f92dd8df9adaf807f55633dd2"
+      },
+      "system_key": "claude:cal_square_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_duffing_triple_well/dt_0p02/seed_0/20260720-134138/checkpoint.pt",
+        "sha256": "53d4ca87f5b1e24eb582c01fab5084627e09c070c8c84637a1c3dab5e212b56f"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_021.json",
+        "sha256": "f428953a16fdb9af5d53c1f59bdc3fbc85f8e3c9fff84f47aac27818afb4da13"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_duffing_triple_well/dt_0p02/seed_0/20260501-014530/checkpoint.pt",
+        "sha256": "f435c508e9504c83afcaeb5137a509b7ddf450c18defba58b14d90e52c866b2d"
+      },
+      "system_key": "claude:duffing_triple_well"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_duffing_triple_well/dt_0p02/seed_1/20260720-134138/checkpoint.pt",
+        "sha256": "2aae3707459a55687ed68667e04e9455005b39aee3917374fdb231d54ba4a598"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_022.json",
+        "sha256": "c6f5944beb00ed1ed9d225d0b3d3dc7a3d8341d2e91ee20161293c25019d8de9"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_duffing_triple_well/dt_0p02/seed_1/20260501-015137/checkpoint.pt",
+        "sha256": "82fe6b9c77b906e7a9f75f3c5969687e57acb78bbd2f31a32e18bae2ee037a25"
+      },
+      "system_key": "claude:duffing_triple_well"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_duffing_triple_well/dt_0p02/seed_2/20260720-134138/checkpoint.pt",
+        "sha256": "521259488b96d157704d972c9b172c81c81029f708a270ae2f20784b05812483"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_023.json",
+        "sha256": "992e94974ca5a6288923b2dfdc016761b745861c5300f5ad824db7db1da32069"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_duffing_triple_well/dt_0p02/seed_2/20260501-015752/checkpoint.pt",
+        "sha256": "d36c354cf31cef6abcfa0a9eeecd8b04a2ae2fd3421432985d3c40c4c994af7c"
+      },
+      "system_key": "claude:duffing_triple_well"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_snic_multi/dt_0p02/seed_0/20260720-134138/checkpoint.pt",
+        "sha256": "3735640d855ff210c6aba56f0ab10738361bf0f8e34d04ab3c0745664f38cc7f"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_024.json",
+        "sha256": "bc3c613ee125a9ded01c8a29b62f4a3381478976e718da83d8528ec296175fb8"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_snic_multi/dt_0p02/seed_0/20260501-024650/checkpoint.pt",
+        "sha256": "c53f9a7cacfb8784c059c342e731bdc87273c8a94729add4042370311c34f274"
+      },
+      "system_key": "claude:snic_multi"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_snic_multi/dt_0p02/seed_1/20260720-134138/checkpoint.pt",
+        "sha256": "764ca680386bacab5b25b9e2d0c04265551501077256b988d18b86bd87f3932a"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_025.json",
+        "sha256": "171f0ebd1ade9c2d1abee6f83261f9dc34c72d1881649342b20c38e8c1ae3d04"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_snic_multi/dt_0p02/seed_1/20260501-024951/checkpoint.pt",
+        "sha256": "18ada1839b6b3f4bcdd2b7636621ae66182e38a18f665e08323663f0b4aef67a"
+      },
+      "system_key": "claude:snic_multi"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_snic_multi/dt_0p02/seed_2/20260720-134138/checkpoint.pt",
+        "sha256": "804903e7a1cb555d650e7920a920089e2a4930166837dc700ad232e97b8f78af"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_026.json",
+        "sha256": "f0500ba106aedf828e61a808fc2072b6ae5fc5a69e26b1c2a144e88a7e82063e"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_snic_multi/dt_0p02/seed_2/20260501-024953/checkpoint.pt",
+        "sha256": "b7080221e8551736a922a0e6616f5a3367022409f3b7c8739a1832ae62e199a1"
+      },
+      "system_key": "claude:snic_multi"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_transition_routes_4/dt_0p02/seed_0/20260720-134138/checkpoint.pt",
+        "sha256": "0dd7c8e4019cab694a494e951baf5ab284948ba03c5149ea8350c4ccc615fc23"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_027.json",
+        "sha256": "92c02d37e5fe47782aab069e5eec26837cfbfa30383ae7581e20ac1dded13c45"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_transition_routes_4/dt_0p02/seed_0/20260501-032023/checkpoint.pt",
+        "sha256": "4213b4aa9ff78e483aba3d38da359063fef458b08f6c5292d4d0522acb816c36"
+      },
+      "system_key": "claude:transition_routes_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_transition_routes_4/dt_0p02/seed_1/20260720-134138/checkpoint.pt",
+        "sha256": "d8f4e278cbbf33eebabebf8c5c5c6bab5082a47bf6160a231149089e50d27bb2"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_028.json",
+        "sha256": "5c65fa650289bb1ff9d98ed62d4c1949e7e4eda39b1120980d450c70089a189e"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_transition_routes_4/dt_0p02/seed_1/20260501-032328/checkpoint.pt",
+        "sha256": "3cfa38efd374733ad72b809b598324a63f8253b022e7c15444efa11f25d881ad"
+      },
+      "system_key": "claude:transition_routes_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_transition_routes_4/dt_0p02/seed_2/20260720-134138/checkpoint.pt",
+        "sha256": "b1c399190de01cee7c95f03bbe45810c015d01d1e4586927851bbc84926b3498"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_029.json",
+        "sha256": "4f0acadc59e89114345829d8021820d637f3ddc14ae9c062fabea6d40a3312cd"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_transition_routes_4/dt_0p02/seed_2/20260501-032623/checkpoint.pt",
+        "sha256": "089f4e0f708f976185145b0c654d0e00b1cd3a4878aea70b56d7956e11a671fb"
+      },
+      "system_key": "claude:transition_routes_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_depth_gradient_4/dt_0p03/seed_0/20260720-134140/checkpoint.pt",
+        "sha256": "33eb7a855c44cd528a731c733b8b9446cc7e9384070aa754c438b3bb05a915aa"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_030.json",
+        "sha256": "37cfdcaf7caf18f28a7469cea027816421ef4bcfabce7b3d69b40b5b88fd38c9"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_depth_gradient_4/dt_0p03/seed_0/20260501-033835/checkpoint.pt",
+        "sha256": "9bcc09b94eca9c0d82b4feeb21a7d84f57d55fa0315d576abb38df98a115492a"
+      },
+      "system_key": "claude:var_depth_gradient_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_depth_gradient_4/dt_0p03/seed_1/20260720-134140/checkpoint.pt",
+        "sha256": "b39dac5b0a37226d8f0ecd33a85fee372cd0839e30f1ce61269a1a0c552f3662"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_031.json",
+        "sha256": "66fef8cf982fd22227627817b66b13ec9e5db338f288637768b2060fadef91dd"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_depth_gradient_4/dt_0p03/seed_1/20260501-033841/checkpoint.pt",
+        "sha256": "7562413d4b1521f24b9d9b8a817f5ea16cc7105cf4817378ab304f6839bb763a"
+      },
+      "system_key": "claude:var_depth_gradient_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_depth_gradient_4/dt_0p03/seed_2/20260720-134140/checkpoint.pt",
+        "sha256": "dcf06ca207ea7579e9aefe4080e873a0aa99256d4a88e519f8dc47711f6d9279"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_032.json",
+        "sha256": "4fb08d1675672fc238031419d1442d38d2dfec45dec637d7c46b18405d804c1c"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_depth_gradient_4/dt_0p03/seed_2/20260501-033836/checkpoint.pt",
+        "sha256": "1785bfc415bfbab0964dab6b87100488978562d9a9a2d7f361d3b537e26eb8d2"
+      },
+      "system_key": "claude:var_depth_gradient_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_diamond_4/dt_0p03/seed_0/20260720-134140/checkpoint.pt",
+        "sha256": "315a6830d52d2c631aa22509c49b0fb3de474d2425b8718e370175de7676270d"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_033.json",
+        "sha256": "2e6882b21c8ab77ebe2b8db805eeea409eb7b6f9412c748e58d1c367dae24629"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_diamond_4/dt_0p03/seed_0/20260501-035053/checkpoint.pt",
+        "sha256": "56fcb0f6f611191e8e220a2f7a04c1095b9c5f98aa96c5192443c812085ffff6"
+      },
+      "system_key": "claude:var_diamond_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_diamond_4/dt_0p03/seed_1/20260720-134140/checkpoint.pt",
+        "sha256": "cd25ddf7ea7d70d6d0796f819930177a356d4119d97b27d8cf86535653d1d8ca"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_034.json",
+        "sha256": "b15050c4080df907010abd75cbf2cf2e1222decf87a21e288a6ff399df32fcc7"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_diamond_4/dt_0p03/seed_1/20260501-035356/checkpoint.pt",
+        "sha256": "2e3f701c834d65e0e1cce8be0f9b72af5345d83d076d96c3ad13de1550ec14d1"
+      },
+      "system_key": "claude:var_diamond_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_diamond_4/dt_0p03/seed_2/20260720-134140/checkpoint.pt",
+        "sha256": "dcdef7a81c7ceb3054053d3d9510cffb15e8a5919bc5e6779bd97c7d799a036b"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_035.json",
+        "sha256": "0c88f175ce0193a7426d7ace994f8addf8d62c513a86ce23fa807eb0377da312"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_diamond_4/dt_0p03/seed_2/20260501-035351/checkpoint.pt",
+        "sha256": "4291768b6497db1996329b41d7832104d35ed314f0454647480d6d964fcd3321"
+      },
+      "system_key": "claude:var_diamond_4"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_l_shape_5/dt_0p03/seed_0/20260720-134140/checkpoint.pt",
+        "sha256": "60888e4bca37504382b28f05db7e20a1289c1a85ec74ebf92e237b8ce997ab63"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_036.json",
+        "sha256": "5ee5cfc55c90a98ba30d58494e3cbdab15e2ab97e5f8109aa908ae8e99b4ce45"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_l_shape_5/dt_0p03/seed_0/20260501-043042/checkpoint.pt",
+        "sha256": "b4f1aa1a22a038998358178e7507f8e0bb5f04ea7d9c0d35508b8c85f0d890b8"
+      },
+      "system_key": "claude:var_l_shape_5"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_l_shape_5/dt_0p03/seed_1/20260720-134140/checkpoint.pt",
+        "sha256": "0f6c875bdd3dc97928437d2bb478a806c6c543226718bb6e6cfe41c7a813caf3"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_037.json",
+        "sha256": "348b301dcde6c7547ebbbba86bb4c6e4a5a4771c8e0da120ad65105289aa7827"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_l_shape_5/dt_0p03/seed_1/20260501-043041/checkpoint.pt",
+        "sha256": "fb19fbc2d652fe4e251f618ca06514e58f9ea836260a88a70cd5f7765e8a204e"
+      },
+      "system_key": "claude:var_l_shape_5"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/claude_var_l_shape_5/dt_0p03/seed_2/20260720-134140/checkpoint.pt",
+        "sha256": "75c9ff18f393bf6902a8f0116338c980a0281a1570f507bc713b1d8847a28cfc"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_038.json",
+        "sha256": "33ffd07bcdd70d425328885c18f7cc896a16473bcbab411b58bfaad473d95154"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/claude_var_l_shape_5/dt_0p03/seed_2/20260501-043648/checkpoint.pt",
+        "sha256": "08a7cbacc23338ff9e59196625bd9e6b87f7d8bb85f2a5c3805493833e02197e"
+      },
+      "system_key": "claude:var_l_shape_5"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/gated_local_linear/dt_0p04/seed_0/20260720-134140/checkpoint.pt",
+        "sha256": "b7ea897f880939d144777f7c394e854f5146206e96756a10d4d5c64d154745cf"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_039.json",
+        "sha256": "32d84d558c92a5163b863304e015c20b469d8bcc5b0a45a0afc7da24a7413133"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_0/20260501-052234/checkpoint.pt",
+        "sha256": "95b57b1eb3c567f434dcfa19db0af08630dba639c849a9687982dd2454b47223"
+      },
+      "system_key": "gated_local_linear"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/gated_local_linear/dt_0p04/seed_1/20260720-134140/checkpoint.pt",
+        "sha256": "b07bf7982a715e80fc2478cf96fc27e483de7dceae177fb99ebebbbcdec8177b"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_040.json",
+        "sha256": "06048e91313ddaa260b822cdeea9ec88363b16b04d1e838816b52c312854c701"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_1/20260501-052232/checkpoint.pt",
+        "sha256": "f9d733c10353c8938011b332004d819b273eb7041062e8173e607e26d6c8fe41"
+      },
+      "system_key": "gated_local_linear"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/gated_local_linear/dt_0p04/seed_2/20260720-134140/checkpoint.pt",
+        "sha256": "b8ceb14a3c3072cb6de2c637157753cce0cab2db9f72b6e54f6f8ffdee99eef0"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_041.json",
+        "sha256": "045904326866fdafcbffdd04e91dbd0ed434d158396793aa5b7f5fc20357ed48"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_local_linear/dt_0p04/seed_2/20260501-052232/checkpoint.pt",
+        "sha256": "201607393beb15a52891a836bcc2a9935f2684fa7b68254cf620f062d15956a9"
+      },
+      "system_key": "gated_local_linear"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/gated_transfer_linear/dt_0p04/seed_0/20260720-134140/checkpoint.pt",
+        "sha256": "513a622bf0e77b826c8c618a3586bf52b419fae56607952105344ce4c0c7750e"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_042.json",
+        "sha256": "32084935569e517f5786fa8c7c2af434f32a596ab7e542cd126d1a35495e409b"
+      },
+      "seed": 0,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_transfer_linear/dt_0p04/seed_0/20260501-061126/checkpoint.pt",
+        "sha256": "ac01f6f13359b36ac2343418cc9a9b29f9f2a6a7429bc41612f86aecc2f8c5c4"
+      },
+      "system_key": "gated_transfer_linear"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/gated_transfer_linear/dt_0p04/seed_1/20260720-134140/checkpoint.pt",
+        "sha256": "13ed12ebb66a360c9e54c2b7cfc3daa5795e61c98189375644d6904ec9e96ba4"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_043.json",
+        "sha256": "2e093b02a1188365b4d9f621732f99a5ace29d8ff243cb943d87706e2fcd8cf7"
+      },
+      "seed": 1,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_transfer_linear/dt_0p04/seed_1/20260501-061123/checkpoint.pt",
+        "sha256": "15102c8cd674291deb2c4bc70ae58b35c320dc1c7f5f2212afc965b5c9127662"
+      },
+      "system_key": "gated_transfer_linear"
+    },
+    {
+      "dense_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/runs/neurips_2026_dense_zero_wd_specificity_v1/mlp_zero_sparse_zero_wd_hardinit_basin_partition_control/gated_transfer_linear/dt_0p04/seed_2/20260720-134140/checkpoint.pt",
+        "sha256": "de75d6908f510324789c2bd68bb8bc8556a71015f5c0fb716d550e1219f437f9"
+      },
+      "evaluation_shard": {
+        "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/evaluation/shards/task_044.json",
+        "sha256": "ba6f789fa7e122bdda903d9e538a79d27552c5bc94db78d79716ae1c0e21c669"
+      },
+      "seed": 2,
+      "sparse_checkpoint": {
+        "path": "/network/scratch/l/lia/skae/transition_rich_lista_dense_p256_hardinit_table123_20260430/transition_rich_basin_partition/lista_dense_signsplit_p256_hardinit_basin_partition/gated_transfer_linear/dt_0p04/seed_2/20260501-061123/checkpoint.pt",
+        "sha256": "b099f8cb7fb4e22bcb45882265aaeefcc72450cf4c5203733b07a2ebdd67a89a"
+      },
+      "system_key": "gated_transfer_linear"
+    }
+  ],
+  "complete_recipe_architecture_caveat": "This is a complete-recipe comparison between the sparse LISTA sign-split model and the dense tanh MLP zero-weight-decay model. Encoder architecture, sign splitting, decoder parameterization/normalization, and optimization differ, so it does not identify a sparsity-only causal effect. Physical states, latent width, system/seed roster, per-state support cardinality, estimands, and nulls are matched. Dense objects are sparse-cardinality-matched top-k coordinate masks, not natural dense supports; their null is the identical restricted sign-pair-preserving permutation set even though dense coordinates have no natural sign-pair semantics.",
+  "decision": "sparse_support_specific",
+  "normalized_artifacts": {
+    "card": {
+      "path": "docs/figures/neurips_paper_2026/_data/global_k_dense_zero_wd_specificity_card.json",
+      "sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083"
+    },
+    "decision": {
+      "path": "docs/figures/neurips_paper_2026/_data/global_k_dense_zero_wd_specificity_decision.json",
+      "sha256": "022fbf4f8bf7e7004d46214746f12deaeeb5be101b852965f4ec38acef81ba22"
+    },
+    "run_rows": {
+      "path": "docs/figures/neurips_paper_2026/_data/global_k_dense_zero_wd_specificity_run_rows.csv",
+      "sha256": "b185a56832f7e006fb9255bd099515224c26d07fe8ef75350f7f7e28619cedf7"
+    },
+    "system_rows": {
+      "path": "docs/figures/neurips_paper_2026/_data/global_k_dense_zero_wd_specificity_system_rows.csv",
+      "sha256": "ef558ec18e6f9c877ab64f501c8e3f31c71ce5b9f6f226bbf7f3334ace74582c"
+    },
+    "table": {
+      "path": "docs/figures/neurips_paper_2026/_tables/table_global_k_dense_zero_wd_specificity.tex",
+      "sha256": "d69ea6c2faaf5f45ce4c6ed0b21b039bdb3167bc4431dfdb619cd8166da28164"
+    }
+  },
+  "packet_id": "global_k_dense_zero_wd_specificity",
+  "schema_version": 1,
+  "source_artifacts": {
+    "frozen_card": {
+      "path": "experiments/neurips_2026/global_k_dense_zero_wd_card.json",
+      "sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083"
+    },
+    "scratch_decision": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/summary/decision.json",
+      "sha256": "022fbf4f8bf7e7004d46214746f12deaeeb5be101b852965f4ec38acef81ba22"
+    },
+    "scratch_run_rows": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/summary/run_rows.csv",
+      "sha256": "6a5705717be452a7349fdcc06533f5e21bab0ae0a84635546764cc750bbb9ec9"
+    },
+    "scratch_system_rows": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/specificity/summary/system_rows.csv",
+      "sha256": "dabe0a69411e9540390e1563562c40a79d7145b4d11c60e3e43bf0346d7b808a"
+    },
+    "smoke_decision": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_smoke_20260720/assessment/utilization_decision.json",
+      "sha256": "0f96e7d086ac39e8fc5504302d9e4ad2d03099ca3fbde7caf6191ea7c396b7e0"
+    },
+    "task_manifest": {
+      "path": "/network/scratch/l/lia/skae/global_k_dense_zero_wd_20260720/tasks/full_manifest.json",
+      "sha256": "5aeb091c8df34a12de5b735acb14af35ca53b607ebb4de3cc41671bf70405a12"
+    }
+  }
+}

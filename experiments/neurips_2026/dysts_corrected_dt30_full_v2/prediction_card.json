@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "protocol_id": "dysts_corrected_dt30_full_v2",
+  "status": "v5_sakarya_cache_restart_frozen_after_solver_straggler",
+  "question": "Do six matched KAE rows, with one learned refinement in every LISTA encoder, improve strict direct long-horizon forecasting on ten chaotic Dysts systems at verified dt times 30?",
+  "invalid_predecessors": [
+    "Historical KAE caches used native dt while metadata claimed dt times 30; all historical Dysts outcomes are quarantined.",
+    "Replacement chain 10173424 was stopped before a valid optimizer step because GPU workers inherited the legacy cache root and the cache CLI omitted the policy split.",
+    "The v4 smoke completed all 12 corrected fits with 99--100 percent sustained GPU utilization, but its downstream gate falsely treated the unused GenericKM encoder-type default as an active LISTA encoder; the full chain was therefore blocked before launch.",
+    "In v5 cache job 10173636, 36 of 40 split caches completed, but the four Sakarya splits made no progress for 10--13 hours because individual strict-Radau integrations became pathological solver stragglers. Those four tasks were canceled after about 14 hours; dependent jobs 10173637 and 10173638 were canceled before allocation, so no GPU work was lost."
+  ],
+  "repairs": [
+    "The native integrator receives the dt override and a ten-system numerical validator compares corrected points with native-grid subsampling.",
+    "Schema-3 train, validation, policy, and test caches use split-specific perturbed initial conditions and exact metadata, shape, dtype, count, and finiteness checks.",
+    "Every GPU worker receives the isolated cache path explicitly; the smoke gate verifies that path in every saved config.",
+    "LISTA, LISTA-BD, and LISTA-SB each use one learned S refinement; a unit test requires nonzero S gradients.",
+    "Dysts checkpoint selection uses held-out validation futures and direct repeated-K rollout, matching the primary endpoint.",
+    "Per-initial-condition survival and strict full-horizon metrics prevent finite prefixes from rewarding divergence.",
+    "The Sakarya-only restart preserves every deterministic split initial condition, corrected dt times 30 output grid, and 1e-12 tolerances. Every Sakarya trajectory uses DOP853; no wall-time-dependent mixed-solver fallback or initial-condition filtering is permitted, and the saved cache records the uniform solver count."
+  ],
+  "cache_restart": {
+    "system": "Sakarya",
+    "completed_non_sakarya_caches_preserved": 36,
+    "workers_per_split": 4,
+    "primary_method": "DOP853",
+    "primary_timeout_seconds": 1200,
+    "fallback_method": "",
+    "fallback_timeout_seconds": 0,
+    "all_trajectories_use_one_solver": true,
+    "rtol": 1e-12,
+    "atol": 1e-12,
+    "motivation": "Uniform DOP853 removes machine-load-dependent solver assignment and does not consume the standardized analytic Jacobian used by Radau in Dysts 0.96.",
+    "numerical_gate": {
+      "status": "passed",
+      "trajectories": 32,
+      "steps": 200,
+      "physical_time": 5.982277046175567,
+      "worst_per_trajectory_normalized_max_difference_vs_radau": 4.9442946103431085e-08,
+      "normalized_rmse_vs_radau": 2.1815775161976924e-10,
+      "full_smoke_mean_normalized_max_difference": 0.00030840275224893534,
+      "full_smoke_std_normalized_max_difference": 0.002148188320611545,
+      "full_smoke_quantile_normalized_max_difference": 0.0094904038908636
+    },
+    "smoke_gate": "Passed: 32 of 32 finite trajectories, exact shape 32 by 5001 by 3, all 32 recorded as DOP853, 10.8 seconds cache-build time with four workers."
+  },
+  "roster": {
+    "systems": ["Chua", "Dadras", "DequanLi", "Hadley", "LuChenCheng", "QiChen", "Sakarya", "SanUmSrisuchinwong", "ShimizuMorioka", "WangSun"],
+    "models": ["LISTA", "LISTA-BD", "LISTA-SB", "Sparse MLP-BD", "Sparse MLP", "Dense MLP tanh"],
+    "seeds": 15,
+    "expected_fits": 900
+  },
+  "training": {
+    "steps": 100000,
+    "batch_size": 256,
+    "sequence_length": 10,
+    "latent_dim": 256,
+    "lista_refinements": 1,
+    "checkpoint_selection": "direct repeated-K H200 on a disjoint native validation cache",
+    "dense_contract": "tanh hidden activations, linear dense latent output, dense K, zero sparsity coefficient, no shrinkage, ReLU output gate, top-k, block penalty, or weight decay intended to induce zeros"
+  },
+  "evaluation": {
+    "primary": "direct repeated-K strict full-horizon MSE and survival",
+    "horizons": [100, 500, 1000, 1500, 2000, 3000, 4000, 5000],
+    "secondary": "fixed periodic cadences 25, 100, and 200; any test-set best-periodic envelope is exploratory",
+    "statistics": "summarize paired seeds within each system, then treat ten systems as independent units"
+  },
+  "compute": {
+    "partition": "long",
+    "packing": "12 concurrent fits per GPU with 32 GiB host memory",
+    "telemetry_seconds": 30,
+    "smoke_gate": "exactly 12 Chua receipts; isolated cache path in every config; direct checkpoint selector in every checkpoint; finite metrics; mean GPU >=70%, active mean >=80%, peak >=95%"
+  },
+  "failure_policy": "Any missing, stale, wrong-cache, wrong-depth, wrong-selector, nonfinite, incomplete, or provenance-mismatched row blocks downstream work. The selector may reject all models; no partial packet supports a claim."
+}

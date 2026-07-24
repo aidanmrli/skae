@@ -1,0 +1,25 @@
+\begin{table*}[t]
+\centering
+\scriptsize
+\caption{Frozen Allen--Cahn periodic-reencoding comparisons. Positive reduction favors the comparison policy. H200 selected sparse versus selected dense is the sole confirmatory row. H400 and within-arm rows are secondary; direct same-cadence rows are descriptive. Missing H400 tiers remain visible as unavailable rather than being dropped. Confidence intervals propagate validation cadence selection where labeled selector-rerun. No exact $p$-value is claimed for within-arm selector-rerun comparisons.}
+\label{tab:allen_cahn_periodic_reencoding}
+\begin{tabular}{lllrrrrl}
+\toprule
+Endpoint & Baseline & Comparison & Base MSE & Comp. MSE & Reduction [95\% CI] & Wins & $p$ / role \\
+\midrule
+H200 cumulative field MSE & dense@direct & sparse@direct & 0.051298 & 0.048367 & +5.71\% [+1.92, +9.04] & 8/10 & 0.0127 / Confirmatory \\
+H200 cumulative field MSE & dense@direct & sparse@direct & 0.051298 & 0.048367 & +5.71\% [+1.92, +9.04] & 8/10 & 0.0127 / Descriptive \\
+H400 cumulative field MSE & dense@direct & sparse@direct & 0.074158 & 0.070383 & +5.09\% [+0.68, +8.95] & 8/10 & 0.03027 / Selector-rerun secondary \\
+H400 cumulative field MSE & dense@direct & sparse@direct & 0.074158 & 0.070383 & +5.09\% [+0.72, +8.96] & 8/10 & 0.03027 / Descriptive \\
+H201--H400 tail field MSE & dense@direct & sparse@direct & 0.097019 & 0.092399 & +4.76\% [-0.30, +9.10] & 8/10 & 0.0498 / Selector-rerun secondary \\
+H201--H400 tail field MSE & dense@direct & sparse@direct & 0.097019 & 0.092399 & +4.76\% [-0.33, +9.10] & 8/10 & 0.0498 / Descriptive \\
+\midrule
+\multicolumn{8}{l}{Within-arm validation-selected policy versus direct rollout} \\
+\midrule
+H200 cumulative field MSE & dense@direct & dense@direct & 0.051298 & 0.051298 & +0.00\% [+0.00, +0.00] & 0/10 & -- / Selector-rerun secondary \\
+H200 cumulative field MSE & sparse@direct & sparse@direct & 0.048367 & 0.048367 & +0.00\% [+0.00, +0.00] & 0/10 & -- / Selector-rerun secondary \\
+H201--H400 tail field MSE & dense@direct & dense@direct & 0.097019 & 0.097019 & +0.00\% [+0.00, +0.00] & 0/10 & -- / Selector-rerun secondary \\
+H201--H400 tail field MSE & sparse@direct & sparse@direct & 0.092399 & 0.092399 & +0.00\% [+0.00, +0.00] & 0/10 & -- / Selector-rerun secondary \\
+\bottomrule
+\end{tabular}
+\end{table*}

@@ -5,6 +5,9 @@ including mathematical dynamics, integration, trajectory generation, and batchin
 """
 
 import unittest
+from unittest import mock
+
+import numpy as np
 import torch
 from skae.config import Config
 from skae.benchmarks.dysts_adapter import DystsEnv, is_dysts_available
@@ -216,6 +219,50 @@ class TestDystsAdapter(unittest.TestCase):
         self.assertEqual(traj.dtype, torch.float32)
         self.assertEqual(traj.shape, (32, env.observation_size))
         self.assertTrue(traj.is_contiguous())
+
+    def test_dt_override_reaches_native_integrator(self):
+        override = 0.012345
+        env = DystsEnv("Duffing", dt_override=override, standardize=False)
+        captured = {}
+
+        def fake_make_trajectory(*, n, dt, **kwargs):
+            captured["system_dt"] = env.system.dt
+            captured["call_dt"] = dt
+            return np.zeros((n, env.observation_size), dtype=np.float64)
+
+        with mock.patch.object(env.system, "make_trajectory", fake_make_trajectory):
+            trajectory = env.make_trajectory_native(
+                n=3,
+                resample=False,
+                standardize=False,
+            )
+
+        self.assertEqual(trajectory.shape, (3, env.observation_size))
+        self.assertAlmostEqual(float(env.dt), override)
+        self.assertAlmostEqual(float(captured["system_dt"]), override)
+        self.assertAlmostEqual(float(captured["call_dt"]), override)
+
+    def test_native_integrator_receives_solver_and_tolerances(self):
+        env = DystsEnv("Duffing", dt_override=0.01, standardize=False)
+        captured = {}
+
+        def fake_make_trajectory(*, n, **kwargs):
+            captured.update(kwargs)
+            return np.zeros((n, env.observation_size), dtype=np.float64)
+
+        with mock.patch.object(env.system, "make_trajectory", fake_make_trajectory):
+            env.make_trajectory_native(
+                n=3,
+                resample=False,
+                standardize=False,
+                method="DOP853",
+                rtol=2e-10,
+                atol=3e-11,
+            )
+
+        self.assertEqual(captured["method"], "DOP853")
+        self.assertEqual(captured["rtol"], 2e-10)
+        self.assertEqual(captured["atol"], 3e-11)
 
     def test_step_batch_returns_float32(self):
         env = DystsEnv("Duffing", dt_override=0.01, standardize=True)

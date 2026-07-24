@@ -1,35 +1,51 @@
 {
-  "schema_version": 1,
-  "status": "complete",
-  "description": "Component-level provenance for the fixed-data Lorenz-96 and independent-holdout Allen-Cahn high-dimensional display.",
+  "claim_split": "Lorenz-96 supplies a complete-recipe direct-rollout sparse forecasting advantage. The representation-optimized Allen-Cahn packet supplies strong alignment between T=20 final-state support families and T=20 modal-well fate labels across all trajectories, and exactly one transferred family per fate on a single-well-dominated final-field slice prospectively frozen for the new holdout after earlier mixed-domain fragmentation. Validation fate metrics selected T=20 scoring, Jaccard 0.40, the temporal weight, and whole-packet advancement; conditional on that label-assisted recipe, training, representative fitting, and independent-holdout assignment remain label-free. The packet retains the 0.009 primary uniqueness-gate miss and negative long-horizon sparse forecasting. With matched trainable tensor shapes and effective forward-path parameter count, the separate forecast-optimized, no-reencoding Allen-Cahn packet supplies secondary through-horizon mean-error improvements for the joint soft-thresholding-plus-L1 treatment at physical times 16 and 20, while preserving its failed terminal gate and unopened holdout.",
   "components": [
     {
       "id": "lorenz96_D128",
       "provenance": "lorenz96_highdim_confirmation_provenance.json",
-      "provenance_sha256": "028b2dc69e743aa27646d057c1e758f234e1b90216094c46fa3ca197dc1efdd4"
+      "provenance_sha256": "70d8a1bf84bce90084af6779586733c5ed8731481d54474e895a915e6a790299"
     },
     {
       "id": "allen_cahn_D512_time20",
       "provenance": "allen_cahn_time20_confirmation_provenance.json",
-      "provenance_sha256": "847b5be3265d8087cc985a10cd5904614b9df470fd38e4b79dbbdf80210c0708"
+      "provenance_sha256": "e6a235e9d68e1fba42c6f83226b1adb3b97d5b709fbaaea97167386dffbfaae8"
     },
     {
       "id": "allen_cahn_D512_temporal_group_independent_holdout",
       "provenance": "allen_cahn_temporal_group_holdout_provenance.json",
-      "provenance_sha256": "0e3b4606eb7df73d682fe339f88b3a8f8dcd409061f0ebb114a9425a4a15983e"
+      "provenance_sha256": "e1b59db1c67a9a267a7e333589b505c95be7c86a5a077210c99e04e554b6b0f3"
+    },
+    {
+      "id": "allen_cahn_D512_global_k_forecast_optimized",
+      "provenance": "allen_cahn_global_k_forecast_optimized_provenance.json",
+      "provenance_sha256": "2ffc2baddc76b4c9462b7dee283aaae856c0201854fdcbd9b85f4a81afaa9f49"
     }
   ],
+  "description": "Component-level provenance for fixed-data Lorenz-96, representation-optimized Allen-Cahn, and the separate forecast-optimized Allen-Cahn packet.",
   "display": {
     "pdf": "../fig_highdimensional_confirmation.pdf",
-    "pdf_sha256": "b332d118612290872a43ed673e8e8665e728abf9e94e88d9c43b1580e506a021",
+    "pdf_sha256": "73ff8dcdc30276453cdd850ddaf6ec37096fdf6dfef69fba6ae48821cabf1be8",
     "png": "../fig_highdimensional_confirmation.png",
-    "png_sha256": "ef768d1730edc3ef8f41677966da674b970191ab176db4dfaf400ec055bcccb7"
+    "png_sha256": "1584dbb17b4f8f5d0b49361aa24ca33c70a71d45ef9a1f3e387c50023b3eb964"
   },
+  "schema_version": 1,
+  "status": "complete",
   "supplementary_displays": {
     "support_contingency_pdf": "../fig_allen_cahn_support_contingency.pdf",
-    "support_contingency_pdf_sha256": "3be84fb3029605aa06f114580e3569fe745a99f4a2821abd6d2c4a37918ad601",
+    "support_contingency_pdf_sha256": "26ae1e6669de3dfae67bd8bd7eb8018a1f511e7941690c62d820b2201f74b639",
+    "support_contingency_png": "../fig_allen_cahn_support_contingency.png",
+    "support_contingency_png_sha256": "75e863371b87f300853caaefcfdbe7542fc88b6186ba7371f676939010eb6954",
     "time20_snapshots_pdf": "../fig_allen_cahn_time20_snapshots.pdf",
     "time20_snapshots_pdf_sha256": "e41ddb3e5f4dabae0b97c66e9a65298b0fc3d4137c46cb237c25a3e42c398d58"
   },
-  "claim_split": "Lorenz-96 supplies the sparse forecasting advantage. The independent Allen-Cahn dataset supplies strong all-trajectory basin information and exact predeclared deep-interior alignment, while retaining the 0.009 primary uniqueness-gate miss and the negative sparse-forecasting result."
+  "support_contingency_display_contract": {
+    "display_model_seed": 21,
+    "family_identity": "raw transferred training-codebook index",
+    "family_order": "ascending nonnegative raw codebook index, then unknown (-1)",
+    "ordering_uses_evaluation_fate": false,
+    "panel_specific_fate_row_counts_annotated": true,
+    "slice": "final modal-well occupancy >= 0.90, prospectively frozen for the new holdout after prior mixed-domain fragmentation",
+    "sparse_all_and_slice_share_complete_axis": true
+  }
 }

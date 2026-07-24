@@ -11,6 +11,8 @@ from pathlib import Path
 from statistics import median
 from typing import Dict, Iterable, List, Optional, Sequence
 
+import numpy as np
+
 
 DEFAULT_HORIZONS: Sequence[int] = (100, 500, 1000, 1500, 2000, 3000, 4000, 5000)
 
@@ -93,6 +95,8 @@ def _extract_row(
     }
     for horizon in horizons:
         row[f"h{horizon}_no_reencode_mean"] = None
+        row[f"h{horizon}_no_reencode_strict_full_horizon_mean"] = None
+        row[f"h{horizon}_no_reencode_strict_full_horizon_num_valid"] = None
         row[f"h{horizon}_no_reencode_full_finite_fraction"] = None
         row[f"h{horizon}_no_reencode_finite_step_fraction"] = None
         row[f"h{horizon}_every_step_mean"] = None
@@ -135,6 +139,12 @@ def _extract_row(
     for horizon in horizons:
         horizon_key = str(horizon)
         row[f"h{horizon}_no_reencode_mean"] = _horizon_mean(system_data, "no_reencode", horizon)
+        row[f"h{horizon}_no_reencode_strict_full_horizon_mean"] = _horizon_metric(
+            system_data, "no_reencode", horizon, "strict_full_horizon_mean"
+        )
+        row[f"h{horizon}_no_reencode_strict_full_horizon_num_valid"] = _horizon_metric(
+            system_data, "no_reencode", horizon, "strict_full_horizon_num_valid"
+        )
         row[f"h{horizon}_no_reencode_full_finite_fraction"] = _horizon_metric(
             system_data, "no_reencode", horizon, "full_horizon_finite_fraction"
         )
@@ -187,7 +197,13 @@ def _extract_row(
             best_reset, "min_finite_prefix_length"
         )
 
-        if row[f"h{horizon}_best_periodic_mean"] is None:
+        direct_strict = row[f"h{horizon}_no_reencode_strict_full_horizon_mean"]
+        direct_coverage = row[f"h{horizon}_no_reencode_full_finite_fraction"]
+        if (
+            direct_strict is None
+            or direct_coverage is None
+            or not math.isclose(float(direct_coverage), 1.0)
+        ):
             complete = False
 
     row["status"] = "complete" if complete else "partial"
@@ -222,21 +238,113 @@ def _per_root_summary(rows: Iterable[Dict[str, object]], horizons: Sequence[int]
         }
         for horizon in horizons:
             mse_vals = [
-                _safe_float(row.get(f"h{horizon}_best_periodic_mean"))
+                _safe_float(
+                    row.get(f"h{horizon}_no_reencode_strict_full_horizon_mean")
+                )
                 for row in complete_rows
             ]
             mse_vals = [value for value in mse_vals if value is not None]
-            payload[f"h{horizon}_median_best_periodic_mean"] = median(mse_vals) if mse_vals else None
+            payload[f"h{horizon}_median_direct_strict_mean"] = median(mse_vals) if mse_vals else None
             coverage_vals = [
-                _safe_float(row.get(f"h{horizon}_best_periodic_full_finite_fraction"))
+                _safe_float(row.get(f"h{horizon}_no_reencode_full_finite_fraction"))
                 for row in complete_rows
             ]
             coverage_vals = [value for value in coverage_vals if value is not None]
-            payload[f"h{horizon}_median_best_periodic_full_finite_fraction"] = (
+            payload[f"h{horizon}_median_direct_full_finite_fraction"] = (
                 median(coverage_vals) if coverage_vals else None
             )
         summary[root_label] = payload
     return summary
+
+
+def _direct_system_effects(
+    rows: Sequence[Dict[str, object]],
+    horizons: Sequence[int],
+    *,
+    dense_label: str = "dense_mlp_tanh",
+) -> Dict[str, Dict[str, object]]:
+    """Pair seeds within systems, then aggregate over systems."""
+
+    indexed = {
+        (str(row["root_label"]), str(row["system_key"]), int(row["seed"])): row
+        for row in rows
+    }
+    labels = sorted({str(row["root_label"]) for row in rows})
+    systems = sorted({str(row["system_key"]) for row in rows})
+    seeds = sorted({int(row["seed"]) for row in rows})
+    output: Dict[str, Dict[str, object]] = {}
+    for horizon_index, horizon in enumerate(horizons):
+        endpoint: Dict[str, object] = {}
+        metric = f"h{horizon}_no_reencode_strict_full_horizon_mean"
+        coverage_key = f"h{horizon}_no_reencode_full_finite_fraction"
+        for label_index, label in enumerate(labels):
+            if label == dense_label:
+                continue
+            system_effects: Dict[str, float] = {}
+            failures = []
+            for system in systems:
+                paired = []
+                for seed in seeds:
+                    candidate = indexed.get((label, system, seed))
+                    dense = indexed.get((dense_label, system, seed))
+                    if candidate is None or dense is None:
+                        failures.append(f"{system}/seed{seed}:missing_pair")
+                        continue
+                    candidate_value = _safe_float(candidate.get(metric))
+                    dense_value = _safe_float(dense.get(metric))
+                    candidate_coverage = _safe_float(candidate.get(coverage_key))
+                    dense_coverage = _safe_float(dense.get(coverage_key))
+                    if (
+                        candidate_value is None
+                        or dense_value is None
+                        or candidate_value <= 0.0
+                        or dense_value <= 0.0
+                        or candidate_coverage != 1.0
+                        or dense_coverage != 1.0
+                    ):
+                        failures.append(f"{system}/seed{seed}:nonfinite_or_incomplete")
+                        continue
+                    paired.append(math.log(candidate_value / dense_value))
+                if len(paired) == len(seeds) and len(seeds) == 15:
+                    system_effects[system] = float(sum(paired) / len(paired))
+            record: Dict[str, object] = {
+                "status": "available" if len(system_effects) == 10 and not failures else "unavailable",
+                "metric": "mean paired-seed log(direct strict MSE candidate/dense) within system",
+                "n_expected_seeds_per_system": 15,
+                "n_systems": len(system_effects),
+                "system_effects": system_effects,
+                "failures": failures,
+            }
+            if record["status"] == "available":
+                values = np.asarray(list(system_effects.values()), dtype=np.float64)
+                rng = np.random.default_rng(
+                    20260722 + 1009 * horizon_index + 97 * label_index
+                )
+                draws = values[
+                    rng.integers(0, len(values), size=(100_000, len(values)))
+                ].mean(axis=1)
+                mean_effect = float(values.mean())
+                wins = int((values < 0.0).sum())
+                record.update(
+                    {
+                        "mean_system_log_ratio": mean_effect,
+                        "geometric_mean_mse_ratio": math.exp(mean_effect),
+                        "bootstrap_95_interval_log_ratio": [
+                            float(np.quantile(draws, 0.025)),
+                            float(np.quantile(draws, 0.975)),
+                        ],
+                        "system_wins": wins,
+                        "one_sided_exact_sign_p": sum(
+                            math.comb(len(values), k)
+                            for k in range(wins, len(values) + 1)
+                        )
+                        / (2 ** len(values)),
+                        "inference_unit": "system",
+                    }
+                )
+            endpoint[label] = record
+        output[str(horizon)] = endpoint
+    return output
 
 
 def _write_markdown(
@@ -264,15 +372,15 @@ def _write_markdown(
             f"- `{root_label}`: complete `{payload['n_complete']}/{payload['n_tasks']}`"
         )
         for horizon in horizons:
-            value = payload.get(f"h{horizon}_median_best_periodic_mean")
-            coverage = payload.get(f"h{horizon}_median_best_periodic_full_finite_fraction")
+            value = payload.get(f"h{horizon}_median_direct_strict_mean")
+            coverage = payload.get(f"h{horizon}_median_direct_full_finite_fraction")
             if value is None:
                 continue
             suffix = ""
             if coverage is not None:
                 suffix = f", median full-finite coverage: `{coverage:.3g}`"
             lines.append(
-                f"  median best-periodic MSE at `H{int(horizon)}`: `{value:.6g}`{suffix}"
+                f"  median direct strict MSE at `H{int(horizon)}`: `{value:.6g}`{suffix}"
             )
     if pending:
         lines.extend(
@@ -306,6 +414,17 @@ def parse_args() -> argparse.Namespace:
         help="Reevaluation output tag",
     )
     parser.add_argument("--checkpoint-name", default="checkpoint", help="Checkpoint stem that was reevaluated")
+    parser.add_argument(
+        "--require-complete",
+        action="store_true",
+        help="Write diagnostics, then fail if any requested row is incomplete.",
+    )
+    parser.add_argument(
+        "--expected-task-count",
+        type=int,
+        default=None,
+        help="Expected number of task rows for a sealed packet.",
+    )
     return parser.parse_args()
 
 
@@ -338,10 +457,25 @@ def main() -> None:
         "n_pending": sum(1 for row in rows if row["status"] != "complete"),
         "horizons": list(horizons),
         "per_root": _per_root_summary(rows, horizons),
+        "direct_system_level_effects_vs_dense": _direct_system_effects(
+            rows, horizons
+        ),
     }
     summary_json.write_text(json.dumps(summary, indent=2))
     _write_markdown(summary_md, rows=rows, summary=summary["per_root"], horizons=horizons)
     print(f"Wrote long-horizon Dysts collector outputs to {out_dir}")
+
+    if args.require_complete:
+        expected = (
+            len(rows)
+            if args.expected_task_count is None
+            else int(args.expected_task_count)
+        )
+        if len(rows) != expected or summary["n_pending"] != 0:
+            raise RuntimeError(
+                "Incomplete Dysts evaluation packet after writing diagnostics: "
+                f"tasks={len(rows)}/{expected}, pending={summary['n_pending']}."
+            )
 
 
 if __name__ == "__main__":

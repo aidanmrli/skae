@@ -1,0 +1,167 @@
+{
+  "audit_id": "allen_cahn_global_k_forecast_optimized_architecture_audit",
+  "audit_date": "2026-07-20",
+  "packet_id": "allen_cahn_global_k_forecast_optimized",
+  "status": "passed_capacity_and_forward_path_parity_with_joint_sparse_treatment",
+  "artifact_manifest": {
+    "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_artifact_manifest.json",
+    "sha256_at_audit": "3f2e53c23953f3109bb1c45619b57c9caad854cc3cb2dd5d6899904195a4203e",
+    "checkpoint_roster_crosscheck": "20_of_20_exact_matches"
+  },
+  "launch_sources": {
+    "primary_commit": "376de761431fe85f37f003ae878ba6efea8afb96",
+    "replacement_sparse_seed_69_commit": "6bf2f15b592f266bd154d5de79dcd31a028f3fa1",
+    "relevant_sources_identical_at_both_commits": true,
+    "sha256": {
+      "configs/allen_cahn_global_confirmation_20260719.json": "5fb285233b87b8051a8cbd07a257fe308a167ecab6756f89ff4692d425914a57",
+      "scripts/neurips_2026/allen_cahn_rebuttal/run_global_confirmation_array.sh": "867038c59188334e7a9212cb473b63621eeec772017d893650d476e8b21debcc",
+      "skae/benchmarks/spatialized_conv_koopman.py": "4f71c674d1e82174f437365c728c8e3684617364b979d624ed35fbbba0371f3b",
+      "tools/train_spatialized_reaction_diffusion_conv.py": "1d53e8d1fe878dec38413d4f56f094eadf87a683a947f8577f556a9386c18dc2"
+    }
+  },
+  "shape_digest_definition": "sha256 of compact sorted-key JSON list [{name,shape,dtype}] from checkpoint model_state_dict",
+  "common_checkpoint_structure": {
+    "trainable_parameter_count_from_source_and_state_elements": 12698690,
+    "model_state_tensor_count": 40,
+    "shape_digest": "f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615",
+    "lista_s_shape": [2048, 2048],
+    "lista_s_parameter_count": 4194304,
+    "effective_forward_parameter_count_excluding_inert_lista_s": 8504386
+  },
+  "forward_path_audit": {
+    "common_modules": [
+      "tanh convolutional encoder",
+      "linear pre_code",
+      "full trainable 2048_by_2048 K",
+      "linear decoder_fc",
+      "tanh convolutional decoder"
+    ],
+    "dense_encode": "code",
+    "sparse_encode": "softshrink(code, lambda=0.15)",
+    "lista_s_reason_inert": "lista_loops=1 and z is initialized to zero, so the only lista_s input is exactly zero; its weight gradient is therefore zero",
+    "lista_s_checkpoint_verification": "zero nonzeros and max_abs=0.0 in all 20 selected checkpoints",
+    "decoder_normalization_difference": false,
+    "capacity_difference": false
+  },
+  "configuration_audit": {
+    "all_dense_model_config_sha256": "91cebfd1e2ce7f4a66a29c7b3c248ea84472571765e0c87e0c33b2510474bc61",
+    "all_sparse_model_config_sha256": "606ef93dd2a7745bd8a3dc0c016f65736f238aebef5f1d9ba17da10d4aa55cff",
+    "all_dense_loss_weights_sha256": "b6a648dca72818b6705d949203326985bfe219f8de20c747013a3b957670b866",
+    "all_sparse_loss_weights_sha256": "8ab3d31285743e2a38628aae3d9fd1482de38c67d573fdd66cb9644e73b20eb2",
+    "normalized_training_args_sha256_both_arms_all_seeds": "adea094d792e894ca6bc28a7071bc784e66465d91d845029a775ccabc1bafc8f",
+    "normalized_training_args_removed_fields": [
+      "run_dir",
+      "seed",
+      "model_variant",
+      "lista_alpha",
+      "sparsity_weight"
+    ],
+    "paired_scientific_differences": [
+      {
+        "field": "model_config.encoder_kind",
+        "dense": "dense",
+        "sparse": "lista"
+      },
+      {
+        "field": "model_config.lista_alpha",
+        "dense": 0.0,
+        "sparse": 0.15
+      },
+      {
+        "field": "loss_weights.sparsity",
+        "dense": 0.0,
+        "sparse": 0.01
+      },
+      {
+        "field": "training_args.model_variant",
+        "dense": "conv_dense",
+        "sparse": "conv_lista"
+      },
+      {
+        "field": "training_args.lista_alpha",
+        "dense": 0.0,
+        "sparse": 0.15
+      },
+      {
+        "field": "training_args.sparsity_weight",
+        "dense": 0.0,
+        "sparse": 0.01
+      }
+    ],
+    "no_other_paired_scientific_configuration_differences": true,
+    "common_model_config": {
+      "channels": 2,
+      "conv_activation": "tanh",
+      "decoder_kind": "upsample",
+      "dense_activation": "tanh",
+      "grid_size": 16,
+      "hidden_channels": 32,
+      "k_init_scale": 0.0,
+      "lista_loops": 1,
+      "num_blocks": 2,
+      "padding_mode": "circular",
+      "z_dim": 2048
+    },
+    "common_loss_weights": {
+      "gradient": 0.05,
+      "k_stability": 0.0,
+      "latent": 0.1,
+      "prediction": 1.0,
+      "reconstruction": 0.25,
+      "temporal_group_sparsity": 0.0
+    },
+    "common_training_settings": {
+      "batch_size": 8,
+      "checkpoint_horizons": [160, 200],
+      "checkpoint_metric": "joint_endpoints",
+      "device": "cuda",
+      "forecast_weighting": "uniform",
+      "k_matrix_lr": 1e-06,
+      "lr": 0.0003,
+      "num_steps": 3500,
+      "optimizer": "Adam",
+      "pretrain_steps": 2000,
+      "sequence_length": 200,
+      "spatial_augmentation": true,
+      "train_trajectory_limit": 512,
+      "validation_partition": "even",
+      "weight_decay": 0.0
+    }
+  },
+  "runs": [
+    {"arm":"dense","seed":64,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"3edced0d839db854207d78d2022bd3b4a41dfda6d0a5864e1679eb8d8e13c787","training_args_sha256":"17005ebdead90a4d11871edd22dc9a938d1a9739db9c9517daff1b0bce806f8b","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":65,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"ddfec80bf2fbd778f5efe2e23cbcf399b6192522d9581753e76da82f41009adb","training_args_sha256":"82b1ef30b8d25e474e8fec850b80435d8d09534e1a5487a68d3c9b5bc1d229ab","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":66,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"66bda0aac07da28ffe20d3ca1b7a32ef40ed406b547a9dc607d3a92822686b0e","training_args_sha256":"3c2a3b124567fa31e7a3092a2e509620eb698ed64d9ab6d42c0f7de4dc461af5","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":67,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"0b2ac5520f0fd834af1457898944f168fb101467c23b65d7077b8d0371eaf3f9","training_args_sha256":"b6159b1c8befb4412a88cce087e4a3211c0b97dec4503bb0c5d36da0d35bdd0c","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":68,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"4bdf8224c1f3670b3ceb84f970fa07644575dd099df11efabc65a871885f22e6","training_args_sha256":"98fd8d8263310473b51bab97be1eef79e56e06842d16cebb05330001845b8303","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":69,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"c9cdf5398b0a5905d9682b9fcb7b200a0e8dd28c633c06c994ea3164c7d1c052","training_args_sha256":"97569df448db04936fd91ced70199e3082353fc959851c5b6ce158f6a1ebd6f2","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":70,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"053b824017e8b128565dd65694569d8ba7d55a3a3fc4a7c2cc43a4b9f0d223f1","training_args_sha256":"a1e25b7db739302a49002b096c7d6b043c37d106920cc022c5b5dd5a60a680fc","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":71,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"2c93a69ee4eeaf76bde09ff7e86fa7fcb6b89849e3046c1316138ef50b4cf95a","training_args_sha256":"b56468ff1d4194c6a4c27d3f6f4dc5eabb49e5b6ba54599441b9d3a7ad427749","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":72,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"a2105494c0f09d88ede30976dec84a6231c517738598bcefec32f08677f78c88","training_args_sha256":"c41123eb7e8308d19de4538077902110d1e85055e6259fd134d119baf6357ab8","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"dense","seed":73,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"ad237268f1a69d4f0ce1eb15db5b9def1c28a50d6a5ee0aed1f5b5d377e2e867","training_args_sha256":"198b24eb15cb982b3cef576ca1533cba9646f86688cec03a247010d1c9d7b338","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":64,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"1fcb7791f12e9e3dda8d0655f3492afc74cb33477c33e91f7214c77a6b877bd5","training_args_sha256":"68d3d6b837f1ffc0f6dfb25316d4b54ecab2092d94d4a4ad2ff743781677a9ad","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":65,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"6ee16c55cb2d24a6d3058a9d9015b42f0e2cc75a5eaf813b7d74a16e5b80e095","training_args_sha256":"08049862642bae80b223c59791e674841a7f64e02e8982653aee059baebaa7c8","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":66,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"6157a46dbaff057f6e76aa6bda722457546b6acb7288f978a084919717ad4a23","training_args_sha256":"b1069b30ca458ea15397e47b2bf6dcc16d85902f0f0fcd430ced38e23e2556b8","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":67,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"e983bc24bbf56e826c553179ef2c7ce43b1a05aed630938c9b201241155d250e","training_args_sha256":"bf0829315b18a1c4600faa1561a0869c15e0c163ccdf4acd01d46a7ed380cee3","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":68,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"27d1ecfc19b895eca7272f9335282b5a4a6dfb7a0fd420b69e8b93605efaac81","training_args_sha256":"a3056592a836ff490549313d82efd7d0e8b2006b66a839a43a8945db87cf98d0","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":69,"launch_commit":"6bf2f15b592f266bd154d5de79dcd31a028f3fa1","checkpoint_sha256":"45675f15ece2cff6f91188a043814c0dd7bf403772944cce6497995915214dbf","training_args_sha256":"181786de3b458d8b219e9cb7d934d3c188968d58334be1b48b0d38e8bebfdb2a","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":70,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"35c9e7d157e39bf125d3a7cdcb341f97d2922f1e752bc763d2272c49ea33aaab","training_args_sha256":"c47d91fd1570d7ef3c7a45af9407101c772cc153890e19e8ad1f6ee1798d21d4","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":71,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"d17c86d541433467f3f5b73972995a27cdd3e66d2d9a7c32f9a828e31994caf9","training_args_sha256":"88220a12c5be8739c25ec6acc79f93b3e62a16d123a7e7e700a6ca6ea0c22a6d","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":72,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"b53ebeaf68f09a719381b0ff3b9edd434e3d4510966127bb9375cf9bbfd2673f","training_args_sha256":"5c80259b4f2afff17e525f095a24a9de60ca1341017f41d5725e8c3a41dd5456","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0},
+    {"arm":"sparse","seed":73,"launch_commit":"376de761431fe85f37f003ae878ba6efea8afb96","checkpoint_sha256":"791af4ca15f5cba9a725e12ac93574ddd9c85018deecda5b86ba8bb32f34fc6d","training_args_sha256":"3429706dd51034368b45582d61f5c598b5141b11a8cff6563dcb8f2f4b25d271","parameter_count":12698690,"tensor_count":40,"shape_digest":"f4d258eee7bebf7c3970f569048912de8aad1fd90c74aa98ac0d12a762393615","lista_s_nonzero_count":0,"lista_s_max_abs":0.0}
+  ],
+  "claim_boundary": {
+    "warrants": [
+      "The Allen-Cahn forecast comparison has identical allocated parameter count and tensor shapes in both arms.",
+      "The effective forward parameter count is identical because lista_s is inert in both arms.",
+      "The dense arm has no threshold or sparsity loss, while the sparse arm combines soft-thresholding with an elementwise L1 penalty.",
+      "Observed forecast differences can be attributed to the joint sparse recipe under this matched architecture and training protocol."
+    ],
+    "does_not_warrant": [
+      "Soft-thresholding alone caused the forecast effect.",
+      "The L1 loss alone caused the forecast effect.",
+      "Support alignment mediates the forecast effect.",
+      "The effect generalizes beyond the tested Allen-Cahn condition."
+    ]
+  }
+}

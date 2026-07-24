@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "protocol_id": "global_k_distinct_laws_v2_supplemental_integrity_audit",
+  "status": "amended_and_refrozen_before_scientific_outcome_access_by_auditor",
+  "frozen_at_utc": "2026-07-21T04:34:32Z",
+  "outcome_blinding_attestation": "The auditor had not opened V2 scientific shards, checkpoint-audit rows, training logs, the adjudication decision, or packet outputs when this protocol was written. Only the preregistered card, source lock, task roster, implementation sources, and protocol-only benchmark matrices were inspected.",
+  "outcome_blind_amendment": {
+    "amended_at_utc": "2026-07-21T04:12:15Z",
+    "superseded_supplemental_lock_sha256": "1f35abb47bab64e5021498dec567faac556ad5f3a0c478625ed70167b042f794",
+    "attestation": "No V2 scientific shard, checkpoint-audit row, task log, decision, or packet was opened before this amendment. An outcome-blind adversarial reviewer identified a mathematical counterexample to the original absolute specificity statement by inspecting only frozen source logic.",
+    "reason": "Whole-row numerical exclusion is conservative for absolute-count mechanism gates, but can favor a median-based relative-specificity comparison by changing sample parity. The amendment adds a fixed-ten-seed adverse-completion publication guard without changing frozen scientific adjudication."
+  },
+  "outcome_blind_radius_integrity_amendment": {
+    "amended_at_utc": "2026-07-21T04:34:32Z",
+    "superseded_supplemental_lock_sha256": "05a00241713215b8e28c2d4ab808243700926ff41a673bedb91a0ff5bdfa999f",
+    "attestation": "No V2 scientific shard, checkpoint-audit row, training log, decision, packet, checkpoint, or SLURM output was opened before this amendment. The auditor found the gap by reading only the frozen protocol, source lock, summarizer, and outcome-blind supplemental source code.",
+    "reason": "The prior supplemental guard required five H and five G records but did not verify that their recorded radii were the exact frozen ordered sequence. A permutation, duplicate, wrong value, or nonfinite radius could therefore preserve cardinality while misaligning the first-two small-radius checks or paired H/G interpretation.",
+    "repair": "Make exact ordered radius integrity a top-level supplemental-audit precondition. Authenticate the parent-card sequence and, for every eligible sparse and dense row and every indexed basin, require both H and G to contain finite numeric radii [0.01,0.03,0.06,0.12,0.18] in exactly that order and require indexwise H/G alignment. Reuse the same exact-order guard in the per-basin finite-neighborhood wording decision.",
+    "scientific_adjudication_unchanged": true
+  },
+  "parent_protocol": {
+    "protocol_id": "global_k_distinct_laws_gated_local_linear_v2_new_seeds",
+    "card_sha256": "663fd03ddf9bfacabeef616f2a74f24998460d78b28413fdfeb42b012712f45b",
+    "source_lock_sha256": "a21c8e554d929dff42aeb66f91f7d5d7f1d5ac8ce7d6d3fd76668f47775779be",
+    "full_task_tsv_sha256": "5b1d16ec52e3cf1ea695abbfee95ccc3c5e7b7e1f8a734209791f05d940a0e83",
+    "full_manifest_sha256": "0c34ab6230f0034bb93a7a7d4179d1696da6c5c96d5346c8d21685a784e8451a",
+    "evaluator_sha256": "df2d0d3509b2442470d84a7a79cc5e03574d53b48a8c16179cbf542b097abe88",
+    "summarizer_sha256": "90def302c7ef5fa2642b10146933f3419d6d300c982d200c714d12b8b5b01a42"
+  },
+  "selected_checkpoint_validation": {
+    "scope": "All 20 selected checkpoints: ten sparse and ten dense, seeds 100--109.",
+    "deterministic_reconstruction": "Recreate the training selector's fixed validation initial conditions with torch.Generator seed TRAIN.SEED+999999, the checkpoint batch size and sequence length, and the first 16 states; then run the inherited 200-step every-step physical reencoding evaluator on CPU.",
+    "required_selected_checkpoints": 20,
+    "required_trajectories_per_checkpoint": 16,
+    "required_joint_finite_trajectories_per_checkpoint": 16,
+    "finite_definition": "Every value at every forecast time and physical coordinate must be finite in both truth and prediction.",
+    "checkpoint_authentication": "For every task, require the checkpoint rerun from the discovered completed run to have the same SHA-256 as both its authenticated checkpoint-audit row and its authenticated scientific evaluation shard.",
+    "score_check": "Recompute final physical-state error and require equality, within 1e-12 absolute plus 1e-12 relative tolerance, to a direct ordinary finite mean over all 16 terminal errors. Compare to a serialized selected score only if such a score is present in an authenticated compact artifact.",
+    "known_serialization_limit": "The selected checkpoint and compact checkpoint audit do not serialize the historical best validation score. Therefore equality to the historical scalar cannot be checked without opening mutable training logs; record this comparison as unavailable rather than infer equality. Deterministic state/trajectory reconstruction, full finiteness, and internal score equality remain mandatory."
+  },
+  "independent_adjudication_reproduction": {
+    "requirements": [
+      "Verify the frozen V2 source lock and its external inputs.",
+      "Require every authenticated shard evaluator hash to equal the source-locked evaluator hash.",
+      "Require the decision provenance summarizer hash to equal the source-locked summarizer hash.",
+      "Call the source-locked adjudicate function independently from authenticated shards and checkpoint-audit summary.",
+      "Recreate the exact canonical JSON payload, including provenance, and require both parsed-value equality and byte-for-byte equality with the original decision."
+    ]
+  },
+  "per_basin_replication": {
+    "planned_model_seeds_per_basin": 10,
+    "minimum_adequate_passes_per_basin": 8,
+    "rationale": "A 24-of-30 aggregate threshold can otherwise pass with severe basin imbalance (for example 10/10/4). Eight passes per basin matches the preregistered minimum seed-level replication and is a conservative wording guard, not a post hoc change to scientific adjudication.",
+    "report_for_each_basin": [
+      "kink-valid rows",
+      "H and G own-law-nearest rows",
+      "H and G own-over-nearest-wrong ratio at most 0.8",
+      "direct active-code-cloud closure at most 0.50",
+      "both affine center guards",
+      "every finite-neighborhood gate",
+      "for every metric: numerator, eligible denominator, planned denominator 10, and passing seed IDs"
+    ],
+    "twenty_four_of_thirty_tiers_requiring_eight_per_basin_for_blanket_wording": [
+      "H own-over-nearest-wrong ratio at most 0.8",
+      "G own-over-nearest-wrong ratio at most 0.8",
+      "direct active-code-cloud closure at most 0.50",
+      "both affine center guards",
+      "every finite-neighborhood gate when that tier is claimed"
+    ],
+    "artifact_integrity": "Require exactly the five frozen radii for both H and G before a finite-neighborhood row can pass; empty or truncated radius lists fail.",
+    "wording_rule": "Do not use blanket all-three-law recovery wording for a positive mechanism tier unless every basin meets every tier-relevant per-basin replication requirement. Preserve the frozen aggregate adjudication but replace overbroad prose with basin-specific counts when this supplemental guard fails."
+  },
+  "finite_radius_sequence_integrity": {
+    "expected_ordered_radii": [0.01, 0.03, 0.06, 0.12, 0.18],
+    "scope": "Every eligible sparse and dense evaluation row, all three basin-indexed finite-radius rows, and both H and G record lists.",
+    "requirements": [
+      "The parent V2 card radius list exactly equals the frozen ordered sequence.",
+      "Every eligible result has exactly three finite-radius basin rows, ordered and labeled basin 0, 1, and 2.",
+      "Every H and G list contains exactly five records whose radius fields are finite numeric values equal to the frozen sequence in order.",
+      "H and G radius records are index-aligned within every model-seed/basin row."
+    ],
+    "failure_branch": "The supplemental integrity audit fails closed and no V2 claim is authenticated until the mismatch is resolved. The frozen scientific adjudication is not altered or reinterpreted."
+  },
+  "relative_specificity_adverse_completion": {
+    "scope": "Publication wording for the frozen sparse-versus-dense relative-specificity tier; the frozen scientific decision remains unchanged.",
+    "fixed_seed_roster": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109],
+    "branch_evaluable_definition": "Both arm rows are eligible and complete-three-basin kink-valid, exactly as required for inclusion in the frozen paired specificity reducer.",
+    "rule": "A positive relative-specificity claim is permitted if all ten pairs are branch-evaluable, or if every excluded pair is appended as positive infinity to each primary H ratio vector and counted as a sign failure, and this fixed-ten-seed adverse completion still passes both median-at-most-0.90 gates, the at-least-9-of-10 paired-win gate, and every original frozen specificity validity/effect gate.",
+    "justification": "The ratios are nonnegative, so positive infinity maximizes each unknown excluded ratio. With nine observed pairs it replaces the odd-sample fifth order-statistic median by the fixed-ten average of the fifth and sixth order statistics, closing the sample-parity loophole. Missing pairs were already counted as sign failures by the frozen reducer.",
+    "unreconstructable_branch_rule": "Do not reconstruct partial H metrics lost by a whole-row numerical exception or alter the frozen evaluator. Use the positive-infinity adverse completion. If the fixed-ten guard cannot be authenticated or does not pass, label relative specificity unresolved."
+  },
+  "limitations": {
+    "conservative_ineligible_numerical_mismatch": "The frozen evaluator can mark a complete seed row ineligible when a nonfinite G or closure quantity prevents JSON-safe complete-recipe evaluation, even if an H-only quantity might remain usable in isolation. Exclusion is conservative for the absolute-count mechanism tiers: it can reduce eligible counts and block a positive mechanism tier, but cannot create one. It is not automatically conservative for median-based relative specificity because dropping a pair changes the median sample; the fixed-ten adverse-completion guard above is therefore mandatory for specificity wording. The audit does not repair or reinterpret frozen science after the fact.",
+    "claim_scope": "This audit checks integrity and claim wording for a controlled two-dimensional local mechanism test. It does not turn the experiment into evidence of high-dimensional, realistic, or long-horizon autonomous forecasting performance."
+  }
+}

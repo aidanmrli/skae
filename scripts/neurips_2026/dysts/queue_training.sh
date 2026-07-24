@@ -15,6 +15,10 @@
 #   SYSTEMS_CSV=dysts:Chua,dysts:Dadras
 #   MODEL_VARIANTS_CSV=lista_bd,lista_sb
 #   SEEDS_CSV=0,1,2
+#   LISTA_SB_NUM_LOOPS=1
+#   ALLOW_ROOT_SUBSET=1
+#   TRAIN_PACK_CONCURRENCY=4
+#   TRAIN_CPUS_PER_TASK=8
 #   MAX_EXISTING_JOBS_BEFORE_SUBMIT=10000
 #   ARRAY_PARALLEL=64
 #   EVAL_TIME_LIMIT=06:00:00
@@ -52,8 +56,16 @@ HORIZONS="${HORIZONS:-100 500 1000 1500 2000 3000 4000 5000}"
 SYSTEMS_CSV="${SYSTEMS_CSV:-}"
 MODEL_VARIANTS_CSV="${MODEL_VARIANTS_CSV:-}"
 SEEDS_CSV="${SEEDS_CSV:-}"
+LISTA_SB_NUM_LOOPS="${LISTA_SB_NUM_LOOPS:-2}"
+ALLOW_ROOT_SUBSET="${ALLOW_ROOT_SUBSET:-0}"
 TRAIN_ARRAY_PARALLEL="${TRAIN_ARRAY_PARALLEL:-90}"
 TRAIN_PACK_SIZE="${TRAIN_PACK_SIZE:-12}"
+TRAIN_PACK_CONCURRENCY="${TRAIN_PACK_CONCURRENCY:-1}"
+TRAIN_CPUS_PER_TASK="${TRAIN_CPUS_PER_TASK:-4}"
+TRAIN_MEMORY="${TRAIN_MEMORY:-16G}"
+TRAIN_SKIP_EVAL="${TRAIN_SKIP_EVAL:-0}"
+SOURCE_MANIFEST="${SOURCE_MANIFEST:-}"
+CACHE_SPLITS="${CACHE_SPLITS:-train val test}"
 TRAIN_TIME_LIMIT="${TRAIN_TIME_LIMIT:-3-00:00:00}"
 ARRAY_PARALLEL="${ARRAY_PARALLEL:-64}"
 EVAL_TIME_LIMIT="${EVAL_TIME_LIMIT:-06:00:00}"
@@ -98,7 +110,18 @@ echo "DYSTS_DT_MULTIPLIER: ${DYSTS_DT_MULTIPLIER}"
 echo "SYSTEMS_CSV: ${SYSTEMS_CSV:-<default>}"
 echo "MODEL_VARIANTS_CSV: ${MODEL_VARIANTS_CSV:-<default>}"
 echo "SEEDS_CSV: ${SEEDS_CSV:-<default>}"
+echo "LISTA_SB_NUM_LOOPS: ${LISTA_SB_NUM_LOOPS}"
+echo "ALLOW_ROOT_SUBSET: ${ALLOW_ROOT_SUBSET}"
 echo "TRAIN_PACK_SIZE: ${TRAIN_PACK_SIZE}"
+echo "TRAIN_PACK_CONCURRENCY: ${TRAIN_PACK_CONCURRENCY}"
+echo "TRAIN_CPUS_PER_TASK: ${TRAIN_CPUS_PER_TASK}"
+echo "TRAIN_MEMORY: ${TRAIN_MEMORY}"
+echo "TRAIN_SKIP_EVAL: ${TRAIN_SKIP_EVAL}"
+echo "SOURCE_MANIFEST: ${SOURCE_MANIFEST:-<none>}"
+
+if [[ -n "${SOURCE_MANIFEST}" ]]; then
+  sha256sum -c "${SOURCE_MANIFEST}"
+fi
 echo "MAX_EXISTING_JOBS_BEFORE_SUBMIT: ${MAX_EXISTING_JOBS_BEFORE_SUBMIT}"
 
 BUILD_ARGS=(
@@ -108,6 +131,7 @@ BUILD_ARGS=(
   --output_manifest_json "${MANIFEST_JSON}"
   --num_steps "${NUM_STEPS}"
   --dt_multiplier "${DYSTS_DT_MULTIPLIER}"
+  --lista_sb_num_loops "${LISTA_SB_NUM_LOOPS}"
 )
 if [[ -n "${SYSTEMS_CSV}" ]]; then
   BUILD_ARGS+=(--systems_csv "${SYSTEMS_CSV}")
@@ -177,7 +201,9 @@ systems_file.write_text(
 PY
 
 TASK_COUNT=$(( $(wc -l < "${TASK_TSV}") - 1 ))
+TASK_TSV_SHA256="$(sha256sum "${TASK_TSV}" | awk '{print $1}')"
 SYSTEM_COUNT=$(wc -l < "${SYSTEMS_FILE}")
+CACHE_SPLIT_COUNT=$(wc -w <<< "${CACHE_SPLITS}")
 MODEL_COUNT=$(tail -n +2 "${TASK_TSV}" | cut -f3 | sort -u | wc -l)
 SEED_COUNT=$(tail -n +2 "${TASK_TSV}" | cut -f9 | sort -u | wc -l)
 if (( TASK_COUNT <= 0 )); then
@@ -195,9 +221,10 @@ PRETRAIN_CACHE_JOB_ID=$(
   CACHE_DIR="${DYSTS_CACHE_DIR}" \
   CACHE_NUM_WORKERS=2 \
   PROFILES="${DYSTS_CACHE_PROFILE}" \
-  SPLITS="train val" \
+  SPLITS="${CACHE_SPLITS}" \
   DYSTS_DT_MULTIPLIER="${DYSTS_DT_MULTIPLIER}" \
-  sbatch --parsable -p long --array=0-$((SYSTEM_COUNT * 2 - 1)) scripts/neurips_2026/dysts/prebuild_cache.sh
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  sbatch --parsable -p long --array=0-$((SYSTEM_COUNT * CACHE_SPLIT_COUNT - 1)) scripts/neurips_2026/dysts/prebuild_cache.sh
 )
 
 TRAIN_ARRAY_COUNT=$(( (TASK_COUNT + TRAIN_PACK_SIZE - 1) / TRAIN_PACK_SIZE ))
@@ -207,7 +234,13 @@ TRAIN_JOB_ID=$(
   BASE_OUT="${BASE_OUT}" \
   ARRAY_OFFSET=0 \
   PACK_SIZE="${TRAIN_PACK_SIZE}" \
+  PACK_CONCURRENCY="${TRAIN_PACK_CONCURRENCY}" \
+  TRAIN_SKIP_EVAL="${TRAIN_SKIP_EVAL}" \
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
   sbatch --parsable -p long --time="${TRAIN_TIME_LIMIT}" \
+    --cpus-per-task="${TRAIN_CPUS_PER_TASK}" \
+    --mem="${TRAIN_MEMORY}" \
     --dependency=afterok:${PRETRAIN_CACHE_JOB_ID} \
     --array=0-$((TRAIN_ARRAY_COUNT - 1))%${TRAIN_ARRAY_PARALLEL} \
     scripts/common/run_benchmark_packed_array.sh
@@ -228,7 +261,11 @@ EVAL_QUEUE_JOB_ID=$(
   EVAL_TIME_LIMIT="${EVAL_TIME_LIMIT}" \
   VALIDATION_INDEX="${VALIDATION_INDEX}" \
   EVAL_PACK_SIZE="${EVAL_PACK_SIZE:-12}" \
-  sbatch --parsable -p long --dependency=afterany:${TRAIN_DEP} scripts/neurips_2026/dysts/queue_evaluation.sh
+  ALLOW_ROOT_SUBSET="${ALLOW_ROOT_SUBSET}" \
+  SOURCE_MANIFEST="${SOURCE_MANIFEST}" \
+  TASK_TSV_SHA256="${TASK_TSV_SHA256}" \
+  REQUIRE_TRAINING_RECEIPT="${TRAIN_SKIP_EVAL}" \
+  sbatch --parsable -p long --dependency=afterok:${TRAIN_DEP} scripts/neurips_2026/dysts/queue_evaluation.sh
 )
 
 TRAIN_JOB_IDS_STR="${TRAIN_JOB_ID}"
@@ -248,6 +285,7 @@ payload = {
     "root_specs_tsv": "${ROOT_SPECS_TSV}",
     "systems_file": "${SYSTEMS_FILE}",
     "task_count": ${TASK_COUNT},
+    "task_tsv_sha256": "${TASK_TSV_SHA256}",
     "system_count": ${SYSTEM_COUNT},
     "model_count": ${MODEL_COUNT},
     "seed_count": ${SEED_COUNT},
@@ -257,7 +295,11 @@ payload = {
     "systems_csv": "${SYSTEMS_CSV}",
     "model_variants_csv": "${MODEL_VARIANTS_CSV}",
     "seeds_csv": "${SEEDS_CSV}",
+    "lista_sb_num_loops": ${LISTA_SB_NUM_LOOPS},
+    "allow_root_subset": "${ALLOW_ROOT_SUBSET}",
     "train_pack_size": ${TRAIN_PACK_SIZE},
+    "train_pack_concurrency": ${TRAIN_PACK_CONCURRENCY},
+    "train_cpus_per_task": ${TRAIN_CPUS_PER_TASK},
     "train_array_count": ${TRAIN_ARRAY_COUNT},
     "dysts_dt_multiplier": "${DYSTS_DT_MULTIPLIER}",
     "horizons": "${HORIZONS}",

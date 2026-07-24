@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_lista_refinement_pilot_v1",
+  "status": "frozen_before_training_or_evaluation",
+  "question": "Under standardized LISTA semantics, do two or three learned refinements give better Allen--Cahn deployment forecasting?",
+  "scope": "Development-only model selection. Results cannot be described as sealed confirmation because the three external panels were opened by the prior periodic-reencoding experiment.",
+  "arms": {
+    "refinement_counts": [2, 3],
+    "model_seeds": [64, 65],
+    "pairing": "Each seed is trained once at each refinement count. Refinement count is the only scientific factor changed."
+  },
+  "semantics": {
+    "initialization": "z0=softshrink(code,alpha)",
+    "refinement": "z<-softshrink(code+S(z),alpha)",
+    "counting_rule": "lista_num_loops counts learned applications of S after initialization",
+    "gradient_gate": "Every positive refinement count must produce a nonzero gradient for lista_s in the unit test."
+  },
+  "system": {
+    "name": "spatialized Allen--Cahn four-well reaction--diffusion",
+    "grid_size": 16,
+    "channels": 2,
+    "state_dim": 512,
+    "latent_dim": 2048,
+    "overcomplete_ratio": 4,
+    "stored_dt": 0.1,
+    "forecast_horizon_steps": 200,
+    "forecast_physical_time": 20.0
+  },
+  "training": {
+    "dataset": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+    "dataset_sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+    "model_variant": "conv_lista",
+    "hidden_channels": 32,
+    "num_conv_blocks": 2,
+    "conv_activation": "tanh",
+    "padding_mode": "circular",
+    "lista_alpha": 0.15,
+    "pretrain_steps": 2000,
+    "forecast_training_steps": 3500,
+    "batch_size": 8,
+    "sequence_length": 200,
+    "train_trajectories": 512,
+    "learning_rate": 0.0003,
+    "koopman_learning_rate": 0.000001,
+    "weight_decay": 0.0,
+    "prediction_weight": 1.0,
+    "forecast_weighting": "uniform",
+    "reconstruction_weight": 0.25,
+    "latent_weight": 0.1,
+    "elementwise_sparsity_weight": 0.01,
+    "temporal_group_sparsity_weight": 0.0,
+    "gradient_weight": 0.05,
+    "koopman_stability_weight": 0.0,
+    "spatial_augmentation": true,
+    "checkpoint_metric": "joint_endpoints",
+    "checkpoint_horizons": [160, 200],
+    "checkpoint_validation_partition": "even"
+  },
+  "external_validation": {
+    "role": "opened model-selection panels; sealed test panels are forbidden",
+    "panels": [
+      {"seed": 1089785385, "path": "/network/scratch/l/lia/skae/allen_cahn_periodic_reencoding_confirmation_20260721_v5/data/validation_seed1089785385_fields.pt", "sha256": "9006f6537025e071f97a532bc7d81969d5c937770451a87a3448f29e1eca528a"},
+      {"seed": 114962715, "path": "/network/scratch/l/lia/skae/allen_cahn_periodic_reencoding_confirmation_20260721_v5/data/validation_seed114962715_fields.pt", "sha256": "3c85c388c22d8d50debdceaae73acd889e1dd8313ea0d18dd275588d876995ce"},
+      {"seed": 61202961, "path": "/network/scratch/l/lia/skae/allen_cahn_periodic_reencoding_confirmation_20260721_v5/data/validation_seed61202961_fields.pt", "sha256": "05a74ff1e1a781dd3dc870d3a5c1bd000b412a72a915a459ef720b50a9030f08"}
+    ],
+    "cadence_grid": ["direct", 1, 2, 5, 10, 20, 40, 50, 100],
+    "metric": "H200 cumulative field MSE, with each panel averaged within model seed before seeds are averaged",
+    "selector": "For each depth, select one global cadence minimizing mean validation risk. Select the depth with lower cadence-optimized validation risk. If risks differ by no more than 1% relative, prefer two refinements for lower compute and complexity.",
+    "mandatory_sensitivities": [
+      "direct H200 cumulative field MSE",
+      "H200 terminal field MSE",
+      "per-panel and per-model-seed results",
+      "selected periodic policy versus direct within each depth"
+    ]
+  },
+  "interpretation": {
+    "success": "The selected depth lowers paired validation risk consistently enough to promote to a new sealed, paired-seed confirmation.",
+    "ambiguity": "A two-seed validation pilot is a depth selector, not final rebuttal evidence; seed or panel reversals require more paired seeds before promotion.",
+    "failure": "If neither refined model is competitive with the historical forecast row, revisit optimization rather than attributing the result to representation depth."
+  },
+  "source": {
+    "historical_model_preserved": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py",
+    "standardized_model": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman_refined.py",
+    "standardized_model_sha256": "873453f524731378f8684c6a02baee4c8bb2815dff3383168f03632dcabe41ca"
+  },
+  "hardware": {
+    "partition": "long",
+    "gpu": "one A100L per refinement depth; the two paired training seeds run concurrently, then their memory-heavier cadence evaluations run sequentially",
+    "telemetry_interval_seconds": 60,
+    "utilization_expectation": "Training and full cadence evaluation should be GPU-bound; active utilization is recorded for every run."
+  }
+}

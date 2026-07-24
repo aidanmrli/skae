@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_distinct_law_checkpoint_evaluation",
+  "protocol_id": "global_k_distinct_laws_gated_local_linear_v1",
+  "date": "2026-07-20",
+  "claim": "One unchanged learned global K can expose genuinely different local state-space update laws when label-free sparse support families select approximately invariant coordinate subspaces.",
+  "scope": {
+    "system": "gated_local_linear",
+    "reason": "The benchmark has three fixed-point basins with known, genuinely different local matrices; its RK4 one-step map equals the fixed local-matrix polynomial only on the score disk after every score state is verified to remain in its basin-local region and the analytic/environment step agreement gate passes.",
+    "sparse_seeds": [0, 1, 2],
+    "dense_seeds": [0, 1, 2],
+    "training_or_checkpoint_selection_changed": false
+  },
+  "frozen_sources": {
+    "sparse_card": "experiments/neurips_2026/global_k_support_invariance_card.json",
+    "sparse_card_sha256": "b569868dbdcef00dc361f2bba93ca708a5cdd7399cd929ecf4ec3a98f8efd7f5",
+    "dense_card": "experiments/neurips_2026/global_k_dense_zero_wd_card.json",
+    "dense_card_sha256": "8f4bafddd0064c17116bb7072f0b99d218a65edab3e1dc5ada7af77d26971083",
+    "sparse_checkpoint_rule": "the existing frozen full-K sign-split p256 roster",
+    "dense_checkpoint_rule": "the prospective exact tanh, zero-sparsity, zero-shrinkage, zero-dropout, zero-weight-decay p256 roster"
+  },
+  "family_discovery": {
+    "trajectory_corpus": "reuse the sparse-card 128-trajectory, length-128 corpus and its fixed 64/64 trajectory split",
+    "sparse_support": "abs(z) > 0.001",
+    "dense_coordinate_mask": "top-k absolute dense coordinates at the paired state, with k equal to the sparse support cardinality",
+    "jaccard_threshold": 0.5,
+    "min_fit_source_transitions": 128,
+    "uses_basin_labels_or_count": false,
+    "assignment": "nearest fixed greedy-Jaccard representative"
+  },
+  "evaluation_geometry": {
+    "calibration_points_per_basin": 128,
+    "score_points_per_basin": 256,
+    "disk_radius": 0.18,
+    "calibration_seed": 20260723,
+    "score_seed": 20260724,
+    "calibration_and_score_relation": "independently seeded; set-disjointness is not asserted",
+    "same_centered_offsets_across_basins": true,
+    "family_to_basin_matching": "evaluation-only one-to-one Hungarian assignment maximizing calibration assignment counts",
+    "labels_or_known_basin_count_used_only_for_benchmark_evaluation": true,
+    "min_calibration_match_rate_per_basin": 0.6,
+    "min_score_match_rate_per_basin": 0.6
+  },
+  "primary_estimand": {
+    "name": "decoded_K_minus_I_support_block_local_update",
+    "formula": "g_f(x) = D(((E(x) P_f) K) P_f) - D(E(x) P_f)",
+    "unchanged_global_K": true,
+    "near_identity_guard": "g_f is identically zero when K=I; errors are normalized by the energy of (J_true-I), not J_true",
+    "state_space_local_matrix": "fit the centered 2x2 slope of g_f on the untouched score disk; report intercept and nonlinear residual",
+    "true_candidates": "the three known RK4 change matrices R4(dt A_j)-I, each applied about the score basin's center",
+    "distinctness_test": "form the 3x3 Frobenius cost matrix from predicted support-selected slopes to true change matrices; the identity assignment must uniquely beat all five nonidentity assignments",
+    "basis_claim": "the scored object and loss live in physical state space; support itself remains an intentionally coordinate-dependent property"
+  },
+  "controls": {
+    "global_positive_control": "D(E(x)K)-D(E(x)) must recover each local change matrix",
+    "source_only_control": "D((E(x)P_f)K)-D(E(x)P_f), without target projection",
+    "closure_guard": "the support-block and source-only state-space slopes must agree",
+    "coordinate_null": {
+      "role": "secondary mechanism specificity, not the primary distinct-law gate",
+      "replicates": 16,
+      "seed": 20260725,
+      "construction": "permute the source code and its projector together with fixed sign-pair-preserving coordinate permutations while K and D remain fixed"
+    },
+    "wrong_support_excluded": "Applying another family's source projector to the same state can win trivially by erasing source activity, so it is not an estimand.",
+    "dense_control": "repeat the complete assignment test with sparse-cardinality-matched dense tanh coordinate-mask families; call these masks, never natural supports"
+  },
+  "validity_gates": {
+    "required_sparse_runs": 3,
+    "required_dense_runs_for_sparse_specificity": 3,
+    "required_distinct_matched_families_per_run": 3,
+    "max_true_step_analytic_disagreement": 1e-6,
+    "max_local_fit_relative_residual": 0.25,
+    "max_anchor_update_over_true_rms": 0.25
+  },
+  "strong_distinct_law_gate": {
+    "all_sparse_seeds_must_pass": true,
+    "max_global_change_matrix_relative_error": 0.8,
+    "max_support_block_change_matrix_relative_error": 0.8,
+    "max_support_block_over_nearest_wrong_true_law_cost": 0.8,
+    "max_identity_assignment_over_best_nonidentity_assignment_cost": 0.8,
+    "identity_assignment_must_be_unique_optimum": true,
+    "max_support_block_vs_source_only_matrix_discrepancy": 0.25
+  },
+  "sparse_specificity_gate": {
+    "precondition": "all three exact dense runs pass family and geometry validity",
+    "row_metric_per_seed": "sparse block.max_own_over_nearest_wrong divided by the paired dense block.max_own_over_nearest_wrong",
+    "assignment_metric_per_seed": "sparse block.identity_over_best_nonidentity divided by the paired dense block.identity_over_best_nonidentity",
+    "seed_aggregation": "all three paired valid seeds must individually pass both ratios; no mean or median aggregation",
+    "max_sparse_over_dense_row_identification_ratio": 0.9,
+    "max_sparse_over_dense_assignment_ratio": 0.9,
+    "dense_ineligibility_branch": "report that no stable cardinality-matched dense family comparison was available; do not count numeric sparse-specificity gates as passed"
+  },
+  "decision_branches": {
+    "strong_distinct_laws_sparse_specific": "All sparse distinct-law and exact-dense specificity gates pass. Claim that one unchanged K contains support-selected local update laws on this controlled benchmark, with no claim of exact invariant subspaces or universality.",
+    "strong_distinct_laws_not_sparse_specific": "Sparse distinct-law gates pass but dense specificity fails. Claim one-K capacity and learned state-space law recovery, not sparsity-specific causation.",
+    "global_map_only": "The full model recovers the three laws but support-block identification or closure fails. Claim nonlinear encoder/decoder plus global K capacity only; do not attribute laws to sparse supports.",
+    "invalid": "Family matching, local linearity, anchor, checkpoint, or analytic-map validity fails. Report the failed gate without reading it as evidence for or against distinct support laws.",
+    "failed": "Validity passes but the identity law assignment or effect-size gates fail. Do not claim distinct support-selected laws."
+  }
+}

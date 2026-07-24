@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_lista_refinement_stable_v1",
+  "status": "frozen_before_stable_training_or_external_evaluation",
+  "question": "With functional shared-S LISTA semantics and stable recurrence optimization, do two or three learned refinements give better Allen--Cahn deployment forecasting?",
+  "failed_predecessor": {
+    "output_root": "/network/scratch/l/lia/skae/allen_cahn_lista_refinement_pilot_20260722",
+    "jobs": ["10173029_0", "10173029_1"],
+    "result": "All four forecast runs diverged under the generic 3e-4 S learning rate; no external panels were evaluated and no depth was selected.",
+    "repair": "Freeze zero-initialized S during reconstruction pretraining and optimize S at 1e-5 only during forecast training. Architecture, losses, data, and all other learning rates remain fixed."
+  },
+  "arms": {
+    "refinement_counts": [2, 3],
+    "model_seeds": [64, 65],
+    "pairing": "Refinement count is the only factor changed between the four production fits."
+  },
+  "semantics": {
+    "initialization": "z0=softshrink(code,alpha)",
+    "refinement": "z<-softshrink(code+S(z),alpha)",
+    "counting_rule": "lista_num_loops is the number of learned applications of S after initialization",
+    "gradient_gate": "Each positive refinement count produces nonzero lista_s gradients in unit tests."
+  },
+  "optimization": {
+    "encoder_decoder_lr": 0.0003,
+    "lista_s_lr": 0.00001,
+    "koopman_lr": 0.000001,
+    "freeze_lista_s_pretrain": true,
+    "reason": "The failed predecessor localized instability to repeated S after 2000 pretraining updates at the generic encoder rate. The repair isolates S without changing the forward model or forecast objective.",
+    "smoke_gate": {
+      "seed": 64002,
+      "depths": [0, 2, 3],
+      "pretrain_steps": 2000,
+      "forecast_steps": 500,
+      "requirements": [
+        "all three depths reach forecast step 500",
+        "all monitored losses are finite",
+        "maximum total loss <= 100",
+        "maximum latent loss <= 1000",
+        "minimum exact near-zero ratio at |z|<=1e-4 is >= 0.01",
+        "Q=0 leaves S exactly zero; Q=2 and Q=3 move S above numerical noise",
+        "each learned-refinement arm has a forecast checkpoint that improves on pretraining"
+      ]
+    }
+  },
+  "system": {
+    "name": "spatialized Allen--Cahn four-well reaction--diffusion",
+    "grid_size": 16,
+    "channels": 2,
+    "state_dim": 512,
+    "latent_dim": 2048,
+    "overcomplete_ratio": 4,
+    "stored_dt": 0.1,
+    "forecast_horizon_steps": 200,
+    "forecast_physical_time": 20.0
+  },
+  "training": {
+    "dataset": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+    "dataset_sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+    "model_variant": "conv_lista",
+    "conv_activation": "tanh",
+    "padding_mode": "circular",
+    "lista_alpha": 0.15,
+    "pretrain_steps": 2000,
+    "forecast_training_steps": 3500,
+    "batch_size": 8,
+    "sequence_length": 200,
+    "train_trajectories": 512,
+    "weight_decay": 0.0,
+    "prediction_weight": 1.0,
+    "reconstruction_weight": 0.25,
+    "latent_weight": 0.1,
+    "elementwise_sparsity_weight": 0.01,
+    "gradient_weight": 0.05,
+    "checkpoint_metric": "joint endpoints H160 and H200 on the even internal partition"
+  },
+  "evaluation": {
+    "primary": "direct repeated-K H200 cumulative field MSE on the three opened V5 validation panels",
+    "secondary": "terminal MSE and fixed periodic cadences 1,2,5,10,20,25,50,100",
+    "depth_selector": "Choose lower mean direct H200 cumulative MSE; within 1% relative prefer two refinements.",
+    "rejection_rule": "Reject both depths if the retained checkpoint is pretraining-only, any complete rollout is nonfinite, or neither depth is competitive with the historical sparse direct validation row.",
+    "historical_sparse_direct_validation_risk": 0.04743836535156204,
+    "historical_risk_source": "/network/scratch/l/lia/skae/allen_cahn_periodic_reencoding_confirmation_20260721_v5/selection_decision.json",
+    "scope": "Development-only selection on opened panels; a paper claim requires newly generated outcome-quarantined confirmation panels and additional paired seeds."
+  },
+  "hardware": {
+    "partition": "long",
+    "gpu": "one A100L for the paired depth smoke, then one A100L per production depth with two seeds concurrent",
+    "telemetry_interval_seconds": 60
+  }
+}

@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_early_fate_probe_v2",
+  "status": "prospective_new_seed_freeze_pending_independent_redteam_no_generation_authorized",
+  "experiment_type": "transparent prospective successor after a target-validity-only V1 failure",
+  "blocking_uncertainty": "On entirely new initial-condition draws, does the frozen sparse binary support make a decisive T=20 modal-well outcome linearly readable from x0 or fixed early observations, after continuous dense-latent, raw-state, physics-summary, and initial-modal persistence steelmen?",
+  "hypothesis": "At x0, a fixed linear ridge probe on sparse binary support predicts the decisive final T=20 modal-well label with balanced accuracy at least 0.60 and at least 0.05 higher balanced accuracy than a row-wise cardinality-matched top-k mask of the paired exact-dense latent.",
+  "v1_disclosure": {
+    "status": "invalid_target_tie",
+    "archive_path": "docs/archive/allen_cahn_early_fate_probe_v1_invalid_20260721.md",
+    "archive_sha256": "778c6b47c9fdbc38aac23477cd915b8b62bc44903deb0b3aaacc56c6bc0ebf71",
+    "card_sha256": "17987b43e40acbbc0c59d7a9d12ae2f1efa1343ff8904bbd9f58037a9be43bb2",
+    "source_manifest_sha256": "28dd4626283e2629f391d9618e48b672ff266ecfd82925f68680712a37e2c496",
+    "opened_fact": "At least one V1 terminal field had an exact top-two pixel-occupancy tie; its count, identity, dataset, class, and margin were not inspected.",
+    "no_score_attestation": "V1 emitted no fit, prediction, score, permutation, contrast, decision, class-count value, or diagnostic value. Labels, class counts, and terminal diagnostics were transiently computed only for validity and were not printed, persisted, or inspected.",
+    "v2_only_change": "V2 uses new seeds and predeclares exact-tie exclusion as part of the target. Every V1 feature, time, threshold, probe, reducer, comparator, statistic, gate, and claim tier is unchanged apart from applying the same frozen eligibility mask to all rows and arms.",
+    "terminal_policy": "If V2 validity fails, stop permanently; no V3 endpoint, exclusion, seed, or gate change is permitted."
+  },
+  "prelaunch_generator_correction": {
+    "redteam_finding": "The first unlaunched V2 freeze accidentally specified Allen--Cahn beta 6.0 although the authenticated V1 prospective datasets used beta 8.0, contradicting the new-seeds-only scientific contract.",
+    "repair": "Before generation and with the output root absent, replace the entire V2 system_and_generator object by the exact authenticated V1 dataset-generating object and enforce full-object equality in both runtime preflight and tests.",
+    "outcomes_accessed": false,
+    "scientific_effect": "Restores the intended V1 PDE law and generator; only dataset seeds and the predeclared exact-terminal-tie target exclusion differ scientifically."
+  },
+  "competing_explanations": [
+    "Forecast gains are unrelated to future-outcome information in thresholded supports.",
+    "Any signal is equally or more accessible in dense continuous values or the raw physical state.",
+    "Current modal well area already determines the terminal decisive modal well.",
+    "Sparse masks are too dense or homogeneous to expose a discrete outcome.",
+    "Excluding tied terminal occupancies leaves a selected decisive-outcome estimand that must not be generalized to all trajectories."
+  ],
+  "claim_boundary": "A positive result concerns linear readout of decisive finite-time T20 modal-well occupancy from frozen same-checkpoint representations on three fixed new datasets. Exact terminal top-two ties are excluded identically from training and evaluation by a target-only rule. This is not evidence for tied/ambiguous trajectories, causal mediation, sparsity-component-only attribution, invariant subspaces, unsupervised routing, retraining replication, terminal forecast superiority, population inference over dataset seeds, or systems beyond synthetic Allen--Cahn.",
+  "inputs": {
+    "training_dataset": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+      "sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+      "split": "train",
+      "trajectories": 512,
+      "stored_states": 201
+    },
+    "prospective_dataset_manifest": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_early_fate_probe_20260721_v2/dataset_manifest.json",
+      "hash_policy": "unknown before generation; the field-only GPU receipt binds its exact SHA-256 before semantic access",
+      "split": "val",
+      "trajectories_each": 256,
+      "stored_states": 201,
+      "datasets": [
+        {"index": 0, "seed": 1039834201, "relative_path": "datasets/allen_cahn_grid16_dt0p1_h200_seed1039834201.pt"},
+        {"index": 1, "seed": 1541075401, "relative_path": "datasets/allen_cahn_grid16_dt0p1_h200_seed1541075401.pt"},
+        {"index": 2, "seed": 1816972447, "relative_path": "datasets/allen_cahn_grid16_dt0p1_h200_seed1816972447.pt"}
+      ]
+    },
+    "checkpoint_roster": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_artifacts.csv",
+      "sha256": "4f44178ac78f4ffea91efb825bad272ec5840b52250bae2fab9713f8a62ac170",
+      "rows": 20
+    },
+    "architecture_audit": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_global_k_forecast_optimized_architecture_audit.json",
+      "sha256": "f414cffce5c37144891e93292dbf9a6d0c66165170b9a20c4cbd3a7674ff2421"
+    },
+    "pinned_model_source": {
+      "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py",
+      "sha256": "4f71c674d1e82174f437365c728c8e3684617364b979d624ed35fbbba0371f3b"
+    },
+    "pinned_physics_source": {
+      "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_reaction_diffusion.py",
+      "sha256": "3bca7b076b4d29f8db89b438e34612c5da04d46b48fa62879f9af6817d5084d1"
+    },
+    "opened_forecast_context": {
+      "path": "docs/figures/neurips_paper_2026/_data/allen_cahn_new_ic_replication_summary.json",
+      "sha256": "c7a715d1c98c61ff9c8723173bb43f85b4d7a19b70a20dd193dd70a02236732f"
+    },
+    "authenticated_v1_dataset_generating_card": {
+      "path": "experiments/neurips_2026/allen_cahn_forecast_replication/prediction_card.json",
+      "sha256": "5519644cbbc8992a356045e68ff496818dceed500300432fd985febf80a555de",
+      "protocol_id": "allen_cahn_global_k_new_ic_replication_v1",
+      "source_manifest_sha256": "8add4eb16eea0f1e4b6d1483bf96149e092549f20977d93cb94b566502587595",
+      "dataset_manifest": {
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/dataset_manifest.json",
+        "sha256": "31fcd9f7e52ec790a8a88bce5c445289136c867da90af4a7a6b8907b82c0f1c8"
+      },
+      "contract": "V2 system_and_generator must equal this authenticated card's complete system_and_generator object exactly; no key may be omitted, added, or changed."
+    },
+    "v1_batch_profile": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_early_fate_probe_20260721_v1/profile/decision.json",
+      "sha256": "428c298742735b6594aca11f310bf01e8ad18e2347f687e025a9739899858bd3",
+      "selected_batch_size": 4096,
+      "same_20_models_same_6400_by_512_encoder_workload": true
+    },
+    "task_manifest": {
+      "path": "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/task_manifest.json",
+      "sha256": "30c508c2201d8e37ad1d8d3409d3317685bb4db686c20eb74773dda772379a89"
+    }
+  },
+  "frozen_inputs": {
+    "pinned_sources": [
+      {"role": "physics_and_initial_conditions", "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_reaction_diffusion.py", "sha256": "3bca7b076b4d29f8db89b438e34612c5da04d46b48fa62879f9af6817d5084d1"},
+      {"role": "checkpoint_model", "path": "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py", "sha256": "4f71c674d1e82174f437365c728c8e3684617364b979d624ed35fbbba0371f3b"}
+    ]
+  },
+  "prospective_datasets": {
+    "output_root": "/network/scratch/l/lia/skae/allen_cahn_early_fate_probe_20260721_v2",
+    "seeds": [1039834201, 1541075401, 1816972447],
+    "paths": [
+      "datasets/allen_cahn_grid16_dt0p1_h200_seed1039834201.pt",
+      "datasets/allen_cahn_grid16_dt0p1_h200_seed1541075401.pt",
+      "datasets/allen_cahn_grid16_dt0p1_h200_seed1816972447.pt"
+    ],
+    "seed_derivation": {
+      "namespace": "allen_cahn_early_fate_probe_v2_fresh_new_ic",
+      "root": "17987b43e40acbbc0c59d7a9d12ae2f1efa1343ff8904bbd9f58037a9be43bb2",
+      "algorithm": "For dataset_i, SHA256(namespace + '|' + root + '|dataset_' + i); seed=int(first8hex,16)&0x7fffffff.",
+      "digests": ["3dfa9c590c314b8100e2ffb0059cadb8073f99eadb071b02a7d11f76633a1f31", "dbdaf1c989c2270840234b736ff41c80ab8e9db1de15a43f491bd0f452a160f5", "ec4ccc9fec2837922849face0dcb0954772cddd7b7c374d3bcba28f91ea6ffd3"]
+    },
+    "rng_stream_proof": {
+      "stream_formula": "dataset_seed + 10000 * zero_based_trajectory_index, indices 0..255",
+      "new_seed_residues_mod_10000": [4201, 5401, 2447],
+      "excluded_streams": [
+        {"base_seed": 20260719, "indices": [0, 895], "role": "training/development bundle"},
+        {"base_seed": 20260720, "indices": [0, 255], "role": "temporal holdout"},
+        {"base_seed": 20260724, "indices": [0, 255], "role": "forecast development"},
+        {"base_seed": 20260725, "indices": [0, 255], "role": "permanently forbidden holdout"},
+        {"base_seed": 20260729, "indices": [0, 255], "role": "unrealized bridge"},
+        {"base_seed": 20260730, "indices": [0, 255], "role": "unrealized bridge"},
+        {"base_seed": 20260731, "indices": [0, 255], "role": "unrealized bridge"},
+        {"base_seed": 1775404171, "indices": [0, 255], "role": "opened V1 dataset"},
+        {"base_seed": 74732421, "indices": [0, 255], "role": "opened V1 dataset"},
+        {"base_seed": 293789188, "indices": [0, 255], "role": "opened V1 dataset"}
+      ],
+      "proof": "New residues 4201, 5401, and 2447 are mutually distinct and differ from every excluded residue 719,720,724,725,729,730,731,4171,2421,9188; all realized stream integers are below 2^31.",
+      "collision_audit": "Before this card, every exact V2 seed had zero repository-text and scratch-filename matches, and the V2 output root was absent. Repeat immediately before launch."
+    }
+  },
+  "system_and_generator": {
+    "source_system": "four-well vector Allen--Cahn phase-field PDE",
+    "grid_size": 16,
+    "channels": 2,
+    "state_dim": 512,
+    "latent_dim": 2048,
+    "overcomplete_factor": 4,
+    "diffusion": 0.005,
+    "rk4_dt": 0.005,
+    "substeps_per_observation": 20,
+    "stored_dt": 0.1,
+    "trajectory_length": 200,
+    "stored_states": 201,
+    "physical_horizon": 20.0,
+    "trajectories_per_dataset": 256,
+    "train_trajectories": 0,
+    "validation_trajectories": 256,
+    "test_trajectories": 0,
+    "label_extra_observations": 0,
+    "min_regions": 2,
+    "max_regions": 3,
+    "mask_temperature": 0.65,
+    "low_frequency_cutoff": 3,
+    "noise_scale": 0.03,
+    "require_min_area_fraction": 0.08,
+    "allen_cahn_beta": 8.0,
+    "allen_cahn_reaction_strength": 1.0,
+    "allen_cahn_center_radius": 1.5,
+    "laplacian_boundary": "periodic",
+    "laplacian_scaling": "continuum_grid_size_squared",
+    "integration_dtype": "float32",
+    "trajectory_rng": "For zero-based trajectory_index, torch.Generator().manual_seed(dataset_seed + 10000 * trajectory_index) drives the pinned initial-condition sampler.",
+    "generator_device": "cuda",
+    "generator_batch_shape": [3, 256],
+    "compile_step": false,
+    "implementation_path": "experiments/neurips_2026/allen_cahn_forecast_replication/run.py",
+    "implementation_contract": "One fail-closed A100 process samples all [3,256] initial conditions and integrates all 768 trajectories together using the pinned initial-condition sampler and frozen RK4 physics. Internal well centers, selected-well identities, and region areas may exist transiently only to define and sample the physical system. Their identities or values, and all center-, label-, basin-, fate-, well-, or count-derived outputs, are never saved, printed, exposed, or evaluator-loaded."
+  },
+  "field_only_firewall": {
+    "saved_field_shape": [256, 201, 16, 16, 2],
+    "exact_dataset_top_level_keys": ["fields", "split_indices", "metadata"],
+    "exact_split_index_keys": ["val"],
+    "exact_metadata_keys": ["schema_version", "protocol_id", "artifact_role", "dataset_index", "dataset_seed", "field_shape", "stored_dt", "physical_horizon", "integration_dtype", "rng_rule"],
+    "forbidden_key_fragments": ["label", "basin", "fate", "well", "center", "selected", "area_fraction"],
+    "gpu_stage": "Generate and save fields, then encode all rows. Never derive a nearest-well map, target, tie, class count, eligibility mask, prediction, or metric.",
+    "cpu_stage": "Only an exact receipt-authenticated dependent CPU job may derive ties, eligibility, labels, and probes."
+  },
+  "system": {
+    "name": "four-well vector Allen--Cahn reaction-diffusion PDE",
+    "state_dim": 512,
+    "grid_size": 16,
+    "channels": 2,
+    "latent_dim": 2048,
+    "stored_dt": 0.1,
+    "final_target_index": 200,
+    "final_target_time": 20.0,
+    "well_centers": [[1.5, 0.0], [0.0, 1.5], [-1.5, 0.0], [0.0, -1.5]],
+    "target": "Among eligible rows only, lowest-index argmax modal nearest-well pixel occupancy at T20; eligibility excludes rows whose largest and second-largest terminal well pixel counts are exactly equal."
+  },
+  "roster": {
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "arms": ["sparse", "dense"],
+    "dataset_seeds": [1039834201, 1541075401, 1816972447],
+    "observation_indices": [0, 5, 10, 20, 40],
+    "observation_times": [0.0, 0.5, 1.0, 2.0, 4.0],
+    "early_time_definition": "Every observation leaves at least 16 physical-time units before T20.",
+    "no_adaptive_earliest_time": true
+  },
+  "model_assertions": {
+    "common": {"grid_size": 16, "channels": 2, "z_dim": 2048, "hidden_channels": 32, "num_blocks": 2, "lista_loops": 1, "decoder_kind": "upsample", "conv_activation": "tanh", "dense_activation": "tanh", "padding_mode": "circular", "k_shape": [2048, 2048], "dropout_modules": 0, "relu_modules": 0},
+    "sparse": {"encoder_kind": "lista", "lista_alpha": 0.15, "sparsity_loss_weight": 0.01},
+    "dense": {"encoder_kind": "dense", "lista_alpha": 0.0, "sparsity_loss_weight": 0.0},
+    "optimizer": "Adam",
+    "weight_decay": 0.0
+  },
+  "feature_protocol": {
+    "support_threshold": 0.001,
+    "feature_sets": ["sparse_support", "sparse_values", "dense_values", "dense_topk", "raw_x", "well_area_fractions", "field_summary"],
+    "sparse_support": "binary abs(z_sparse)>0.001",
+    "dense_topk": "stable-coordinate-index top-k abs(z_dense), with k matched row-by-row to paired sparse-support cardinality at the same observation time",
+    "raw_x": "all 512 physical field coordinates",
+    "well_area_fractions": "four nearest-fixed-well pixel fractions at the observation time; wells are evaluation-only physics metadata",
+    "field_summary": "11 values: two channel means, two population standard deviations, two mean periodic squared-gradient energies, four well-area fractions, and the fraction of horizontal-or-vertical neighboring pixel pairs with different nearest-well identities",
+    "deterministic_control": "current modal nearest-well identity predicts the final modal-well identity without fitting",
+    "diagnostics": "At every observation time report current-to-final label-change fraction, current top-1 occupancy, current top-1-minus-top-2 occupancy margin, final top-1 occupancy, exact final top-count ties, and per-class counts.",
+    "no_feature_selection": true,
+    "all_features_reported_at_all_times": true,
+    "eligibility_application": "One target-only row mask is derived from the terminal truth and applied identically to every arm, seed, feature, comparator, time, fit, metric, permutation, and contrast. No row may be reintroduced or feature-specifically omitted."
+  },
+  "probe": {
+    "training_rows": 512,
+    "test_rows_each_dataset": 256,
+    "model": "unweighted standardized one-vs-rest linear ridge in the dual with centered plus/minus-one targets and an explicit target-mean intercept",
+    "alpha_grid": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0],
+    "selection_folds": 5,
+    "split_seed": 20260721,
+    "selection_metric": "mean stratified-fold balanced accuracy",
+    "tie_break": "largest alpha within 1e-12 of the maximum",
+    "standardization": "training mean and population standard deviation; scales below 1e-12 become one",
+    "metrics": ["balanced_accuracy", "macro_f1", "accuracy"],
+    "fairness": "Every fitted feature set uses identical trajectory rows, target, fold indices, alpha grid, standardization rule, classifier, and metrics; alpha is selected separately within each feature set using training rows only.",
+    "raw_and_summary_reducer": "fit once per observation time because these features do not vary by model seed; never duplicate them to fabricate model-seed replication",
+    "eligibility_preprocessing": "The target-validity mask is applied before the otherwise unchanged V1 probe; the nominal row counts above identify the fixed source rosters."
+  },
+  "validity": {
+    "eligibility_rule": "exclude if and only if the two largest T20 nearest-well pixel counts are exactly equal; use deterministic argmax otherwise",
+    "minimum_eligible_fraction_training": 0.95,
+    "minimum_eligible_fraction_each_test_dataset": 0.95,
+    "minimum_eligible_fraction_pooled_test": 0.95,
+    "minimum_eligible_fraction_all_rows": 0.95,
+    "minimum_training_count_per_class_after_exclusion": 40,
+    "minimum_test_count_per_class_per_dataset_after_exclusion": 32,
+    "require_all_four_classes_in_every_training_fold_after_exclusion": true,
+    "require_stored_training_label_equals_derived_argmax_for_every_eligible_row": true,
+    "fate_terminology_construct_gate": "At least 90 percent of eligible rows in every test dataset must have terminal top-well occupancy at least 0.50; otherwise use decisive T20 modal-well occupancy, not fate.",
+    "require_all_fields_and_features_finite": true,
+    "require_exact_20_checkpoint_roster": true,
+    "require_exact_10_by_3_learned_feature_cross": true,
+    "require_rowwise_dense_topk_cardinality_match": true,
+    "no_finite_prefix_or_high_margin_subset_scoring": true,
+    "failure_policy": "Any eligibility, class, fold, source, data, firewall, finiteness, roster, telemetry, or authentication failure invalidates V2 permanently; do not alter target, seeds, endpoints, or create V3."
+  },
+  "statistics": {
+    "learned_feature_cell": "average 256 trajectories within each model-seed-by-dataset-by-time cell",
+    "primary_inference_unit": "ten paired model initialization seeds after equal-weight averaging the three fixed datasets",
+    "dataset_axis": "three independently generated initial-condition datasets are crossed repeated measurements, not 768 independent replicates",
+    "primary_contrast": "balanced_accuracy(sparse_support)-balanced_accuracy(dense_topk) at x0",
+    "two_way_bootstrap": {"replicates": 100000, "seed": 20260722, "axes": ["model_seed", "dataset_seed"], "interval": [0.025, 0.975], "estimand": "conditional robustness over the fixed crossed panel of ten trained initializations and three already-generated datasets; not population inference over dataset seeds"},
+    "paired_sign_flip": "one-sided exact 2^10 sign-flip test over model-seed differences after averaging datasets",
+    "early_curve_multiplicity": "Holm adjustment over the five fixed sparse-support versus dense-topk one-sided sign-flip p-values; x0 remains the single declared primary endpoint and its raw p-value is also shown",
+    "x0_claim_tier_multiplicity": "For optional superiority language, Holm-adjust the four fixed x0 relative tests against dense_topk, dense_values, raw_x, and current-modal persistence; each optional tier must pass using its adjusted p-value. The predeclared dense_topk primary endpoint also retains its raw p-value.",
+    "absolute_null": {"kind": "within-dataset final-label permutation applied jointly to all model-seed predictions", "replicates": 4096, "seed": 20260723, "plus_one_correction": true},
+    "raw_and_summary_uncertainty": "report three dataset values and their range; with only three dataset draws and no model-seed axis, do not attach a model-seed interval",
+    "eligibility_preprocessing": "Every V1 reduction is unchanged after applying the one common target-validity mask."
+  },
+  "primary_gate": {
+    "minimum_sparse_support_x0_balanced_accuracy": 0.60,
+    "minimum_sparse_support_minus_dense_topk_x0": 0.05,
+    "minimum_model_seed_wins": 9,
+    "minimum_dataset_seed_wins": 3,
+    "two_way_bootstrap_lower_above": 0.0,
+    "maximum_one_sided_exact_sign_flip_p": 0.05,
+    "maximum_absolute_permutation_p": 0.05,
+    "dense_values_raw_x_and_summaries_must_be_reported_but_are_not_required_to_lose": true,
+    "claim_tiers": {
+      "support_information": "Sparse-support x0 balanced accuracy and absolute-null gates pass.",
+      "coordinate_identity": "The full primary sparse-support versus cardinality-matched dense-topk gate passes.",
+      "better_than_dense_representation": "In addition, sparse support exceeds paired dense continuous values by at least 0.05, with 9/10 model-seed wins, 3/3 dataset directions, conditional two-way interval lower above zero, and Holm-adjusted one-sided exact sign-flip p at most 0.05.",
+      "accessibility_beyond_physical_state": "In addition, sparse support exceeds raw_x by at least 0.05 under the same 9/10 model-seed, 3/3 dataset-direction, conditional interval, and Holm-adjusted sign-flip gate.",
+      "future_information_beyond_initial_occupancy": "In addition, sparse support exceeds the deterministic current-modal control by at least 0.05 under the same 9/10 model-seed, 3/3 dataset-direction, conditional interval, and Holm-adjusted sign-flip gate."
+    }
+  },
+  "secondary_policy": {
+    "all_five_times_and_all_feature_sets_are_report_always": true,
+    "strong_secondary_relative_result_requires": "difference at least 0.05, at least 9/10 model-seed wins, all 3/3 dataset directions, two-way interval lower above zero, and Holm-adjusted p at most 0.05",
+    "no_secondary_result_may_rescue_or_redefine_a_failed_x0_primary": true,
+    "continuous_dense_or_raw_superiority": "If dense values, raw x, or simple physics summaries match or exceed sparse support, state that future-fate information is not unique to sparse support."
+  },
+  "decision_branches": {
+    "strong_x0_support_readout": "Every validity and primary gate passes; claim same-checkpoint new-IC readout of decisive T20 modal occupancy from x0 support within the boundary.",
+    "steelman_superiority": "Use better-representation, beyond-physical-state, or beyond-initial-occupancy language only if that named Holm-adjusted tier passes.",
+    "absolute_support_information_without_dense_binary_advantage": "Absolute support gates pass but a relative gate fails; claim readable information only.",
+    "early_only": "x0 fails but a fixed T<=4 secondary passes every adjusted gate; report as secondary without rescuing x0.",
+    "continuous_or_physical_only": "Binary support fails while a continuous/physical feature predicts; do not call support useful.",
+    "failed": "No support cell passes; make no early-support claim.",
+    "invalid": "Any validity gate fails; stop permanently with no V3."
+  },
+  "hardware": {
+    "required_device_name_fragment": "A100",
+    "required_visible_gpu_count": 1,
+    "generation": "Generate all 768 trajectories packed on one GPU using the exact prospective generator; report generation and allocation telemetry descriptively without padding or utilization-dependent filtering.",
+    "encoding_batch_size": 4096,
+    "encoding_batch_provenance": "Exact same 20-model, 6400-by-512 workload selected prospectively by the authenticated V1 outcome-free profile.",
+    "encoding_minimum_scope_seconds": 15,
+    "encoding_repeat_semantics": "Repeat complete deterministic all-20-model encoding cycles until 15 seconds and retain one complete final cycle; repetition changes utilization measurement only, never rows or reduction.",
+    "encoding_minimum_active_samples": 3,
+    "encoding_minimum_mean_active_gpu_utilization_percent": 85.0,
+    "encoding_minimum_mean_all_gpu_utilization_percent": 80.0,
+    "maximum_peak_memory_fraction": 0.8,
+    "maximum_median_sample_interval_seconds": 1.5,
+    "allocation_window_policy": "The GPU wrapper monitors from before source/data work through generation, extraction, serialization, and monitor shutdown, then exits. A dependent CPU-only telemetry job authenticates the complete raw runtime trace and creates the receipt, so telemetry hashing never holds a GPU. Always report runtime-window mean, active mean, zero fraction, duration, and I/O overhead; only the synchronized encoder scope is a utilization validity gate.",
+    "telemetry_audit_requests_gpu": false,
+    "cpu_summary_requests_gpu": false
+  },
+  "source_lock": {
+    "manifest_path": "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/source_manifest.sha256",
+    "required_manifest_paths": [
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/__init__.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/prediction_card.json",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/task_manifest.json",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/io.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/features.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/generate_extract.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/probes.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/statistics.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/reduction_utils.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/validity.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/packet.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/summarize.py",
+      "experiments/neurips_2026/allen_cahn_early_fate_probe_v2/telemetry.py",
+      "experiments/neurips_2026/allen_cahn_forecast_replication/prediction_card.json",
+      "experiments/neurips_2026/allen_cahn_forecast_replication/core.py",
+      "experiments/neurips_2026/allen_cahn_forecast_replication/io.py",
+      "scripts/neurips_2026/allen_cahn_early_fate_probe_v2/run_generate_extract.sh",
+      "scripts/neurips_2026/allen_cahn_early_fate_probe_v2/run_telemetry.sh",
+      "scripts/neurips_2026/allen_cahn_early_fate_probe_v2/run_summary.sh",
+      "scripts/neurips_2026/allen_cahn_early_fate_probe_v2/queue.sh",
+      "tests/test_allen_cahn_early_fate_probe_v2.py",
+      "docs/archive/allen_cahn_early_fate_probe_v1_invalid_20260721.md",
+      "pyproject.toml",
+      "uv.lock",
+      "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_reaction_diffusion.py",
+      "/network/scratch/l/lia/skae-rebuttal/skae/benchmarks/spatialized_conv_koopman.py"
+    ],
+    "launch_authorization": "exact V2 card, task, and source-manifest hashes supplied by root only after independent red-team clearance",
+    "output_root_must_be_absent": true,
+    "no_retraining_or_checkpoint_selection": true,
+    "no_generation_before_independent_redteam": true
+  }
+}
