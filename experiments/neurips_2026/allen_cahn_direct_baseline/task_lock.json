@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_matched_direct_baseline_v1",
+  "status": "frozen_fourth_and_final_outcome_blind_smoke_length_amendment_smoke_only_full_scientific_launch_unauthorized",
+  "amendment_history": [
+    {
+      "superseded_source_manifest_sha256": "4a32e770391a735ffe0c7a5a9f5d034b07a06330480ddca247f9889940553d3d",
+      "superseded_task_lock_sha256": "a92731f71bc5b22f8242eb8f77bfcd0019e6538270203e9c01e29b137aa8ba2e",
+      "reason": "A test-only selector check was changed from a convolutional zero-update model to an algebraically identical persistence stub to keep CPU validation lightweight. No scientific implementation, method, dataset, metric, threshold, seed, or launcher changed.",
+      "chronology": "Changed before any authenticated GPU smoke, matched-direct checkpoint, direct selector outcome, or direct evaluation outcome existed."
+    },
+    {
+      "superseded_prediction_card_sha256": "c4495ca64f4e89a9eb8014d8e9694dcca038bc96532237d4273f89c1695ed7c0",
+      "superseded_source_manifest_sha256": "6bad0fecf0ad4524d88f0a2f44f28cbfcf4dd4bcf3a07c993a39e1e23050d07c",
+      "last_reconciled_superseded_task_lock_sha256": "eafc27c629cc967edba470e56bc0353c38758158d78012a31ac57839bf0ae7f7",
+      "intermediate_pending_task_lock_sha256": "6c12e7ef12f14f2eb5c9ef0d0d0c27c6b095bdb350fa813d0e144b176b65a1f0",
+      "reason": "Outcome-blind red-team repairs made the complete artifact and telemetry chain fail closed, restored the exact historical selector cadence and batch size, locked the complete command and dependency graph, and made the dependency launcher enforce the frozen full-launch authorization boolean before submitting any scientific job.",
+      "chronology": "Changed before any authenticated matched-direct GPU smoke, checkpoint, selector score, development result, or new-initial-condition result existed. A discarded partial login-host unit-test attempt produced no scientific artifact and is not evidence.",
+      "scientific_choices": "The model, datasets, seeds, H200 objective, 5,500-update budget, endpoints, inference, and decision thresholds remain unchanged."
+    },
+    {
+      "superseded_prediction_card_sha256": "2cffeffe5e0e0db22f62f8e1d9c3eb0e3feab6760eedec872c8a55f579e5893a",
+      "superseded_source_manifest_sha256": "37aa87d0d65f2e61311d6088f89d006cee7a85a44e34ff99854a2f065e982660",
+      "superseded_task_lock_sha256": "b7da4ccddfb4e7cc565f59c573eec1fc98410a14c041c4af90413d6105454fc1",
+      "reason": "Outcome-free smoke 10165178 passed finiteness and memory but failed the frozen utilization gate. Batched finite reductions and complete fixed-shape CUDA-graph replay remove per-tensor synchronization and Python launch gaps without changing a scientific update. The smoke is lengthened from 8 to the previously permitted maximum of 20 updates to amortize the single eager/capture startup.",
+      "failed_smoke_lineage": {
+        "slurm_job_id": "10165178",
+        "artifact_root": "/network/scratch/l/lia/skae/allen_cahn_direct_baseline_v1_20260721/smoke/job_10165178",
+        "training_summary_sha256": "fce45ea460454bab91897a5efa471f1ee69198761e8534d28632351c949e068b",
+        "raw_telemetry_sha256": "4845e863a3253c669127dade60e03b0ccd4b9937e1d95471b6514e71bc9e1265",
+        "telemetry_audit_sha256": "ac9f9de0e63bc2a2e6c29846d664a92dddb6726211ce974b2637023ef2957340",
+        "core_mean_gpu_utilization_percent": 49.9375,
+        "core_p10_gpu_utilization_percent": 6.0,
+        "peak_memory_used_mib": 17475.0
+      },
+      "equivalence_validation": "Allocation 10165214 rejected capture without initial replay because it was one update behind. Allocation 10165223 passed parameter equivalence after the correction; expanded allocation 10165233 passed eager-versus-graph loss, parameter, and every Adam-state-tensor equivalence.",
+      "chronology": "Changed before any checkpoint selection, matched-direct development evaluation, or matched-direct new-initial-condition evaluation. Smoke losses are not selector or evaluation evidence and cannot affect the frozen scientific choices."
+    },
+    {
+      "superseded_prediction_card_sha256": "b41c9c7bea7718bbf7145bcdfd4868964763d58445b3ad356f01ff17582f322c",
+      "superseded_source_manifest_sha256": "0925d931e4d2f376e76b856d4d935da525e4ac8d05334790551b3b9eba51b49d",
+      "superseded_task_lock_sha256": "ff965add8d6ce17a65255446bf444cdda5c4ab5ffe54501c38c3588365f4c5c8",
+      "reason": "Outcome-free 20-update smoke 10165256 retained all samples and failed the unchanged all-loop utilization gate because one-time eager/capture work occupied seven of only 23 core samples. Its following 16 steady samples were all 98--100%. Exactly 80 genuine smoke updates are prospectively fixed to represent the 5,500-update workload without filtering any startup, capture, or tail sample.",
+      "failed_smoke_lineage": {
+        "slurm_job_id": "10165256",
+        "artifact_root": "/network/scratch/l/lia/skae/allen_cahn_direct_baseline_v1_20260721/smoke/job_10165256",
+        "run_manifest_sha256": "0fd6fab8804f4c1e42933aaf70591d6560822bb000bf4411cb00655e1bcc8f84",
+        "training_summary_sha256": "224e2500f5879e4b6227f705b32f6a52a450f8656fba7f5930658debc902c3f1",
+        "raw_telemetry_sha256": "6dd4488ece19a8a350733dab7db2d55a417a3372972b8a778f319e6fc975b250",
+        "telemetry_audit_sha256": "448ceef2ce74b43443ded15c565cb94c0f2c4c9aeb2532f3ec68bbe1017c1e68",
+        "completed_optimizer_updates": 20,
+        "graph_replay_seconds_mean": 0.8916731858237957,
+        "core_samples": 23,
+        "core_zero_samples": 3,
+        "core_mean_gpu_utilization_percent": 75.91304347826087,
+        "core_p10_gpu_utilization_percent": 1.0000000000000009,
+        "peak_memory_used_mib": 18511.0,
+        "steady_samples_after_capture": 16,
+        "steady_utilization_range_percent": [98.0, 100.0]
+      },
+      "scientific_choices": "Only smoke length changes from 20 to 80; model, data, loss, Adam, sample stream, H200 BPTT, 5,500 scientific updates, selector/evaluation, telemetry retention, and every gate are unchanged.",
+      "terminal_rule": "No further smoke-length or utilization amendment is permitted. Failure of any existing 80-update smoke gate makes scientific launch NO-GO without a longer smoke, sample filtering, interval redefinition, or threshold relaxation."
+    }
+  ],
+  "prediction_card": {
+    "path": "experiments/neurips_2026/allen_cahn_direct_baseline/prediction_card.json",
+    "sha256": "b621250ac6f24ab35db2668a5aa07126a723b1088e0e873c13e585f4688329c7"
+  },
+  "source_manifest": {
+    "path": "experiments/neurips_2026/allen_cahn_direct_baseline/source_manifest.sha256",
+    "sha256": "0cdd665641374e5b38ee711636beb877480f6877fb06f51c67ed0e40eae2106f"
+  },
+  "datasets": {
+    "training_and_selector": {
+      "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/data/allen_cahn_4_grid16_dt0p1_t20_dev.pt",
+      "sha256": "4a8a0846ee4ecd7d0bc8cac94a41fb55b1c4efad31073b4a8b88e1a9c5429236",
+      "field_shape": [768, 201, 16, 16, 2],
+      "dataset_seed": 20260723,
+      "authorized_keys": ["fields", "split_indices"]
+    },
+    "report_always_evaluation": [
+      {
+        "dataset_id": "development_20260724",
+        "role": "opened_development_comparison",
+        "dataset_seed": 20260724,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_rebuttal_v2_20260719/confirmation_data/allen_cahn_4_grid16_dt0p1_t20_validation_seed20260724.pt",
+        "sha256": "68620c9d355ec62c8d9b5edd1cc635690f251733b2731e7627f0d4575c83b344",
+        "field_shape": [256, 201, 16, 16, 2],
+        "split": "val"
+      },
+      {
+        "dataset_id": "new_ic_0",
+        "role": "new_initial_conditions",
+        "dataset_seed": 1775404171,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed1775404171.pt",
+        "sha256": "4c3b8755459c27e00584d03c130496cd6edc909780156672a201c7bc502657e3",
+        "field_shape": [256, 201, 16, 16, 2],
+        "split": "val"
+      },
+      {
+        "dataset_id": "new_ic_1",
+        "role": "new_initial_conditions",
+        "dataset_seed": 74732421,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed74732421.pt",
+        "sha256": "b776c8cffdb03ffc9577c9c30b48dc79f48095c3f2bf51b0052c093ae89e2896",
+        "field_shape": [256, 201, 16, 16, 2],
+        "split": "val"
+      },
+      {
+        "dataset_id": "new_ic_2",
+        "role": "new_initial_conditions",
+        "dataset_seed": 293789188,
+        "path": "/network/scratch/l/lia/skae/allen_cahn_forecast_replication_v1_20260720/datasets/allen_cahn_grid16_dt0p1_h200_seed293789188.pt",
+        "sha256": "7d7611d14ab0176695b364fe6ca4dded4d1427b1dc6e82d30318ef2c702b34d4",
+        "field_shape": [256, 201, 16, 16, 2],
+        "split": "val"
+      }
+    ]
+  },
+  "model_and_compute_match": {
+    "direct_config": {
+      "grid_size": 16,
+      "channels": 2,
+      "hidden_channels": 344,
+      "num_blocks": 4,
+      "activation": "tanh",
+      "padding_mode": "circular",
+      "residual_scale": 0.1
+    },
+    "direct_parameter_count": 8541178,
+    "koopman_effective_forward_parameter_count": 8504386,
+    "koopman_allocated_parameter_count": 12698690,
+    "effective_parameter_ratio_direct_over_koopman": 1.004326239,
+    "optimization_match": "5500 Adam updates, batch 8, identical full-trajectory sampling and augmentation stream",
+    "training_execution": "one eager update, then complete fixed-shape zero-grad/H200-loss/backward/capturable-Adam CUDA-graph replay with one batched post-replay finiteness reduction",
+    "not_matched": ["FLOPs", "wall_clock", "architecture_inductive_bias", "raw_allocated_parameter_count"]
+  },
+  "scientific_protocol": {
+    "model_seeds": [64, 65, 66, 67, 68, 69, 70, 71, 72, 73],
+    "training_field_shape": [512, 201, 512],
+    "selector_field_shape": [128, 201, 512],
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0,
+    "optimizer": "Adam",
+    "optimizer_capturable_execution": true,
+    "total_optimizer_updates": 5500,
+    "selector_warmup_updates": 2000,
+    "checkpoint_every_updates": 250,
+    "checkpoint_candidate_count": 15,
+    "checkpoint_candidate_updates": [2000, 2251, 2501, 2751, 3001, 3251, 3501, 3751, 4001, 4251, 4501, 4751, 5001, 5251, 5500],
+    "batch_size": 8,
+    "training_horizon_steps": 200,
+    "physical_horizon": 20.0,
+    "stored_dt": 0.1,
+    "gradient_weight": 0.05,
+    "forecast_weighting": "uniform",
+    "checkpoint_horizons": [160, 200],
+    "checkpoint_metric": "mean of persistence-normalized through-horizon and terminal MSE at H160 and H200",
+    "selector_batch_size": 64,
+    "spatial_augmentation": true,
+    "rollout": "autonomous_observation_space_recurrence_from_x0_only",
+    "label_policy": "fields_and_split_indices_only"
+  },
+  "frozen_comparator_seed_rows": [
+    {"model_seed": 64, "dense_h200_through_horizon_field_mse": 0.048692593847711879, "sparse_h200_through_horizon_field_mse": 0.045828170223782459, "dense_h200_terminal_field_mse": 0.065365098416805267, "sparse_h200_terminal_field_mse": 0.063005292167266205, "development_dense_h200_through_horizon_field_mse": 0.04782826662063599, "development_sparse_h200_through_horizon_field_mse": 0.04390204906463623, "development_dense_h200_terminal_field_mse": 0.06364572234451771, "development_sparse_h200_terminal_field_mse": 0.05856125243008137},
+    {"model_seed": 65, "dense_h200_through_horizon_field_mse": 0.048142839775731167, "sparse_h200_through_horizon_field_mse": 0.043772857453053197, "dense_h200_terminal_field_mse": 0.065314419567584991, "sparse_h200_terminal_field_mse": 0.062431833396355309, "development_dense_h200_through_horizon_field_mse": 0.046206331253051756, "development_sparse_h200_through_horizon_field_mse": 0.04168969392776489, "development_dense_h200_terminal_field_mse": 0.05825188755989075, "development_sparse_h200_terminal_field_mse": 0.05442069657146931},
+    {"model_seed": 66, "dense_h200_through_horizon_field_mse": 0.047936135455965999, "sparse_h200_through_horizon_field_mse": 0.042420572700599825, "dense_h200_terminal_field_mse": 0.063210255155960723, "sparse_h200_terminal_field_mse": 0.058554415901501976, "development_dense_h200_through_horizon_field_mse": 0.049047541618347165, "development_sparse_h200_through_horizon_field_mse": 0.044078238010406494, "development_dense_h200_terminal_field_mse": 0.06209285371005535, "development_sparse_h200_terminal_field_mse": 0.057389115914702415},
+    {"model_seed": 67, "dense_h200_through_horizon_field_mse": 0.046723336167633529, "sparse_h200_through_horizon_field_mse": 0.048600290436297655, "dense_h200_terminal_field_mse": 0.062479132165511451, "sparse_h200_terminal_field_mse": 0.064679298549890518, "development_dense_h200_through_horizon_field_mse": 0.046039564609527586, "development_sparse_h200_through_horizon_field_mse": 0.048702986240386964, "development_dense_h200_terminal_field_mse": 0.05925348401069641, "development_sparse_h200_terminal_field_mse": 0.06276141107082367},
+    {"model_seed": 68, "dense_h200_through_horizon_field_mse": 0.048682198636233798, "sparse_h200_through_horizon_field_mse": 0.046803264993553362, "dense_h200_terminal_field_mse": 0.069973689814408616, "sparse_h200_terminal_field_mse": 0.068215715388456985, "development_dense_h200_through_horizon_field_mse": 0.04503939390182495, "development_sparse_h200_through_horizon_field_mse": 0.04290785074234009, "development_dense_h200_terminal_field_mse": 0.0596865639090538, "development_sparse_h200_terminal_field_mse": 0.05742223747074604},
+    {"model_seed": 69, "dense_h200_through_horizon_field_mse": 0.052530360370874406, "sparse_h200_through_horizon_field_mse": 0.044955878295004366, "dense_h200_terminal_field_mse": 0.069678127765655518, "sparse_h200_terminal_field_mse": 0.061144430190324783, "development_dense_h200_through_horizon_field_mse": 0.0523032546043396, "development_sparse_h200_through_horizon_field_mse": 0.04543702602386475, "development_dense_h200_terminal_field_mse": 0.06556497141718864, "development_sparse_h200_terminal_field_mse": 0.05865471810102463},
+    {"model_seed": 70, "dense_h200_through_horizon_field_mse": 0.048000513414541889, "sparse_h200_through_horizon_field_mse": 0.046221486597011481, "dense_h200_terminal_field_mse": 0.066785074770450592, "sparse_h200_terminal_field_mse": 0.065534606575965881, "development_dense_h200_through_horizon_field_mse": 0.04658348560333252, "development_sparse_h200_through_horizon_field_mse": 0.04442174673080444, "development_dense_h200_terminal_field_mse": 0.06086142733693123, "development_sparse_h200_terminal_field_mse": 0.05881219916045666},
+    {"model_seed": 71, "dense_h200_through_horizon_field_mse": 0.045367040230582155, "sparse_h200_through_horizon_field_mse": 0.044016685799385113, "dense_h200_terminal_field_mse": 0.064010508358478546, "sparse_h200_terminal_field_mse": 0.064149080465237304, "development_dense_h200_through_horizon_field_mse": 0.04252342939376831, "development_sparse_h200_through_horizon_field_mse": 0.04189638376235962, "development_dense_h200_terminal_field_mse": 0.0560492929071188, "development_sparse_h200_terminal_field_mse": 0.05753429979085922},
+    {"model_seed": 72, "dense_h200_through_horizon_field_mse": 0.052659533172845836, "sparse_h200_through_horizon_field_mse": 0.053093525121609364, "dense_h200_terminal_field_mse": 0.069789422055085495, "sparse_h200_terminal_field_mse": 0.074466814597447709, "development_dense_h200_through_horizon_field_mse": 0.04899682998657227, "development_sparse_h200_through_horizon_field_mse": 0.04991410493850708, "development_dense_h200_terminal_field_mse": 0.06097198277711868, "development_sparse_h200_terminal_field_mse": 0.06582039408385754},
+    {"model_seed": 73, "dense_h200_through_horizon_field_mse": 0.051551405495653548, "sparse_h200_through_horizon_field_mse": 0.045855156766871609, "dense_h200_terminal_field_mse": 0.071692397197087601, "sparse_h200_terminal_field_mse": 0.06545267005761464, "development_dense_h200_through_horizon_field_mse": 0.04852646827697754, "development_sparse_h200_through_horizon_field_mse": 0.04420548439025879, "development_dense_h200_terminal_field_mse": 0.0622019749134779, "development_sparse_h200_terminal_field_mse": 0.057581789791584015}
+  ],
+  "statistics": {
+    "primary_endpoint": "H200 through-horizon field MSE averaged over three new-IC datasets within seed",
+    "bootstrap_seed": 20260721,
+    "bootstrap_replicates": 100000,
+    "bootstrap_interval": [0.025, 0.975],
+    "exact_test": "literal 2^10 paired sign flips of studentized mean",
+    "meaningful_margin": 0.05,
+    "minimum_seed_wins": 8,
+    "holm_families": ["direct_vs_sparse", "direct_vs_dense"]
+  },
+  "telemetry": {
+    "sampling_seconds": 1,
+    "marker_bounded_mean_minimum_percent": 85.0,
+    "marker_bounded_p10_minimum_percent": 80.0,
+    "retain_zero_samples": true,
+    "report_raw_startup_and_tail": true,
+    "minimum_smoke_core_samples": 5,
+    "smoke_optimizer_updates": 80,
+    "smoke_length_or_utilization_amendments_remaining": 0
+  },
+  "source_locked_command_graph": {
+    "smoke": "scripts/neurips_2026/allen_cahn_direct_baseline/run_smoke.sh",
+    "scientific_training_array": "scripts/neurips_2026/allen_cahn_direct_baseline/run_train_array.sh",
+    "scientific_evaluation_array": "scripts/neurips_2026/allen_cahn_direct_baseline/run_evaluate_array.sh",
+    "cpu_packet": "scripts/neurips_2026/allen_cahn_direct_baseline/run_summary.sh",
+    "dependency_launcher": "scripts/neurips_2026/allen_cahn_direct_baseline/queue.sh",
+    "dependency_contract": "ten A100L training tasks -> afterok ten A100L evaluation tasks -> afterok CPU-only fail-closed packet",
+    "full_launch_authorized": false
+  },
+  "mandatory_interpretation": "This post-hoc strong-baseline completion was frozen after sparse/dense and older direct results were known. A direct win bounds forecasting superiority to the Koopman class but does not negate sparse support/alignment value. A sparse win is evidence only on this synthetic Allen--Cahn protocol and does not prove support-mediated forecasting or sparsity-only causality. The original four-cell sparse-versus-dense gate remains failed regardless.",
+  "claim_boundary": "One synthetic four-well Allen--Cahn benchmark; effective-parameter and optimizer-update match, not FLOP, wall-clock, raw allocated-parameter, or inductive-bias equality; no labels/count; no real-world or physics generalization."
+}

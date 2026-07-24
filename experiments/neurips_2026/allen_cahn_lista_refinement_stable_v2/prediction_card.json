@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "protocol_id": "allen_cahn_lista_refinement_stable_v3_batch48",
+  "status": "frozen_before_valid_batch48_shared-pretrain_smoke",
+  "question": "With functional learned-S LISTA semantics, do two or three refinements give better Allen-Cahn direct forecasting?",
+  "invalid_predecessors": [
+    "The first two-versus-three pilot diverged because S shared the 3e-4 encoder learning rate.",
+    "Stable smoke 10173307 was cancelled incomplete: redundant pretraining gave 17.7% mean GPU utilization and would exceed its allocation. It produced no forecast outcome.",
+    "Shared-pretrain batch-16 diagnostic smoke 10173588 was cancelled incomplete after 23:31, with branches reaching only about 200--250 of 500 forecast updates. Its final telemetry trace contained 139 post-header samples (71.640% all-sample mean, 89.712% active-sample mean, 100% peak, and 20,245 MiB maximum observed allocation), but it produced no stability-gate or forecast outcome and is not scientific evidence."
+  ],
+  "arms": {"refinements": [2, 3], "seeds": [64, 65], "fits": 4},
+  "semantics": {
+    "initialization": "z0=softshrink(code,alpha)",
+    "refinement": "z<-softshrink(code+S(z),alpha)",
+    "count": "number of learned applications of S after initialization",
+    "test": "positive depth must produce nonzero S gradient and update; zero depth must not"
+  },
+  "pairing": {
+    "pretraining": "one 2000-step frozen-S Q=0 pretrain per seed at batch 32",
+    "branches": "import the exact model, optimizer, and minibatch RNG state into Q=2 and Q=3; train each for 3500 forecast steps at batch 48",
+    "identity_gates": ["source checkpoint hash", "model tensor hash", "training RNG hash", "first forecast minibatch hash", "S exactly zero with no optimizer state before branch training"],
+    "only_depth_difference": "Q=3 intentionally performs one additional tied-S refinement and therefore more FLOPs"
+  },
+  "optimization": {
+    "encoder_decoder_lr": 0.0003,
+    "lista_s_lr": 0.00001,
+    "koopman_lr": 0.000001,
+    "weight_decay": 0.0,
+    "sequence_length": 200,
+    "shared_pretrain_batch": 32,
+    "forecast_batch": 48
+  },
+  "system": {"state_dim": 512, "latent_dim": 2048, "grid": 16, "stored_dt": 0.1, "horizon": 200, "physical_time": 20.0},
+  "selection": {
+    "primary": "mean direct repeated-K H200 cumulative field MSE over three opened validation panels and both paired seeds",
+    "tie_break": "within 1% relative, prefer Q=2",
+    "secondary": "terminal MSE and fixed periodic cadences 1,2,5,10,20,25,50,100",
+    "rejection": "reject both if any run is incomplete/nonfinite/pretraining-only, any identity or S-training gate fails, or neither depth beats the historical sparse direct validation risk"
+  },
+  "scope": "Development hyperparameter selection. A paper-level depth claim requires additional paired seeds or prospective outcome-quarantined confirmation.",
+  "compute": {
+    "partition": "long",
+    "gpu": "one A100L per seed",
+    "telemetry_seconds": 10,
+    "gate": "mean >=70%, active mean >=80%, peak >=95%",
+    "batch48_rationale": "The incomplete three-branch batch-16 diagnostic peaked at 20,245 MiB. A conservative linear threefold activation-memory extrapolation for three concurrent batch-48 smoke branches is about 60.7 GiB, leaving about 19.3 GiB on an 80-GiB A100L; production runs only two concurrent branches. The telemetry thresholds are unchanged rather than tuned to the diagnostic trace."
+  }
+}
