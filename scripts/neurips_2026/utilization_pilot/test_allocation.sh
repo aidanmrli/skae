@@ -19,6 +19,8 @@ set -euo pipefail
 ROOT_DIR="$(git -C "${SLURM_SUBMIT_DIR:-$PWD}" rev-parse --show-toplevel)"
 cd "${ROOT_DIR}"
 export PYTHONPATH="${ROOT_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
+export UV_PROJECT="${SKAE_UV_PROJECT:-/home/mila/l/lia/skae}"
+export UV_NO_SYNC=1
 JOB_ID="${SLURM_JOB_ID:?missing SLURM_JOB_ID}"
 SCRATCH_BASE="${SCRATCH:?SCRATCH must be set by the allocation}"
 TEST_ROOT="${SCRATCH_BASE}/skae/utilization_pilot_tests/${JOB_ID}"

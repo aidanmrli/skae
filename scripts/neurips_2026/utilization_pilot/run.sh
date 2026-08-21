@@ -34,6 +34,11 @@ if command -v module >/dev/null 2>&1; then
   module load cuda/12.6.0 >/dev/null 2>&1 || true
 fi
 export PYTHONPATH="${ROOT_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
+# Reuse the repository's locked environment instead of creating a fresh
+# interpreter environment in each clean Git worktree.  PYTHONPATH above keeps
+# the candidate source tree authoritative.
+export UV_PROJECT="${SKAE_UV_PROJECT:-/home/mila/l/lia/skae}"
+export UV_NO_SYNC=1
 
 JOB_ID="${SLURM_JOB_ID:?missing SLURM_JOB_ID}"
 SCRATCH_BASE="${SKAE_SCRATCH_ROOT:-/network/scratch/l/lia/skae}"
