@@ -29,7 +29,7 @@ def test_ncu_parser_requires_actual_smo_rows(tmp_path: Path) -> None:
     output.write_text(
         "==PROF== connected\n"
         '"ID","Kernel Name","Metric Name","Metric Unit","Metric Value"\n'
-        f'"1","kernel_a","{NCU_SMO_METRIC}","%", "27.5%"\n'
+        f'"1","kernel_a","{NCU_SMO_METRIC}","%",  " 27.5% "\n'
         f'"2","kernel_b","{NCU_SMO_METRIC}","%", "31.5"\n',
         encoding="utf-8",
     )
@@ -96,7 +96,12 @@ def test_gpu_script_has_bounded_mila_allocation_and_requeue_contract() -> None:
     assert "production_eligible" not in text
     runtime_text = (REPO_ROOT / "experiments/neurips_2026/utilization_pilot/runtime.py").read_text(encoding="utf-8")
     assert "--profile-from-start" in runtime_text and '"off"' in runtime_text
-    assert "nvidia_smi_unprofiled_1s.csv" in (REPO_ROOT / "experiments/neurips_2026/utilization_pilot/run_pilot.py").read_text(encoding="utf-8")
+    pilot_text = (REPO_ROOT / "experiments/neurips_2026/utilization_pilot/run_pilot.py").read_text(encoding="utf-8")
+    receipt_text = (REPO_ROOT / "experiments/neurips_2026/utilization_pilot/receipt.py").read_text(encoding="utf-8")
+    assert 'telemetry_path = output / f"nvidia_smi_{phase}_1s.csv"' in pilot_text
+    assert "start_telemetry(telemetry_path)" in pilot_text
+    assert "nvidia_smi_unprofiled_1s.csv" in receipt_text
+    assert "nvidia_smi_profile_1s.csv" in receipt_text
 
 
 def test_cpu_test_script_has_restart_progress_receipt() -> None:

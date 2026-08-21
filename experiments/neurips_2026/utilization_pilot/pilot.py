@@ -201,7 +201,7 @@ def _header_and_rows(path: Path) -> tuple[list[str], Iterable[list[str]]]:
     """Find the first Nsight CSV header, ignoring ``==PROF==`` preamble lines."""
 
     with path.open("r", encoding="utf-8", errors="replace", newline="") as handle:
-        rows = list(csv.reader(handle))
+        rows = list(csv.reader(handle, skipinitialspace=True))
     header_index = next(
         (
             index
@@ -216,7 +216,10 @@ def _header_and_rows(path: Path) -> tuple[list[str], Iterable[list[str]]]:
 
 
 def _parse_metric_value(value: str) -> float | None:
-    cleaned = value.strip().replace(",", "")
+    cleaned = value.strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] == '"':
+        cleaned = cleaned[1:-1].strip()
+    cleaned = cleaned.replace(",", "")
     if cleaned.endswith("%"):
         cleaned = cleaned[:-1].strip()
     if not cleaned or cleaned.upper() in {"N/A", "NA", "NOT_SUPPORTED", "-"}:
