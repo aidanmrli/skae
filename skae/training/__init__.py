@@ -10,6 +10,16 @@ from skae.training.runner import (
     train,
     train_step,
 )
+from skae.training.checkpointing import (
+    CHECKPOINT_EXIT_CODE,
+    CHECKPOINT_SCHEMA_VERSION,
+    CheckpointError,
+    CheckpointManager,
+    CheckpointSignalExit,
+    SignalStopper,
+    capture_rng_state,
+    restore_rng_state,
+)
 
 __all__ = [
     "MetricsLogger",
@@ -20,4 +30,12 @@ __all__ = [
     "evaluate",
     "train",
     "get_device",
+    "CHECKPOINT_EXIT_CODE",
+    "CHECKPOINT_SCHEMA_VERSION",
+    "CheckpointError",
+    "CheckpointManager",
+    "CheckpointSignalExit",
+    "SignalStopper",
+    "capture_rng_state",
+    "restore_rng_state",
 ]
