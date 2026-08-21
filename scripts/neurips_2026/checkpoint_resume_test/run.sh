@@ -36,6 +36,7 @@ TOTAL_STEPS="${CHECKPOINT_TEST_STEPS:-10000}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_TEST_INTERVAL:-32}"
 FORCE_TERM_AFTER="${CHECKPOINT_FORCE_TERM_AFTER:-2}"
 FORCE_MARKER="$CHECKPOINT_DIR/forced-term-once"
+TASK_PID_FILE="$CHECKPOINT_DIR/task-${RESTART_COUNT}.pid"
 
 mkdir -p "$CHECKPOINT_DIR" "$PERMANENT_DIR"
 
@@ -58,13 +59,43 @@ common_args=(
 )
 
 TRAIN_PID=""
+TASK_PID=""
+
+wait_for_task_pid() {
+  local task_pid
+  for _ in $(seq 1 300); do
+    if [[ -s "$TASK_PID_FILE" ]]; then
+      task_pid="$(<"$TASK_PID_FILE")"
+      if [[ ! "$task_pid" =~ ^[0-9]+$ ]]; then
+        echo "invalid task PID in $TASK_PID_FILE" >&2
+        return 1
+      fi
+      if ! kill -0 "$task_pid" 2>/dev/null; then
+        echo "task PID $task_pid exited before TERM forwarding" >&2
+        return 1
+      fi
+      TASK_PID="$task_pid"
+      return 0
+    fi
+    if [[ -n "$TRAIN_PID" ]] && ! kill -0 "$TRAIN_PID" 2>/dev/null; then
+      return 1
+    fi
+    sleep 0.1
+  done
+  echo "timed out waiting for task PID file $TASK_PID_FILE" >&2
+  return 1
+}
 
 requeue_after_term() {
   trap - TERM INT
-  if [[ -n "$TRAIN_PID" ]] && kill -0 "$TRAIN_PID" 2>/dev/null; then
-    # Prefer the srun process group so the signal reaches the actual task;
-    # retain the direct fallback for launchers that do not create a group.
-    kill -TERM -- "-$TRAIN_PID" 2>/dev/null || kill -TERM "$TRAIN_PID" 2>/dev/null || true
+  if [[ -n "$TRAIN_PID" ]]; then
+    # Signal the task PID recorded by the wrapper, never the srun client or
+    # its process group.  Signalling srun itself can make Slurm kill the task
+    # with SIGKILL before the runner writes its final checkpoint (rc 137).
+    if wait_for_task_pid; then
+      echo "forwarding TERM to checkpoint task PID $TASK_PID"
+      kill -TERM "$TASK_PID" 2>/dev/null || true
+    fi
     set +e
     wait "$TRAIN_PID"
     train_rc=$?
@@ -89,8 +120,21 @@ trap 'requeue_after_term' TERM
 trap 'requeue_after_term' INT
 
 start_worker() {
+  # The wrapper PID is preserved by exec and is therefore also the PID of the
+  # training task.  Replace the per-attempt PID file before launching so a
+  # stale PID can never be mistaken for this task.
+  rm -f -- "$TASK_PID_FILE"
+  TASK_PID=""
   srun --ntasks=1 --cpus-per-task="${SLURM_CPUS_PER_TASK:-4}" \
-    uv run skae-train "${common_args[@]}" &
+    bash -c '
+      set -euo pipefail
+      pid_file="$1"
+      shift
+      temporary="${pid_file}.tmp.$$"
+      printf "%s\\n" "$$" > "$temporary"
+      mv -f "$temporary" "$pid_file"
+      exec "$@"
+    ' checkpoint-task "$TASK_PID_FILE" uv run skae-train "${common_args[@]}" &
   TRAIN_PID=$!
 }
 
