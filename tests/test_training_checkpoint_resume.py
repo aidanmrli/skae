@@ -286,6 +286,22 @@ def test_signal_stopper_uses_checkpoint_exit_status():
         stopper.restore()
 
 
+def test_checkpoint_launcher_signals_actual_task_pid():
+    launcher = (
+        Path(__file__).parents[1]
+        / "scripts/neurips_2026/checkpoint_resume_test/run.sh"
+    )
+    text = launcher.read_text()
+    assert 'TASK_PID_FILE="$CHECKPOINT_DIR/task-${RESTART_COUNT}.pid"' in text
+    assert 'temporary="${pid_file}.tmp.$$"' in text
+    assert 'exec "$@"' in text
+    assert "wait_for_task_pid" in text
+    assert 'kill -TERM "$TASK_PID"' in text
+    assert 'kill -TERM -- "-$TRAIN_PID"' not in text
+    assert 'wait "$TRAIN_PID"' in text
+    assert '[[ "$train_rc" -ne 75 ]]' in text
+
+
 def test_split_resume_matches_uninterrupted_training_exactly(tmp_path):
     uninterrupted_dir = tmp_path / "uninterrupted"
     split_dir = tmp_path / "split"
