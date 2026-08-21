@@ -22,6 +22,7 @@ def final_receipt(
     smo: dict[str, Any],
     allocation_elapsed_seconds: float,
     attempt: int,
+    measurement_window: dict[str, Any],
     continuation_validated: bool = False,
     continuation_receipt: str | None = None,
     storage: dict[str, Any] | None = None,
@@ -35,6 +36,7 @@ def final_receipt(
         "production_eligible": False,
         "diagnostic_only": True,
         "comparison": identity["comparison"],
+        "measurement_window": measurement_window,
         "task_identity": identity,
         "git": {
             "commit": source_manifest.get("git_commit"),
@@ -58,6 +60,7 @@ def final_receipt(
         "timing": {
             "unprofiled_measured_window": timing,
             "phase_receipts": phases,
+            "measurement_window_provenance": measurement_window,
             "allocation_wall_elapsed_seconds": allocation_elapsed_seconds,
             "measured_steps_per_second": timing.get("steps_per_second"),
             "startup_hard_init_validation_final_eval_checkpoint_excluded": True,

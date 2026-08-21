@@ -16,8 +16,15 @@ from experiments.neurips_2026.utilization_pilot.pilot import (
     parse_ncu_smo_csv,
     phase_telemetry,
     validate_task_identity,
+    with_measurement_window,
 )
 from experiments.neurips_2026.utilization_pilot.run_pilot import _ncu_child_failure
+from experiments.neurips_2026.utilization_pilot.runtime import (
+    PROFILE_MEASURE_STEPS,
+    measurement_window_provenance,
+    profile_command,
+    resolve_measure_steps,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -111,6 +118,29 @@ def test_task_identity_freezes_scientific_shape() -> None:
     mutated["batch_size"] = 512
     with pytest.raises(ValueError, match="batch_size"):
         validate_task_identity(mutated)
+
+
+def test_measure_window_override_is_bounded_and_profile_range_stays_fixed(
+    tmp_path: Path,
+) -> None:
+    default = resolve_measure_steps(environment={})
+    assert default == {"requested": 256, "actual": 256, "source": "default"}
+    cli = resolve_measure_steps(512, environment={"PILOT_MEASURE_STEPS": "1024"})
+    assert cli["actual"] == 512 and cli["source"] == "cli"
+    env = resolve_measure_steps(environment={"PILOT_MEASURE_STEPS": "1024"})
+    assert env["requested"] == env["actual"] == 1024
+    for invalid in ("255", "8193"):
+        with pytest.raises(ValueError, match="between 256 and 8192"):
+            resolve_measure_steps(environment={"PILOT_MEASURE_STEPS": invalid})
+
+    window = measurement_window_provenance(env)
+    identity = with_measurement_window(exact_task_identity(), window)
+    validate_task_identity(identity)
+    assert identity["comparison"]["measurement_window"][
+        "actual_unprofiled_measured_steps"
+    ] == 1024
+    command = profile_command(tmp_path / "run", tmp_path / "ncu.csv", tmp_path / "timing.json")
+    assert command[command.index("--pilot_measure_steps") + 1] == str(PROFILE_MEASURE_STEPS)
 
 
 def test_restart_progress_marker_is_atomic_and_json(tmp_path: Path) -> None:

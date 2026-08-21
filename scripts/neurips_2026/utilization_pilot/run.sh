@@ -4,6 +4,8 @@
 # Submit with:
 #   sbatch --export=ALL,PILOT_LABEL=base,PILOT_VARIANT=base \
 #     scripts/neurips_2026/utilization_pilot/run.sh
+# Set PILOT_MEASURE_STEPS in --export or use run_pilot's --pilot-measure-steps
+# CLI option to lengthen only the unprofiled timed window.
 #
 # A candidate implementation uses the same fixed command and shape; only the
 # non-scientific label/variant environment values differ.

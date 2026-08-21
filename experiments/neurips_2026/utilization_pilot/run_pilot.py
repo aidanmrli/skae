@@ -31,19 +31,26 @@ from .pilot import (
     parse_ncu_smo_csv,
     phase_telemetry,
     validate_task_identity,
+    with_measurement_window,
 )
 from .runtime import (
     PROFILE_MEASURE_STEPS,
-    TIMED_STEPS,
     WARMUP_STEPS,
-    TOTAL_STEPS,
+    measurement_window_provenance,
     phase_receipt,
     profile_command,
+    resolve_measure_steps,
     start_telemetry,
     stop_telemetry,
     train_args,
 )
 from .receipt import final_receipt
+from .run_support import (
+    git_root as _git_root,
+    gpu_identity as _gpu_identity,
+    identity_hash as _identity_hash,
+    write_progress as _write_progress,
+)
 from .validation import (
     allocation_segment as _allocation_segment,
     existing_final as _existing_final,
@@ -82,47 +89,6 @@ def _handle_term(signum: int, _frame: Any) -> None:
             pass
 
 
-def _git_root() -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    return Path(result.stdout.strip()).resolve()
-
-
-def _write_progress(path: Path, payload: dict[str, Any]) -> None:
-    atomic_write_json(path, payload)
-
-def _gpu_identity() -> list[dict[str, str]]:
-    command = [
-        "nvidia-smi",
-        "--query-gpu=index,uuid,name,memory.total,driver_version,compute_cap",
-        "--format=csv,noheader,nounits",
-    ]
-    result = subprocess.run(command, check=True, stdout=subprocess.PIPE, text=True)
-    rows: list[dict[str, str]] = []
-    for line in result.stdout.splitlines():
-        values = [value.strip() for value in line.split(",")]
-        if len(values) != 6:
-            continue
-        rows.append(
-            dict(
-                zip(
-                    ("index", "uuid", "name", "memory_total_mib", "driver", "compute_cap"),
-                    values,
-                )
-            )
-        )
-    if len(rows) != 1:
-        raise RuntimeError(f"pilot requires exactly one visible GPU, found {len(rows)}")
-    if rows[0]["uuid"] == "" or not rows[0]["uuid"].startswith("GPU-"):
-        raise RuntimeError("nvidia-smi did not report a GPU UUID")
-    if "RTX 8000" not in rows[0]["name"] and "RTX8000" not in rows[0]["name"]:
-        raise RuntimeError(f"pilot requires one RTX 8000, found {rows[0]['name']}")
-    return rows
-
 def _run_child(
     command: list[str],
     *,
@@ -155,15 +121,16 @@ def _run_child(
     wall_ended = time.time()
     return return_code, time.monotonic() - started, wall_started, wall_ended
 
-def _identity_hash(identity: dict[str, Any]) -> str:
-    return str(identity["task_identity_sha256"])
-
 def run_pilot(args: argparse.Namespace) -> int:
     global _TERM_REQUESTED
     root = Path(args.repo_root).resolve() if args.repo_root else _git_root()
     output = Path(args.output_root).resolve()
     output.mkdir(parents=True, exist_ok=True)
-    identity = exact_task_identity(args.label, args.variant)
+    measure_selection = resolve_measure_steps(args.measure_steps)
+    window_provenance = measurement_window_provenance(measure_selection)
+    identity = with_measurement_window(
+        exact_task_identity(args.label, args.variant), window_provenance
+    )
     validate_task_identity(identity)
     identity_hash = _identity_hash(identity)
     final_path = output / "final.json"
@@ -184,6 +151,8 @@ def run_pilot(args: argparse.Namespace) -> int:
         raise RuntimeError("progress marker belongs to a different task identity")
     if progress.get("source_manifest_sha256") not in (None, source_manifest["sha256"]):
         raise RuntimeError("progress marker belongs to a different committed source")
+    if progress.get("measurement_window") not in (None, window_provenance):
+        raise RuntimeError("progress marker belongs to a different measured window")
     identity_path = output / "task_identity.json"
     atomic_write_json(identity_path, identity)
     atomic_write_json(output / "gpu_identity.json", {"gpus": _gpu_identity()})
@@ -202,6 +171,7 @@ def run_pilot(args: argparse.Namespace) -> int:
         "status": "running",
         "identity_sha256": identity_hash,
         "task_identity": identity,
+        "measurement_window": window_provenance,
         "source_manifest": source_manifest,
         "started_unix": time.time(),
         "recovery": {
@@ -221,6 +191,7 @@ def run_pilot(args: argparse.Namespace) -> int:
             "source_manifest_sha256": source_manifest["sha256"],
             "completed_phases": sorted(completed),
             "attempt": attempt,
+            "measurement_window": window_provenance,
             "resolved_config_sha256": progress.get("resolved_config_sha256"),
             "architecture_sha256": progress.get("architecture_sha256"),
         },
@@ -244,7 +215,7 @@ def run_pilot(args: argparse.Namespace) -> int:
         current_phase = phase
         existing = _newest_valid_phase_receipt(
             output, phase=phase, identity_hash=identity_hash,
-            command=command, steps=steps,
+            command=command, steps=steps, measurement_window=window_provenance,
         )
         if phase in completed and existing is not None:
             timing = _verified_timing(
@@ -324,6 +295,7 @@ def run_pilot(args: argparse.Namespace) -> int:
             extra={
                 "timing": timing,
                 "telemetry": telemetry,
+                "measurement_window": window_provenance,
                 "receipt_path": str(receipt_path),
             },
         )
@@ -343,6 +315,7 @@ def run_pilot(args: argparse.Namespace) -> int:
                 "completed_phases": sorted(completed),
                 "last_phase": phase,
                 "attempt": attempt,
+                "measurement_window": window_provenance,
                 "phase_receipts": {
                     name: item.get("receipt_path") for name, item in phase_records.items()
                     if isinstance(item, dict) and item.get("receipt_path")
@@ -354,11 +327,11 @@ def run_pilot(args: argparse.Namespace) -> int:
 
     try:
         run_phase(
-            "unprofiled", TIMED_STEPS,
+            "unprofiled", measure_selection["actual"],
             train_args(
-                TOTAL_STEPS, output / "unprofiled_run",
+                WARMUP_STEPS + measure_selection["actual"], output / "unprofiled_run",
                 pilot_warmup_steps=WARMUP_STEPS,
-                pilot_measure_steps=TIMED_STEPS,
+                pilot_measure_steps=measure_selection["actual"],
                 pilot_timing_path=output / "unprofiled_timing.json",
             ),
             f"unprofiled_attempt_{attempt:04d}",
@@ -399,6 +372,7 @@ def run_pilot(args: argparse.Namespace) -> int:
                 "source_manifest_sha256": source_manifest["sha256"],
                 "completed_phases": sorted(completed),
                 "attempt": attempt,
+                "measurement_window": window_provenance,
                 "resolved_config_sha256": progress.get("resolved_config_sha256"),
                 "architecture_sha256": progress.get("architecture_sha256"),
             },
@@ -426,6 +400,7 @@ def run_pilot(args: argparse.Namespace) -> int:
                 phase_records.get("allocation_elapsed_seconds", 0.0)
             ),
             attempt=attempt,
+            measurement_window=window_provenance,
             storage=phase_records.get("storage"),
         )
         atomic_write_json(final_path, final)
@@ -468,6 +443,7 @@ def run_pilot(args: argparse.Namespace) -> int:
             phase_records.get("allocation_elapsed_seconds", 0.0)
         ),
         attempt=attempt,
+        measurement_window=window_provenance,
         storage=phase_records.get("storage"),
     )
     atomic_write_json(final_path, final)
@@ -482,6 +458,7 @@ def run_pilot(args: argparse.Namespace) -> int:
             "source_manifest_sha256": source_manifest["sha256"],
             "completed_phases": sorted(completed | {"profile"}),
             "attempt": attempt,
+            "measurement_window": window_provenance,
             "resolved_config_sha256": phase_records.get("unprofiled", {}).get("timing", {}).get("resolved_config_sha256"),
             "architecture_sha256": phase_records.get("unprofiled", {}).get("timing", {}).get("architecture_sha256"),
         },
@@ -496,6 +473,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repo-root", type=Path, default=None)
     parser.add_argument("--label", default=os.environ.get("PILOT_LABEL", "base"))
     parser.add_argument("--variant", default=os.environ.get("PILOT_VARIANT", "base"))
+    parser.add_argument(
+        "--pilot-measure-steps", "--measure-steps", dest="measure_steps", type=int,
+        default=None,
+    )
     parser.add_argument(
         "--restart-count",
         type=int,

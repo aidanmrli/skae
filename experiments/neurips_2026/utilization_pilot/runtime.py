@@ -4,17 +4,62 @@ from __future__ import annotations
 
 import subprocess
 import time
+import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from .pilot import NCU_SMO_METRIC, SCHEMA_VERSION, atomic_write_json, sha256_file
 
 
 WARMUP_STEPS = 64
-TIMED_STEPS = 256
+DEFAULT_TIMED_STEPS = 256
+MIN_TIMED_STEPS = 256
+MAX_TIMED_STEPS = 8192
+TIMED_STEPS = DEFAULT_TIMED_STEPS
 TOTAL_STEPS = WARMUP_STEPS + TIMED_STEPS
 PROFILE_MEASURE_STEPS = 2
 PROFILE_TOTAL_STEPS = WARMUP_STEPS + PROFILE_MEASURE_STEPS
+
+
+def resolve_measure_steps(
+    cli_value: int | None = None, *, environment: Mapping[str, str] | None = None
+) -> dict[str, Any]:
+    """Resolve the operational unprofiled window without changing the task shape."""
+
+    env = os.environ if environment is None else environment
+    if cli_value is not None:
+        raw_value: object = cli_value
+        source = "cli"
+    elif "PILOT_MEASURE_STEPS" in env:
+        raw_value = env["PILOT_MEASURE_STEPS"]
+        source = "env:PILOT_MEASURE_STEPS"
+    else:
+        raw_value = DEFAULT_TIMED_STEPS
+        source = "default"
+    try:
+        steps = int(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("PILOT_MEASURE_STEPS must be an integer") from exc
+    if not MIN_TIMED_STEPS <= steps <= MAX_TIMED_STEPS:
+        raise ValueError(
+            "PILOT_MEASURE_STEPS must be between "
+            f"{MIN_TIMED_STEPS} and {MAX_TIMED_STEPS}"
+        )
+    return {"requested": steps, "actual": steps, "source": source}
+
+
+def measurement_window_provenance(selection: Mapping[str, Any]) -> dict[str, Any]:
+    actual = int(selection["actual"])
+    return {
+        "requested_unprofiled_measured_steps": int(selection["requested"]),
+        "actual_unprofiled_measured_steps": actual,
+        "unprofiled_step_start": WARMUP_STEPS,
+        "unprofiled_step_end_exclusive": WARMUP_STEPS + actual,
+        "profile_measured_steps": PROFILE_MEASURE_STEPS,
+        "profile_step_start": WARMUP_STEPS,
+        "profile_step_end_exclusive": WARMUP_STEPS + PROFILE_MEASURE_STEPS,
+        "requested_from": str(selection["source"]),
+    }
 
 
 def train_args(
