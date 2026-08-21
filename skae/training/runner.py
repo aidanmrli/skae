@@ -19,12 +19,16 @@ import hashlib
 import json
 import math
 import os
+import random
 import shutil
 import time
+import uuid
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -44,6 +48,17 @@ from skae.data import (
 )
 
 from skae.model import make_model
+from skae.training.checkpointing import (
+    CHECKPOINT_SCHEMA_VERSION,
+    CheckpointError,
+    CheckpointManager,
+    CheckpointSignalExit,
+    SignalStopper,
+    capture_rng_state,
+    make_run_identity,
+    restore_rng_state,
+    validate_run_identity,
+)
 
 
 def _stable_hash(value: Any) -> str:
@@ -199,6 +214,50 @@ class MetricsLogger:
 
         with open(summary_file, 'w') as f:
             json.dump(summary, f, indent=2)
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Return logger state needed to continue a run without duplicate rows."""
+        # A checkpoint boundary is also a durable logging boundary.  This
+        # keeps the buffered history and the on-disk JSONL in agreement after
+        # a requeue or signal-triggered exit.
+        self.flush()
+        return {
+            "save_history": self.save_history,
+            "metrics_history": list(self.metrics_history),
+            "step_count": int(self.step_count),
+            "summary_state": deepcopy(self._summary_state),
+        }
+
+    def load_state_dict(self, state: Optional[Dict[str, Any]]) -> None:
+        """Restore logger counters, summary aggregates, and buffered history."""
+        if not state:
+            return
+        self.save_history = bool(state.get("save_history", self.save_history))
+        self.metrics_history = list(state.get("metrics_history", []))
+        self.buffer = []
+        self.step_count = int(state.get("step_count", 0))
+        self._summary_state = deepcopy(state.get("summary_state", {}))
+        if self.save_history:
+            expected_lines = "".join(
+                json.dumps(entry) + "\n" for entry in self.metrics_history
+            )
+            current_lines = (
+                self.metrics_file.read_text(encoding="utf-8")
+                if self.metrics_file.exists()
+                else ""
+            )
+            if current_lines != expected_lines:
+                temporary = self.metrics_file.with_name(
+                    f".{self.metrics_file.name}.{uuid.uuid4().hex}.tmp"
+                )
+                try:
+                    with temporary.open("w", encoding="utf-8") as handle:
+                        handle.write(expected_lines)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    os.replace(temporary, self.metrics_file)
+                finally:
+                    temporary.unlink(missing_ok=True)
 
     def _update_summary(self, name: str, value: float):
         state = self._summary_state.setdefault(
@@ -462,6 +521,12 @@ def train(
     pilot_measure_steps: int = 0,
     pilot_profile: bool = False,
     pilot_timing_path: Optional[str] = None,
+    checkpoint_dir: Optional[str] = None,
+    checkpoint_interval: Optional[int] = None,
+    checkpoint_retention: int = 3,
+    resume: bool = False,
+    resume_if_available: bool = False,
+    permanent_checkpoint_dir: Optional[str] = None,
 ) -> nn.Module:
     """Main training function.
 
@@ -470,6 +535,14 @@ def train(
         log_dir: Directory for tensorboard logs and checkpoints
         checkpoint_path: Path to checkpoint to resume from
         device: Device to train on ('cpu', 'cuda', 'mps')
+        checkpoint_dir: Persistent directory for complete generation checkpoints.
+            Supplying this option enables exact checkpoint/resume state;
+            leaving it unset preserves the historical checkpoint behavior.
+        checkpoint_interval: Completed training steps between complete saves.
+        checkpoint_retention: Number of recent valid generations to retain.
+        resume: Discover and load the newest valid generation in checkpoint_dir.
+        resume_if_available: Resume when a valid generation exists, otherwise start fresh.
+        permanent_checkpoint_dir: Optional durable copy destination for latest/best.
     Returns:
         Trained model
     """
@@ -484,27 +557,94 @@ def train(
     if pilot_mode and not str(device).startswith("cuda"):
         raise ValueError("the utilization pilot requires --device cuda")
 
-    # Setup logging directory and save config
-    if log_dir is None:
-        if cfg.MODEL.MODEL_NAME == 'LISTAKM':
-            encoder_type = cfg.MODEL.ENCODER.ENCODER_TYPE.lower()
-            if encoder_type == 'hyperlista':
-                log_dir = './runs/hyperlista'
+    complete_checkpointing = checkpoint_dir is not None
+    if resume and not complete_checkpointing:
+        raise ValueError("resume=True requires checkpoint_dir")
+    if resume_if_available and not complete_checkpointing:
+        raise ValueError("resume_if_available=True requires checkpoint_dir")
+    checkpoint_interval_value = (
+        100 if checkpoint_interval is None else int(checkpoint_interval)
+    )
+    if complete_checkpointing and checkpoint_interval_value < 1:
+        raise ValueError("checkpoint_interval must be >= 1")
+    signal_stopper = SignalStopper() if complete_checkpointing else None
+    if signal_stopper is not None:
+        # Install before source inspection, cache construction, or model setup;
+        # the handler only records the signal and checkpointing occurs later at
+        # a safe completed-step boundary.
+        signal_stopper.install()
+    num_batches = cfg.TRAIN.DATA_SIZE // cfg.TRAIN.BATCH_SIZE
+    if num_batches < 1:
+        raise ValueError("TRAIN.DATA_SIZE must be at least TRAIN.BATCH_SIZE")
+
+    checkpoint_manager = None
+    resume_payload: Optional[Dict[str, Any]] = None
+    if complete_checkpointing:
+        checkpoint_manager = CheckpointManager(
+            checkpoint_dir,
+            retention=checkpoint_retention,
+            permanent_root=permanent_checkpoint_dir,
+            checkpoint_interval=checkpoint_interval_value,
+        )
+        if resume or resume_if_available or checkpoint_path is not None:
+            loaded = (
+                checkpoint_manager.load_path(checkpoint_path, map_location=device)
+                if checkpoint_path is not None
+                else checkpoint_manager.load_newest_valid(map_location=device)
+            )
+            if loaded is None and (checkpoint_path is not None or not resume_if_available):
+                raise CheckpointError("resume requested but no valid checkpoint was found")
+            if loaded is not None:
+                resume_payload = loaded["payload"]
+                checkpoint_manager.run_id = str(
+                    resume_payload.get("run_id", checkpoint_manager.run_id)
+                )
+        elif checkpoint_manager.load_newest_valid() is not None:
+            raise CheckpointError(
+                "checkpoint_dir already contains a valid run; pass resume=True to continue"
+            )
+
+    # Setup logging directory and save config.  A complete-checkpoint run uses
+    # its persistent directory as the stable run directory across requeues.
+    if complete_checkpointing:
+        run_dir = Path(checkpoint_dir).expanduser()
+    else:
+        if log_dir is None:
+            if cfg.MODEL.MODEL_NAME == 'LISTAKM':
+                encoder_type = cfg.MODEL.ENCODER.ENCODER_TYPE.lower()
+                if encoder_type == 'hyperlista':
+                    log_dir = './runs/hyperlista'
+                else:
+                    log_dir = './runs/lista'
             else:
-                log_dir = './runs/lista'
-        else:
-            log_dir = './runs/kae'
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_dir = Path(log_dir) / timestamp
+                log_dir = './runs/kae'
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        run_dir = Path(log_dir) / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
-    cfg.to_json(str(run_dir / 'config.json'))
+    if not complete_checkpointing or resume_payload is None or not (run_dir / "config.json").exists():
+        cfg.to_json(str(run_dir / 'config.json'))
 
     logger = MetricsLogger(run_dir, save_history=save_metrics_history or save_training_plot)
+    run_identity = make_run_identity(
+        cfg.to_dict(),
+        device,
+        batch_count=num_batches,
+        logger_history=logger.save_history,
+        source_root=Path.cwd(),
+    )
+    if resume_payload is not None:
+        validate_run_identity(run_identity, resume_payload.get("run_identity", {}))
 
     print("Setting random seed...")
     torch.manual_seed(cfg.SEED)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed(cfg.SEED)
+        if complete_checkpointing:
+            torch.cuda.manual_seed_all(cfg.SEED)
+        else:
+            torch.cuda.manual_seed(cfg.SEED)
+    if complete_checkpointing:
+        random.seed(cfg.SEED)
+        np.random.seed(cfg.SEED)
     # MPS doesn't have manual_seed, but manual_seed should be sufficient
 
     print("Creating environment...")
@@ -538,15 +678,23 @@ def train(
     optimizer = build_optimizer(model, cfg)
 
     start_step = 0
-    if checkpoint_path is not None:
+    checkpoint = resume_payload
+    if checkpoint is None and checkpoint_path is not None:
         checkpoint = torch.load(checkpoint_path, map_location=device)
+    if checkpoint is not None:
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer_state = checkpoint.get('optimizer_state_dict')
         if optimizer_state is not None:
             optimizer.load_state_dict(optimizer_state)
         else:
             print("Checkpoint has no optimizer state; resuming with a fresh optimizer.")
-        start_step = checkpoint.get('step', 0)
+        if complete_checkpointing:
+            start_step = int(checkpoint.get("next_step", 0))
+        else:
+            # Historical checkpoints stored the completed step.  Resuming at
+            # step+1 fixes the duplicate-update off-by-one while accepting old
+            # files that predate the complete-state schema.
+            start_step = int(checkpoint.get('next_step', checkpoint.get('step', -1) + 1))
         print(f"Resumed from checkpoint at step {start_step}")
 
     if pilot_mode:
@@ -587,7 +735,6 @@ def train(
     # Pre-generate random number generators for data
     # Each batch gets a non-overlapping seed range to avoid collisions
     # Batch i uses seeds: cfg.SEED + i * BATCH_SIZE to cfg.SEED + (i+1) * BATCH_SIZE - 1
-    num_batches = cfg.TRAIN.DATA_SIZE // cfg.TRAIN.BATCH_SIZE
     rngs = [torch.Generator().manual_seed(cfg.SEED + i * cfg.TRAIN.BATCH_SIZE) for i in range(num_batches)]
 
     # Generate fixed validation set for consistent evaluation
@@ -663,6 +810,17 @@ def train(
     )
     print(f"Checkpoint selection rollout: {checkpoint_rollout_mode}")
 
+    # Validation data is regenerated from its stable seed before restoring the
+    # saved RNG snapshot.  This makes setup side effects invisible to the
+    # resumed training stream while preserving the exact validation inputs.
+    if complete_checkpointing and resume_payload is not None:
+        restore_rng_state(
+            resume_payload["rng_state"],
+            rngs,
+            validation_generator=val_rng,
+        )
+        logger.load_state_dict(resume_payload.get("logger_state"))
+
     print(f"Training {cfg.MODEL.MODEL_NAME} on {cfg.ENV.ENV_NAME}")
     print(f"Device: {device}")
     print(f"Observation size: {base_env.observation_size}")
@@ -679,12 +837,90 @@ def train(
     print(f"Log directory: {run_dir}")
     print("-" * 80)
 
-    best_eval_final_error = float('inf')
+    best_eval_final_error = (
+        float(resume_payload.get("best_eval_final_error", float("inf")))
+        if resume_payload is not None
+        else float("inf")
+    )
+    last_metrics: Dict[str, Any] = (
+        dict(resume_payload.get("last_metrics", {})) if resume_payload is not None else {}
+    )
+    selection_metric = (
+        resume_payload.get("checkpoint_selection_metric")
+        if resume_payload is not None
+        else None
+    )
+    selection_score = (
+        resume_payload.get("checkpoint_selection_score")
+        if resume_payload is not None
+        else None
+    )
+    selection_finite_fraction = (
+        resume_payload.get("checkpoint_selection_full_horizon_finite_fraction")
+        if resume_payload is not None
+        else None
+    )
+
+    def save_complete_checkpoint(next_step: int, *, is_best: bool = False) -> None:
+        """Commit all state at a safe completed-step boundary."""
+        if checkpoint_manager is None:
+            return
+        complete_state = {
+            "schema_version": CHECKPOINT_SCHEMA_VERSION,
+            "run_id": checkpoint_manager.run_id,
+            "config": cfg.to_dict(),
+            "run_identity": run_identity,
+            "storage_contract": {
+                "scratch_root": str(checkpoint_manager.root),
+                "permanent_root": (
+                    None
+                    if checkpoint_manager.permanent_root is None
+                else str(checkpoint_manager.permanent_root)
+                ),
+                "retention": checkpoint_manager.retention,
+                "checkpoint_interval": checkpoint_interval_value,
+            },
+            "step": int(next_step) - 1,
+            "next_step": int(next_step),
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": None,
+            "scaler_state_dict": None,
+            "rng_state": capture_rng_state(rngs, validation_generator=val_rng),
+            "data_order": {
+                "num_batches": num_batches,
+                "batch_size": int(cfg.TRAIN.BATCH_SIZE),
+                "sequence_length": int(cfg.TRAIN.SEQUENCE_LENGTH),
+                "seed": int(cfg.SEED),
+                "generator_index": int(next_step % num_batches),
+            },
+            "last_metrics": dict(last_metrics),
+            "logger_state": logger.state_dict(),
+            "best_eval_final_error": float(best_eval_final_error),
+            "checkpoint_selection_metric": selection_metric,
+            "checkpoint_selection_score": selection_score,
+            "checkpoint_selection_horizon": int(cfg.TRAIN.EVAL_NUM_STEPS),
+            "checkpoint_selection_batch_size": int(val_x.shape[0]),
+            "checkpoint_selection_split": (
+                "val" if val_dysts_cache is not None else "generated_validation"
+            ),
+            "checkpoint_selection_full_horizon_finite_fraction": selection_finite_fraction,
+        }
+        checkpoint_manager.save(complete_state, next_step=next_step, is_best=is_best)
+
+    if signal_stopper is not None and signal_stopper.requested:
+        # A TERM during setup has no completed update to replay.  Persist the
+        # initialized state at the exact current next_step before exiting.
+        save_complete_checkpoint(start_step)
+        logger.close()
+        signal_stopper.restore()
+        raise CheckpointSignalExit()
 
     last_checkpoint_dict: Optional[Dict[str, Any]] = None
     pilot_timer_start: Optional[float] = None
     pilot_wall_start: Optional[float] = None
     pilot_timing_written = False
+    metrics: Dict[str, Any] = dict(last_metrics)
     for step in range(start_step, cfg.TRAIN.NUM_STEPS):
         if pilot_mode and step == pilot_measure_start:
             _cuda_synchronize(device)
@@ -718,6 +954,7 @@ def train(
             )
 
         metrics = train_step(model, optimizer, x_seq, step=step)
+        last_metrics = dict(metrics)
 
         in_measured_range = pilot_mode and pilot_measure_start <= step < pilot_measure_end
         if not in_measured_range:
@@ -740,6 +977,7 @@ def train(
 
         # Periodic evaluation and checkpoint saving
         # Note: skip step=0 to avoid expensive eval before any learning happened.
+        best_updated = False
         if (
             not pilot_mode
             and ((step > 0 and step % cfg.TRAIN.EVAL_EVERY == 0)
@@ -770,6 +1008,10 @@ def train(
             else:
                 checkpoint_score = eval_results["final_error"]
                 checkpoint_metric = "every_step_reencode_final_l2_error"
+
+            selection_metric = checkpoint_metric
+            selection_score = checkpoint_score
+            selection_finite_fraction = eval_results['full_horizon_finite_fraction']
 
             print(
                 f"  Eval | Mean error: {eval_results['mean_error']:.4f} "
@@ -807,6 +1049,7 @@ def train(
             # Save best checkpoint if eval error improved
             if checkpoint_score < best_eval_final_error:
                 best_eval_final_error = checkpoint_score
+                best_updated = True
                 torch.save(checkpoint_dict, run_dir / 'checkpoint.pt')
                 print(f"  Saved best checkpoint ({checkpoint_metric}: {best_eval_final_error:.4f})")
 
@@ -848,12 +1091,31 @@ def train(
             )
             pilot_timing_written = True
 
+        if checkpoint_manager is not None:
+            signal_requested = bool(signal_stopper and signal_stopper.requested)
+            checkpoint_due = (
+                (step + 1) % checkpoint_interval_value == 0
+                or step == cfg.TRAIN.NUM_STEPS - 1
+                or best_updated
+                or signal_requested
+            )
+            if checkpoint_due:
+                save_complete_checkpoint(step + 1, is_best=best_updated)
+            if signal_requested:
+                logger.close()
+                signal_stopper.restore()
+                raise CheckpointSignalExit()
+
     if pilot_mode and not pilot_timing_written:
         raise RuntimeError("pilot measured range did not complete")
 
-    if not (run_dir / 'checkpoint.pt').exists() and last_checkpoint_dict is not None:
+    if checkpoint_manager is None and not (run_dir / 'checkpoint.pt').exists() and last_checkpoint_dict is not None:
         torch.save(last_checkpoint_dict, run_dir / 'checkpoint.pt')
         print("  Saved final checkpoint to checkpoint.pt (no finite best eval was found)")
+
+    if checkpoint_manager is not None:
+        checkpoint_manager.materialize_legacy_aliases(run_dir)
+        signal_stopper.restore()
 
     # Save final metrics and close logger
     with open(run_dir / 'final_metrics.json', 'w') as f:
@@ -1394,6 +1656,18 @@ Examples:
                         help='Render training_metrics.png after training. Implies --save_metrics_history.')
     parser.add_argument('--save_last_checkpoint', action='store_true',
                         help='Also save last.pt for resumability/debugging. checkpoint.pt is always saved.')
+    parser.add_argument('--checkpoint_dir', type=str, default=None,
+                        help='Persistent complete-state checkpoint directory; enables exact resume.')
+    parser.add_argument('--checkpoint_interval', type=int, default=None,
+                        help='Completed steps between complete-state checkpoint generations (default: 100).')
+    parser.add_argument('--checkpoint_retention', type=int, default=3,
+                        help='Number of recent valid complete checkpoint generations to retain (minimum 2).')
+    parser.add_argument('--resume', action='store_true',
+                        help='Resume from the newest valid complete checkpoint in --checkpoint_dir.')
+    parser.add_argument('--resume_if_available', action='store_true',
+                        help='Resume from a valid complete checkpoint when present; otherwise start fresh.')
+    parser.add_argument('--permanent_checkpoint_dir', type=str, default=None,
+                        help='Optional durable destination receiving atomic latest.pt/best.pt copies and manifests.')
     parser.add_argument('--save_eval_rollout_artifacts', action='store_true',
                         help='Save raw standardized-evaluation rollout tensors.')
     parser.add_argument('--save_eval_plots', action='store_true',
@@ -1741,6 +2015,12 @@ Examples:
         pilot_measure_steps=args.pilot_measure_steps,
         pilot_profile=args.pilot_profile,
         pilot_timing_path=args.pilot_timing_path,
+        checkpoint_dir=args.checkpoint_dir,
+        checkpoint_interval=args.checkpoint_interval,
+        checkpoint_retention=args.checkpoint_retention,
+        resume=args.resume,
+        resume_if_available=args.resume_if_available,
+        permanent_checkpoint_dir=args.permanent_checkpoint_dir,
     )
 
 
