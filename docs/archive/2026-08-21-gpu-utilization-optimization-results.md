@@ -40,13 +40,14 @@ The work was split into small, reviewable pull requests:
   host-to-device synchronization from the training hot path while preserving
   the FP32 sequence, loss, gradients, parameters, optimizer state, and
   serialized resume behavior covered by the PR tests.
-- [PR #14](https://github.com/aidanmrli/skae/pull/14) scheduled metric/diagnostic
-  work outside the hot path. It retains the diagnostics at their declared
-  cadence and preserves the training objective; the tests cover the metric
-  contracts and the homogeneous/zero-penalty cases.
+- [PR #14](https://github.com/aidanmrli/skae/pull/14) reduced unscheduled
+  metric/diagnostic work in the hot path. Scheduled collection remains at its
+  declared boundaries and the training objective is preserved; the tests
+  cover the metric contracts and the homogeneous/zero-penalty cases.
 
-The paired RTX8000-class comparison for PR #12 used main job `10439404` and
-candidate job `10439405`:
+The paired Quadro RTX8000 comparison for PR #12 used main job `10439404` and
+candidate job `10439405`. Each receipt identifies one GPU of that model/type;
+the jobs used different GPU UUIDs:
 
 | quantity | main | exact-cache candidate | change |
 | --- | ---: | ---: | ---: |
@@ -63,9 +64,9 @@ runner.
 The exact-GPU-UUID comparison for PR #14 used main job `10440121` and
 candidate job `10440153`:
 
-| quantity | main | scheduled-diagnostic candidate | change |
+| quantity | main | reduced-unscheduled-diagnostic candidate | change |
 | --- | ---: | ---: | ---: |
-| throughput | 283.385 steps/s | 312.026 steps/s | +10.10% |
+| throughput | 283.385 steps/s | 312.026 steps/s | +10.11% |
 | GPU utilization | 31.379% | 33.0% | +1.621 percentage points |
 | measured training time | relative baseline | 90.82% of baseline | -9.18% |
 | unprofiled phase time | relative baseline | 92.93% of baseline | -7.07% |
@@ -76,19 +77,21 @@ The PR #14 correctness and requeue evidence was recorded in jobs
 
 ## Experiment context
 
-The comparisons used the same declared workload and the same GPU class, and
-the PR #14 pair used the same GPU UUID. The measurement harness separates the
+The comparisons used the same declared workload. The PR #12 receipts identify
+one Quadro RTX8000 GPU per job, with different UUIDs; the PR #14 pair used the
+same GPU UUID. The measurement harness separates the
 warmup/profile window from setup and diagnostic overhead, reports both
 measured and allocation wall time, and records configuration, source, device,
 and continuation identity. This distinction matters because a change that
 improves the measured training loop can still add fixed setup or diagnostic
 work to the total allocation.
 
-The PR #12 change targets the dominant CPU/data-transfer stall observed in the
-baseline. PR #14 targets repeated diagnostics that were not needed on every
-optimization step. Checkpointing is an efficiency safeguard rather than a
-per-step speed optimization: a clean resume avoids discarding already-paid
-GPU hours after a time limit or preemption.
+The PR #12 change targets the identified CPU/data-transfer stall observed in
+the baseline. PR #14 reduces repeated diagnostics that were not needed on
+every optimization step; scheduled collection remains at declared boundaries.
+Checkpointing is an efficiency safeguard rather than a per-step speed
+optimization: a clean resume avoids discarding already-paid GPU hours after a
+time limit or preemption.
 
 ## Interpretation and limits
 
@@ -98,15 +101,18 @@ runs because NCU's counter access returned `ERR_NVGPUCTRPERM`; no GPU-utilizatio
 number above should be read as an SMO result. Consequently, these runs do not
 establish a production SMO gate or an absolute RGU result.
 
-For a paired run on the same GPU model, GPU count, and allocation protocol,
-the per-hour RGU rate is constant up to the cluster's GPU coefficient. Thus
-the ratio of elapsed allocation wall times is also the ratio of allocated
-RGU-hours, even though the absolute RTX8000 coefficient was not available in
-these receipts. The PR #12 allocation-wall reduction supports a relative
-RGU-hour reduction under that assumption; its larger measured-window
-reduction describes the training loop only. The PR #14 pair supports a
-relative measured-window reduction, but its +4.53% total allocation-wall
-change means that it does not support an end-to-end RGU-hour reduction.
+For a paired run, the ratio of elapsed allocation wall times is also the ratio
+of allocated RGU-hours only when GPU model/type, GPU count, allocation
+protocol, and the effective GPU-to-RGU coefficient are identical. The PR #12
+receipts identify one Quadro RTX8000 GPU per job, but their different UUIDs
+mean that the model label alone is insufficient to prove identical coefficient
+or hardware state. Its allocation-wall reduction therefore supports a
+relative RGU-hour reduction only conditional on that coefficient being
+identical; it does not establish an absolute RGU value. Its larger
+measured-window reduction describes the training loop only. The PR #14 pair
+uses the same GPU UUID and supports a relative measured-window reduction, but
+its +4.53% total allocation-wall change means that it does not support an
+end-to-end RGU-hour reduction.
 
 The improvements are therefore evidence of less idle time and lower relative
 allocation for the paired workloads, not evidence that the GPU reached high
@@ -118,11 +124,11 @@ comparison.
 
 The cache/device path is the largest demonstrated improvement: it moved the
 measured GPU-utilization observation from about 2% to about 16% and reduced
-paired allocation wall time by 60%. Scheduled diagnostics provide a smaller
-additional gain in the measured loop when the baseline is already better
-utilized, while making clear that diagnostic overhead must be included in any
-end-to-end resource claim. Complete checkpoint state and requeue handling
-protect these gains from being lost on interruption.
+paired allocation wall time by 60%. Reducing unscheduled diagnostics provides
+a smaller additional gain in the measured loop when the baseline is already
+better utilized, while making clear that diagnostic overhead must be included
+in any end-to-end resource claim. Complete checkpoint state and requeue
+handling protect these gains from being lost on interruption.
 
 These provenance results are not incorporated into the active NeurIPS paper
 claims or displays. They are retained here so that future code changes and
