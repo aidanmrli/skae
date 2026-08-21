@@ -56,6 +56,10 @@ def existing_final(
         phase_receipts
     ):
         return None
+    comparison = final.get("comparison")
+    window = comparison.get("measurement_window") if isinstance(comparison, dict) else None
+    if not isinstance(window, dict):
+        return None
     for phase, record in phase_receipts.items():
         if phase in {"allocation_elapsed_seconds", "storage"}:
             continue
@@ -68,6 +72,7 @@ def existing_final(
             identity_hash=identity_hash,
             command=record.get("command", []),
             steps=record.get("steps"),
+            measurement_window=window,
         )
         if receipt is None or record.get("artifacts") != receipt.get("artifacts"):
             return None
@@ -179,6 +184,7 @@ def valid_phase_receipt(
     identity_hash: str,
     command: list[str],
     steps: int,
+    measurement_window: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     receipt = read_json(path)
     if receipt is None:
@@ -193,6 +199,8 @@ def valid_phase_receipt(
         or receipt.get("command") != command
         or receipt.get("steps") != steps
     ):
+        return None
+    if measurement_window is not None and receipt.get("measurement_window") != measurement_window:
         return None
     artifacts = receipt.get("artifacts")
     expected_artifacts = {"stdout", "stderr", "telemetry", "timing", "resolved_config"}
@@ -231,6 +239,7 @@ def newest_valid_phase_receipt(
     identity_hash: str,
     command: list[str],
     steps: int,
+    measurement_window: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     candidates = sorted(output.glob(f"{phase}_attempt_*.json"), reverse=True)
     for path in candidates:
@@ -240,6 +249,7 @@ def newest_valid_phase_receipt(
             identity_hash=identity_hash,
             command=command,
             steps=steps,
+            measurement_window=measurement_window,
         )
         if receipt is not None:
             return receipt

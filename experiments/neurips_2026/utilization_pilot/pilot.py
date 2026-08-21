@@ -126,6 +126,21 @@ def exact_task_identity(label: str = "base", variant: str = "base") -> dict[str,
     return identity
 
 
+def with_measurement_window(
+    identity: Mapping[str, Any], window: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Attach operational window provenance without changing scientific fields."""
+
+    updated = dict(identity)
+    comparison = dict(updated["comparison"])
+    comparison["measurement_window"] = dict(window)
+    updated["comparison"] = comparison
+    without_hash = dict(updated)
+    without_hash.pop("task_identity_sha256", None)
+    updated["task_identity_sha256"] = sha256_bytes(canonical_json(without_hash).encode())
+    return updated
+
+
 def validate_task_identity(identity: Mapping[str, Any]) -> None:
     """Fail closed if any scientific task field differs from the frozen task."""
 

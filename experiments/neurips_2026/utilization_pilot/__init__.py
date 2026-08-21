@@ -16,6 +16,7 @@ from .pilot import (
     parse_ncu_metrics,
     require_ncu_smo_metrics,
     validate_task_identity,
+    with_measurement_window,
 )
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "parse_ncu_metrics",
     "require_ncu_smo_metrics",
     "validate_task_identity",
+    "with_measurement_window",
 ]
