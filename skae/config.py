@@ -545,6 +545,12 @@ class TrainConfig:
     EVAL_EVERY: int = 500  # evaluation interval in training steps
     EVAL_NUM_STEPS: int = 200  # rollout horizon for the quick eval() helper
 
+    # Host-visible training diagnostics are collected at this cadence.  The
+    # differentiable loss and optimizer update run on every step; callers can
+    # still request per-step history explicitly with --save_metrics_history.
+    METRICS_EVERY: int = 100
+    EIGEN_METRICS_EVERY: int = 100
+
     # Unified horizon-based training parameter.
     # H=1 matches former pairwise behavior.
     SEQUENCE_LENGTH: int = 1

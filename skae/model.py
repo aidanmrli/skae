@@ -1230,8 +1230,17 @@ class KoopmanMachine(ABC, nn.Module):
         homogeneous_loss: Optional[Any] = None,
         block_losses: Optional[Dict[str, Any]] = None,
         step: int = 0,
+        collect_metrics: bool = True,
+        metric_eigen_every: int = 100,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Pure tensor aggregation for unified loss."""
+        """Pure tensor aggregation for unified loss.
+
+        ``collect_metrics=False`` is a metric-free optimizer path.  It keeps
+        every differentiable loss term identical, but avoids diagnostic
+        reductions and host synchronizations that are not used by the
+        optimizer.  Callers should request metrics at their explicit logging,
+        evaluation, or checkpoint cadence.
+        """
         del x0, homogeneous_loss, block_losses
         if x_pred.ndim < 3 or x_true.ndim < 3:
             raise ValueError("x_pred/x_true must have shape [B, H, ...]")
@@ -1269,6 +1278,9 @@ class KoopmanMachine(ABC, nn.Module):
             self.cfg.MODEL.SPARSITY_COEFF * sparsity_loss
         )
 
+        if not collect_metrics:
+            return total_loss, {}
+
         with torch.no_grad():
             sparsity_ratio = self._sparsity_ratio_from_latent(
                 z_pred, z_true, z0, device=device, dtype=dtype
@@ -1293,7 +1305,7 @@ class KoopmanMachine(ABC, nn.Module):
         # A full eigendecomposition of K is diagnostic-only and cubic in the
         # latent dimension.  Computing it every optimizer step dominated the
         # small-state Dysts workload without affecting gradients.
-        if step % 100 == 0:
+        if metric_eigen_every > 0 and step % metric_eigen_every == 0:
             with torch.no_grad():
                 max_eigenvalue, spectral_radius = self._k_eigen_metrics()
             metrics.update(
@@ -1318,8 +1330,14 @@ class KoopmanMachine(ABC, nn.Module):
         homogeneous_loss: Optional[Any] = None,
         block_losses: Optional[Dict[str, Any]] = None,
         step: int = 0,
+        collect_metrics: bool = True,
+        metric_eigen_every: int = 100,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Canonical unified loss API (pure aggregation)."""
+        """Canonical unified loss API (pure aggregation).
+
+        The metric-free mode is intentionally opt-in at this API boundary so
+        existing callers retain the historical metric dictionary by default.
+        """
         return self._aggregate_losses_from_tensors(
             x_pred=x_pred,
             x_true=x_true,
@@ -1333,6 +1351,8 @@ class KoopmanMachine(ABC, nn.Module):
             homogeneous_loss=homogeneous_loss,
             block_losses=block_losses,
             step=step,
+            collect_metrics=collect_metrics,
+            metric_eigen_every=metric_eigen_every,
         )
 
 
@@ -2051,6 +2071,8 @@ class LISTAKM(KoopmanMachine):
         homogeneous_loss: Optional[Any] = None,
         block_losses: Optional[Dict[str, Any]] = None,
         step: int = 0,
+        collect_metrics: bool = True,
+        metric_eigen_every: int = 100,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Unified loss with LISTA-specific homogeneous/block additions."""
         total_loss, metrics = super().loss(
@@ -2064,6 +2086,8 @@ class LISTAKM(KoopmanMachine):
             sparsity_error=sparsity_error,
             sparsity_latent=sparsity_latent,
             step=step,
+            collect_metrics=collect_metrics,
+            metric_eigen_every=metric_eigen_every,
         )
         block_losses = block_losses or {}
 
@@ -2092,30 +2116,31 @@ class LISTAKM(KoopmanMachine):
                 self._block_loss_cfg.ONE_BLOCK_WEIGHT * one_block_loss +
                 self._block_loss_cfg.BALANCE_WEIGHT * balance_loss
             )
-            metrics.update({
-                'block_one_block_loss': one_block_loss.item(),
-                'block_balance_loss': balance_loss.item(),
-                'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
-                'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
-                'block_entropy': self._to_scalar_tensor(
-                    block_losses.get("entropy", 0.0),
-                    device=device,
-                    dtype=dtype,
-                    name="block_losses.entropy",
-                ).item(),
-                'block_usage_entropy': self._to_scalar_tensor(
-                    block_losses.get("usage_entropy", 0.0),
-                    device=device,
-                    dtype=dtype,
-                    name="block_losses.usage_entropy",
-                ).item(),
-                'block_top1_gap': self._to_scalar_tensor(
-                    block_losses.get("top1_gap", 0.0),
-                    device=device,
-                    dtype=dtype,
-                    name="block_losses.top1_gap",
-                ).item(),
-            })
+            if collect_metrics:
+                metrics.update({
+                    'block_one_block_loss': one_block_loss.item(),
+                    'block_balance_loss': balance_loss.item(),
+                    'block_one_block_weight': self._block_loss_cfg.ONE_BLOCK_WEIGHT,
+                    'block_balance_weight': self._block_loss_cfg.BALANCE_WEIGHT,
+                    'block_entropy': self._to_scalar_tensor(
+                        block_losses.get("entropy", 0.0),
+                        device=device,
+                        dtype=dtype,
+                        name="block_losses.entropy",
+                    ).item(),
+                    'block_usage_entropy': self._to_scalar_tensor(
+                        block_losses.get("usage_entropy", 0.0),
+                        device=device,
+                        dtype=dtype,
+                        name="block_losses.usage_entropy",
+                    ).item(),
+                    'block_top1_gap': self._to_scalar_tensor(
+                        block_losses.get("top1_gap", 0.0),
+                        device=device,
+                        dtype=dtype,
+                        name="block_losses.top1_gap",
+                    ).item(),
+                })
 
         if self.use_homogeneous:
             if homogeneous_loss is not None:
@@ -2126,34 +2151,38 @@ class LISTAKM(KoopmanMachine):
                     name="homogeneous_loss",
                 ) * sequence_term_scale
                 total_loss = total_loss + self.cfg.MODEL.HOMOGENEOUS_COEFF * homog_loss
-                metrics['homogeneous_loss'] = homog_loss.item()
+                if collect_metrics:
+                    metrics['homogeneous_loss'] = homog_loss.item()
             elif self.cfg.MODEL.HOMOGENEOUS_COEFF != 0.0:
                 raise ValueError("homogeneous_loss must be provided when homogeneous coordinates are enabled.")
 
         soft_block_penalty, soft_block_ratio = self._soft_block_penalty()
         if soft_block_penalty is not None:
             total_loss = total_loss + self._soft_block_cfg.WEIGHT * soft_block_penalty
-            metrics.update({
-                'soft_block_penalty': float(soft_block_penalty.item()),
-                'soft_block_weight': float(self._soft_block_cfg.WEIGHT),
-                'soft_block_off_block_ratio': float(soft_block_ratio.item()) if soft_block_ratio is not None else 0.0,
-            })
+            if collect_metrics:
+                metrics.update({
+                    'soft_block_penalty': float(soft_block_penalty.item()),
+                    'soft_block_weight': float(self._soft_block_cfg.WEIGHT),
+                    'soft_block_off_block_ratio': float(soft_block_ratio.item()) if soft_block_ratio is not None else 0.0,
+                })
 
         decoder_coherence_penalty, decoder_coherence_max_offdiag = self._decoder_coherence_penalty()
         if decoder_coherence_penalty is not None:
             decoder_coherence_weight = float(self.cfg.MODEL.DECODER_COHERENCE_WEIGHT)
             total_loss = total_loss + decoder_coherence_weight * decoder_coherence_penalty
-            metrics.update({
-                'decoder_coherence_penalty': float(decoder_coherence_penalty.item()),
-                'decoder_coherence_weight': decoder_coherence_weight,
-                'decoder_coherence_max_offdiag': (
-                    float(decoder_coherence_max_offdiag.item())
-                    if decoder_coherence_max_offdiag is not None
-                    else 0.0
-                ),
-            })
+            if collect_metrics:
+                metrics.update({
+                    'decoder_coherence_penalty': float(decoder_coherence_penalty.item()),
+                    'decoder_coherence_weight': decoder_coherence_weight,
+                    'decoder_coherence_max_offdiag': (
+                        float(decoder_coherence_max_offdiag.item())
+                        if decoder_coherence_max_offdiag is not None
+                        else 0.0
+                    ),
+                })
 
-        metrics['loss'] = total_loss.item()
+        if collect_metrics:
+            metrics['loss'] = total_loss.item()
         return total_loss, metrics
 
 

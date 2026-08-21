@@ -97,6 +97,7 @@ def make_run_identity(
     *,
     batch_count: int,
     logger_history: bool,
+    metric_contract: Optional[Dict[str, Any]] = None,
     source_root: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Build stable and exact-continuation compatibility metadata."""
@@ -108,6 +109,7 @@ def make_run_identity(
         "cuda_device_count": int(torch.cuda.device_count()) if torch.cuda.is_available() else 0,
         "batch_count": int(batch_count),
         "logger_history": bool(logger_history),
+        "metric_contract": copy.deepcopy(metric_contract or {}),
         "source": source_identity(source_root, require_clean=True),
     }
 
@@ -122,6 +124,7 @@ def validate_run_identity(expected: Dict[str, Any], actual: Dict[str, Any]) -> N
         "cuda_device_count",
         "batch_count",
         "logger_history",
+        "metric_contract",
     ):
         if actual.get(key) != expected.get(key):
             raise CheckpointError(

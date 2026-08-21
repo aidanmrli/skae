@@ -434,11 +434,44 @@ def parse_optional_bool(value: str) -> bool:
     )
 
 
+def _metric_collection_due(
+    step: int,
+    *,
+    num_steps: int,
+    metrics_every: int,
+    eval_every: int,
+    pilot_mode: bool,
+    complete_checkpointing: bool,
+    checkpoint_interval: int,
+    save_metrics_history: bool,
+    save_training_plot: bool,
+    signal_requested: bool = False,
+) -> bool:
+    """Return whether this optimizer step should materialize host metrics.
+
+    Diagnostic collection is tied to observable boundaries.  In particular,
+    the utilization pilot intentionally has no metric work in its timed
+    window.  Explicit raw-history/plot requests retain the historical
+    per-step metric stream.
+    """
+    if pilot_mode:
+        return False
+    if save_metrics_history or save_training_plot:
+        return True
+    if signal_requested or step % metrics_every == 0 or step == num_steps - 1:
+        return True
+    if eval_every > 0 and step > 0 and step % eval_every == 0:
+        return True
+    return complete_checkpointing and (step + 1) % checkpoint_interval == 0
+
+
 def train_step(
     model: nn.Module,
     optimizer: torch.optim.Optimizer,
     x_seq: torch.Tensor,
     step: int = 0,
+    collect_metrics: bool = True,
+    metric_eigen_every: int = 100,
 ) -> Dict[str, float]:
     """Perform one training step.
 
@@ -447,6 +480,11 @@ def train_step(
         optimizer: PyTorch optimizer
         x_seq: Sequence window [batch_size, horizon+1, observation_size]
         step: Current training step
+        collect_metrics: Whether to materialize host-visible diagnostics.
+            ``False`` preserves the exact differentiable loss and optimizer
+            update while avoiding diagnostic reductions and host syncs.
+        metric_eigen_every: Cadence for the diagnostic K eigendecomposition;
+            zero disables it.
 
     Returns:
         Dictionary of metrics
@@ -515,6 +553,8 @@ def train_step(
         homogeneous_loss=homogeneous_loss,
         block_losses=block_losses,
         step=step,
+        collect_metrics=collect_metrics,
+        metric_eigen_every=metric_eigen_every,
     )
 
     # Backward pass
@@ -698,6 +738,13 @@ def train(
     if pilot_mode and not str(device).startswith("cuda"):
         raise ValueError("the utilization pilot requires --device cuda")
 
+    metrics_every = int(getattr(cfg.TRAIN, "METRICS_EVERY", 100))
+    eigen_metrics_every = int(getattr(cfg.TRAIN, "EIGEN_METRICS_EVERY", 100))
+    if metrics_every < 1:
+        raise ValueError("TRAIN.METRICS_EVERY must be >= 1")
+    if eigen_metrics_every < 0:
+        raise ValueError("TRAIN.EIGEN_METRICS_EVERY must be >= 0")
+
     complete_checkpointing = checkpoint_dir is not None
     if resume and not complete_checkpointing:
         raise ValueError("resume=True requires checkpoint_dir")
@@ -766,11 +813,17 @@ def train(
         cfg.to_json(str(run_dir / 'config.json'))
 
     logger = MetricsLogger(run_dir, save_history=save_metrics_history or save_training_plot)
+    metric_contract = {
+        "metrics_every": metrics_every,
+        "eigen_metrics_every": eigen_metrics_every,
+        "history_mode": "per_step" if logger.save_history else "scheduled",
+    }
     run_identity = make_run_identity(
         cfg.to_dict(),
         device,
         batch_count=num_batches,
         logger_history=logger.save_history,
+        metric_contract=metric_contract,
         source_root=Path.cwd(),
     )
     if resume_payload is not None:
@@ -992,6 +1045,11 @@ def train(
     last_metrics: Dict[str, Any] = (
         dict(resume_payload.get("last_metrics", {})) if resume_payload is not None else {}
     )
+    last_metrics_step = (
+        resume_payload.get("last_metrics_step")
+        if resume_payload is not None
+        else None
+    )
     selection_metric = (
         resume_payload.get("checkpoint_selection_metric")
         if resume_payload is not None
@@ -1042,6 +1100,8 @@ def train(
                 "generator_index": int(next_step % num_batches),
             },
             "last_metrics": dict(last_metrics),
+            "last_metrics_step": last_metrics_step,
+            "metric_contract": dict(metric_contract),
             "logger_state": logger.state_dict(),
             "best_eval_final_error": float(best_eval_final_error),
             "checkpoint_selection_metric": selection_metric,
@@ -1101,14 +1161,36 @@ def train(
                 sequence_cache=training_sequence_cache,
             )
 
-        metrics = train_step(model, optimizer, x_seq, step=step)
-        last_metrics = dict(metrics)
+        collect_metrics = _metric_collection_due(
+            step,
+            num_steps=int(cfg.TRAIN.NUM_STEPS),
+            metrics_every=metrics_every,
+            eval_every=int(cfg.TRAIN.EVAL_EVERY),
+            pilot_mode=pilot_mode,
+            complete_checkpointing=complete_checkpointing,
+            checkpoint_interval=checkpoint_interval_value,
+            save_metrics_history=save_metrics_history,
+            save_training_plot=save_training_plot,
+            signal_requested=bool(signal_stopper and signal_stopper.requested),
+        )
+        step_metrics = train_step(
+            model,
+            optimizer,
+            x_seq,
+            step=step,
+            collect_metrics=collect_metrics,
+            metric_eigen_every=eigen_metrics_every,
+        )
+        if step_metrics:
+            metrics = dict(step_metrics)
+            last_metrics = dict(step_metrics)
+            last_metrics_step = int(step)
 
         in_measured_range = pilot_mode and pilot_measure_start <= step < pilot_measure_end
-        if not in_measured_range:
-            logger.log_dict(metrics, step, prefix='train')
+        if step_metrics and not in_measured_range:
+            logger.log_dict(step_metrics, step, prefix='train')
 
-        if step % 100 == 0 and not in_measured_range:
+        if step_metrics and step % 100 == 0 and not in_measured_range:
             sr_str = ""
             if 'spectral_radius' in metrics:
                 sr_str = f" | SR: {metrics['spectral_radius']:.4f}"
@@ -1176,7 +1258,8 @@ def train(
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict() if save_last_checkpoint else None,
                 'config': cfg.to_dict(),
-                'metrics': metrics,
+                'metrics': dict(step_metrics),
+                'metric_contract': dict(metric_contract),
                 'checkpoint_selection_rollout': checkpoint_rollout_mode,
                 'checkpoint_selection_metric': checkpoint_metric,
                 'checkpoint_selection_score': checkpoint_score,
@@ -1778,6 +1861,10 @@ Examples:
                         help='Evaluate every N steps during training (overrides config default)')
     parser.add_argument('--eval_num_steps', type=int, default=None,
                         help='Rollout horizon for the quick eval during training (overrides config default)')
+    parser.add_argument('--metrics_every', type=int, default=None,
+                        help='Collect host-visible training metrics every N steps (default: 100)')
+    parser.add_argument('--eigen_metrics_every', type=int, default=None,
+                        help='Collect K eigenvalue diagnostics every N metric steps (0 disables)')
     parser.add_argument('--skip_eval', action='store_true',
                         help='Skip standardized evaluation suite after training')
     parser.add_argument('--eval_profile', type=str, default='full', choices=['full', 'smoke'],
@@ -2125,6 +2212,10 @@ Examples:
         cfg.TRAIN.EVAL_EVERY = int(args.eval_every)
     if args.eval_num_steps is not None:
         cfg.TRAIN.EVAL_NUM_STEPS = int(args.eval_num_steps)
+    if args.metrics_every is not None:
+        cfg.TRAIN.METRICS_EVERY = int(args.metrics_every)
+    if args.eigen_metrics_every is not None:
+        cfg.TRAIN.EIGEN_METRICS_EVERY = int(args.eigen_metrics_every)
 
     # Auto-detect device
     device = get_device(args.device)
