@@ -515,14 +515,19 @@ def train_step(
 
     if hasattr(model, "_block_loss_cfg") and getattr(model._block_loss_cfg, "ENABLED", False):
         z_block = torch.cat([z0.unsqueeze(1), z_true], dim=1).reshape(batch_size * seq_len, -1)
-        one_block_loss, balance_loss, block_metrics = model._block_losses_from_z(z_block)
+        one_block_loss, balance_loss, block_metrics = model._block_losses_from_z(
+            z_block, collect_metrics=collect_metrics
+        )
         block_losses = {
             "one_block_loss": one_block_loss,
             "balance_loss": balance_loss,
-            "entropy": block_metrics["block_entropy"],
-            "usage_entropy": block_metrics["block_usage_entropy"],
-            "top1_gap": block_metrics["block_top1_gap"],
         }
+        if collect_metrics:
+            block_losses.update({
+                "entropy": block_metrics["block_entropy"],
+                "usage_entropy": block_metrics["block_usage_entropy"],
+                "top1_gap": block_metrics["block_top1_gap"],
+            })
 
     if getattr(model, "use_homogeneous", False) and hasattr(model, "get_homogeneous_coord"):
         c_hat = model.get_homogeneous_coord(z_pred.reshape(batch_size * horizon, -1))
@@ -737,6 +742,11 @@ def train(
         raise ValueError("pilot profiling requires a positive measured-step range")
     if pilot_mode and not str(device).startswith("cuda"):
         raise ValueError("the utilization pilot requires --device cuda")
+    if pilot_mode and (save_metrics_history or save_training_plot):
+        raise ValueError(
+            "the utilization pilot is metric-free; disable history/plot output "
+            "for the frozen pilot protocol"
+        )
 
     metrics_every = int(getattr(cfg.TRAIN, "METRICS_EVERY", 100))
     eigen_metrics_every = int(getattr(cfg.TRAIN, "EIGEN_METRICS_EVERY", 100))
@@ -1862,9 +1872,9 @@ Examples:
     parser.add_argument('--eval_num_steps', type=int, default=None,
                         help='Rollout horizon for the quick eval during training (overrides config default)')
     parser.add_argument('--metrics_every', type=int, default=None,
-                        help='Collect host-visible training metrics every N steps (default: 100)')
+                        help='Collect host-visible training metrics every N optimizer steps (default: 100)')
     parser.add_argument('--eigen_metrics_every', type=int, default=None,
-                        help='Collect K eigenvalue diagnostics every N metric steps (0 disables)')
+                        help='Collect K eigenvalue diagnostics every N optimizer steps when metrics are emitted (0 disables)')
     parser.add_argument('--skip_eval', action='store_true',
                         help='Skip standardized evaluation suite after training')
     parser.add_argument('--eval_profile', type=str, default='full', choices=['full', 'smoke'],

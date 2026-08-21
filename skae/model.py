@@ -1303,8 +1303,8 @@ class KoopmanMachine(ABC, nn.Module):
             'sparsity_ratio': sparsity_ratio.item(),
         }
         # A full eigendecomposition of K is diagnostic-only and cubic in the
-        # latent dimension.  Computing it every optimizer step dominated the
-        # small-state Dysts workload without affecting gradients.
+        # latent dimension.  It is sampled by optimizer-step cadence only on
+        # steps that already requested a metric payload.
         if metric_eigen_every > 0 and step % metric_eigen_every == 0:
             with torch.no_grad():
                 max_eigenvalue, spectral_radius = self._k_eigen_metrics()
@@ -1720,18 +1720,25 @@ class LISTAKM(KoopmanMachine):
             blocks.append(self.kmat_remainder)
         return blocks
 
-    def _soft_block_penalty(self) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
-        """Return off-block penalty and off-block ratio for dense soft block-sparse K."""
+    def _soft_block_penalty(
+        self, *, collect_metrics: bool = True
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Return penalty and optional reporting-only off-block ratio."""
         if not self._soft_block_cfg.ENABLED or self._k_structure != "dense" or not self._soft_block_sizes:
             return None, None
         off_mask = ~self._soft_block_mask
         off_entries = self.kmat.masked_select(off_mask)
         if self._soft_block_cfg.NORM == "fro":
             penalty = off_entries.square().sum()
-            total = self.kmat.square().sum()
         else:
             penalty = off_entries.abs().sum()
-            total = self.kmat.abs().sum()
+        if not collect_metrics:
+            return penalty, None
+        total = (
+            self.kmat.square().sum()
+            if self._soft_block_cfg.NORM == "fro"
+            else self.kmat.abs().sum()
+        )
         ratio = penalty / total.clamp(min=1e-8)
         return penalty, ratio
 
@@ -1748,18 +1755,22 @@ class LISTAKM(KoopmanMachine):
             atoms = 0.5 * (atoms[:half] - atoms[half:])
         return atoms / torch.norm(atoms, dim=1, keepdim=True).clamp(min=1e-8)
 
-    def _decoder_coherence_penalty(self) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
-        """Return off-diagonal decoder coherence penalty and max correlation."""
+    def _decoder_coherence_penalty(
+        self, *, collect_metrics: bool = True
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Return penalty and optional reporting-only maximum correlation."""
         weight = float(getattr(self.cfg.MODEL, "DECODER_COHERENCE_WEIGHT", 0.0))
         if weight <= 0.0:
             return None, None
         atoms = self._decoder_atoms_for_coherence()
         if atoms.shape[0] <= 1:
             zero = atoms.new_tensor(0.0)
-            return zero, zero
+            return zero, zero if collect_metrics else None
         gram = atoms @ atoms.T
         off_diag = gram - torch.diag_embed(torch.diagonal(gram))
         penalty = off_diag.square().sum()
+        if not collect_metrics:
+            return penalty, None
         max_off_diag = off_diag.abs().max()
         return penalty, max_off_diag
 
@@ -1983,13 +1994,15 @@ class LISTAKM(KoopmanMachine):
         return torch.cat(energies, dim=-1)
 
     def _block_losses_from_z(
-        self, z: torch.Tensor
+        self, z: torch.Tensor, *, collect_metrics: bool = True
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        """Compute block activation losses from pre-encoded latents."""
+        """Compute configured block losses and optional reporting diagnostics."""
         cfg = self._block_loss_cfg
         energies = self._block_energies(z)
         if energies is None:
             zero = torch.tensor(0.0, device=z.device)
+            if not collect_metrics:
+                return zero, zero, {}
             return zero, zero, {
                 'block_entropy': zero,
                 'block_usage_entropy': zero,
@@ -2000,11 +2013,23 @@ class LISTAKM(KoopmanMachine):
         denom = energies.sum(dim=-1, keepdim=True) + eps
         probs = energies / denom
 
-        # Per-sample entropy (lower = more exclusive)
-        entropy = -torch.sum(probs * torch.log(probs + eps), dim=-1)
+        # Per-sample entropy is a loss for low_entropy, otherwise it is only
+        # a metric.  Avoid forming it on metric-free steps when unused.
+        entropy: Optional[torch.Tensor] = None
+        if cfg.ONE_BLOCK_LOSS == "low_entropy" or collect_metrics:
+            entropy = -torch.sum(probs * torch.log(probs + eps), dim=-1)
+
+        # Top-1 margin uses top-k as a differentiable loss.  Reuse those
+        # values for the reporting gap instead of performing a duplicate top-k.
+        top2: Optional[torch.Tensor] = None
+        if energies.shape[-1] >= 2 and (
+            cfg.ONE_BLOCK_LOSS == "top1_margin" or collect_metrics
+        ):
+            top2 = torch.topk(energies, k=2, dim=-1).values
 
         one_block_loss = torch.tensor(0.0, device=z.device)
         if cfg.ONE_BLOCK_LOSS == "low_entropy":
+            assert entropy is not None
             one_block_loss = entropy.mean()
         elif cfg.ONE_BLOCK_LOSS == "pairwise_overlap":
             sum_e = energies.sum(dim=-1)
@@ -2012,25 +2037,33 @@ class LISTAKM(KoopmanMachine):
             denom_pair = (sum_e + eps) ** 2
             one_block_loss = ((sum_e ** 2 - sum_sq) / denom_pair).mean()
         elif cfg.ONE_BLOCK_LOSS == "top1_margin":
-            if energies.shape[-1] >= 2:
-                top2 = torch.topk(energies, k=2, dim=-1).values
+            if top2 is not None:
                 gap = top2[..., 0] - top2[..., 1]
                 one_block_loss = torch.relu(cfg.TOP1_MARGIN - gap).mean()
 
-        # Batch-level usage balance
+        # Batch-level usage entropy is a loss for usage_entropy, otherwise it
+        # is only a metric.  KL balance still uses q but not usage_entropy.
         q = probs.mean(dim=0)  # [num_blocks]
-        usage_entropy = -torch.sum(q * torch.log(q + eps))
+        usage_entropy: Optional[torch.Tensor] = None
+        if cfg.BALANCE_LOSS == "usage_entropy" or collect_metrics:
+            usage_entropy = -torch.sum(q * torch.log(q + eps))
         balance_loss = torch.tensor(0.0, device=z.device)
         if cfg.BALANCE_LOSS == "usage_entropy":
+            assert usage_entropy is not None
             balance_loss = -usage_entropy  # minimize negative entropy => maximize usage entropy
         elif cfg.BALANCE_LOSS == "kl_uniform":
             num_blocks = q.shape[0]
             log_uniform = math.log(1.0 / num_blocks)
             balance_loss = torch.sum(q * (torch.log(q + eps) - log_uniform))
 
-        # Top-1 gap metric for monitoring
-        if energies.shape[-1] >= 2:
-            top2 = torch.topk(energies, k=2, dim=-1).values
+        if not collect_metrics:
+            return one_block_loss, balance_loss, {}
+
+        if entropy is None:
+            entropy = -torch.sum(probs * torch.log(probs + eps), dim=-1)
+        if usage_entropy is None:
+            usage_entropy = -torch.sum(q * torch.log(q + eps))
+        if top2 is not None:
             top1_gap = (top2[..., 0] - top2[..., 1]).mean()
         else:
             top1_gap = torch.tensor(0.0, device=z.device)
@@ -2156,7 +2189,9 @@ class LISTAKM(KoopmanMachine):
             elif self.cfg.MODEL.HOMOGENEOUS_COEFF != 0.0:
                 raise ValueError("homogeneous_loss must be provided when homogeneous coordinates are enabled.")
 
-        soft_block_penalty, soft_block_ratio = self._soft_block_penalty()
+        soft_block_penalty, soft_block_ratio = self._soft_block_penalty(
+            collect_metrics=collect_metrics
+        )
         if soft_block_penalty is not None:
             total_loss = total_loss + self._soft_block_cfg.WEIGHT * soft_block_penalty
             if collect_metrics:
@@ -2166,7 +2201,9 @@ class LISTAKM(KoopmanMachine):
                     'soft_block_off_block_ratio': float(soft_block_ratio.item()) if soft_block_ratio is not None else 0.0,
                 })
 
-        decoder_coherence_penalty, decoder_coherence_max_offdiag = self._decoder_coherence_penalty()
+        decoder_coherence_penalty, decoder_coherence_max_offdiag = self._decoder_coherence_penalty(
+            collect_metrics=collect_metrics
+        )
         if decoder_coherence_penalty is not None:
             decoder_coherence_weight = float(self.cfg.MODEL.DECODER_COHERENCE_WEIGHT)
             total_loss = total_loss + decoder_coherence_weight * decoder_coherence_penalty

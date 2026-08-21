@@ -14,9 +14,13 @@ import torch
 
 import skae.training.runner as runner_module
 from skae.config import Config, get_config
-from skae.data import make_env
 from skae.model import make_model
-from skae.training.checkpointing import CheckpointError, CheckpointManager, CheckpointSignalExit
+from skae.training.checkpointing import (
+    CheckpointError,
+    CheckpointManager,
+    CheckpointSignalExit,
+    validate_run_identity,
+)
 from skae.training.runner import build_optimizer, train_step
 
 
@@ -36,18 +40,29 @@ def _gated_config() -> Config:
     return cfg
 
 
-def _lista_penalty_config() -> Config:
+def _lista_penalty_config(
+    one_block_loss: str = "low_entropy",
+    balance_loss: str = "usage_entropy",
+    *,
+    homogeneous: bool = False,
+    soft_block: bool = False,
+    coherence: bool = True,
+) -> Config:
     cfg = _gated_config()
     cfg.MODEL.MODEL_NAME = "LISTAKM"
-    cfg.MODEL.K_STRUCTURE = "block_diagonal"
-    cfg.MODEL.K_NUM_BLOCKS = 2
+    cfg.MODEL.USE_HOMOGENEOUS = homogeneous
+    cfg.MODEL.K_STRUCTURE = "dense" if soft_block else "block_diagonal"
+    cfg.MODEL.K_NUM_BLOCKS = 0 if soft_block else 2
     cfg.MODEL.K_BLOCK_SIZE = 4
-    cfg.MODEL.BLOCK_LOSS.ENABLED = True
-    cfg.MODEL.BLOCK_LOSS.ONE_BLOCK_LOSS = "low_entropy"
+    cfg.MODEL.BLOCK_LOSS.ENABLED = not soft_block
+    cfg.MODEL.BLOCK_LOSS.ONE_BLOCK_LOSS = one_block_loss
     cfg.MODEL.BLOCK_LOSS.ONE_BLOCK_WEIGHT = 0.1
-    cfg.MODEL.BLOCK_LOSS.BALANCE_LOSS = "usage_entropy"
+    cfg.MODEL.BLOCK_LOSS.BALANCE_LOSS = balance_loss
     cfg.MODEL.BLOCK_LOSS.BALANCE_WEIGHT = 0.1
-    cfg.MODEL.DECODER_COHERENCE_WEIGHT = 0.05
+    cfg.MODEL.SOFT_BLOCK.ENABLED = soft_block
+    cfg.MODEL.SOFT_BLOCK.NUM_BLOCKS = 2 if soft_block else 0
+    cfg.MODEL.SOFT_BLOCK.WEIGHT = 0.05 if soft_block else 0.0
+    cfg.MODEL.DECODER_COHERENCE_WEIGHT = 0.05 if coherence else 0.0
     return cfg
 
 
@@ -194,8 +209,101 @@ def test_metric_free_gated_transfer_cuda_matches_scheduled_metrics(monkeypatch):
     _run_pair(_gated_config(), device="cuda", monkeypatch=monkeypatch)
 
 
-def test_metric_free_lista_preserves_configured_penalties(monkeypatch):
-    _run_pair(_lista_penalty_config(), device="cpu", monkeypatch=monkeypatch)
+@pytest.mark.parametrize("one_block_loss", ["low_entropy", "pairwise_overlap", "top1_margin"])
+@pytest.mark.parametrize("balance_loss", ["usage_entropy", "kl_uniform"])
+def test_metric_free_lista_preserves_configured_block_penalties(
+    monkeypatch, one_block_loss, balance_loss
+):
+    _run_pair(
+        _lista_penalty_config(one_block_loss, balance_loss),
+        device="cpu",
+        monkeypatch=monkeypatch,
+    )
+
+
+def test_metric_free_lista_preserves_homogeneous_penalty(monkeypatch):
+    _run_pair(
+        _lista_penalty_config(homogeneous=True, coherence=False),
+        device="cpu",
+        monkeypatch=monkeypatch,
+    )
+
+
+def test_metric_free_lista_preserves_soft_block_and_coherence_penalties(monkeypatch):
+    _run_pair(
+        _lista_penalty_config(soft_block=True),
+        device="cpu",
+        monkeypatch=monkeypatch,
+    )
+
+
+def test_metric_free_block_reporting_reductions_are_skipped(monkeypatch):
+    cfg = _lista_penalty_config("low_entropy", "usage_entropy", coherence=False)
+    model = make_model(cfg, observation_size=2)
+    z = torch.randn(12, cfg.MODEL.TARGET_SIZE)
+    metric_one, metric_balance, metric_values = model._block_losses_from_z(
+        z, collect_metrics=True
+    )
+
+    def fail_topk(*args, **kwargs):
+        raise AssertionError("metric-free low-entropy block step computed top-k")
+
+    monkeypatch.setattr(torch, "topk", fail_topk)
+    free_one, free_balance, free_values = model._block_losses_from_z(
+        z, collect_metrics=False
+    )
+    assert free_values == {}
+    assert torch.equal(metric_one, free_one)
+    assert torch.equal(metric_balance, free_balance)
+    assert set(metric_values) == {
+        "block_entropy",
+        "block_usage_entropy",
+        "block_top1_gap",
+    }
+
+
+def test_metric_free_top1_margin_reuses_one_topk(monkeypatch):
+    cfg = _lista_penalty_config("top1_margin", "kl_uniform", coherence=False)
+    model = make_model(cfg, observation_size=2)
+    z = torch.randn(12, cfg.MODEL.TARGET_SIZE)
+    original_topk = torch.topk
+    calls = 0
+
+    def count_topk(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original_topk(*args, **kwargs)
+
+    monkeypatch.setattr(torch, "topk", count_topk)
+    model._block_losses_from_z(z, collect_metrics=True)
+    assert calls == 1
+
+
+def test_metric_free_penalty_helpers_omit_reporting_scalars():
+    cfg = _lista_penalty_config(soft_block=True)
+    model = make_model(cfg, observation_size=2)
+    soft_penalty, soft_ratio = model._soft_block_penalty(collect_metrics=False)
+    coherence_penalty, max_offdiag = model._decoder_coherence_penalty(
+        collect_metrics=False
+    )
+    assert soft_penalty is not None and soft_ratio is None
+    assert coherence_penalty is not None and max_offdiag is None
+
+
+@pytest.mark.parametrize("history_kw", ["save_metrics_history", "save_training_plot"])
+def test_frozen_pilot_rejects_history_requests(history_kw):
+    cfg = _gated_config()
+    cfg.TRAIN.NUM_STEPS = 2
+    kwargs = {history_kw: True}
+    with pytest.raises(ValueError, match="pilot is metric-free"):
+        runner_module.train(
+            cfg,
+            device="cuda",
+            skip_eval=True,
+            pilot_warmup_steps=1,
+            pilot_measure_steps=1,
+            **kwargs,
+        )
 
 
 def _checkpoint_config(num_steps: int = 6) -> Config:
@@ -302,3 +410,28 @@ def test_checkpoint_resume_spans_metric_free_steps_and_validates_contract(tmp_pa
             checkpoint_interval=3,
             resume=True,
         )
+
+
+def test_checkpoint_source_identity_rejects_older_commit():
+    source = {
+        "git_commit": "current-commit",
+        "git_dirty": False,
+        "git_status_sha256": "clean-status",
+    }
+    expected = {
+        "resume_config_hash": "same-config",
+        "device": "cpu",
+        "cuda_device_count": 0,
+        "batch_count": 1,
+        "logger_history": False,
+        "metric_contract": {
+            "metrics_every": 3,
+            "eigen_metrics_every": 2,
+            "history_mode": "scheduled",
+        },
+        "source": source,
+    }
+    older = copy.deepcopy(expected)
+    older["source"]["git_commit"] = "older-commit"
+    with pytest.raises(CheckpointError, match="git_commit"):
+        validate_run_identity(expected, older)

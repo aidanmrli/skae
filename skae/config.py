@@ -549,6 +549,8 @@ class TrainConfig:
     # differentiable loss and optimizer update run on every step; callers can
     # still request per-step history explicitly with --save_metrics_history.
     METRICS_EVERY: int = 100
+    # K eigenvalue diagnostics are sampled on optimizer-step cadence whenever
+    # a metric payload is emitted; zero disables this reporting-only work.
     EIGEN_METRICS_EVERY: int = 100
 
     # Unified horizon-based training parameter.
