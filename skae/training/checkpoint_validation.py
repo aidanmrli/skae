@@ -32,6 +32,13 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float, np.number)) and not isinstance(value, (bool, np.bool_))
 
 
+def _is_logger_scalar(value: Any) -> bool:
+    """Match the JSON scalar values accepted by MetricsLogger.log_scalar."""
+    return value is None or isinstance(
+        value, (str, bool, int, float, np.integer, np.floating)
+    )
+
+
 def _valid_identity(identity: Any) -> bool:
     if not isinstance(identity, dict):
         return False
@@ -77,7 +84,7 @@ def _valid_logger_state(logger: Any) -> bool:
             or not _is_int(item.get("step"))
             or item["step"] < 0
             or not isinstance(item.get("name"), str)
-            or not _is_number(item.get("value"))
+            or not _is_logger_scalar(item.get("value"))
         ):
             return False
     if not _is_int(logger.get("step_count")) or logger["step_count"] < 0:
@@ -97,7 +104,7 @@ def _valid_logger_state(logger: Any) -> bool:
             or state["count"] < 0
             or any(key not in state for key in ("final", "min", "max"))
             or not _is_number(state.get("sum"))
-            or not (_is_number(state.get("final")) or state.get("final") is None)
+            or not _is_logger_scalar(state.get("final"))
             or not (_is_number(state.get("min")) or state.get("min") is None)
             or not (_is_number(state.get("max")) or state.get("max") is None)
         ):

@@ -22,6 +22,7 @@ from skae.training.checkpointing import (
     capture_rng_state,
     restore_rng_state,
 )
+from skae.training.checkpoint_validation import valid_complete_payload
 from skae.training.runner import train
 
 
@@ -177,6 +178,34 @@ def test_incomplete_newest_rng_metadata_is_skipped(tmp_path):
     recovered = manager.load_newest_valid()
     assert recovered is not None
     assert recovered["payload"]["token"] == "old"
+
+
+def test_complete_payload_accepts_logger_metadata_scalar():
+    payload = _manager_state("logger-metadata")
+    payload.update({
+        "schema_version": 1,
+        "run_id": "run-id",
+        "generation": 1,
+        "next_step": 1,
+    })
+    payload["run_identity"]["logger_history"] = True
+    payload["logger_state"] = {
+        "save_history": True,
+        "metrics_history": [
+            {"step": 0, "name": "train/metadata", "value": "sqrt_dim"}
+        ],
+        "step_count": 1,
+        "summary_state": {
+            "train/metadata": {
+                "final": "sqrt_dim",
+                "min": None,
+                "max": None,
+                "sum": 0.0,
+                "count": 0,
+            }
+        },
+    }
+    assert valid_complete_payload(payload)
 
 
 def test_permanent_latest_fallback_and_progress_selection(tmp_path):
