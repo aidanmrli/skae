@@ -9,10 +9,23 @@
 #SBATCH --mem=8G
 #SBATCH --requeue
 #SBATCH --signal=B:TERM@120
-#SBATCH --output=checkpoint-resume-%j.out
-#SBATCH --error=checkpoint-resume-%j.err
+#SBATCH --output=/network/scratch/l/lia/skae/slurm_logs/%x-%j.out
+#SBATCH --error=/network/scratch/l/lia/skae/slurm_logs/%x-%j.err
 
 set -euo pipefail
+
+ROOT_DIR="$(git -C "${SLURM_SUBMIT_DIR:-$PWD}" rev-parse --show-toplevel)"
+cd "${ROOT_DIR}"
+if [[ -f scripts/common/cluster_env.sh ]]; then
+  # shellcheck disable=SC1091
+  source scripts/common/cluster_env.sh
+fi
+export PYTHONPATH="${ROOT_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
+# Reuse the locked cluster environment; PYTHONPATH keeps this candidate tree
+# authoritative without creating or synchronizing a worktree-local .venv.
+export UV_PROJECT="${SKAE_UV_PROJECT:-/home/mila/l/lia/skae}"
+export UV_NO_SYNC=1
+
 : "${SCRATCH:?SCRATCH must point to persistent active checkpoint storage}"
 
 JOB_KEY="${SLURM_JOB_ID:-manual}"
