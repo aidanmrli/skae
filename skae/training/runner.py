@@ -98,23 +98,50 @@ def _batch_fastpath_disabled() -> bool:
 
 
 class _DeterministicSequenceCache:
-    """Bounded process-local cache for fixed-seed training sequence windows."""
+    """Bounded process-local cache for fixed-seed training sequence windows.
+
+    Returned tensors are immutable by contract: training consumers must treat
+    them as read-only inputs and must not perform in-place operations.  The
+    cache is intentionally private to one training process and is rebuilt on
+    resume; it is never checkpoint state.
+    """
 
     def __init__(self, max_entries: int = 128):
         self.max_entries = max(1, int(max_entries))
-        self._items: OrderedDict[Tuple[int, int, int, str], torch.Tensor] = OrderedDict()
+        self._items: OrderedDict[Tuple[str, int, int, int, str, str], torch.Tensor] = OrderedDict()
+        self._identities: Dict[int, Tuple[object, str]] = {}
 
-    def get(self, key: Tuple[int, int, int, str]) -> Optional[torch.Tensor]:
+    def get(self, key: Tuple[str, int, int, int, str, str]) -> Optional[torch.Tensor]:
         value = self._items.get(key)
         if value is not None:
             self._items.move_to_end(key)
         return value
 
-    def put(self, key: Tuple[int, int, int, str], value: torch.Tensor) -> None:
-        self._items[key] = value
+    def put(
+        self,
+        key: Tuple[str, int, int, int, str, str],
+        value: torch.Tensor,
+    ) -> torch.Tensor:
+        if value.requires_grad:
+            raise ValueError("deterministic sequence cache accepts detached tensors only")
+        # ``contiguous`` is also the storage boundary: the caller must treat
+        # the resulting tensor as read-only after this point.
+        stored = value.detach().contiguous()
+        self._items[key] = stored
         self._items.move_to_end(key)
         while len(self._items) > self.max_entries:
             self._items.popitem(last=False)
+        return stored
+
+    def identity_for(self, vector_env: VectorWrapper) -> str:
+        """Return a memoized identity for one environment/cache pair."""
+        env_key = id(vector_env)
+        cached = self._identities.get(env_key)
+        if cached is not None and cached[0] is vector_env:
+            return cached[1]
+        identity = _sequence_cache_identity(vector_env)
+        self._identities[env_key] = (vector_env, identity)
+        return identity
 
     def __len__(self) -> int:
         return len(self._items)
@@ -124,6 +151,23 @@ def _is_native_batch_target(vector_env: VectorWrapper) -> bool:
     """Identify an environment that explicitly opts into native batching."""
     base_env = getattr(vector_env, "unwrapped", vector_env)
     return bool(getattr(base_env, "supports_batched_step", False))
+
+
+def _sequence_cache_identity(vector_env: VectorWrapper) -> str:
+    """Build a stable environment/config identity for private cache keys."""
+    base_env = getattr(vector_env, "unwrapped", vector_env)
+    cfg = getattr(base_env, "cfg", None)
+    if cfg is not None and hasattr(cfg, "to_dict"):
+        config_identity = json.dumps(cfg.to_dict(), sort_keys=True, separators=(",", ":"))
+    else:
+        config_identity = repr(cfg)
+    return ":".join(
+        (
+            str(base_env.__class__.__module__),
+            str(base_env.__class__.__qualname__),
+            config_identity,
+        )
+    )
 
 
 def _generate_legacy_cpu_sequence(
@@ -186,13 +230,6 @@ def generate_sequence_batch_for_device(
     """
 
     native_target = _is_native_batch_target(vector_env)
-    cache_key = (
-        int(rng.initial_seed()),
-        int(vector_env.batch_size),
-        int(window_length),
-        str(device),
-    )
-
     if native_target and (legacy_cpu_sequence or _batch_fastpath_disabled()):
         return _generate_legacy_cpu_sequence(
             vector_env,
@@ -201,6 +238,14 @@ def generate_sequence_batch_for_device(
         ).to(device=device).contiguous()
 
     if native_target and sequence_cache is not None and not _batch_fastpath_disabled():
+        cache_key = (
+            sequence_cache.identity_for(vector_env),
+            int(rng.initial_seed()),
+            int(vector_env.batch_size),
+            int(window_length),
+            str(device),
+            str(torch.float32),
+        )
         cached = sequence_cache.get(cache_key)
         if cached is not None:
             return cached
@@ -211,8 +256,7 @@ def generate_sequence_batch_for_device(
             rng,
             window_length=window_length,
         ).to(device=device).contiguous()
-        sequence_cache.put(cache_key, sequence)
-        return sequence
+        return sequence_cache.put(cache_key, sequence)
 
     if _supports_device_sequence_generation(vector_env, device):
         try:

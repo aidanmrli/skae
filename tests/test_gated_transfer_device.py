@@ -1,4 +1,4 @@
-"""Focused equivalence and cache tests for the gated-transfer data fast path."""
+"""Focused device and cache tests for the gated-transfer data fast path."""
 
 import pytest
 import torch
