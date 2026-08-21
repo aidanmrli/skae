@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import signal
 import subprocess
 import time
 from pathlib import Path
 from typing import Any
 
-from .pilot import SCHEMA_VERSION, atomic_write_json, sha256_bytes
+from .pilot import SCHEMA_VERSION, atomic_write_json, atomic_write_text, sha256_bytes
 
 
 def _commit(repo_root: Path) -> str:
@@ -71,6 +72,8 @@ def hold(output: Path, attempt: int, repo_root: Path, seconds: float) -> int:
     output.mkdir(parents=True, exist_ok=True)
     commit, identity = _identity(repo_root)
     interrupted = output / "hold_interrupted.json"
+    pid_path = output / "hold.pid"
+    atomic_write_text(pid_path, f"{os.getpid()}\n")
 
     def on_term(_signum: int, _frame: Any) -> None:
         atomic_write_json(
@@ -87,6 +90,7 @@ def hold(output: Path, attempt: int, repo_root: Path, seconds: float) -> int:
                 "updated_unix": time.time(),
             },
         )
+        pid_path.unlink(missing_ok=True)
         raise SystemExit(75)
 
     signal.signal(signal.SIGTERM, on_term)

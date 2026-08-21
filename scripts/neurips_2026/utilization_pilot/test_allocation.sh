@@ -55,7 +55,13 @@ on_term() {
   PHASE="${ACTIVE_PHASE}"
   CHILD_STATUS=1
   if [[ -n "${ACTIVE_PID}" ]] && kill -0 "${ACTIVE_PID}" 2>/dev/null; then
-    kill -TERM "${ACTIVE_PID}" 2>/dev/null || true
+    PHASE_PID_FILE="${TEST_ROOT}/${PHASE}.pid"
+    if [[ -s "${PHASE_PID_FILE}" ]]; then
+      PHASE_PID="$(<"${PHASE_PID_FILE}")"
+      kill -TERM "${PHASE_PID}" 2>/dev/null || true
+    else
+      kill -TERM "${ACTIVE_PID}" 2>/dev/null || true
+    fi
     wait "${ACTIVE_PID}"
     CHILD_STATUS=$?
     ACTIVE_PID=""
@@ -126,7 +132,8 @@ uv run python -m experiments.neurips_2026.utilization_pilot.test_receipt \
 
 set +e
 srun --exact --nodes=1 --ntasks=1 --cpus-per-task=4 \
-  uv run pytest tests/test_utilization_pilot.py &
+  bash -c 'echo "$$" > "$1/pytest.pid"; exec uv run pytest tests/test_utilization_pilot.py' \
+  bash "${TEST_ROOT}" &
 ACTIVE_PID=$!
 ACTIVE_PHASE="pytest"
 wait "${ACTIVE_PID}"
