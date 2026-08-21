@@ -28,7 +28,7 @@ from .pilot import (
     build_source_manifest,
     exact_task_identity,
     parse_ncu_smo_csv,
-    parse_nvidia_smi_csv,
+    phase_telemetry,
     validate_task_identity,
 )
 from .runtime import (
@@ -265,18 +265,28 @@ def run_pilot(args: argparse.Namespace) -> int:
             stop_telemetry(telemetry_process)
         if _TERM_REQUESTED:
             raise InterruptedError
-        timing = _verified_timing(
-            timing_path,
-            warmup_steps=WARMUP_STEPS,
-            profiler_active=profiler_active,
-            measured_steps=steps,
-        )
+        try:
+            timing = _verified_timing(
+                timing_path,
+                warmup_steps=WARMUP_STEPS,
+                profiler_active=profiler_active,
+                measured_steps=steps,
+            )
+        except MetricUnavailable as exc:
+            if return_code != 0:
+                raise RuntimeError(
+                    f"{phase} child exited with status {return_code}; "
+                    f"timing was unavailable: {exc}"
+                ) from exc
+            raise
         for field in ("resolved_config_sha256", "architecture_sha256"):
             previous = progress.get(field)
             if previous not in (None, timing[field]):
                 raise RuntimeError(f"continuation {field} changed")
-        telemetry = parse_nvidia_smi_csv(
+        telemetry = phase_telemetry(
             telemetry_path,
+            phase=phase,
+            child_return_code=return_code,
             start_unix=timing.get("wall_start_unix"),
             end_unix=timing.get("wall_end_unix"),
         )

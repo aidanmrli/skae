@@ -14,6 +14,7 @@ from experiments.neurips_2026.utilization_pilot.pilot import (
     atomic_write_json,
     exact_task_identity,
     parse_ncu_smo_csv,
+    phase_telemetry,
     validate_task_identity,
 )
 
@@ -61,6 +62,30 @@ def test_ncu_parser_rejects_wrong_units_and_out_of_bounds_values(tmp_path: Path)
     )
     with pytest.raises(MetricUnavailable):
         parse_ncu_smo_csv(output)
+
+
+def test_ncu_parser_reports_counter_permission_failure(tmp_path: Path) -> None:
+    output = tmp_path / "ncu-permission.csv"
+    output.write_text("==ERROR== ERR_NVGPUCTRPERM: permission denied\n", encoding="utf-8")
+    with pytest.raises(MetricUnavailable, match="ERR_NVGPUCTRPERM"):
+        parse_ncu_smo_csv(output)
+
+
+def test_profile_telemetry_gap_is_structured_but_unprofiled_is_hard(tmp_path: Path) -> None:
+    output = tmp_path / "nvidia-smi.csv"
+    output.write_text("", encoding="utf-8")
+    profile = phase_telemetry(output, phase="profile", child_return_code=0)
+    assert profile["status"] == "missing"
+    assert profile["availability"] == "best_effort_profile_window"
+    with pytest.raises(MetricUnavailable):
+        phase_telemetry(output, phase="unprofiled", child_return_code=0)
+
+
+def test_unprofiled_child_status_precedes_missing_telemetry(tmp_path: Path) -> None:
+    output = tmp_path / "nvidia-smi.csv"
+    output.write_text("", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="status 17"):
+        phase_telemetry(output, phase="unprofiled", child_return_code=17)
 
 
 def test_task_identity_freezes_scientific_shape() -> None:

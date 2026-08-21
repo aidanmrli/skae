@@ -241,6 +241,14 @@ def parse_ncu_smo_csv(path: Path, metric: str = NCU_SMO_METRIC) -> dict[str, Any
     fail-closed via :class:`MetricUnavailable`.
     """
 
+    try:
+        raw_output = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise MetricUnavailable(f"Nsight CSV cannot be read: {path}: {exc}") from exc
+    if "ERR_NVGPUCTRPERM" in raw_output:
+        raise MetricUnavailable(
+            "Nsight Compute counter permission denied: ERR_NVGPUCTRPERM"
+        )
     header, rows = _header_and_rows(path)
     columns = {name.strip(): index for index, name in enumerate(header)}
     name_index = columns["Metric Name"]
@@ -368,6 +376,46 @@ def parse_nvidia_smi_csv(
         "raw_source": "nvidia-smi 1-second samples",
         "gpu_utilization_is_smo": False,
     }
+
+
+def phase_telemetry(
+    path: Path,
+    *,
+    phase: str,
+    child_return_code: int,
+    start_unix: float | None = None,
+    end_unix: float | None = None,
+) -> dict[str, Any]:
+    """Parse telemetry, tolerating only profile-window sampling gaps."""
+
+    try:
+        return parse_nvidia_smi_csv(
+            path, start_unix=start_unix, end_unix=end_unix
+        )
+    except (MetricUnavailable, OSError) as exc:
+        if phase != "profile":
+            if child_return_code != 0:
+                raise RuntimeError(
+                    f"{phase} child exited with status {child_return_code}; "
+                    f"telemetry was unavailable: {exc}"
+                ) from exc
+            raise
+        return {
+            "status": "missing",
+            "availability": "best_effort_profile_window",
+            "error": f"{type(exc).__name__}: {exc}",
+            "path": str(path),
+            "sample_count": 0,
+            "window_start_unix": start_unix,
+            "window_end_unix": end_unix,
+            "window_filter_applied": start_unix is not None or end_unix is not None,
+            "gpu_utilization_mean_percent": None,
+            "memory_used_mean_mib": None,
+            "memory_used_peak_mib": None,
+            "power_draw_mean_w": None,
+            "raw_source": "nvidia-smi 1-second samples",
+            "gpu_utilization_is_smo": False,
+        }
 
 
 def rgu_accounting(
