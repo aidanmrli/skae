@@ -15,9 +15,12 @@ Or use it programmatically:
 """
 
 import argparse
+import hashlib
 import json
 import math
+import os
 import shutil
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -41,6 +44,35 @@ from skae.data import (
 )
 
 from skae.model import make_model
+
+
+def _stable_hash(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _atomic_json_write(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(f"{path}.tmp")
+    with temporary.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, sort_keys=True, indent=2, allow_nan=False)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+
+
+def _cuda_synchronize(device: str) -> None:
+    if str(device).startswith("cuda"):
+        torch.cuda.synchronize()
+
+
+def _cuda_profiler_boundary(name: str) -> None:
+    """Call the CUDA profiler API and fail closed when it reports an error."""
+    result = getattr(torch.cuda.cudart(), name)()
+    status = result[0] if isinstance(result, tuple) else result
+    if status not in (None, 0):
+        raise RuntimeError(f"cuda profiler {name} failed with status {status}")
 
 
 def _supports_device_sequence_generation(vector_env: VectorWrapper, device: str) -> bool:
@@ -426,6 +458,10 @@ def train(
     save_eval_plots: bool = False,
     save_eval_per_ic_values: bool = False,
     save_eval_error_curves: bool = False,
+    pilot_warmup_steps: int = 0,
+    pilot_measure_steps: int = 0,
+    pilot_profile: bool = False,
+    pilot_timing_path: Optional[str] = None,
 ) -> nn.Module:
     """Main training function.
 
@@ -438,6 +474,15 @@ def train(
         Trained model
     """
     print("Initializing training...")
+    pilot_warmup_steps = int(pilot_warmup_steps)
+    pilot_measure_steps = int(pilot_measure_steps)
+    if pilot_warmup_steps < 0 or pilot_measure_steps < 0:
+        raise ValueError("pilot warmup/measure steps must be non-negative")
+    pilot_mode = pilot_measure_steps > 0
+    if pilot_profile and not pilot_mode:
+        raise ValueError("pilot profiling requires a positive measured-step range")
+    if pilot_mode and not str(device).startswith("cuda"):
+        raise ValueError("the utilization pilot requires --device cuda")
 
     # Setup logging directory and save config
     if log_dir is None:
@@ -503,6 +548,41 @@ def train(
             print("Checkpoint has no optimizer state; resuming with a fresh optimizer.")
         start_step = checkpoint.get('step', 0)
         print(f"Resumed from checkpoint at step {start_step}")
+
+    if pilot_mode:
+        if start_step != 0:
+            raise ValueError("the utilization pilot does not accept a resumed checkpoint")
+        expected_steps = pilot_warmup_steps + pilot_measure_steps
+        if int(cfg.TRAIN.NUM_STEPS) != expected_steps:
+            raise ValueError(
+                "pilot NUM_STEPS must equal warmup + measured steps "
+                f"({cfg.TRAIN.NUM_STEPS} != {expected_steps})"
+            )
+        pilot_measure_start = start_step + pilot_warmup_steps
+        pilot_measure_end = pilot_measure_start + pilot_measure_steps
+    else:
+        pilot_measure_start = pilot_measure_end = -1
+
+    resolved_config = json.loads(json.dumps(cfg.to_dict(), allow_nan=False))
+    if pilot_mode:
+        # Pilot-only launch lengths are not a scientific configuration change:
+        # the unprofiled and NCU phases use different measured step counts.
+        resolved_config.setdefault("TRAIN", {})["NUM_STEPS"] = (
+            "pilot_step_count_excluded"
+        )
+    resolved_config_path = run_dir / "resolved_config.json"
+    _atomic_json_write(resolved_config_path, resolved_config)
+    resolved_config_sha256 = _stable_hash(resolved_config)
+    architecture_identity = {
+        "model_class": type(model).__name__,
+        "observation_size": int(base_env.observation_size),
+        "target_size": int(cfg.MODEL.TARGET_SIZE),
+        "sequence_length": int(cfg.TRAIN.SEQUENCE_LENGTH),
+        "parameter_shapes": {
+            name: list(parameter.shape) for name, parameter in model.named_parameters()
+        },
+    }
+    architecture_sha256 = _stable_hash(architecture_identity)
 
     # Pre-generate random number generators for data
     # Each batch gets a non-overlapping seed range to avoid collisions
@@ -602,7 +682,23 @@ def train(
     best_eval_final_error = float('inf')
 
     last_checkpoint_dict: Optional[Dict[str, Any]] = None
+    pilot_timer_start: Optional[float] = None
+    pilot_wall_start: Optional[float] = None
+    pilot_timing_written = False
     for step in range(start_step, cfg.TRAIN.NUM_STEPS):
+        if pilot_mode and step == pilot_measure_start:
+            _cuda_synchronize(device)
+            if pilot_profile:
+                _cuda_profiler_boundary("cudaProfilerStart")
+            pilot_timer_start = time.perf_counter()
+            pilot_wall_start = time.time()
+            print(
+                "PILOT_MEASURE_START "
+                f"step={pilot_measure_start} end_step_exclusive={pilot_measure_end} "
+                f"warmup_steps={pilot_warmup_steps} measured_steps={pilot_measure_steps} "
+                f"profiler_active={pilot_profile}",
+                flush=True,
+            )
         # Generate batch
         rng = rngs[step % num_batches]
 
@@ -623,9 +719,11 @@ def train(
 
         metrics = train_step(model, optimizer, x_seq, step=step)
 
-        logger.log_dict(metrics, step, prefix='train')
+        in_measured_range = pilot_mode and pilot_measure_start <= step < pilot_measure_end
+        if not in_measured_range:
+            logger.log_dict(metrics, step, prefix='train')
 
-        if step % 100 == 0:
+        if step % 100 == 0 and not in_measured_range:
             sr_str = ""
             if 'spectral_radius' in metrics:
                 sr_str = f" | SR: {metrics['spectral_radius']:.4f}"
@@ -642,7 +740,11 @@ def train(
 
         # Periodic evaluation and checkpoint saving
         # Note: skip step=0 to avoid expensive eval before any learning happened.
-        if (step > 0 and step % cfg.TRAIN.EVAL_EVERY == 0) or step == cfg.TRAIN.NUM_STEPS - 1:
+        if (
+            not pilot_mode
+            and ((step > 0 and step % cfg.TRAIN.EVAL_EVERY == 0)
+                 or step == cfg.TRAIN.NUM_STEPS - 1)
+        ):
             # Use fixed validation set
             eval_results = evaluate(
                 model,
@@ -708,6 +810,47 @@ def train(
                 torch.save(checkpoint_dict, run_dir / 'checkpoint.pt')
                 print(f"  Saved best checkpoint ({checkpoint_metric}: {best_eval_final_error:.4f})")
 
+        if pilot_mode and step == pilot_measure_end - 1:
+            _cuda_synchronize(device)
+            if pilot_timer_start is None or pilot_wall_start is None:
+                raise RuntimeError("pilot timing started without a measured range")
+            elapsed = time.perf_counter() - pilot_timer_start
+            wall_end = time.time()
+            if pilot_profile:
+                _cuda_profiler_boundary("cudaProfilerStop")
+            timing_payload = {
+                "schema_version": 1,
+                "status": "complete",
+                "warmup_steps": pilot_warmup_steps,
+                "measured_steps": pilot_measure_steps,
+                "step_start": pilot_measure_start,
+                "step_end_exclusive": pilot_measure_end,
+                "elapsed_seconds": elapsed,
+                "steps_per_second": pilot_measure_steps / elapsed,
+                "cuda_synchronized_before_and_after": True,
+                "profiler_range_active": bool(pilot_profile),
+                "wall_start_unix": pilot_wall_start,
+                "wall_end_unix": wall_end,
+                "resolved_config_sha256": resolved_config_sha256,
+                "resolved_config_path": str(resolved_config_path),
+                "pilot_config_num_steps": int(cfg.TRAIN.NUM_STEPS),
+                "architecture_sha256": architecture_sha256,
+                "architecture_identity": architecture_identity,
+            }
+            if pilot_timing_path is None:
+                raise RuntimeError("pilot timing path was not provided")
+            _atomic_json_write(Path(pilot_timing_path), timing_payload)
+            print(
+                "PILOT_MEASURE_END "
+                f"step={pilot_measure_end} elapsed_seconds={elapsed:.9f} "
+                f"steps_per_second={timing_payload['steps_per_second']:.6f}",
+                flush=True,
+            )
+            pilot_timing_written = True
+
+    if pilot_mode and not pilot_timing_written:
+        raise RuntimeError("pilot measured range did not complete")
+
     if not (run_dir / 'checkpoint.pt').exists() and last_checkpoint_dict is not None:
         torch.save(last_checkpoint_dict, run_dir / 'checkpoint.pt')
         print("  Saved final checkpoint to checkpoint.pt (no finite best eval was found)")
@@ -733,7 +876,7 @@ def train(
             print(f"Warning: Failed to plot training metrics: {e}")
             print("Continuing with evaluation...")
 
-    if not skip_eval:
+    if not skip_eval and not pilot_mode:
         print("-" * 80)
         print("Running standardized evaluation suite...")
         if eval_profile != "full":
@@ -1213,6 +1356,14 @@ Examples:
 
     parser.add_argument('--sequence_length', type=int, default=1,
                         help='Unified rollout horizon H (H=1 matches former pairwise training)')
+    parser.add_argument('--pilot_warmup_steps', type=int, default=0,
+                        help='Opt-in utilization pilot warmup optimizer steps (default: disabled)')
+    parser.add_argument('--pilot_measure_steps', type=int, default=0,
+                        help='Opt-in utilization pilot measured optimizer steps (default: disabled)')
+    parser.add_argument('--pilot_profile', action='store_true',
+                        help='Wrap the opt-in pilot measured range in CUDA profiler boundaries')
+    parser.add_argument('--pilot_timing_path', type=str, default=None,
+                        help='Atomic JSON receipt path for the opt-in pilot measured range')
     parser.add_argument('--eval_every', type=int, default=None,
                         help='Evaluate every N steps during training (overrides config default)')
     parser.add_argument('--eval_num_steps', type=int, default=None,
@@ -1586,6 +1737,10 @@ Examples:
         save_eval_plots=args.save_eval_plots,
         save_eval_per_ic_values=args.save_eval_per_ic_values,
         save_eval_error_curves=args.save_eval_error_curves,
+        pilot_warmup_steps=args.pilot_warmup_steps,
+        pilot_measure_steps=args.pilot_measure_steps,
+        pilot_profile=args.pilot_profile,
+        pilot_timing_path=args.pilot_timing_path,
     )
 
 
