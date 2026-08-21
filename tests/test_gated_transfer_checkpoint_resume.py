@@ -163,9 +163,18 @@ def test_gated_transfer_serialized_resume_rebuilds_cache_and_matches_uninterrupt
     real_train_step = runner_module.train_step
     uninterrupted_windows = []
 
-    def record_uninterrupted(model, optimizer, x_seq, step=0):
+    def record_uninterrupted(
+        model, optimizer, x_seq, step=0, collect_metrics=True, metric_eigen_every=100
+    ):
         uninterrupted_windows.append(x_seq.detach().cpu().clone())
-        return real_train_step(model, optimizer, x_seq, step=step)
+        return real_train_step(
+            model,
+            optimizer,
+            x_seq,
+            step=step,
+            collect_metrics=collect_metrics,
+            metric_eigen_every=metric_eigen_every,
+        )
 
     monkeypatch.setattr(runner_module, "train_step", record_uninterrupted)
     uninterrupted_model = runner_module.train(
@@ -179,9 +188,18 @@ def test_gated_transfer_serialized_resume_rebuilds_cache_and_matches_uninterrupt
 
     interrupted_windows = []
 
-    def interrupt_after_save_boundary(model, optimizer, x_seq, step=0):
+    def interrupt_after_save_boundary(
+        model, optimizer, x_seq, step=0, collect_metrics=True, metric_eigen_every=100
+    ):
         interrupted_windows.append(x_seq.detach().cpu().clone())
-        metrics = real_train_step(model, optimizer, x_seq, step=step)
+        metrics = real_train_step(
+            model,
+            optimizer,
+            x_seq,
+            step=step,
+            collect_metrics=collect_metrics,
+            metric_eigen_every=metric_eigen_every,
+        )
         if step == split_steps - 1:
             os.kill(os.getpid(), signal.SIGTERM)
         return metrics
@@ -203,9 +221,18 @@ def test_gated_transfer_serialized_resume_rebuilds_cache_and_matches_uninterrupt
 
     resumed_windows = []
 
-    def record_resumed(model, optimizer, x_seq, step=0):
+    def record_resumed(
+        model, optimizer, x_seq, step=0, collect_metrics=True, metric_eigen_every=100
+    ):
         resumed_windows.append(x_seq.detach().cpu().clone())
-        return real_train_step(model, optimizer, x_seq, step=step)
+        return real_train_step(
+            model,
+            optimizer,
+            x_seq,
+            step=step,
+            collect_metrics=collect_metrics,
+            metric_eigen_every=metric_eigen_every,
+        )
 
     monkeypatch.setattr(runner_module, "train_step", record_resumed)
     resumed_model = runner_module.train(
