@@ -108,7 +108,7 @@ def _loss_inputs(model: torch.nn.Module, x_seq: torch.Tensor) -> dict[str, torch
         batch_size, horizon, obs_size
     )
     x_recon_true = model.decode(z_true.reshape(batch_size * horizon, -1)).reshape_as(x_true)
-    return {
+    inputs = {
         "x_pred": x_pred,
         "x_true": x_true,
         "x0": x0,
@@ -118,6 +118,12 @@ def _loss_inputs(model: torch.nn.Module, x_seq: torch.Tensor) -> dict[str, torch
         "reconstruction_error": torch.norm(x_true - x_recon_true, dim=-1).mean(),
         "sparsity_latent": z_pred,
     }
+    if getattr(model, "use_homogeneous", False):
+        c_hat = model.get_homogeneous_coord(
+            z_pred.reshape(batch_size * horizon, -1)
+        )
+        inputs["homogeneous_loss"] = torch.mean((c_hat - 1.0) ** 2)
+    return inputs
 
 
 def _run_pair(cfg: Config, *, device: str, monkeypatch) -> None:
@@ -435,3 +441,8 @@ def test_checkpoint_source_identity_rejects_older_commit():
     older["source"]["git_commit"] = "older-commit"
     with pytest.raises(CheckpointError, match="git_commit"):
         validate_run_identity(expected, older)
+
+    legacy = copy.deepcopy(expected)
+    del legacy["metric_contract"]
+    with pytest.raises(CheckpointError, match="metric_contract"):
+        validate_run_identity(expected, legacy)
