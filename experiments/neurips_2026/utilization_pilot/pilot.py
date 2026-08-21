@@ -231,6 +231,16 @@ def _parse_metric_value(value: str) -> float | None:
     return parsed if math.isfinite(parsed) else None
 
 
+def ncu_counter_permission_error(path: Path) -> str | None:
+    try:
+        raw_output = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if "ERR_NVGPUCTRPERM" in raw_output:
+        return "Nsight Compute counter permission denied: ERR_NVGPUCTRPERM"
+    return None
+
+
 def parse_ncu_smo_csv(path: Path, metric: str = NCU_SMO_METRIC) -> dict[str, Any]:
     """Parse actual Nsight metric rows; never substitute GPU-Util.
 

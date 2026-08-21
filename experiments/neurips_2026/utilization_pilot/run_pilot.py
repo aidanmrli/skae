@@ -27,6 +27,7 @@ from .pilot import (
     atomic_write_text,
     build_source_manifest,
     exact_task_identity,
+    ncu_counter_permission_error,
     parse_ncu_smo_csv,
     phase_telemetry,
     validate_task_identity,
@@ -58,6 +59,15 @@ TERM_EXIT_CODE = 75
 
 _TERM_REQUESTED = False
 _ACTIVE_CHILD: subprocess.Popen[str] | None = None
+
+
+def _ncu_child_failure(ncu_path: Path, return_code: int) -> None:
+    permission_error = ncu_counter_permission_error(ncu_path)
+    if permission_error is not None:
+        raise MetricUnavailable(permission_error)
+    raise MetricUnavailable(
+        f"Nsight Compute command failed with exit code {return_code}"
+    )
 
 
 def _handle_term(signum: int, _frame: Any) -> None:
@@ -320,9 +330,7 @@ def run_pilot(args: argparse.Namespace) -> int:
         phase_records[phase] = record
         if return_code != 0:
             if phase == "profile":
-                raise MetricUnavailable(
-                    f"Nsight Compute command failed with exit code {return_code}"
-                )
+                _ncu_child_failure(output / "ncu_smo.csv", return_code)
             raise RuntimeError(f"{phase} command failed with exit code {return_code}")
         completed.add(phase)
         _write_progress(

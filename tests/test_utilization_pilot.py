@@ -17,6 +17,7 @@ from experiments.neurips_2026.utilization_pilot.pilot import (
     phase_telemetry,
     validate_task_identity,
 )
+from experiments.neurips_2026.utilization_pilot.run_pilot import _ncu_child_failure
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -69,6 +70,16 @@ def test_ncu_parser_reports_counter_permission_failure(tmp_path: Path) -> None:
     output.write_text("==ERROR== ERR_NVGPUCTRPERM: permission denied\n", encoding="utf-8")
     with pytest.raises(MetricUnavailable, match="ERR_NVGPUCTRPERM"):
         parse_ncu_smo_csv(output)
+
+
+def test_nonzero_ncu_child_surfaces_permission_before_generic_failure(tmp_path: Path) -> None:
+    output = tmp_path / "ncu-smo.csv"
+    output.write_text("==ERROR== ERR_NVGPUCTRPERM: permission denied\n", encoding="utf-8")
+    with pytest.raises(MetricUnavailable, match="ERR_NVGPUCTRPERM"):
+        _ncu_child_failure(output, 17)
+    output.write_text("==ERROR== other profiler failure\n", encoding="utf-8")
+    with pytest.raises(MetricUnavailable, match="exit code 17"):
+        _ncu_child_failure(output, 17)
 
 
 def test_profile_telemetry_gap_is_structured_but_unprofiled_is_hard(tmp_path: Path) -> None:
