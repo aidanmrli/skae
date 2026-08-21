@@ -16,6 +16,7 @@ Or use it programmatically:
 
 import argparse
 import hashlib
+from collections import OrderedDict
 import json
 import math
 import os
@@ -26,7 +27,7 @@ import uuid
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 import numpy as np
 import torch
@@ -60,7 +61,6 @@ from skae.training.checkpointing import (
     validate_run_identity,
 )
 
-
 def _stable_hash(value: Any) -> str:
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
@@ -90,6 +90,72 @@ def _cuda_profiler_boundary(name: str) -> None:
         raise RuntimeError(f"cuda profiler {name} failed with status {status}")
 
 
+def _batch_fastpath_disabled() -> bool:
+    """Return whether the target native batched path is explicitly disabled."""
+    return os.environ.get("SKAE_DISABLE_BATCH_FASTPATH", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
+class _DeterministicSequenceCache:
+    """Bounded process-local cache for fixed-seed training sequence windows."""
+
+    def __init__(self, max_entries: int = 128):
+        self.max_entries = max(1, int(max_entries))
+        self._items: OrderedDict[Tuple[int, int, int, str], torch.Tensor] = OrderedDict()
+
+    def get(self, key: Tuple[int, int, int, str]) -> Optional[torch.Tensor]:
+        value = self._items.get(key)
+        if value is not None:
+            self._items.move_to_end(key)
+        return value
+
+    def put(self, key: Tuple[int, int, int, str], value: torch.Tensor) -> None:
+        self._items[key] = value
+        self._items.move_to_end(key)
+        while len(self._items) > self.max_entries:
+            self._items.popitem(last=False)
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+
+def _is_native_batch_target(vector_env: VectorWrapper) -> bool:
+    """Identify an environment that explicitly opts into native batching."""
+    base_env = getattr(vector_env, "unwrapped", vector_env)
+    return bool(getattr(base_env, "supports_batched_step", False))
+
+
+def _generate_legacy_cpu_sequence(
+    vector_env: VectorWrapper,
+    rng: torch.Generator,
+    *,
+    window_length: int,
+) -> torch.Tensor:
+    """Generate a window through the historical reset/vmap/fallback path.
+
+    The context disables only the target native path and restores both the
+    process switch and the wrapper's vmap probe state afterward.  Thus cache
+    population and validation use the exact per-seed CPU stream that predates
+    the optimization.
+    """
+    previous_disable = os.environ.get("SKAE_DISABLE_BATCH_FASTPATH")
+    previous_vmap = vector_env._vmap_supported
+    os.environ["SKAE_DISABLE_BATCH_FASTPATH"] = "1"
+    vector_env._vmap_supported = None
+    try:
+        return vector_env.generate_sequence_batch(
+            rng,
+            window_length=window_length,
+        )
+    finally:
+        vector_env._vmap_supported = previous_vmap
+        if previous_disable is None:
+            os.environ.pop("SKAE_DISABLE_BATCH_FASTPATH", None)
+        else:
+            os.environ["SKAE_DISABLE_BATCH_FASTPATH"] = previous_disable
+
+
 def _supports_device_sequence_generation(vector_env: VectorWrapper, device: str) -> bool:
     if device not in {"cuda", "mps"}:
         return False
@@ -109,6 +175,8 @@ def generate_sequence_batch_for_device(
     *,
     window_length: int,
     device: str,
+    sequence_cache: Optional[_DeterministicSequenceCache] = None,
+    legacy_cpu_sequence: bool = False,
 ) -> torch.Tensor:
     """Generate a training sequence directly on accelerator when safe.
 
@@ -116,6 +184,35 @@ def generate_sequence_batch_for_device(
     advance a CUDA batch once reset states are moved to the target device.
     Dysts and other NumPy-backed environments stay on the existing CPU path.
     """
+
+    native_target = _is_native_batch_target(vector_env)
+    cache_key = (
+        int(rng.initial_seed()),
+        int(vector_env.batch_size),
+        int(window_length),
+        str(device),
+    )
+
+    if native_target and (legacy_cpu_sequence or _batch_fastpath_disabled()):
+        return _generate_legacy_cpu_sequence(
+            vector_env,
+            rng,
+            window_length=window_length,
+        ).to(device=device).contiguous()
+
+    if native_target and sequence_cache is not None and not _batch_fastpath_disabled():
+        cached = sequence_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        # Populate from the exact historical path once, then retain the
+        # contiguous device tensor for every recurrence of this seed roster.
+        sequence = _generate_legacy_cpu_sequence(
+            vector_env,
+            rng,
+            window_length=window_length,
+        ).to(device=device).contiguous()
+        sequence_cache.put(cache_key, sequence)
+        return sequence
 
     if _supports_device_sequence_generation(vector_env, device):
         try:
@@ -132,7 +229,7 @@ def generate_sequence_batch_for_device(
             return torch.cat(
                 [init_states.unsqueeze(0), trajectories],
                 dim=0,
-            ).transpose(0, 1)
+            ).transpose(0, 1).contiguous()
         except Exception as exc:
             setattr(vector_env, "_device_sequence_generation_failed", True)
             print(
@@ -140,7 +237,7 @@ def generate_sequence_batch_for_device(
                 f"falling back to CPU batches ({exc})",
                 flush=True,
             )
-    return vector_env.generate_sequence_batch(rng, window_length=window_length).to(device)
+    return vector_env.generate_sequence_batch(rng, window_length=window_length).to(device).contiguous()
 
 
 class MetricsLogger:
@@ -736,6 +833,11 @@ def train(
     # Each batch gets a non-overlapping seed range to avoid collisions
     # Batch i uses seeds: cfg.SEED + i * BATCH_SIZE to cfg.SEED + (i+1) * BATCH_SIZE - 1
     rngs = [torch.Generator().manual_seed(cfg.SEED + i * cfg.TRAIN.BATCH_SIZE) for i in range(num_batches)]
+    # Training repeatedly revisits this fixed seed roster.  Keep only a bounded
+    # process-local cache; validation deliberately does not use it.
+    training_sequence_cache = _DeterministicSequenceCache(
+        max_entries=min(num_batches, 128),
+    )
 
     # Generate fixed validation set for consistent evaluation
     # Optional dysts cache for faster data generation
@@ -798,6 +900,7 @@ def train(
             val_rng,
             window_length=val_window,
             device=device,
+            legacy_cpu_sequence=True,
         )
     val_x = val_seq[:16, 0, :]
     val_true_trajectory = None
@@ -951,6 +1054,7 @@ def train(
                 rng,
                 window_length=cfg.TRAIN.SEQUENCE_LENGTH,
                 device=device,
+                sequence_cache=training_sequence_cache,
             )
 
         metrics = train_step(model, optimizer, x_seq, step=step)

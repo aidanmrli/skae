@@ -90,6 +90,11 @@ class Wrapper(Env):
         return self.env.step(state, action)
 
     @property
+    def supports_batched_step(self) -> bool:
+        """Whether the wrapped environment has a native batch-step contract."""
+        return bool(getattr(self.env, "supports_batched_step", False))
+
+    @property
     def observation_size(self) -> int:
         return self.env.observation_size
 
@@ -103,7 +108,14 @@ class Wrapper(Env):
 
 
 class VectorWrapper(Wrapper):
-    """Wrapper for vectorized/batched environment operations."""
+    """Wrapper for vectorized/batched environment operations.
+
+    The native batch path is deliberately opt-in.  Only environments that
+    declare ``supports_batched_step`` use it; all other environments retain
+    the historical ``vmap``/fallback behavior.  The environment variable is
+    read at call time so an A/B pilot can restore the historical path without
+    changing the scientific configuration.
+    """
 
     def __init__(self, env: Env, batch_size: int):
         super().__init__(env)
@@ -143,6 +155,16 @@ class VectorWrapper(Wrapper):
         Returns:
             Batch of next states with shape [batch_size, state_dim]
         """
+        fastpath_disabled = os.environ.get("SKAE_DISABLE_BATCH_FASTPATH", "").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
+        if (
+            not fastpath_disabled
+            and self.supports_batched_step
+            and state.ndim == 2
+        ):
+            return self.env.step(state, action)
+
         # Try vmap for environments that support it (pure PyTorch)
         # Fall back to direct call for environments with numpy ops (e.g., DystsEnv)
         if self._vmap_supported is True:
@@ -2080,6 +2102,11 @@ class GatedLocalLinear(Env):
 class GatedTransferLinear(Env):
     """Three-basin transfer system with explicit source, exit, and channel regions."""
 
+    # This is the only environment currently covered by the native batched
+    # CUDA contract.  VectorWrapper uses this declaration to keep all other
+    # environments on their existing vmap/fallback path.
+    supports_batched_step = True
+
     def __init__(self, cfg: Config):
         super().__init__(cfg)
         self.dt = (
@@ -2152,6 +2179,56 @@ class GatedTransferLinear(Env):
         self.exit_offset = self.return_offset + self.num_basins
         self.channel_offset = self.exit_offset + len(self.ordered_pairs)
         self.num_regions = self.channel_offset + len(self.ordered_pairs)
+        # Environments are not nn.Modules, so keep canonical geometry on CPU
+        # and lazily cache immutable device/dtype views.  This copies each
+        # constant at most once per device/dtype rather than once per RK4 stage.
+        self._device_view_cache: dict[
+            tuple[torch.device, torch.dtype], dict[str, torch.Tensor]
+        ] = {}
+
+    def _device_views(self, batch: torch.Tensor) -> dict[str, torch.Tensor]:
+        """Return geometry tensors matching ``batch``'s device and dtype."""
+        key = (batch.device, batch.dtype)
+        views = self._device_view_cache.get(key)
+        if views is None:
+            views = {
+                "points_2d": self.points_2d.to(device=batch.device, dtype=batch.dtype),
+                "channel_entry_points_2d": self.channel_entry_points_2d.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "channel_directions_2d": self.channel_directions_2d.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "channel_normals_2d": self.channel_normals_2d.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "channel_lengths": self.channel_lengths.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "exit_directions_2d": self.exit_directions_2d.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "exit_normals_2d": self.exit_normals_2d.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "basin_matrices": self.basin_matrices.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "return_matrices": self.return_matrices.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "background_matrices": self.background_matrices.to(
+                    device=batch.device, dtype=batch.dtype
+                ),
+                "source_pair_indices_by_basin": torch.stack(
+                    self.source_pair_indices_by_basin
+                ).to(device=batch.device),
+                "channel_destination_basins": self.channel_destination_basins.to(
+                    device=batch.device
+                ),
+            }
+            self._device_view_cache[key] = views
+        return views
 
     @staticmethod
     def _normalize(vectors: torch.Tensor) -> torch.Tensor:
@@ -2240,7 +2317,8 @@ class GatedTransferLinear(Env):
         )
 
     def _nearest_basin(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        diff = batch.unsqueeze(1) - self.points_2d.unsqueeze(0)
+        views = self._device_views(batch)
+        diff = batch.unsqueeze(1) - views["points_2d"].unsqueeze(0)
         dist = torch.norm(diff, dim=-1)
         nearest_dist, nearest_basin = dist.min(dim=1)
         return nearest_basin.to(dtype=torch.long), nearest_dist
@@ -2249,12 +2327,13 @@ class GatedTransferLinear(Env):
         self,
         batch: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        rel = batch.unsqueeze(1) - self.channel_entry_points_2d.unsqueeze(0)
-        longitudinal = (rel * self.channel_directions_2d.unsqueeze(0)).sum(dim=-1)
-        transverse = (rel * self.channel_normals_2d.unsqueeze(0)).sum(dim=-1)
+        views = self._device_views(batch)
+        rel = batch.unsqueeze(1) - views["channel_entry_points_2d"].unsqueeze(0)
+        longitudinal = (rel * views["channel_directions_2d"].unsqueeze(0)).sum(dim=-1)
+        transverse = (rel * views["channel_normals_2d"].unsqueeze(0)).sum(dim=-1)
         mask = (
             (longitudinal >= 0.0)
-            & (longitudinal <= self.channel_lengths.unsqueeze(0))
+            & (longitudinal <= views["channel_lengths"].unsqueeze(0))
             & (torch.abs(transverse) <= self.channel_half_width)
         )
         has_channel = mask.any(dim=1)
@@ -2302,18 +2381,17 @@ class GatedTransferLinear(Env):
         batch: torch.Tensor,
         source_basin: torch.Tensor,
     ) -> torch.Tensor:
+        views = self._device_views(batch)
         exit_pair = torch.full((batch.shape[0],), -1, dtype=torch.long, device=batch.device)
         min_cosine = math.cos(self.exit_half_angle)
         for basin in range(self.num_basins):
             basin_mask = source_basin == basin
-            if not bool(basin_mask.any()):
-                continue
             local_states = batch[basin_mask]
-            rel = local_states - self.points_2d[basin]
+            rel = local_states - views["points_2d"][basin]
             rel_radius = torch.norm(rel, dim=-1)
             rel_unit = self._normalize(rel)
-            pair_indices = self.source_pair_indices_by_basin[basin].to(device=batch.device)
-            pair_dirs = self.exit_directions_2d[pair_indices]
+            pair_indices = views["source_pair_indices_by_basin"][basin]
+            pair_dirs = views["exit_directions_2d"][pair_indices]
             cosine = rel_unit @ pair_dirs.transpose(0, 1)
             best_cosine, best_local = cosine.max(dim=1)
             selected_pairs = pair_indices[best_local]
@@ -2359,6 +2437,8 @@ class GatedTransferLinear(Env):
         return labels[0] if squeezed else labels
 
     def basin_label(self, state: torch.Tensor) -> torch.Tensor:
+        batch, _ = _as_batch_2d(state)
+        views = self._device_views(batch)
         region = self.region_label(state)
         if not isinstance(region, torch.Tensor):
             region = torch.tensor(region)
@@ -2370,17 +2450,16 @@ class GatedTransferLinear(Env):
         return_mask = (region_batch >= self.return_offset) & (region_batch < self.exit_offset)
         basin = torch.where(return_mask, region_batch - self.return_offset, basin)
         exit_mask = (region_batch >= self.exit_offset) & (region_batch < self.channel_offset)
-        if bool(exit_mask.any()):
-            exit_pair = region_batch[exit_mask] - self.exit_offset
-            basin[exit_mask] = self.channel_destination_basins[exit_pair]
+        exit_pair = region_batch[exit_mask] - self.exit_offset
+        basin[exit_mask] = views["channel_destination_basins"][exit_pair]
         channel_mask = region_batch >= self.channel_offset
-        if bool(channel_mask.any()):
-            channel_pair = region_batch[channel_mask] - self.channel_offset
-            basin[channel_mask] = self.channel_destination_basins[channel_pair]
+        channel_pair = region_batch[channel_mask] - self.channel_offset
+        basin[channel_mask] = views["channel_destination_basins"][channel_pair]
         return basin[0] if squeezed else basin
 
     def dynamics(self, state: torch.Tensor) -> torch.Tensor:
         batch, squeezed = _as_batch_2d(state)
+        views = self._device_views(batch)
         nearest_basin, nearest_dist = self._nearest_basin(batch)
         core_basin = self._core_basin_label_flat(nearest_basin, nearest_dist)
         channel_index, _, _ = self._channel_membership(batch)
@@ -2389,64 +2468,64 @@ class GatedTransferLinear(Env):
         derivatives = torch.zeros_like(batch)
 
         channel_mask = channel_index >= 0
-        if bool(channel_mask.any()):
-            idx = channel_index[channel_mask]
-            rel = batch[channel_mask] - self.channel_entry_points_2d[idx]
-            transverse = (rel * self.channel_normals_2d[idx]).sum(dim=-1, keepdim=True)
-            derivatives[channel_mask] = (
-                self.channel_speed * self.channel_directions_2d[idx]
-                - self.channel_transverse_contraction * transverse * self.channel_normals_2d[idx]
-            )
+        idx = channel_index[channel_mask]
+        channel_states = batch[channel_mask]
+        rel = channel_states - views["channel_entry_points_2d"][idx]
+        transverse = (rel * views["channel_normals_2d"][idx]).sum(
+            dim=-1, keepdim=True
+        )
+        derivatives[channel_mask] = (
+            self.channel_speed * views["channel_directions_2d"][idx]
+            - self.channel_transverse_contraction
+            * transverse
+            * views["channel_normals_2d"][idx]
+        )
 
         non_channel_mask = ~channel_mask
-        if bool(non_channel_mask.any()):
-            active_indices = non_channel_mask.nonzero(as_tuple=False).reshape(-1)
-            active_states = batch[active_indices]
-            active_nearest = nearest_basin[active_indices]
-            active_source = source_basin[active_indices]
-            active_core = core_basin[active_indices]
-            active_exit = exit_pair[active_indices]
+        active_indices = non_channel_mask.nonzero(as_tuple=False).reshape(-1)
+        active_states = batch[active_indices]
+        active_nearest = nearest_basin[active_indices]
+        active_source = source_basin[active_indices]
+        active_core = core_basin[active_indices]
+        active_exit = exit_pair[active_indices]
 
-            matrices = self.background_matrices[active_nearest].clone()
-            centers = self.points_2d[active_nearest].clone()
-            in_source_mask = active_source >= 0
-            if bool(in_source_mask.any()):
-                source_basins = active_source[in_source_mask]
-                matrices[in_source_mask] = self.return_matrices[source_basins]
-                centers[in_source_mask] = self.points_2d[source_basins]
-            core_mask = active_core >= 0
-            if bool(core_mask.any()):
-                core_basins = active_core[core_mask]
-                matrices[core_mask] = self.basin_matrices[core_basins]
-                centers[core_mask] = self.points_2d[core_basins]
+        matrices = views["background_matrices"][active_nearest].clone()
+        centers = views["points_2d"][active_nearest].clone()
+        in_source_mask = active_source >= 0
+        source_basins = active_source[in_source_mask]
+        matrices[in_source_mask] = views["return_matrices"][source_basins]
+        centers[in_source_mask] = views["points_2d"][source_basins]
+        core_mask = active_core >= 0
+        core_basins = active_core[core_mask]
+        matrices[core_mask] = views["basin_matrices"][core_basins]
+        centers[core_mask] = views["points_2d"][core_basins]
 
-            exit_mask = (active_source >= 0) & (active_core < 0) & (active_exit >= 0)
-            if bool(exit_mask.any()):
-                exit_indices = active_exit[exit_mask]
-                source_centers = self.points_2d[active_source[exit_mask]]
-                exit_directions = self.exit_directions_2d[exit_indices]
-                exit_normals = self.exit_normals_2d[exit_indices]
-                rel = active_states[exit_mask] - source_centers
-                transverse = (rel * exit_normals).sum(dim=-1, keepdim=True)
-                exit_derivatives = (
-                    self.exit_forward_rate * exit_directions
-                    - self.exit_transverse_rate * transverse * exit_normals
-                )
-                derivatives[active_indices[exit_mask]] = exit_derivatives
-                non_exit_keep_mask = ~exit_mask
-                if bool(non_exit_keep_mask.any()):
-                    kept_indices = active_indices[non_exit_keep_mask]
-                    derivatives[kept_indices] = torch.einsum(
-                        "...ij,...j->...i",
-                        matrices[non_exit_keep_mask],
-                        active_states[non_exit_keep_mask] - centers[non_exit_keep_mask],
-                    )
-            else:
-                derivatives[active_indices] = torch.einsum(
-                    "...ij,...j->...i",
-                    matrices,
-                    active_states - centers,
-                )
+        # Use clamped indices for rows that are not exits; their selected
+        # derivative is discarded below.  This keeps all indexing on-device
+        # without synchronizing the host to branch on a mask.
+        exit_mask = (active_source >= 0) & (active_core < 0) & (active_exit >= 0)
+        safe_source = active_source.clamp_min(0)
+        safe_exit = active_exit.clamp_min(0)
+        source_centers = views["points_2d"][safe_source]
+        exit_directions = views["exit_directions_2d"][safe_exit]
+        exit_normals = views["exit_normals_2d"][safe_exit]
+        rel = active_states - source_centers
+        transverse = (rel * exit_normals).sum(dim=-1, keepdim=True)
+        exit_derivatives = (
+            self.exit_forward_rate * exit_directions
+            - self.exit_transverse_rate * transverse * exit_normals
+        )
+        linear_derivatives = torch.einsum(
+            "...ij,...j->...i",
+            matrices,
+            active_states - centers,
+        )
+        active_derivatives = torch.where(
+            exit_mask.unsqueeze(-1),
+            exit_derivatives,
+            linear_derivatives,
+        )
+        derivatives[active_indices] = active_derivatives
 
         return derivatives[0] if squeezed else derivatives
 
