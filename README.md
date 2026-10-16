@@ -1,8 +1,7 @@
 # Sparse Koopman Autoencoders
 
 Code for the NeurIPS 2026 paper
-[*Sparse Koopman Autoencoders Identify Local Dynamical Regimes in Multibasin Systems*](https://arxiv.org/abs/2608.29057)
-by Aidan Li, Uday Kiran Reddy Tadipatri, Mahan Fathi, Sarath Chandar and Ross Goroshin.
+[*Sparse Koopman Autoencoders Identify Local Dynamical Regimes in Multibasin Systems*](https://arxiv.org/abs/2608.29057).
 
 The repository has two parts:
 - `skae/` which provides the model as a small PyTorch package
