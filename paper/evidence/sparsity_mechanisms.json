@@ -1,0 +1,38 @@
+{
+  "hidden_zero_mean_of_system_means": {
+    "dense_mlp/layer1": 8.411391042204995e-09,
+    "dense_mlp/layer2": 0.0,
+    "dense_mlp/layerall": 4.205695521102498e-09,
+    "dense_mlp_relu/layer1": 0.4980869889238802,
+    "dense_mlp_relu/layer2": 0.5382611467754091,
+    "dense_mlp_relu/layerall": 0.5181740678496447,
+    "lista/layer1": 0.49237474597599057,
+    "lista/layer2": 0.559289338393626,
+    "lista/layerall": 0.5258320421848084,
+    "sparse_mlp/layer1": 0.4992937123169681,
+    "sparse_mlp/layer2": 0.49657283759959087,
+    "sparse_mlp/layerall": 0.4979332749582796,
+    "sparse_mlp_l1_0/layer1": 0.4986045670488803,
+    "sparse_mlp_l1_0/layer2": 0.4912442802540913,
+    "sparse_mlp_l1_0/layerall": 0.49492442365148576
+  },
+  "inactive_mean_of_system_means": {
+    "dense_mlp/encoded": 1.1145093130921623e-07,
+    "dense_mlp/rollout": 0.014024759928385415,
+    "dense_mlp_relu/encoded": 2.7337020887166237e-08,
+    "dense_mlp_relu/rollout": 0.011393195258246528,
+    "lista/encoded": 0.6065854694060886,
+    "lista/rollout": 0.6153941175672741,
+    "sparse_mlp/encoded": 0.6338263838420543,
+    "sparse_mlp/rollout": 0.6222745429144966,
+    "sparse_mlp_l1_0/encoded": 0.5241524409015665,
+    "sparse_mlp_l1_0/rollout": 0.5178455946180556
+  },
+  "runs": {
+    "dense_mlp": 225,
+    "dense_mlp_relu": 225,
+    "lista": 225,
+    "sparse_mlp": 225,
+    "sparse_mlp_l1_0": 225
+  }
+}

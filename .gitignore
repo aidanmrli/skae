@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Written by python -m paper (run from the repository root)
+/data/
+/runs/
+/evidence/
+/results/
+/logs/
+/tasks.txt
+/quick_check/

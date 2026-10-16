@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+type: software
+title: "Sparse Koopman Autoencoders Identify Local Dynamical Regimes in Multibasin Systems"
+version: 1.0.0
+license: MIT
+repository-code: "https://github.com/aidanmrli/skae"
+url: "https://openreview.net/forum?id=oenYjKFj4D"
+authors:
+  - family-names: Li
+    given-names: Aidan
+  - family-names: Tadipatri
+    given-names: Uday Kiran Reddy
+  - family-names: Fathi
+    given-names: Mahan
+  - family-names: Chandar
+    given-names: Sarath
+  - family-names: Goroshin
+    given-names: Ross
+preferred-citation:
+  type: conference-paper
+  title: "Sparse Koopman Autoencoders Identify Local Dynamical Regimes in Multibasin Systems"
+  authors:
+    - family-names: Li
+      given-names: Aidan
+    - family-names: Tadipatri
+      given-names: Uday Kiran Reddy
+    - family-names: Fathi
+      given-names: Mahan
+    - family-names: Chandar
+      given-names: Sarath
+    - family-names: Goroshin
+      given-names: Ross
+  collection-title: "The Fortieth Annual Conference on Neural Information Processing Systems"
+  year: 2026
+  url: "https://openreview.net/forum?id=oenYjKFj4D"

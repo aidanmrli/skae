@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skae"
+version = "1.0.0"
+description = "Sparse Koopman autoencoders in PyTorch, from the NeurIPS 2026 paper 'Sparse Koopman Autoencoders Identify Local Dynamical Regimes in Multibasin Systems'"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Aidan Li" },
+    { name = "Uday Kiran Reddy Tadipatri" },
+    { name = "Mahan Fathi" },
+    { name = "Sarath Chandar" },
+    { name = "Ross Goroshin" },
+]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "numpy>=1.24",
+    "torch>=2.2",
+]
+
+[project.urls]
+Paper = "https://arxiv.org/abs/2608.29057"
+Repository = "https://github.com/aidanmrli/skae"
+
+[dependency-groups]
+# Installed by a plain `uv sync`; `pip install .` installs the model package only.
+paper = [
+    "scipy>=1.10",
+    "dysts[numba]==0.96",
+]
+
+[tool.setuptools]
+packages = ["skae"]
+
+[tool.uv]
+default-groups = ["paper"]
+# Versions used for the paper's runs.
+constraint-dependencies = ["torch==2.9.1", "numpy==2.1.2", "scipy==1.15.3", "numba==0.63.1"]

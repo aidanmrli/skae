@@ -1,0 +1,265 @@
+{
+ "about": "Per-system settings of the Dysts baselines, chosen on validation starts only (python -m paper baselines select; see paper/baselines/dysts.py)",
+ "systems": {
+  "Chua": {
+   "dmd": {
+    "relative_ridge": 1e-06,
+    "validation_mse": 0.21005314588546753
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 1e-06,
+    "validation_mse": 0.050839100033044815
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 0.0029197672847658396
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "validation_mse": 0.017922988161444664
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 50,
+    "validation_mse": 0.0012711173621937633
+   }
+  },
+  "Dadras": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 2.6087229251861572
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 0.0001,
+    "validation_mse": 2.318948984146118
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 0.4250085949897766
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "validation_mse": 1.3741018772125244
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-06,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 0.1060333251953125
+   }
+  },
+  "DequanLi": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 2.0775415897369385
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 1e-06,
+    "validation_mse": 0.4002596139907837
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 9.46889485931024e-07
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "validation_mse": 0.022309523075819016
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 2.599310209916439e-05
+   }
+  },
+  "Hadley": {
+   "dmd": {
+    "relative_ridge": 0.0001,
+    "validation_mse": 1.586417555809021
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 1e-06,
+    "validation_mse": 0.3500019311904907
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 5.282068968881504e-07
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "validation_mse": 0.014924000948667526
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 6.552424110850552e-06
+   }
+  },
+  "LuChenCheng": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 2.0937604904174805
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 1e-06,
+    "validation_mse": 0.23533731698989868
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-10,
+    "period": 10,
+    "validation_mse": 1.1207336001461954e-06
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "validation_mse": 0.0609259158372879
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 2.3325401343754493e-06
+   }
+  },
+  "QiChen": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 2.730781316757202
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 0.0001,
+    "validation_mse": 1.9794105291366577
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 2.9413262382149696e-05
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-06,
+    "rbf_centers": 1024,
+    "validation_mse": 1.0086616277694702
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 0.0009783707791939378
+   }
+  },
+  "Sakarya": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 3.1237292289733887
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 0.01,
+    "validation_mse": 3.1663787364959717
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 0.12368923425674438
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "validation_mse": 1.2525079250335693
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 0.13302510976791382
+   }
+  },
+  "SanUmSrisuchinwong": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 2.9979991912841797
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 0.0001,
+    "validation_mse": 1.8606451749801636
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-06,
+    "period": 10,
+    "validation_mse": 0.22680969536304474
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "validation_mse": 0.7096568942070007
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 0.005053853616118431
+   }
+  },
+  "ShimizuMorioka": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 2.294212818145752
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 0.0001,
+    "validation_mse": 0.9805221557617188
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-10,
+    "period": 10,
+    "validation_mse": 3.3224056839031846e-09
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "validation_mse": 0.32532477378845215
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-12,
+    "rbf_centers": 1024,
+    "period": 10,
+    "validation_mse": 7.1267813837039284e-06
+   }
+  },
+  "WangSun": {
+   "dmd": {
+    "relative_ridge": 0.01,
+    "validation_mse": 3.203563928604126
+   },
+   "edmd_poly_direct": {
+    "relative_ridge": 0.0001,
+    "validation_mse": 3.034420967102051
+   },
+   "edmd_poly": {
+    "relative_ridge": 1e-12,
+    "period": 10,
+    "validation_mse": 0.15307676792144775
+   },
+   "edmd_rbf_direct": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "validation_mse": 1.9427459239959717
+   },
+   "edmd_rbf": {
+    "relative_ridge": 1e-10,
+    "rbf_centers": 1024,
+    "period": 25,
+    "validation_mse": 0.047539591789245605
+   }
+  }
+ }
+}
