@@ -13,7 +13,8 @@ __version__ = "1.0.0"
 
 from skae.config import ModelConfig
 
-__all__ = ["KoopmanAutoencoder", "ModelConfig", "fit", "training_loss", "trajectory_windows"]
+__all__ = ["KoopmanAutoencoder", "ModelConfig", "SupportLossConfig", "WindowSimilarity", "fit", "training_loss",
+           "trajectory_windows"]
 
 
 def __getattr__(name: str):
@@ -26,4 +27,8 @@ def __getattr__(name: str):
         from skae import training
 
         return getattr(training, name)
+    if name in ("SupportLossConfig", "WindowSimilarity"):
+        from skae import losses
+
+        return getattr(losses, name)
     raise AttributeError(f"module 'skae' has no attribute {name!r}")

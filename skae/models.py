@@ -32,6 +32,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from skae.config import ModelConfig
+from skae.losses import SupportLossConfig, support_terms
 
 _ACTIVATIONS = {"relu": nn.ReLU, "tanh": nn.Tanh}
 _CHOICES = {
@@ -96,8 +97,15 @@ class MLP(nn.Module):
             layers.append(nn.ReLU())
         self.network = nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.network(x)
+    def forward(self, x: torch.Tensor, return_activity: bool = False):
+        """``return_activity=True`` also returns the output before the final ReLU (the output without one)."""
+        if not return_activity:
+            return self.network(x)
+        if not isinstance(self.network[-1], nn.ReLU):
+            output = self.network(x)
+            return output, output
+        activity = self.network[:-1](x)
+        return self.network[-1](activity), activity
 
 
 class LISTAEncoder(nn.Module):
@@ -125,17 +133,27 @@ class LISTAEncoder(nn.Module):
         else:
             self.register_buffer("threshold", torch.tensor(threshold))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, return_activity: bool = False):
+        """Codes ``z``; with ``return_activity=True`` also the activity ``u - t`` (``|u| - t`` with soft
+        thresholding) of the last step's input ``u``, whose positive entries are the active coordinates."""
+        if return_activity and self.sign_split:
+            raise ValueError("the LISTA activity needs lista_output='none'")
         c = self.precode(x)
         threshold = torch.exp(self.log_thresholds) if self.learn_thresholds else self.threshold
         threshold = threshold.expand_as(c)
+        activity = None
 
-        def step(u: torch.Tensor) -> torch.Tensor:
+        def step(u: torch.Tensor, last: bool) -> torch.Tensor:
+            nonlocal activity
+            if return_activity and last:  # the margin before the threshold
+                activity = u - threshold if self.nonnegative else u.abs() - threshold
             return F.relu(u - threshold) if self.nonnegative else shrink(u, threshold)
 
-        z = step(c)
-        for _ in range(self.loops):
-            z = step(z @ self.S + c)
+        z = step(c, self.loops == 0)
+        for loop in range(self.loops):
+            z = step(z @ self.S + c, loop == self.loops - 1)
+        if return_activity:
+            return z, activity
         return torch.cat([F.relu(z), F.relu(-z)], dim=-1) if self.sign_split else z
 
 
@@ -213,8 +231,15 @@ class KoopmanAutoencoder(nn.Module):
                               "set_input_normalization with the training data's moments", stacklevel=2)
         return (x - self._input_mean) / self._input_scale
 
-    def encode_normalized(self, x: torch.Tensor) -> torch.Tensor:
-        """Normalized observations ``[..., obs_dim]`` -> codes ``[..., latent_dim]``."""
+    def encode_normalized(self, x: torch.Tensor, return_activity: bool = False):
+        """Normalized observations ``[..., obs_dim]`` -> codes ``[..., latent_dim]``.
+
+        ``return_activity=True`` returns ``(codes, activity)``: the LISTA
+        activity of :class:`LISTAEncoder`, or the MLP encoder's output before
+        its final ReLU (the soft-support input of :mod:`skae.losses`).
+        """
+        if return_activity:
+            return self.encoder(x, return_activity=True)
         return self.encoder(x)
 
     def decode_normalized(self, z: torch.Tensor) -> torch.Tensor:
@@ -315,7 +340,8 @@ class KoopmanAutoencoder(nn.Module):
         return self.K.masked_select(~self.block_mask).abs().sum()
 
 
-def training_loss(model: KoopmanAutoencoder, windows: torch.Tensor):
+def training_loss(model: KoopmanAutoencoder, windows: torch.Tensor, support: Optional[SupportLossConfig] = None,
+                  pair_weights: Optional[torch.Tensor] = None):
     """The training loss on windows ``[B, L + 1, obs_dim]``; returns ``(loss, terms)``.
 
     A window holds a state ``x_t`` and the ``L`` states after it. With codes
@@ -328,18 +354,29 @@ def training_loss(model: KoopmanAutoencoder, windows: torch.Tensor):
     * sparsity:        ``||z_{t+h}||_1``
 
     each averaged over the batch and the ``L`` steps (and divided by ``L`` once
-    more with ``loss_time_reduction="divide_horizon"``), plus
-    ``soft_block_weight`` times :meth:`KoopmanAutoencoder.soft_block_penalty`.
+    more with ``loss_time_reduction="divide_horizon"``), plus, with a
+    ``support`` that has a positive weight, the window support terms of
+    :mod:`skae.losses` on the activities of all ``L + 1`` states (``pair_weights``
+    ``[B, B]`` from :class:`skae.losses.WindowSimilarity` when
+    ``support.pair_weight > 0``), plus ``soft_block_weight`` times
+    :meth:`KoopmanAutoencoder.soft_block_penalty`.
     Observations enter in normalized coordinates. ``terms`` holds the detached
     terms and ``active_fraction``, the fraction of code entries with
-    ``|z| > 1e-6``. The windows must be on the model's device and dtype and
-    have ``L >= 1`` (:func:`skae.fit` checks and converts them).
+    ``|z| > 1e-6``; with a ``support``, also the detached unweighted
+    ``temporal``, ``occupancy`` and ``pair`` terms. The windows must be on the
+    model's device and dtype and have ``L >= 1`` (:func:`skae.fit` checks and
+    converts them). ``support=None`` is the paper's loss.
     """
     cfg = model.cfg
     batch, length, obs_dim = windows.shape
     horizon = length - 1
     x = model.normalize_observations(windows)
-    z = model.encode_normalized(x.reshape(batch * length, obs_dim)).reshape(batch, length, -1)
+    with_support = support is not None and support.active
+    if with_support:
+        z, activity = model.encode_normalized(x.reshape(batch * length, obs_dim), return_activity=True)
+        z, activity = z.reshape(batch, length, -1), activity.reshape(batch, length, -1)
+    else:
+        z = model.encode_normalized(x.reshape(batch * length, obs_dim)).reshape(batch, length, -1)
     x_true, z_true = x[:, 1:], z[:, 1:]
     z_pred = model.rollout_latent(z[:, 0], horizon)
     x_pred = model.decode_normalized(z_pred.reshape(batch * horizon, -1)).reshape(batch, horizon, obs_dim)
@@ -357,6 +394,11 @@ def training_loss(model: KoopmanAutoencoder, windows: torch.Tensor):
         + cfg.prediction_weight * prediction
         + cfg.sparsity_weight * sparsity
     )
+    if with_support:
+        window = support_terms(activity, support, pair_weights)
+        loss = loss + support.temporal_weight * window["temporal"] + support.occupancy_weight * window["occupancy"]
+        if support.pair_weight > 0.0:
+            loss = loss + support.pair_weight * window["pair"]
     if cfg.soft_block_weight > 0.0:
         loss = loss + cfg.soft_block_weight * model.soft_block_penalty()
     terms = {
@@ -366,4 +408,9 @@ def training_loss(model: KoopmanAutoencoder, windows: torch.Tensor):
         "sparsity": sparsity.detach(),
         "active_fraction": (z_true.detach().abs() > 1e-6).float().sum(dim=-1).mean() / model.latent_dim,
     }
+    if with_support:
+        terms.update({name: value.detach() for name, value in window.items()})
+    elif support is not None:
+        terms.update({name: torch.zeros((), device=windows.device, dtype=windows.dtype)
+                      for name in ("temporal", "occupancy", "pair")})
     return loss, terms
