@@ -40,9 +40,32 @@ with torch.no_grad():
 ```
 
 `ModelConfig()` is the paper's multibasin LISTA model; its docstring lists the settings of the
-other models. `fit` is a plain Adam loop. Tips: 64-state training windows (`window_length=63`) worked well
-in practice; re-encode every half to one training window (`reencode_every`); and you may need fewer updates
-than the paper's 200,000 per multibasin run. A runnable version: [`examples/custom_data.py`](examples/custom_data.py).
+other models. `fit` is a plain Adam loop; optionally, `koopman_lr` gives `K` its own learning rate (the paper's
+runs trained `K` 5 to 10 times more slowly) and `lr_schedule="cosine_tail"` decays the learning rates over the
+last quarter of the updates (as in the paper's Dysts runs). Tips: 64-state training windows (`window_length=63`)
+worked well in practice; re-encode every half to one training window (`reencode_every`); and you may need fewer
+updates than the paper's 200,000 per multibasin run. A runnable version: [`examples/custom_data.py`](examples/custom_data.py).
+
+### Optional support losses
+
+We have two additional regularization terms that act on the active code coordinates: the temporal term penalizes
+support changes within a window; the pair term matches supports to observation similarity. These loss terms were not
+included in our paper but can be included for nicer latents that specialize better to basins
+([`skae/losses.py`](skae/losses.py)). In our experiments with LISTA encoders without an L1 penalty, they made the
+supports larger, more distinct between basins and slightly more consistent within them, and lowered the error of
+forecasts without re-encoding, but not of forecasts that re-encode periodically. With an L1 penalty on the codes
+(`sparsity_weight`), or at larger weights, they raised forecast errors.
+
+```python
+from skae import SupportLossConfig
+
+cfg = ModelConfig(input_normalization=True, lista_output="none", lista_threshold="nonnegative",
+                  lista_learn_thresholds=True, sparsity_weight=0.0,  # LISTA without L1
+                  reconstruction_weight=1.0, loss_time_reduction="mean")  # the loss of our experiments
+model = KoopmanAutoencoder(cfg, obs_dim=train.shape[-1])                  # then set_input_normalization as above
+losses = fit(model, windows, epochs=100, batch_size=256, koopman_lr=2e-4, lr_schedule="cosine_tail",
+             support=SupportLossConfig(temporal_weight=0.25, pair_weight=0.19))
+```
 
 ## Code map
 
@@ -51,6 +74,7 @@ skae/
   config.py           ModelConfig
   models.py           KoopmanAutoencoder (encode, rollout_latent, decode, forecast), LISTAEncoder, MLP, training_loss
   training.py         trajectory_windows, fit
+  losses.py           the optional support losses: SupportLossConfig, WindowSimilarity
 paper/
   __main__.py         the command line (python -m paper --help)
   config.py           paper_config(benchmark, system, model, seed): settings of every run; paper_runs(); seed table

@@ -28,6 +28,7 @@ Check these before and after a change; the outputs of the paper's code must not 
 | The tables reproduce the paper | `rebuild` before and after the change; `results/tables/` must be byte-identical |
 | The run configurations are unchanged | `train ... --print-config` (or `paper_config(...).to_dict()` for every run of `paper_runs()`) before and after |
 | Training numerics are unchanged | a short run (`train --steps 20 --no-eval --device cpu`) before and after, on the same machine: every tensor of `final.pt` identical |
+| Without support losses (`support=None`, the default), `training_loss` and `fit` compute what they did before | the short run above, and a short `fit` with its defaults before and after: every tensor identical |
 | `skae` imports nothing from `paper`, SciPy or dysts | `grep -rnE "^\s*(from\|import) (paper\|scipy\|dysts)" skae/` prints nothing |
 | Producers write deterministic bytes in the bundled schema | `evidence` run twice on the same runs writes the same `SHA256SUMS` |
 
@@ -54,6 +55,7 @@ Check these before and after a change; the outputs of the paper's code must not 
 | Change | Files |
 |---|---|
 | A multibasin system | `paper/systems/analytic.py`; a `SystemSpec` in `paper/systems/__init__.py` |
+| A support loss | `skae/losses.py`; its hook in `training_loss` (`skae/models.py`) |
 | An encoder | `skae/models.py`, `skae/config.py` (defaults keep the paper models unchanged); for paper runs `paper/config.py` and the labels in `paper/tables/` |
 | A paper ablation | `paper/config.py` (`ABLATIONS`, `seeds_for`), `paper/training/collect.py` |
 | The evaluation | `paper/evaluate.py`, `paper/training/evaluation.py` |
